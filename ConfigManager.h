@@ -270,10 +270,12 @@ private:
     // Write configuration string to EEPROM
     bool writeToEEPROM()
     {
+        RD_DBG("Writing config str: %s", _pDataStrJSON);
 
         // Get length of string
         int dataStrLen = 0;
         if (_pDataStrJSON != NULL)
+            dataStrLen = strlen(_pDataStrJSON);
         if (dataStrLen >= _configMaxDataLen)
             dataStrLen = _configMaxDataLen-1;
 
