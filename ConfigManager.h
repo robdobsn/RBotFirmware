@@ -155,7 +155,7 @@ private:
 private:
 
     static bool parseAndGetToken(const char* jsonStr, const char* dataPath,
-                jsmntok_t& outToken, int maxTokens = 200)
+                jsmntok_t& outToken, int maxTokens = 1000)
     {
         // Check for null source string
         if (jsonStr == NULL)
@@ -164,13 +164,26 @@ private:
             return false;
         }
 
-        // Extract json params
+        // Find how many tokens in the string
         jsmn_parser parser;
-        // Max tokens can be overridden
-        jsmntok_t* pTokens = new jsmntok_t[maxTokens];
         jsmn_init(&parser);
         int tokenCountRslt = jsmn_parse(&parser, jsonStr, strlen(jsonStr),
-                    pTokens, maxTokens);
+                    NULL, maxTokens);
+        if (tokenCountRslt < 0)
+        {
+            RD_ERR("Failed to parse JSON: %d", tokenCountRslt);
+            return false;
+        }
+
+        // Allocate space for tokens
+        if (tokenCountRslt > maxTokens)
+            tokenCountRslt = maxTokens;
+        jsmntok_t* pTokens = new jsmntok_t[tokenCountRslt];
+
+        // Parse again
+        jsmn_init(&parser);
+        tokenCountRslt = jsmn_parse(&parser, jsonStr, strlen(jsonStr),
+                    pTokens, tokenCountRslt);
         if (tokenCountRslt < 0)
         {
             RD_ERR("Failed to parse JSON: %d", tokenCountRslt);
