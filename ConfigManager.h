@@ -134,6 +134,76 @@ public:
         return strtol(pSourceStr + outToken.start, NULL, 10);
     }
 
+    static int dump(const char *js, jsmntok_t *t, size_t count, int indent) {
+	int i, j, k;
+	if (count == 0) {
+		return 0;
+	}
+	if (t->type == JSMN_PRIMITIVE) {
+		Serial.printf("%.*s", t->end - t->start, js+t->start);
+		return 1;
+	} else if (t->type == JSMN_STRING) {
+		Serial.printf("'%.*s'", t->end - t->start, js+t->start);
+		return 1;
+	} else if (t->type == JSMN_OBJECT) {
+		Serial.printf("\n\r");
+		j = 0;
+		for (i = 0; i < t->size; i++) {
+			for (k = 0; k < indent; k++) Serial.printf("  ");
+			j += dump(js, t+1+j, count-j, indent+1);
+			Serial.printf(": ");
+			j += dump(js, t+1+j, count-j, indent+1);
+			Serial.printf("\n\r");
+		}
+		return j+1;
+	} else if (t->type == JSMN_ARRAY) {
+		j = 0;
+		Serial.printf("\n\r");
+		for (i = 0; i < t->size; i++) {
+			for (k = 0; k < indent-1; k++) Serial.printf("  ");
+			Serial.printf("   - ");
+			j += dump(js, t+1+j, count-j, indent+1);
+			Serial.printf("\n\r");
+		}
+		return j+1;
+	}
+	return 0;
+}
+
+    static bool doPrint(const char* jsonStr)
+    {
+        jsmn_parser parser;
+        jsmn_init(&parser);
+        int tokenCountRslt = jsmn_parse(&parser, jsonStr, strlen(jsonStr),
+                    NULL, 1000);
+        if (tokenCountRslt < 0)
+        {
+            RD_ERR("Failed to parse JSON: %d", tokenCountRslt);
+            return false;
+        }
+        jsmntok_t* pTokens = new jsmntok_t[tokenCountRslt];
+        jsmn_init(&parser);
+        tokenCountRslt = jsmn_parse(&parser, jsonStr, strlen(jsonStr),
+                    pTokens, tokenCountRslt);
+        if (tokenCountRslt < 0)
+        {
+            RD_ERR("Failed to parse JSON: %d", tokenCountRslt);
+            delete pTokens;
+            return false;
+        }
+        // Top level item must be an object
+        if (tokenCountRslt < 1 || pTokens[0].type != JSMN_OBJECT)
+        {
+            RD_ERR("JSON must have top level object");
+            delete pTokens;
+            return false;
+        }
+        Serial.printf("Dumping");
+        dump(jsonStr, pTokens, parser.toknext, 0);
+        delete pTokens;
+        return true;
+    }
+
 private:
     // Data is stored in a single string as JSON
     char* _pDataStrJSON;

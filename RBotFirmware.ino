@@ -6,14 +6,19 @@
 static const char* CONFIG_LOCATION_STR =
     "{\"source\": \"EEPROM\", \"base\": 0, \"maxLen\": 1000}";
 
+    static const char *JSON_STRING =
+    	"{\"user\": \"johndoe\", \"admin\": false, \"uid\": 1000,\n  "
+    	"\"groups\": [\"users\", \"wheel\", \"audio\", \"video\"], "
+        "\"groups\": {\"my-array\" : [1,2,3,4]}}";
+
 ConfigManager configManager;
 
 void setup()
 {
     // Initialise the config manager
-    configManager.SetConfigLocation(CONFIG_LOCATION_STR, false);
+    configManager.SetConfigLocation(CONFIG_LOCATION_STR);
 
-    for (int i = 0; i < 1000000; i++)
+    /*for (int i = 0; i < 1000000; i++)
     {
         bool isValid = false;
         String cStr = configManager.getString("source", "", isValid);
@@ -24,7 +29,9 @@ void setup()
             Serial.print("free memory: ");
             Serial.println(freemem);
         }
-    }
+    }*/
+
+    configManager.doPrint(JSON_STRING);
 }
 
 void loop()
