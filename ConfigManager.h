@@ -112,22 +112,31 @@ public:
         return true;
     }
 
-    // Get a sub-unit config
-    String getConfigString (String& branchName, const char* nodeName,
-                    String& defaultValue, bool& isValid)
+    // Get a string from the JSON
+    String getConfigString (const char* dataPath,
+                            const char* defaultValue, bool& isValid)
     {
-        isValid = false;
-        return defaultValue;
+        jsmntok_t outToken;
+        isValid = parseAndGetToken(_pDataStrJSON, dataPath, outToken);
+        if (!isValid)
+            return defaultValue;
+        char* pStr = strndup(_pDataStrJSON + outToken.start,
+                    outToken.end - outToken.start);
+        String outStr(pStr);
+        free(pStr);
+        return outStr;
+        // isValid = false;
+        // return defaultValue;
     }
 
-    double getConfigDouble (String& branchName, const char* nodeName,
+    double getConfigDouble (const char* dataPath, const char* nodeName,
                     double defaultValue, bool& isValid)
     {
         isValid = false;
         return defaultValue;
     }
 
-    long getConfigLong (String& branchName, const char* nodeName,
+    long getConfigLong (const char* dataPath, const char* nodeName,
                     long defaultValue, bool& isValid)
     {
         isValid = false;
@@ -153,6 +162,52 @@ private:
     int _configMaxDataLen;
 
 private:
+
+    static bool parseAndGetToken(const char* jsonStr, const char* dataPath,
+                jsmntok_t& outToken, int maxTokens = 200)
+    {
+        // Check for null source string
+        if (jsonStr == NULL)
+        {
+            RD_ERR("Source JSON is NULL");
+            return false;
+        }
+
+        // Extract json params
+        jsmn_parser parser;
+        // Max tokens can be overridden
+        jsmntok_t* pTokens = new jsmntok_t[maxTokens];
+        jsmn_init(&parser);
+        int tokenCountRslt = jsmn_parse(&parser, jsonStr, strlen(jsonStr),
+                    pTokens, maxTokens);
+        if (tokenCountRslt < 0)
+        {
+            RD_ERR("Failed to parse JSON: %d", tokenCountRslt);
+            delete pTokens;
+            return false;
+        }
+        // Top level item must be an object
+        if (tokenCountRslt < 1 || pTokens[0].type != JSMN_OBJECT)
+        {
+            RD_ERR("JSON must have top level object");
+            delete pTokens;
+            return false;
+        }
+        // Get required token
+        int keyIdx = findKeyInJson(jsonStr, pTokens, tokenCountRslt,
+                            dataPath, JSMN_STRING);
+        if (keyIdx < 0)
+        {
+            RD_INFO("JSON cannot find key");
+            delete pTokens;
+            return false;
+        }
+
+        // Copy out token value
+        outToken = pTokens[keyIdx+1];
+        delete pTokens;
+        return true;
+    }
 
     static int findKeyInJson(const char* jsonOriginal, jsmntok_t tokens[],
                 unsigned int numTokens, const char* reqdKey,
