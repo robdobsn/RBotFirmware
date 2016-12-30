@@ -25,28 +25,8 @@ public:
         // location of config
         if (configStrDefinesLocation)
         {
-            // Extract json params
-            jsmn_parser parser;
-            // Only expect a few tokens
-            jsmntok_t tokens[10];
-        	jsmn_init(&parser);
-        	int tokenCountRslt = jsmn_parse(&parser, configStr, strlen(configStr),
-                        tokens, sizeof(tokens)/sizeof(tokens[0]));
-            if (tokenCountRslt < 0)
-            {
-                RD_ERR("Failed to parse configLocation JSON: %d", tokenCountRslt);
-        		return false;
-        	}
-            // Top level item must be an object
-        	if (tokenCountRslt < 1 || tokens[0].type != JSMN_OBJECT)
-            {
-                RD_ERR("configLocation JSON must have top level object");
-        		return false;
-        	}
-            // Get config settings
             bool isValid = false;
-            String configSource = getStringFromTokens(configStr, tokens,
-                                tokenCountRslt, "source", "", isValid);
+            String configSource = getString("source", "", isValid, configStr);
             if (!isValid)
             {
                 RD_ERR("configLocation source not found");
@@ -54,16 +34,14 @@ public:
             }
             if (configSource.equalsIgnoreCase("EEPROM"))
             {
-                long configPos = getLongFromTokens(configStr, tokens,
-                                    tokenCountRslt, "base", 0, isValid);
+                long configPos = getLong("base", 0, isValid, configStr);
                 if (!isValid)
                 {
                     RD_ERR("configLocation base not found");
             		return false;
                 }
 
-                long configMaxLen = getLongFromTokens(configStr, tokens,
-                                    tokenCountRslt, "maxLen", 500, isValid);
+                long configMaxLen = getLong("maxLen", 500, isValid, configStr);
                 if (!isValid)
                 {
                     RD_ERR("configLocation maxLen not found");
@@ -113,34 +91,47 @@ public:
     }
 
     // Get a string from the JSON
-    String getConfigString (const char* dataPath,
-                            const char* defaultValue, bool& isValid)
+    String getString (const char* dataPath,
+                        const char* defaultValue, bool& isValid,
+                        const char* pSourceStr = NULL)
     {
+        if (pSourceStr == NULL)
+            pSourceStr = _pDataStrJSON;
         jsmntok_t outToken;
-        isValid = parseAndGetToken(_pDataStrJSON, dataPath, outToken);
+        isValid = parseAndGetToken(pSourceStr, dataPath, outToken);
         if (!isValid)
             return defaultValue;
-        char* pStr = strndup(_pDataStrJSON + outToken.start,
+        char* pStr = strndup(pSourceStr + outToken.start,
                     outToken.end - outToken.start);
         String outStr(pStr);
         free(pStr);
         return outStr;
-        // isValid = false;
-        // return defaultValue;
     }
 
-    double getConfigDouble (const char* dataPath, const char* nodeName,
-                    double defaultValue, bool& isValid)
+    double getDouble (const char* dataPath,
+                    double defaultValue, bool& isValid,
+                    const char* pSourceStr = NULL)
     {
-        isValid = false;
-        return defaultValue;
+        if (pSourceStr == NULL)
+            pSourceStr = _pDataStrJSON;
+        jsmntok_t outToken;
+        isValid = parseAndGetToken(pSourceStr, dataPath, outToken);
+        if (!isValid)
+            return defaultValue;
+        return strtod(pSourceStr + outToken.start, NULL);
     }
 
-    long getConfigLong (const char* dataPath, const char* nodeName,
-                    long defaultValue, bool& isValid)
+    long getLong (const char* dataPath,
+                    long defaultValue, bool& isValid,
+                    const char* pSourceStr = NULL)
     {
-        isValid = false;
-        return defaultValue;
+        if (pSourceStr == NULL)
+            pSourceStr = _pDataStrJSON;
+        jsmntok_t outToken;
+        isValid = parseAndGetToken(pSourceStr, dataPath, outToken);
+        if (!isValid)
+            return defaultValue;
+        return strtol(pSourceStr + outToken.start, NULL, 10);
     }
 
 private:
@@ -226,62 +217,6 @@ private:
             }
         }
         return -1;
-    }
-
-    // Get a string value
-    static String getStringFromTokens(const char* jsonOriginal,
-                jsmntok_t tokens[], unsigned int numTokens, const char* reqdKey,
-    			const char* defaultValue, bool& isValid)
-    {
-        isValid = false;
-        int keyIdx = findKeyInJson(jsonOriginal, tokens, numTokens,
-                            reqdKey, JSMN_STRING);
-        if (keyIdx >= 0)
-        {
-            isValid = true;
-            char* pStr = strndup(jsonOriginal + tokens[keyIdx+1].start,
-                        tokens[keyIdx+1].end - tokens[keyIdx+1].start);
-            String outStr(pStr);
-            free(pStr);
-            return outStr;
-        }
-        return defaultValue;
-    }
-
-    // Get a long value
-    static long getLongFromTokens(const char* jsonOriginal,
-                jsmntok_t tokens[], unsigned int numTokens, const char* reqdKey,
-    			long defaultValue, bool& isValid)
-    {
-        isValid = false;
-        int keyIdx = findKeyInJson(jsonOriginal, tokens, numTokens,
-                            reqdKey, JSMN_STRING);
-        if (keyIdx >= 0)
-        {
-            isValid = true;
-            long outVal = strtol(jsonOriginal + tokens[keyIdx+1].start,
-                        NULL, 10);
-            return outVal;
-        }
-        return defaultValue;
-    }
-
-    // Get a double value
-    static double getDoubleFromTokens(const char* jsonOriginal,
-                jsmntok_t tokens[], unsigned int numTokens, const char* reqdKey,
-    			double defaultValue, bool& isValid)
-    {
-        isValid = false;
-        int keyIdx = findKeyInJson(jsonOriginal, tokens, numTokens,
-                            reqdKey, JSMN_STRING);
-        if (keyIdx >= 0)
-        {
-            isValid = true;
-            double outVal = strtod(jsonOriginal + tokens[keyIdx+1].start,
-                        NULL);
-            return outVal;
-        }
-        return defaultValue;
     }
 
     // Read a configuration string from EEPROM
