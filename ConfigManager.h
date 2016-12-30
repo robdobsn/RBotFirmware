@@ -80,7 +80,7 @@ public:
             // Simply make a copy of the config string
             delete _pDataStrJSON;
             _pDataStrJSON = new char[strlen(configStr)+1];
-            strcpy(_pDataStrJSON, configStr);
+            safeStringCopy(_pDataStrJSON, configStr, strlen(configStr));
 
             // Debug
             RD_INFO("configLocation Source Passed-In-Str");
@@ -101,7 +101,7 @@ public:
         isValid = parseAndGetToken(pSourceStr, dataPath, outToken);
         if (!isValid)
             return defaultValue;
-        char* pStr = strndup(pSourceStr + outToken.start,
+        char* pStr = safeStringDup(pSourceStr + outToken.start,
                     outToken.end - outToken.start);
         String outStr(pStr);
         free(pStr);
@@ -134,41 +134,68 @@ public:
         return strtol(pSourceStr + outToken.start, NULL, 10);
     }
 
-    static int dump(const char *js, jsmntok_t *t, size_t count, int indent) {
-	int i, j, k;
-	if (count == 0) {
-		return 0;
-	}
-	if (t->type == JSMN_PRIMITIVE) {
-		Serial.printf("%.*s", t->end - t->start, js+t->start);
-		return 1;
-	} else if (t->type == JSMN_STRING) {
-		Serial.printf("'%.*s'", t->end - t->start, js+t->start);
-		return 1;
-	} else if (t->type == JSMN_OBJECT) {
-		Serial.printf("\n\r");
-		j = 0;
-		for (i = 0; i < t->size; i++) {
-			for (k = 0; k < indent; k++) Serial.printf("  ");
-			j += dump(js, t+1+j, count-j, indent+1);
-			Serial.printf(": ");
-			j += dump(js, t+1+j, count-j, indent+1);
-			Serial.printf("\n\r");
-		}
-		return j+1;
-	} else if (t->type == JSMN_ARRAY) {
-		j = 0;
-		Serial.printf("\n\r");
-		for (i = 0; i < t->size; i++) {
-			for (k = 0; k < indent-1; k++) Serial.printf("  ");
-			Serial.printf("   - ");
-			j += dump(js, t+1+j, count-j, indent+1);
-			Serial.printf("\n\r");
-		}
-		return j+1;
-	}
-	return 0;
-}
+    static int dump(const char *js, jsmntok_t *t, size_t count, int indent)
+    {
+        int i, j, k;
+
+        if (count == 0)
+        {
+            return 0;
+        }
+        if (t->type == JSMN_PRIMITIVE)
+        {
+            Serial.printf("\n\r#Found primitive size %d, start %d, end %d\n\r",
+                    t->size, t->start, t->end);
+            Serial.printf("%.*s", t->end - t->start, js + t->start);
+            return 1;
+        }
+        else if (t->type == JSMN_STRING)
+        {
+            Serial.printf("\n\r#Found string size %d, start %d, end %d\n\r",
+                    t->size, t->start, t->end);
+            Serial.printf("'%.*s'", t->end - t->start, js + t->start);
+            return 1;
+        }
+        else if (t->type == JSMN_OBJECT)
+        {
+            Serial.printf("\n\r#Found object size %d, start %d, end %d\n\r",
+                    t->size, t->start, t->end);
+            j = 0;
+            for (i = 0; i < t->size; i++)
+            {
+                for (k = 0; k < indent; k++)
+                {
+                    Serial.printf("  ");
+                }
+                j += dump(js, t + 1 + j, count - j, indent + 1);
+                Serial.printf(": ");
+                j += dump(js, t + 1 + j, count - j, indent + 1);
+                Serial.printf("\n\r");
+            }
+            return j + 1;
+        }
+        else if (t->type == JSMN_ARRAY)
+        {
+            Serial.printf("\n\r#Found array size %d, start %d, end %d\n\r",
+                    t->size, t->start, t->end);
+            j = 0;
+            Serial.printf("\n\r");
+            for (i = 0; i < t->size; i++)
+            {
+                for (k = 0; k < indent - 1; k++)
+                {
+                    Serial.printf("  ");
+                }
+                Serial.printf("   - ");
+                j += dump(js, t + 1 + j, count - j, indent + 1);
+                Serial.printf("\n\r");
+            }
+            return j + 1;
+        }
+        return 0;
+    }
+
+
 
     static bool doPrint(const char* jsonStr)
     {
@@ -198,7 +225,7 @@ public:
             delete pTokens;
             return false;
         }
-        Serial.printf("Dumping");
+        RD_DBG("Dumping");
         dump(jsonStr, pTokens, parser.toknext, 0);
         delete pTokens;
         return true;
@@ -283,86 +310,240 @@ private:
         return true;
     }
 
-    static int findKeyInJson(const char* jsonOriginal, jsmntok_t tokens[],
-                unsigned int numTokens, const char* reqdKey,
-                jsmntype_t keyType = JSMN_UNDEFINED)
+    static int findObjectEnd(jsmntok_t tokens[],
+                unsigned int numTokens, int curTokenIdx,
+                int count, bool atObjectKey = true)
     {
-        // Iterate over tokens to find key
-        // Note that the root object has index 0
-        for (int tokIdx = 1; tokIdx < numTokens; tokIdx++)
+        int tokIdx = curTokenIdx;
+        for (int objIdx = 0; objIdx < count; objIdx++)
         {
-            jsmntok_t* pTok = &tokens[tokIdx];
-            if (((keyType == JSMN_UNDEFINED) || (pTok->type == keyType)) &&
-                ((int) strlen(reqdKey) == pTok->end - pTok->start) &&
-                (strncmp(jsonOriginal + pTok->start, reqdKey, pTok->end - pTok->start) == 0))
+            jsmntok_t* pTok = tokens + tokIdx;
+            if (pTok->type == JSMN_PRIMITIVE)
             {
-                return tokIdx;
+                RD_DBG("findObjectEnd PRIMITIVE");
+                tokIdx += 1;
+            }
+            else if (pTok->type == JSMN_STRING)
+            {
+                RD_DBG("findObjectEnd STRING");
+				if (atObjectKey)
+				{
+					tokIdx = findObjectEnd(tokens, numTokens, tokIdx + 1, pTok->size, false);
+				}
+				else
+				{
+					tokIdx += 1;
+				}
+            }
+            else if (pTok->type == JSMN_OBJECT)
+            {
+                RD_DBG("findObjectEnd OBJECT");
+                tokIdx = findObjectEnd(tokens, numTokens, tokIdx+1, pTok->size, true);
+            }
+            else if (pTok->type == JSMN_ARRAY)
+            {
+                RD_DBG("findObjectEnd ARRAY");
+                tokIdx = findObjectEnd(tokens, numTokens, tokIdx+1, pTok->size, false);
+			}
+			else
+			{
+				RD_DBG("findObjectEnd UNKNOWN!!!!!!!");
+				tokIdx += 1;
+			}
+            if (tokIdx >= numTokens)
+            {
+                break;
+            }
+        }
+        RD_DBG("findObjectEnd returning %d", tokIdx);
+        return tokIdx;
+    }
+
+    static int findKeyInJson(const char *jsonOriginal, jsmntok_t tokens[],
+                             unsigned int numTokens, const char *dataPath,
+                             jsmntype_t keyType = JSMN_UNDEFINED)
+    {
+        const int  MAX_SRCH_KEY_LEN = 100;
+        char       srchKey[MAX_SRCH_KEY_LEN + 1];
+        const char *pDataPathPos = dataPath;
+        // Note that the root object has index 0
+        int  curTokenIdx = 1;
+        int  maxTokenIdx = numTokens;
+        bool atNodeLevel = false;
+
+        // Go through the parts of the path to find the whole
+        while (pDataPathPos < dataPath + strlen(dataPath))
+        {
+            // Get the next part of the path
+            const char *slashPos = strstr(pDataPathPos, "/");
+            if (slashPos == NULL)
+            {
+                safeStringCopy(srchKey, pDataPathPos, MAX_SRCH_KEY_LEN);
+                pDataPathPos += strlen(pDataPathPos);
+                atNodeLevel   = true;
+            }
+            else if (slashPos - pDataPathPos >= MAX_SRCH_KEY_LEN)
+            {
+                safeStringCopy(srchKey, pDataPathPos, MAX_SRCH_KEY_LEN);
+                pDataPathPos = slashPos + 1;
+            }
+            else
+            {
+                safeStringCopy(srchKey, pDataPathPos, slashPos - pDataPathPos);
+                pDataPathPos = slashPos + 1;
+            }
+            RD_DBG("SlashPos %d, %d", slashPos-pDataPathPos, atNodeLevel);
+            RD_DBG("findKeyInJson srchKey %s", srchKey);
+
+
+            // Iterate over tokens to find key of the right type
+            // If we are already looking at the node level then search for requested type
+            // Otherwise search for and object that will contain the next level key
+            jsmntype_t keyTypeToFind = atNodeLevel ? keyType : JSMN_STRING;
+            for (int tokIdx = curTokenIdx; tokIdx < maxTokenIdx; )
+            {
+                jsmntok_t *pTok = tokens + tokIdx;
+                if ((pTok->type == JSMN_STRING) &&
+                    ((int)strlen(srchKey) == pTok->end - pTok->start) &&
+                    (strncmp(jsonOriginal + pTok->start, srchKey, pTok->end - pTok->start) == 0))
+                {
+                    if (atNodeLevel)
+                    {
+                        if ((keyTypeToFind == JSMN_UNDEFINED) || (tokens[tokIdx + 1].type == keyTypeToFind))
+                        {
+                            return tokIdx;
+                        }
+                        return -1;
+                    }
+                    else
+                    {
+                        // Check for an object
+                        RD_DBG("findObjectEnd inside");
+                        if (tokens[tokIdx + 1].type == JSMN_OBJECT)
+                        {
+                            // Continue next level of search in this object
+                            maxTokenIdx = findObjectEnd(tokens, numTokens, tokIdx, 1);
+                            curTokenIdx = tokIdx + 2;
+                            break;
+                        }
+                        else
+                        {
+                            // Found a key in the path but it didn't point to an object so we can't continue
+                            return -1;
+                        }
+                    }
+                }
+                else if (pTok->type == JSMN_STRING)
+                {
+                    // We're at a key string but it isn't the one we want to skip its contents
+                    tokIdx = findObjectEnd(tokens, numTokens, tokIdx, 1);
+                }
+                else
+                {
+                    // Shouldn't really get here as all keys are strings
+                    tokIdx++;
+                }
             }
         }
         return -1;
     }
 
-    // Read a configuration string from EEPROM
-    void readFromEEPROM()
-    {
-        // Check EEPROM has been initialised - if not just start with a null string
-        if (EEPROM.read(_eepromBaseLocation) == 0xff)
-        {
-            delete _pDataStrJSON;
-            _pDataStrJSON = NULL;
-            RD_INFO("EEPROM uninitialised, _pDataStrJSON empty");
-            return;
-        }
 
-        // Find out how long the string is - don't allow > _configMaxDataLen
-        int dataStrLen = _configMaxDataLen-1;
-        for (int chIdx = 0; chIdx < _configMaxDataLen; chIdx++)
-        {
-            if (EEPROM.read(_eepromBaseLocation+chIdx) == 0)
-            {
-                dataStrLen = chIdx;
-                break;
-            }
-        }
+   // Read a configuration string from EEPROM
+   void readFromEEPROM()
+   {
+       // Check EEPROM has been initialised - if not just start with a null string
+       if (EEPROM.read(_eepromBaseLocation) == 0xff)
+       {
+           delete _pDataStrJSON;
+           _pDataStrJSON = NULL;
+           RD_INFO("EEPROM uninitialised, _pDataStrJSON empty");
+           return;
+       }
 
-        // Set initial size of string to avoid unnecessary resizing as we read it
-        delete _pDataStrJSON;
-        _pDataStrJSON = new char[dataStrLen+1];
+       // Find out how long the string is - don't allow > _configMaxDataLen
+       int dataStrLen = _configMaxDataLen-1;
+       for (int chIdx = 0; chIdx < _configMaxDataLen; chIdx++)
+       {
+           if (EEPROM.read(_eepromBaseLocation+chIdx) == 0)
+           {
+               dataStrLen = chIdx;
+               break;
+           }
+       }
 
-        // Fill string from EEPROM location
-        for (int chIdx = 0; chIdx < dataStrLen; chIdx++)
-        {
-            char ch = EEPROM.read(_eepromBaseLocation+chIdx);
-            _pDataStrJSON[chIdx] = ch;
-        }
-        _pDataStrJSON[dataStrLen+1] = 0;
+       // Set initial size of string to avoid unnecessary resizing as we read it
+       delete _pDataStrJSON;
+       _pDataStrJSON = new char[dataStrLen+1];
 
-        RD_INFO("Read config str: %s", _pDataStrJSON);
-    }
+       // Fill string from EEPROM location
+       for (int chIdx = 0; chIdx < dataStrLen; chIdx++)
+       {
+           char ch = EEPROM.read(_eepromBaseLocation+chIdx);
+           _pDataStrJSON[chIdx] = ch;
+       }
+       _pDataStrJSON[dataStrLen+1] = 0;
 
-    // Write configuration string to EEPROM
-    bool writeToEEPROM()
-    {
-        RD_DBG("Writing config str: %s", _pDataStrJSON);
+       RD_INFO("Read config str: %s", _pDataStrJSON);
+   }
 
-        // Get length of string
-        int dataStrLen = 0;
-        if (_pDataStrJSON != NULL)
-            dataStrLen = strlen(_pDataStrJSON);
-        if (dataStrLen >= _configMaxDataLen)
-            dataStrLen = _configMaxDataLen-1;
+   // Write configuration string to EEPROM
+   bool writeToEEPROM()
+   {
+       RD_DBG("Writing config str: %s", _pDataStrJSON);
 
-        // Write the current value of the string to EEPROM
-        for (int chIdx = 0; chIdx < dataStrLen; chIdx++)
-        {
-            EEPROM.write(_eepromBaseLocation+chIdx, _pDataStrJSON[chIdx]);
-        }
+       // Get length of string
+       int dataStrLen = 0;
+       if (_pDataStrJSON != NULL)
+           dataStrLen = strlen(_pDataStrJSON);
+       if (dataStrLen >= _configMaxDataLen)
+           dataStrLen = _configMaxDataLen-1;
 
-        // Terminate string
-        EEPROM.write(_eepromBaseLocation+dataStrLen, 0);
+       // Write the current value of the string to EEPROM
+       for (int chIdx = 0; chIdx < dataStrLen; chIdx++)
+       {
+           EEPROM.write(_eepromBaseLocation+chIdx, _pDataStrJSON[chIdx]);
+       }
 
-        return true;
-    }
+       // Terminate string
+       EEPROM.write(_eepromBaseLocation+dataStrLen, 0);
+
+       return true;
+   }
+
+	static void safeStringCopy(char* pDest, const char* pSrc, size_t maxx)
+	{
+		char* pD = pDest;
+		const char* pS = pSrc;
+		size_t toCopy = strlen(pS);
+		for (size_t i = 0; i < toCopy + 1; i++)
+		{
+			*pD++ = *pS++;
+			if (i >= maxx - 1)
+			{
+				*pD = 0;
+				break;
+			}
+		}
+	}
+
+	static char* safeStringDup(const char* pSrc, size_t maxx)
+	{
+		size_t toCopy = strlen(pSrc);
+		char* pDest = new char[toCopy+1];
+		char* pD = pDest;
+		const char* pS = pSrc;
+		for (size_t i = 0; i < toCopy + 1; i++)
+		{
+			*pD++ = *pS++;
+			if (i >= maxx - 1)
+			{
+				*pD = 0;
+				break;
+			}
+		}
+		return pDest;
+	}
 };
 
 #define RD_DEBUG_FNAME ""

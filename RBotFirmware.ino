@@ -8,8 +8,8 @@ static const char* CONFIG_LOCATION_STR =
 
     static const char *JSON_STRING =
     	"{\"user\": \"johndoe\", \"admin\": false, \"uid\": 1000,\n  "
-    	"\"groups\": [\"users\", \"wheel\", \"audio\", \"video\"], "
-        "\"groups\": {\"my-array\" : [1,2,3,4]}}";
+    	"\"things\": [\"users\", \"wheel\", \"audio\", \"video\"], "
+        "\"groups\": {\"my-array\" : [1,2,3,4], \"my-str\":\"TESTSTR\"}}";
 
 ConfigManager configManager;
 
@@ -32,6 +32,11 @@ void setup()
     }*/
 
     configManager.doPrint(JSON_STRING);
+
+    bool isValid = false;
+    String myStr = configManager.getString("groups/my-str", "NOTFOUND", isValid, JSON_STRING);
+    Serial.printlnf("Result str %d = %s", isValid, myStr.c_str());
+
 }
 
 void loop()
