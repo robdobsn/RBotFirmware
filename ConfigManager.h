@@ -15,7 +15,7 @@ class ConfigManager
 public:
     ConfigManager()
     {
-        _dataStrJSON = "";
+        _pDataStrJSON = NULL;
     }
 
     // Initialise
@@ -100,7 +100,9 @@ public:
             _configSource = CONFIG_SOURCE_STR;
 
             // Simply make a copy of the config string
-            _dataStrJSON = configStr;
+            delete _pDataStrJSON;
+            _pDataStrJSON = new char[strlen(configStr)+1];
+            strcpy(_pDataStrJSON, configStr);
 
             // Debug
             RD_INFO("configLocation Source Passed-In-Str");
@@ -134,7 +136,7 @@ public:
 
 private:
     // Data is stored in a single string as JSON
-    String _dataStrJSON;
+    char* _pDataStrJSON;
 
     // Source of config
     typedef enum CONFIG_SOURCE
@@ -230,11 +232,12 @@ private:
     // Read a configuration string from EEPROM
     void readFromEEPROM()
     {
-        // Check EEPROM has been initialised - if not just start with an empty string
+        // Check EEPROM has been initialised - if not just start with a null string
         if (EEPROM.read(_eepromBaseLocation) == 0xff)
         {
-            _dataStrJSON = "";
-            RD_INFO("EEPROM uninitialised, _dataStr empty");
+            delete _pDataStrJSON;
+            _pDataStrJSON = NULL;
+            RD_INFO("EEPROM uninitialised, _pDataStrJSON empty");
             return;
         }
 
@@ -250,33 +253,34 @@ private:
         }
 
         // Set initial size of string to avoid unnecessary resizing as we read it
-        _dataStrJSON = "";
-        _dataStrJSON.reserve(dataStrLen);
+        delete _pDataStrJSON;
+        _pDataStrJSON = new char[dataStrLen+1];
 
         // Fill string from EEPROM location
         for (int chIdx = 0; chIdx < dataStrLen; chIdx++)
         {
             char ch = EEPROM.read(_eepromBaseLocation+chIdx);
-            _dataStrJSON.concat(ch);
+            _pDataStrJSON[chIdx] = ch;
         }
+        _pDataStrJSON[dataStrLen+1] = 0;
 
-        RD_INFO("Read config str: %s", _dataStrJSON.c_str());
+        RD_INFO("Read config str: %s", _pDataStrJSON);
     }
 
     // Write configuration string to EEPROM
     bool writeToEEPROM()
     {
-        RD_DBG("Writing config str: %s", _dataStrJSON.c_str());
 
         // Get length of string
-        int dataStrLen = _dataStrJSON.length();
+        int dataStrLen = 0;
+        if (_pDataStrJSON != NULL)
         if (dataStrLen >= _configMaxDataLen)
             dataStrLen = _configMaxDataLen-1;
 
         // Write the current value of the string to EEPROM
         for (int chIdx = 0; chIdx < dataStrLen; chIdx++)
         {
-            EEPROM.write(_eepromBaseLocation+chIdx, _dataStrJSON.charAt(chIdx));
+            EEPROM.write(_eepromBaseLocation+chIdx, _pDataStrJSON[chIdx]);
         }
 
         // Terminate string

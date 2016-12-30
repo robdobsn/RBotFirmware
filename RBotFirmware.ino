@@ -12,9 +12,19 @@ void setup()
 {
     // Initialise the config manager
     configManager.SetConfigLocation(CONFIG_LOCATION_STR);
-    /*bool isValid = false;
-    String cStr = configManager.getConfigString("source", "", isValid);
-    Serial.printlnf("CStr %s, vlid %d", cStr, isValid);*/
+
+    /*for (int i = 0; i < 1000; i++)
+    {
+        bool isValid = false;
+        String cStr = configManager.getConfigString("source", "", isValid);
+        if (isValid == false || i % 100 == 0)
+        {
+            Serial.printlnf("CStr %s, vlid %d", cStr, isValid);
+            uint32_t freemem = System.freeMemory();
+            Serial.print("free memory: ");
+            Serial.println(freemem);
+        }
+    }*/
 }
 
 void loop()
