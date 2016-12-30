@@ -13,11 +13,11 @@ void setup()
     // Initialise the config manager
     configManager.SetConfigLocation(CONFIG_LOCATION_STR, false);
 
-    for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < 1000000; i++)
     {
         bool isValid = false;
-        String cStr = configManager.getConfigString("source", "", isValid);
-        if (isValid == false || i % 100 == 0)
+        String cStr = configManager.getString("source", "", isValid);
+        if (isValid == false || i % 100000 == 0)
         {
             Serial.printlnf("CStr %s, valid %d", cStr.c_str(), isValid);
             uint32_t freemem = System.freeMemory();
