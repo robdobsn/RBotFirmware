@@ -116,7 +116,6 @@ static int jsmn_parse_string(jsmn_parser *parser, const char *js,
 
 		// Backslash: Quoted symbol expected
 		if (c == '\\' && parser->pos + 1 < len) {
-			int i;
 			parser->pos++;
 			switch (js[parser->pos]) {
 				// Allowed escaped symbols

@@ -476,7 +476,7 @@ public:
             delete pTokens;
             return false;
         }
-        RD_DBG("Dumping");
+        RD_DBG("Dumping toknext = %d", parser.toknext);
         // Reserve the same amount of space as the original string
         String outStr;
         outStr.reserve(strlen(jsonStr));
@@ -506,6 +506,18 @@ public:
 
     }
 
+    static const char* getObjType(jsmntype_t type)
+    {
+        switch(type)
+        {
+            case JSMN_PRIMITIVE: return "PRIMITIVE";
+            case JSMN_STRING: return "STRING";
+            case JSMN_OBJECT: return "OBJECT";
+            case JSMN_ARRAY: return "ARRAY";
+            case JSMN_UNDEFINED: return "UNDEFINED";
+        }
+        return "UNKNOWN";
+    }
     static void runTests(ConfigManager& configManager)
     {
         TestConfigManager testConfigManager;
@@ -516,47 +528,76 @@ public:
         int objSize = 0;
         bool testSuccess = true;
         String myStr, myVal;
-        // String myStr = configManager.getString("groups/my-str", "NOTFOUND",
-        //                     isValid, objType, TEST_JSON_STRING_001);
-        // Serial.printlnf("Result str %d = %s", isValid, myStr.c_str());
+        int testIdx = 0;
+        bool thisTestResult = true;
 
-        // String myStr = configManager.getString("groups", "NOTFOUND", isValid,
-        //                     objType, TEST_JSON_STRING_001);
-        // Serial.printlnf("Result str %d = %s", isValid, myStr.c_str());
+        Serial.println("---------------------------------");
+        thisTestResult = true;
+        myStr = configManager.getString("groups/my-str", "NOTFOUND",
+                            isValid, objType, objSize, TEST_JSON_STRING_001);
+        Serial.printlnf("Result str valid %d, type %s, size %d, contents %s",
+                            isValid, getObjType(objType), objSize, myStr.c_str());
+        if (!myStr.equals("TESTSTR"))
+            thisTestResult = false;
+        Serial.printlnf("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
+        testSuccess &= thisTestResult;
 
+        Serial.println("---------------------------------");
+        thisTestResult = true;
+        myStr = configManager.getString("groups", "NOTFOUND", isValid,
+                            objType, objSize, TEST_JSON_STRING_001);
+        Serial.printlnf("Result str valid %d, type %s, size %d, contents %s",
+                            isValid, getObjType(objType), objSize, myStr.c_str());
+        if (objSize != 2)
+            thisTestResult = false;
+        if (objType != JSMN_OBJECT)
+            thisTestResult = false;
+        Serial.printlnf("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
+        testSuccess &= thisTestResult;
+
+        Serial.println("---------------------------------");
+        thisTestResult = true;
         myStr = configManager.getString("info", "NOTFOUND", isValid,
                             objType, objSize, TEST_JSON_STRING_002);
-        Serial.printlnf("Middle object valid %d, size %d, contents %s",
-                            isValid, objSize, myStr.c_str());
+        Serial.printlnf("Middle object valid %d, type %s, size %d, contents %s",
+                            isValid, getObjType(objType), objSize, myStr.c_str());
         if (objSize != 1)
-            testSuccess = false;
+            thisTestResult = false;
         if (objType != JSMN_OBJECT)
-            testSuccess = false;
+            thisTestResult = false;
         myVal = configManager.getString("pet/type","NOTFOUND2", isValid,
                             objType, objSize, myStr.c_str());
-        Serial.printlnf("Result str valid %d, size %d, contents %s",
-                            isValid, objSize, myVal.c_str());
+        Serial.printlnf("Result str valid %d, type %s, size %d, contents %s",
+                            isValid, getObjType(objType), objSize, myVal.c_str());
         if (!myVal.equals("wolf"))
-            testSuccess = false;
+            thisTestResult = false;
         if (objType != JSMN_STRING)
-            testSuccess = false;
+            thisTestResult = false;
+        Serial.printlnf("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
+        testSuccess &= thisTestResult;
 
+        Serial.println("---------------------------------");
+        thisTestResult = true;
         myStr = configManager.getString("tags", "NOTFOUND", isValid,
                             objType, objSize, TEST_JSON_STRING_002);
-        Serial.printlnf("Middle array valid %d, size %d, contents %s",
-                            isValid, objSize, myStr.c_str());
+        Serial.printlnf("Middle object valid %d, type %s, size %d, contents %s",
+                            isValid, getObjType(objType), objSize, myStr.c_str());
         if (objSize != 7)
-            testSuccess = false;
+            thisTestResult = false;
         if (objType != JSMN_ARRAY)
-            testSuccess = false;
+            thisTestResult = false;
 
-        // myVal = configManager.getString("pet/type", "NOTFOUND2", isValid,
+        // myVal = configManager.getString("[1]", "NOTFOUND2", isValid,
         //                     objType, objSize, myStr.c_str());
-        // Serial.printlnf("Result str valid %d, size %d, contents %s",
-        //                     isValid, objSize, myVal.c_str());
-        // if (!myVal.equals("wolf"))
-        //     testSuccess = false;
+        // Serial.printlnf("Result str valid %d, type %s, size %d, contents %s",
+        //                     isValid, getObjType(objType), objSize, myVal.c_str());
+        // if (!myVal.equals("veniam"))
+        //     thisTestResult = false;
+        // Serial.printlnf("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
+        // testSuccess &= thisTestResult;
 
+        Serial.println("---------------------------------");
+        Serial.println("");
         Serial.printlnf("TEST RESULTS: %s", testSuccess ? "PASSED" : "FAILED");
     }
 };

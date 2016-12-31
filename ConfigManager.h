@@ -99,9 +99,10 @@ public:
     {
         // Simply make a copy of the config string
         delete[] _pDataStrJSON;
-        _pDataStrJSON = new char[safeStringLen(configJSONStr)+1];
+        int stringLength = safeStringLen(configJSONStr, true);
+        _pDataStrJSON = new char[stringLength+1];
         safeStringCopy(_pDataStrJSON, configJSONStr,
-                strlen(configJSONStr));
+                stringLength, true);
     }
 
     // Get a string from the JSON
@@ -137,16 +138,18 @@ public:
         if (objType == JSMN_STRING || objType == JSMN_PRIMITIVE)
         {
             char* pStr = safeStringDup(pSourceStr + pTokens[startTokenIdx].start,
-                        pTokens[startTokenIdx].end - pTokens[startTokenIdx].start);
+                        pTokens[startTokenIdx].end - pTokens[startTokenIdx].start,
+                        true);
             outStr = pStr;
             delete[] pStr;
             objSize = outStr.length();
         }
         else
         {
-//            recreateJson(pSourceStr, pTokens + startTokenIdx, 1, 0, outStr);
+            //recreateJson(pSourceStr, pTokens + startTokenIdx, objSize, 0, outStr);
             char* pStr = safeStringDup(pSourceStr + pTokens[startTokenIdx].start,
-                        pTokens[startTokenIdx].end - pTokens[startTokenIdx].start);
+                        pTokens[startTokenIdx].end - pTokens[startTokenIdx].start,
+                        true);
             outStr = pStr;
             delete[] pStr;
         }
@@ -214,7 +217,8 @@ public:
         return strtol(pSourceStr + pTokens[startTokenIdx].start, NULL, 10);
     }
 
-    static int recreateJson(const char *js, jsmntok_t *t, size_t count, int indent, String& outStr)
+    static int recreateJson(const char *js, jsmntok_t *t,
+                    size_t count, int indent, String& outStr)
     {
         int i, j, k;
 
@@ -580,35 +584,53 @@ private:
         return true;
     }
 
-    static size_t safeStringLen(const char* pSrc, bool skipWhitespace = false)
-    {
-        const char* pS = pSrc;
-		size_t toCount = strlen(pS);
-        int stringLen = 0;
-		for (size_t i = 0; i < toCount + 1; i++)
+	static size_t safeStringLen(const char* pSrc,
+		bool skipJSONWhitespace = false, size_t maxx = LONG_MAX)
+	{
+		const char* pS = pSrc;
+		int stringLen = 0;
+		bool insideDoubleQuotes = false;
+		bool insideSingleQuotes = false;
+		size_t charsTakenFromSrc = 0;
+		while (*pS)
 		{
-            char ch = *pS++;
-            if (skipWhitespace && isspace(ch))
-                continue;
+			char ch = *pS++;
+			charsTakenFromSrc++;
+			if ((ch == '\'') && !insideDoubleQuotes)
+				insideSingleQuotes = !insideSingleQuotes;
+			else if ((ch == '\"') && !insideSingleQuotes)
+				insideDoubleQuotes = !insideDoubleQuotes;
+			else if (!insideDoubleQuotes && !insideSingleQuotes &&
+				skipJSONWhitespace && isspace(ch))
+				continue;
 			stringLen++;
+			if (maxx != LONG_MAX && charsTakenFromSrc >= maxx)
+				return stringLen;
 		}
-        return stringLen;
-    }
+		return stringLen;
+	}
 
 	static void safeStringCopy(char* pDest, const char* pSrc,
-                size_t maxx, bool removeWhitespace = false)
+		size_t maxx, bool skipJSONWhitespace = false)
 	{
 		char* pD = pDest;
 		const char* pS = pSrc;
-		size_t maxToCopy = strlen(pS);
-        int stringLen = 0;
-		for (size_t i = 0; i < maxToCopy + 1; i++)
+		size_t srcStrlen = strlen(pS);
+		size_t stringLen = 0;
+		bool insideDoubleQuotes = false;
+		bool insideSingleQuotes = false;
+		for (size_t i = 0; i < srcStrlen + 1; i++)
 		{
-            char ch = *pS++;
-            if (removeWhitespace && isspace(ch))
-                continue;
+			char ch = *pS++;
+			if ((ch == '\'') && !insideDoubleQuotes)
+				insideSingleQuotes = !insideSingleQuotes;
+			else if ((ch == '\"') && !insideSingleQuotes)
+				insideDoubleQuotes = !insideDoubleQuotes;
+			else if (!insideDoubleQuotes && !insideSingleQuotes &&
+				skipJSONWhitespace && isspace(ch))
+				continue;
 			*pD++ = ch;
-            stringLen++;
+			stringLen++;
 			if (stringLen >= maxx)
 			{
 				*pD = 0;
@@ -617,16 +639,30 @@ private:
 		}
 	}
 
-	static char* safeStringDup(const char* pSrc, size_t maxx)
+	static char* safeStringDup(const char* pSrc, size_t maxx,
+		bool skipJSONWhitespace = false)
 	{
-		size_t toCopy = strlen(pSrc);
-		char* pDest = new char[toCopy+1];
+		size_t toAlloc = safeStringLen(pSrc, skipJSONWhitespace, maxx);
+		char* pDest = new char[toAlloc + 1];
 		char* pD = pDest;
 		const char* pS = pSrc;
-		for (size_t i = 0; i < toCopy + 1; i++)
+		size_t srcStrlen = strlen(pS);
+		size_t stringLen = 0;
+		bool insideDoubleQuotes = false;
+		bool insideSingleQuotes = false;
+		for (size_t i = 0; i < srcStrlen + 1; i++)
 		{
-			*pD++ = *pS++;
-			if (i >= maxx - 1)
+			char ch = *pS++;
+			if ((ch == '\'') && !insideDoubleQuotes)
+				insideSingleQuotes = !insideSingleQuotes;
+			else if ((ch == '\"') && !insideSingleQuotes)
+				insideDoubleQuotes = !insideDoubleQuotes;
+			else if (!insideDoubleQuotes && !insideSingleQuotes &&
+				skipJSONWhitespace && isspace(ch))
+				continue;
+			*pD++ = ch;
+			stringLen++;
+			if (stringLen >= maxx || stringLen >= toAlloc)
 			{
 				*pD = 0;
 				break;
