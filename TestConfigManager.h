@@ -477,8 +477,14 @@ public:
             return false;
         }
         RD_DBG("Dumping");
-        dump(jsonStr, pTokens, parser.toknext, 0);
+        // Reserve the same amount of space as the original string
+        String outStr;
+        outStr.reserve(strlen(jsonStr));
+        ConfigManager::recreateJson(jsonStr, pTokens, parser.toknext, 0, outStr);
         delete pTokens;
+        RD_DBG("---------------------------------");
+        RD_DBG("RECREATED");
+        RD_DBG("%s", outStr.c_str());
         return true;
     }
 
@@ -503,13 +509,21 @@ public:
     static void runTests(ConfigManager& configManager)
     {
         TestConfigManager testConfigManager;
-        testConfigManager.doPrint(TEST_JSON_STRING_001);
+        doPrint(TEST_JSON_STRING_001);
+
 
         bool isValid = false;
-        String myStr = configManager.getString("groups/my-str", "NOTFOUND", isValid, TEST_JSON_STRING_001);
-        Serial.printlnf("Result str %d = %s", isValid, myStr.c_str());
+        jsmntype_t objType = JSMN_UNDEFINED;
+        // String myStr = configManager.getString("groups/my-str", "NOTFOUND",
+        //                     isValid, objType, TEST_JSON_STRING_001);
+        // Serial.printlnf("Result str %d = %s", isValid, myStr.c_str());
 
-        myStr = configManager.getString("info/pet/name", "NOTFOUND", isValid, TEST_JSON_STRING_002);
+        // String myStr = configManager.getString("groups", "NOTFOUND", isValid,
+        //                     objType, TEST_JSON_STRING_001);
+        // Serial.printlnf("Result str %d = %s", isValid, myStr.c_str());
+
+        String myStr = configManager.getString("info", "NOTFOUND", isValid,
+                            objType, TEST_JSON_STRING_002);
         Serial.printlnf("Result str %d = %s", isValid, myStr.c_str());
 
     }
