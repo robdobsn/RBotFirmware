@@ -511,9 +511,11 @@ public:
         TestConfigManager testConfigManager;
         doPrint(TEST_JSON_STRING_001);
 
-
         bool isValid = false;
         jsmntype_t objType = JSMN_UNDEFINED;
+        int objSize = 0;
+        bool testSuccess = true;
+        String myStr, myVal;
         // String myStr = configManager.getString("groups/my-str", "NOTFOUND",
         //                     isValid, objType, TEST_JSON_STRING_001);
         // Serial.printlnf("Result str %d = %s", isValid, myStr.c_str());
@@ -522,9 +524,39 @@ public:
         //                     objType, TEST_JSON_STRING_001);
         // Serial.printlnf("Result str %d = %s", isValid, myStr.c_str());
 
-        String myStr = configManager.getString("info", "NOTFOUND", isValid,
-                            objType, TEST_JSON_STRING_002);
-        Serial.printlnf("Result str %d = %s", isValid, myStr.c_str());
+        myStr = configManager.getString("info", "NOTFOUND", isValid,
+                            objType, objSize, TEST_JSON_STRING_002);
+        Serial.printlnf("Middle object valid %d, size %d, contents %s",
+                            isValid, objSize, myStr.c_str());
+        if (objSize != 1)
+            testSuccess = false;
+        if (objType != JSMN_OBJECT)
+            testSuccess = false;
+        myVal = configManager.getString("pet/type","NOTFOUND2", isValid,
+                            objType, objSize, myStr.c_str());
+        Serial.printlnf("Result str valid %d, size %d, contents %s",
+                            isValid, objSize, myVal.c_str());
+        if (!myVal.equals("wolf"))
+            testSuccess = false;
+        if (objType != JSMN_STRING)
+            testSuccess = false;
 
+        myStr = configManager.getString("tags", "NOTFOUND", isValid,
+                            objType, objSize, TEST_JSON_STRING_002);
+        Serial.printlnf("Middle array valid %d, size %d, contents %s",
+                            isValid, objSize, myStr.c_str());
+        if (objSize != 7)
+            testSuccess = false;
+        if (objType != JSMN_ARRAY)
+            testSuccess = false;
+
+        // myVal = configManager.getString("pet/type", "NOTFOUND2", isValid,
+        //                     objType, objSize, myStr.c_str());
+        // Serial.printlnf("Result str valid %d, size %d, contents %s",
+        //                     isValid, objSize, myVal.c_str());
+        // if (!myVal.equals("wolf"))
+        //     testSuccess = false;
+
+        Serial.printlnf("TEST RESULTS: %s", testSuccess ? "PASSED" : "FAILED");
     }
 };

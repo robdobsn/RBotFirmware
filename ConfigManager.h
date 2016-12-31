@@ -18,6 +18,11 @@ public:
         _pDataStrJSON = NULL;
     }
 
+    ~ConfigManager()
+    {
+        delete[] _pDataStrJSON;
+    }
+
     // Initialise
     bool SetConfigLocation(const char* configStr, bool configStrDefinesLocation = true)
     {
@@ -27,7 +32,9 @@ public:
         {
             bool isValid = false;
             jsmntype_t objType = JSMN_UNDEFINED;
-            String configSource = getString("source", "", isValid, objType, configStr);
+            int objSize = 0;
+            String configSource = getString("source", "", isValid, objType,
+                            objSize, configStr);
             if (!isValid)
             {
                 RD_ERR("configLocation source not found");
@@ -77,10 +84,8 @@ public:
             // Record source of config
             _configSource = CONFIG_SOURCE_STR;
 
-            // Simply make a copy of the config string
-            delete _pDataStrJSON;
-            _pDataStrJSON = new char[strlen(configStr)+1];
-            safeStringCopy(_pDataStrJSON, configStr, strlen(configStr));
+            // Set config data
+            setConfigData(configStr);
 
             // Debug
             RD_INFO("configLocation Source Passed-In-Str");
@@ -89,10 +94,20 @@ public:
         return true;
     }
 
+    // Set the configuration data directly
+    void setConfigData(const char* configJSONStr)
+    {
+        // Simply make a copy of the config string
+        delete[] _pDataStrJSON;
+        _pDataStrJSON = new char[safeStringLen(configJSONStr)+1];
+        safeStringCopy(_pDataStrJSON, configJSONStr,
+                strlen(configJSONStr));
+    }
+
     // Get a string from the JSON
     String getString (const char* dataPath,
                         const char* defaultValue, bool& isValid,
-                        jsmntype_t& objType,
+                        jsmntype_t& objType, int& objSize,
                         const char* pSourceStr = NULL)
     {
         // Get source string
@@ -111,19 +126,21 @@ public:
                         pTokens, numTokens, startTokenIdx, endTokenIdx);
         if (!isValid)
         {
-            delete pTokens;
+            delete[] pTokens;
             return defaultValue;
         }
 
         // Extract as a string
         objType = pTokens[startTokenIdx].type;
+        objSize = pTokens[startTokenIdx].size;
         String outStr;
         if (objType == JSMN_STRING || objType == JSMN_PRIMITIVE)
         {
             char* pStr = safeStringDup(pSourceStr + pTokens[startTokenIdx].start,
                         pTokens[startTokenIdx].end - pTokens[startTokenIdx].start);
             outStr = pStr;
-            free(pStr);
+            delete[] pStr;
+            objSize = outStr.length();
         }
         else
         {
@@ -131,11 +148,11 @@ public:
             char* pStr = safeStringDup(pSourceStr + pTokens[startTokenIdx].start,
                         pTokens[startTokenIdx].end - pTokens[startTokenIdx].start);
             outStr = pStr;
-            free(pStr);
+            delete[] pStr;
         }
 
         // Tidy up
-        delete pTokens;
+        delete[] pTokens;
         return outStr;
     }
 
@@ -159,12 +176,12 @@ public:
                         pTokens, numTokens, startTokenIdx, endTokenIdx);
         if (!isValid)
         {
-            delete pTokens;
+            delete[] pTokens;
             return defaultValue;
         }
 
         // Tidy up
-        delete pTokens;
+        delete[] pTokens;
         return strtod(pSourceStr + pTokens[startTokenIdx].start, NULL);
     }
 
@@ -188,12 +205,12 @@ public:
                         pTokens, numTokens, startTokenIdx, endTokenIdx);
         if (!isValid)
         {
-            delete pTokens;
+            delete[] pTokens;
             return defaultValue;
         }
 
         // Tidy up
-        delete pTokens;
+        delete[] pTokens;
         return strtol(pSourceStr + pTokens[startTokenIdx].start, NULL, 10);
     }
 
@@ -210,7 +227,7 @@ public:
             char *pStr = safeStringDup(js + t->start,
                                        t->end - t->start);
             outStr.concat(pStr);
-            free(pStr);
+            delete[] pStr;
             return 1;
         }
         else if (t->type == JSMN_STRING)
@@ -220,7 +237,7 @@ public:
             outStr.concat("\"");
             outStr.concat(pStr);
             outStr.concat("\"");
-            free(pStr);
+            delete[] pStr;
             return 1;
         }
         else if (t->type == JSMN_OBJECT)
@@ -313,7 +330,7 @@ private:
         if (tokenCountRslt < 0)
         {
             RD_ERR("Failed to parse JSON: %d", tokenCountRslt);
-            delete pTokens;
+            delete[] pTokens;
             return NULL;
         }
         numTokens = tokenCountRslt;
@@ -328,7 +345,7 @@ private:
         // if (tokenCountRslt < 1 || pTokens[0].type != JSMN_OBJECT)
         // {
         //     RD_ERR("JSON must have top level object");
-        //     delete pTokens;
+        //     delete[] pTokens;
         //     return false;
         // }
         // Get required token
@@ -387,7 +404,7 @@ private:
 			}
 			else
 			{
-				RD_DBG("findObjectEnd UNKNOWN!!!!!!!");
+				RD_DBG("findObjectEnd UNKNOWN!!!!!!! %d", pTok->type);
 				tokIdx += 1;
 			}
             if (tokIdx >= numTokens)
@@ -420,7 +437,7 @@ private:
         {
             // Get the next part of the path
             const char *slashPos = strstr(pDataPathPos, "/");
-            RD_DBG("SlashPos %d", slashPos-pDataPathPos);
+            // RD_DBG("SlashPos %d, %d", slashPos, slashPos-pDataPathPos);
             if (slashPos == NULL)
             {
                 safeStringCopy(srchKey, pDataPathPos, MAX_SRCH_KEY_LEN);
@@ -437,7 +454,7 @@ private:
                 safeStringCopy(srchKey, pDataPathPos, slashPos - pDataPathPos);
                 pDataPathPos = slashPos + 1;
             }
-            RD_DBG("findKeyInJson srchKey %s", srchKey);
+            // RD_DBG("findKeyInJson srchKey %s", srchKey);
 
 
             // Iterate over tokens to find key of the right type
@@ -453,7 +470,7 @@ private:
                 {
                     if (atNodeLevel)
                     {
-                        RD_DBG("findObjectEnd we have got it %d", tokIdx);
+                        // RD_DBG("findObjectEnd we have got it %d", tokIdx);
                         if ((keyTypeToFind == JSMN_UNDEFINED) || (tokens[tokIdx + 1].type == keyTypeToFind))
                         {
                             endTokenIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx, 1);
@@ -464,7 +481,7 @@ private:
                     else
                     {
                         // Check for an object
-                        RD_DBG("findObjectEnd inside");
+                        // RD_DBG("findObjectEnd inside");
                         if (tokens[tokIdx + 1].type == JSMN_OBJECT)
                         {
                             // Continue next level of search in this object
@@ -501,7 +518,7 @@ private:
         // Check EEPROM has been initialised - if not just start with a null string
         if (EEPROM.read(_eepromBaseLocation) == 0xff)
         {
-            delete _pDataStrJSON;
+            delete[] _pDataStrJSON;
             _pDataStrJSON = NULL;
             RD_INFO("EEPROM uninitialised, _pDataStrJSON empty");
             return;
@@ -511,7 +528,8 @@ private:
         int dataStrLen = _configMaxDataLen - 1;
         for (int chIdx = 0; chIdx < _configMaxDataLen; chIdx++)
         {
-            if (EEPROM.read(_eepromBaseLocation + chIdx) == 0)
+            int ch = EEPROM.read(_eepromBaseLocation + chIdx);
+            if (ch == 0)
             {
                 dataStrLen = chIdx;
                 break;
@@ -519,7 +537,7 @@ private:
         }
 
         // Set initial size of string to avoid unnecessary resizing as we read it
-        delete _pDataStrJSON;
+        delete[] _pDataStrJSON;
         _pDataStrJSON = new char[dataStrLen + 1];
 
         // Fill string from EEPROM location
@@ -562,16 +580,36 @@ private:
         return true;
     }
 
+    static size_t safeStringLen(const char* pSrc, bool skipWhitespace = false)
+    {
+        const char* pS = pSrc;
+		size_t toCount = strlen(pS);
+        int stringLen = 0;
+		for (size_t i = 0; i < toCount + 1; i++)
+		{
+            char ch = *pS++;
+            if (skipWhitespace && isspace(ch))
+                continue;
+			stringLen++;
+		}
+        return stringLen;
+    }
 
-	static void safeStringCopy(char* pDest, const char* pSrc, size_t maxx)
+	static void safeStringCopy(char* pDest, const char* pSrc,
+                size_t maxx, bool removeWhitespace = false)
 	{
 		char* pD = pDest;
 		const char* pS = pSrc;
-		size_t toCopy = strlen(pS);
-		for (size_t i = 0; i < toCopy + 1; i++)
+		size_t maxToCopy = strlen(pS);
+        int stringLen = 0;
+		for (size_t i = 0; i < maxToCopy + 1; i++)
 		{
-			*pD++ = *pS++;
-			if (i >= maxx - 1)
+            char ch = *pS++;
+            if (removeWhitespace && isspace(ch))
+                continue;
+			*pD++ = ch;
+            stringLen++;
+			if (stringLen >= maxx)
 			{
 				*pD = 0;
 				break;
