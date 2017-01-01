@@ -6,12 +6,16 @@
 
 #include "jsmnParticleR.h"
 
-#define RD_DEBUG_LEVEL 4
+#pragma push_macro("RD_DEBUG_FNAME")
 #define RD_DEBUG_FNAME "ConfigManager.h"
 #include "RdDebugLevel.h"
 
 class ConfigManager
 {
+private:
+	// Data is stored in a single string as JSON
+	char* _pDataStrJSON;
+
 public:
     ConfigManager()
     {
@@ -21,77 +25,6 @@ public:
     ~ConfigManager()
     {
         delete[] _pDataStrJSON;
-    }
-
-    // Initialise
-    bool SetConfigLocation(const char* configStr, bool configStrDefinesLocation = true)
-    {
-        // Check if the configStr is the actual config or if it defines the
-        // location of config
-        if (configStrDefinesLocation)
-        {
-            bool isValid = false;
-            jsmntype_t objType = JSMN_UNDEFINED;
-            int objSize = 0;
-            String configSource = getString("source", "", isValid, objType,
-                            objSize, configStr);
-            if (!isValid)
-            {
-                RD_ERR("configLocation source not found");
-        		return false;
-            }
-            if (configSource.equalsIgnoreCase("EEPROM"))
-            {
-                long configPos = getLong("base", 0, isValid, configStr);
-                if (!isValid)
-                {
-                    RD_ERR("configLocation base not found");
-            		return false;
-                }
-
-                long configMaxLen = getLong("maxLen", 500, isValid, configStr);
-                if (!isValid)
-                {
-                    RD_ERR("configLocation maxLen not found");
-            		return false;
-                }
-
-                // Record source of config
-                _configSource = CONFIG_SOURCE_EEPROM;
-
-                // Config base in EEPROM
-                _eepromBaseLocation = configPos;
-
-                // Config max len
-                _configMaxDataLen = configMaxLen;
-
-                // Debug
-                RD_INFO("configLocation source %s, base %ld, maxLen %ld",
-                        configSource.c_str(), _eepromBaseLocation, _configMaxDataLen);
-
-                // Read the config JSON str from EEPROM
-                readFromEEPROM();
-            }
-            else
-            {
-                // Can't make sense of config source
-                RD_INFO("configLocation source %s unknown", configSource.c_str());
-                return false;
-            }
-        }
-        else
-        {
-            // Record source of config
-            _configSource = CONFIG_SOURCE_STR;
-
-            // Set config data
-            setConfigData(configStr);
-
-            // Debug
-            RD_INFO("configLocation Source Passed-In-Str");
-        }
-
-        return true;
     }
 
     // Set the configuration data directly
@@ -106,15 +39,11 @@ public:
     }
 
     // Get a string from the JSON
-    String getString (const char* dataPath,
+    static String getString (const char* dataPath,
                         const char* defaultValue, bool& isValid,
                         jsmntype_t& objType, int& objSize,
-                        const char* pSourceStr = NULL)
+                        const char* pSourceStr)
     {
-        // Get source string
-        if (pSourceStr == NULL)
-            pSourceStr = _pDataStrJSON;
-
         // Parse json into tokens
         int numTokens = 0;
         jsmntok_t* pTokens = parseJson(pSourceStr, numTokens);
@@ -159,14 +88,19 @@ public:
         return outStr;
     }
 
-    double getDouble (const char* dataPath,
-                    double defaultValue, bool& isValid,
-                    const char* pSourceStr = NULL)
+	// Get a string from the JSON
+    String getString (const char* dataPath,
+                        const char* defaultValue, bool& isValid,
+                        jsmntype_t& objType, int& objSize)
     {
-        // Get source string
-        if (pSourceStr == NULL)
-            pSourceStr = _pDataStrJSON;
+		return getString(dataPath, defaultValue, isValid, objType, objSize,
+					_pDataStrJSON);
+	}
 
+    static double getDouble (const char* dataPath,
+                    double defaultValue, bool& isValid,
+                    const char* pSourceStr)
+    {
         // Parse json into tokens
         int numTokens = 0;
         jsmntok_t* pTokens = parseJson(pSourceStr, numTokens);
@@ -188,14 +122,16 @@ public:
         return strtod(pSourceStr + pTokens[startTokenIdx].start, NULL);
     }
 
-    long getLong (const char* dataPath,
-                    long defaultValue, bool& isValid,
-                    const char* pSourceStr = NULL)
-    {
-        // Get source string
-        if (pSourceStr == NULL)
-            pSourceStr = _pDataStrJSON;
+	double getDouble (const char* dataPath,
+					double defaultValue, bool& isValid)
+	{
+		return getDouble(dataPath, defaultValue, isValid, _pDataStrJSON);
+	}
 
+    static long getLong (const char* dataPath,
+                    long defaultValue, bool& isValid,
+                    const char* pSourceStr)
+    {
         // Parse json into tokens
         int numTokens = 0;
         jsmntok_t* pTokens = parseJson(pSourceStr, numTokens);
@@ -217,90 +153,26 @@ public:
         return strtol(pSourceStr + pTokens[startTokenIdx].start, NULL, 10);
     }
 
-    static int recreateJson(const char *js, jsmntok_t *t,
-                    size_t count, int indent, String& outStr)
-    {
-        int i, j, k;
+	long getLong (const char* dataPath,
+					long defaultValue, bool& isValid)
+	{
+		return getLong(dataPath, defaultValue, isValid, _pDataStrJSON);
+	}
 
-        if (count == 0)
-        {
-            return 0;
-        }
-        if (t->type == JSMN_PRIMITIVE)
-        {
-            char *pStr = safeStringDup(js + t->start,
-                                       t->end - t->start);
-            outStr.concat(pStr);
-            delete[] pStr;
-            return 1;
-        }
-        else if (t->type == JSMN_STRING)
-        {
-            char *pStr = safeStringDup(js + t->start,
-                                       t->end - t->start);
-            outStr.concat("\"");
-            outStr.concat(pStr);
-            outStr.concat("\"");
-            delete[] pStr;
-            return 1;
-        }
-        else if (t->type == JSMN_OBJECT)
-        {
-            // Serial.printf("\n\r#Found object size %d, start %d, end %d, str %.*s\n\r",
-            //               t->size, t->start, t->end, t->end - t->start, js + t->start);
-            j = 0;
-            outStr.concat("{");
-            for (i = 0; i < t->size; i++)
-            {
-                j += recreateJson(js, t + 1 + j, count - j, indent + 1, outStr);
-                outStr.concat(":");
-                j += recreateJson(js, t + 1 + j, count - j, indent + 1, outStr);
-                if (i != t->size - 1)
-                {
-                    outStr.concat(",");
-                }
-            }
-            outStr.concat("}");
-            return j + 1;
-        }
-        else if (t->type == JSMN_ARRAY)
-        {
-            j = 0;
-            outStr.concat("[");
-            for (i = 0; i < t->size; i++)
-            {
-                j += recreateJson(js, t + 1 + j, count - j, indent + 1, outStr);
-                if (i != t->size - 1)
-                {
-                    outStr.concat(",");
-                }
-            }
-            outStr.concat("]");
-            return j + 1;
-        }
-        return 0;
-    }
+	static const char* getObjType(jsmntype_t type)
+	{
+		switch (type)
+		{
+		case JSMN_PRIMITIVE: return "PRIMITIVE";
+		case JSMN_STRING: return "STRING";
+		case JSMN_OBJECT: return "OBJECT";
+		case JSMN_ARRAY: return "ARRAY";
+		case JSMN_UNDEFINED: return "UNDEFINED";
+		}
+		return "UNKNOWN";
+	}
 
-private:
-    // Data is stored in a single string as JSON
-    char* _pDataStrJSON;
-
-    // Source of config
-    typedef enum CONFIG_SOURCE
-    {
-        CONFIG_SOURCE_STR,
-        CONFIG_SOURCE_EEPROM
-    };
-    CONFIG_SOURCE _configSource = CONFIG_SOURCE_STR;
-
-    // Base location to store dataStr in EEPROM
-    int _eepromBaseLocation;
-
-    // Max length of config data
-    int _configMaxDataLen;
-
-private:
-
+public:
     static jsmntok_t* parseJson(const char* jsonStr, int& numTokens,
                 int maxTokens = 10000)
     {
@@ -341,17 +213,11 @@ private:
         return pTokens;
     }
 
+private:
     static bool getTokenByDataPath(const char* jsonStr, const char* dataPath,
                 jsmntok_t* pTokens, int numTokens,
                 int& startTokenIdx, int& endTokenIdx)
     {
-        // // Top level item must be an object
-        // if (tokenCountRslt < 1 || pTokens[0].type != JSMN_OBJECT)
-        // {
-        //     RD_ERR("JSON must have top level object");
-        //     delete[] pTokens;
-        //     return false;
-        // }
         // Get required token
         int keyIdx = findKeyInJson(jsonStr, pTokens, numTokens,
                             dataPath, endTokenIdx);
@@ -362,7 +228,7 @@ private:
         }
 
         // Copy out token value
-        startTokenIdx = keyIdx+1;
+        startTokenIdx = keyIdx;
         return true;
     }
 
@@ -372,7 +238,10 @@ private:
     {
         // RD_DBG("findObjectEnd idx %d, count %d, start %s", curTokenIdx, count,
         //                 jsonOriginal + tokens[curTokenIdx].start);
-        int tokIdx = curTokenIdx;
+		// Primitives have a size of 0 but we still need to skip over them ...
+		if (count == 0)
+			count = 1;
+        unsigned int tokIdx = curTokenIdx;
         for (int objIdx = 0; objIdx < count; objIdx++)
         {
             jsmntok_t* pTok = tokens + tokIdx;
@@ -386,8 +255,7 @@ private:
                 // RD_DBG("findObjectEnd STRING");
 				if (atObjectKey)
 				{
-					tokIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx + 1, pTok->size, false);
-                    tokIdx += 1;
+					tokIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx + 1, 1, false);
 				}
 				else
 				{
@@ -398,13 +266,11 @@ private:
             {
                 // RD_DBG("findObjectEnd OBJECT");
                 tokIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx+1, pTok->size, true);
-                tokIdx += 1;
             }
             else if (pTok->type == JSMN_ARRAY)
             {
                 // RD_DBG("findObjectEnd ARRAY");
                 tokIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx+1, pTok->size, false);
-                tokIdx += 1;
 			}
 			else
 			{
@@ -416,7 +282,6 @@ private:
                 break;
             }
         }
-        tokIdx--;
         // RD_DBG("findObjectEnd returning %d, start %s, end %s", tokIdx,
         //                 jsonOriginal + tokens[tokIdx].start,
         //             jsonOriginal + tokens[tokIdx].end);
@@ -432,7 +297,7 @@ private:
         char       srchKey[MAX_SRCH_KEY_LEN + 1];
         const char *pDataPathPos = dataPath;
         // Note that the root object has index 0
-        int  curTokenIdx = 1;
+        int  curTokenIdx = 0;
         int  maxTokenIdx = numTokens - 1;
         bool atNodeLevel = false;
 
@@ -458,8 +323,25 @@ private:
                 safeStringCopy(srchKey, pDataPathPos, slashPos - pDataPathPos);
                 pDataPathPos = slashPos + 1;
             }
-            // RD_DBG("findKeyInJson srchKey %s", srchKey);
 
+            // See if search key contains an array reference
+            bool arrayElementReqd = false;
+            int reqdArrayIdx = 0;
+            char *sqBracketPos = strstr(srchKey, "[");
+            if (sqBracketPos != NULL)
+            {
+                // Extract array index
+                long arrayIdx = strtol(sqBracketPos+1, NULL, 10);
+                if (arrayIdx >= 0)
+                {
+                    arrayElementReqd = true;
+                    reqdArrayIdx = (int)arrayIdx;
+                }
+                // Truncate the string at the square bracket
+                *sqBracketPos = 0;
+            }
+
+            // RD_DBG("findKeyInJson srchKey %s", srchKey);
 
             // Iterate over tokens to find key of the right type
             // If we are already looking at the node level then search for requested type
@@ -467,17 +349,55 @@ private:
             jsmntype_t keyTypeToFind = atNodeLevel ? keyType : JSMN_STRING;
             for (int tokIdx = curTokenIdx; tokIdx <= maxTokenIdx; )
             {
+				// See if the key matches - this can either be a string match on an object key or
+				// just an array element match (with an empty key)
                 jsmntok_t *pTok = tokens + tokIdx;
-                if ((pTok->type == JSMN_STRING) &&
-                    ((int)strlen(srchKey) == pTok->end - pTok->start) &&
-                    (strncmp(jsonOriginal + pTok->start, srchKey, pTok->end - pTok->start) == 0))
-                {
+				bool keyMatchFound = false;
+				if ( (pTok->type == JSMN_STRING) &&
+					((int)strlen(srchKey) == pTok->end - pTok->start) &&
+					(strncmp(jsonOriginal + pTok->start, srchKey, pTok->end - pTok->start) == 0) )
+				{
+					keyMatchFound = true;
+					tokIdx += 1;
+				}
+				else if ((pTok->type == JSMN_ARRAY) &&
+					((int)strlen(srchKey) == 0) &&
+					(arrayElementReqd))
+				{
+					keyMatchFound = true;
+				}
+
+				if (keyMatchFound)
+				{
+                    // We have found the matching key so now for the contents ...
+
+                    // Check if we were looking for an array element
+                    if (arrayElementReqd)
+                    {
+                        if (tokens[tokIdx].type == JSMN_ARRAY)
+                        {
+                            int newTokIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx+1, reqdArrayIdx, false);
+                            RD_DBG("TokIdxArray inIdx %d, reqdArrayIdx %d, outTokIdx %d",
+                                            tokIdx, reqdArrayIdx, newTokIdx);
+                            tokIdx = newTokIdx;
+                        }
+                        else
+                        {
+                            // This isn't an array element
+                            return -1;
+                        }
+                    }
+
+					// atNodeLevel indicates that we are now at the level of the JSON tree that the user requested
+					// - so we should be extracting the value referenced now
                     if (atNodeLevel)
                     {
                         // RD_DBG("findObjectEnd we have got it %d", tokIdx);
-                        if ((keyTypeToFind == JSMN_UNDEFINED) || (tokens[tokIdx + 1].type == keyTypeToFind))
+                        if ((keyTypeToFind == JSMN_UNDEFINED) || (tokens[tokIdx].type == keyTypeToFind))
                         {
-                            endTokenIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx, 1);
+                            endTokenIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx, 1, false);
+                            //int testTokenIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx+1, 1);
+                            //RD_DBG("TokIdxDiff max %d, test %d, diff %d", endTokenIdx, testTokenIdx, testTokenIdx-endTokenIdx);
                             return tokIdx;
                         }
                         return -1;
@@ -486,11 +406,13 @@ private:
                     {
                         // Check for an object
                         // RD_DBG("findObjectEnd inside");
-                        if (tokens[tokIdx + 1].type == JSMN_OBJECT)
+                        if (tokens[tokIdx].type == JSMN_OBJECT)
                         {
                             // Continue next level of search in this object
                             maxTokenIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx, 1);
-                            curTokenIdx = tokIdx + 2;
+                            //int testTokenIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx+1, 1);
+                            //RD_DBG("TokIdxDiff2 max %d, test %d, diff %d", maxTokenIdx, testTokenIdx, testTokenIdx- maxTokenIdx);
+                            curTokenIdx = tokIdx + 1;
                             break;
                         }
                         else
@@ -503,10 +425,20 @@ private:
                 else if (pTok->type == JSMN_STRING)
                 {
                     // We're at a key string but it isn't the one we want so skip its contents
-                    tokIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx, 1) + 1;
+                    tokIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx, 1);
                 }
-                else
-                {
+				else if (pTok->type == JSMN_OBJECT)
+				{
+					// Move to the first key of the object
+					tokIdx++;
+				}
+				else if (pTok->type == JSMN_ARRAY)
+				{
+					// Root level array which doesn't match the dataPath
+					return -1;
+				}
+				else
+				{
                     // Shouldn't really get here as all keys are strings
                     tokIdx++;
                 }
@@ -515,75 +447,7 @@ private:
         return -1;
     }
 
-
-    // Read a configuration string from EEPROM
-    void readFromEEPROM()
-    {
-        // Check EEPROM has been initialised - if not just start with a null string
-        if (EEPROM.read(_eepromBaseLocation) == 0xff)
-        {
-            delete[] _pDataStrJSON;
-            _pDataStrJSON = NULL;
-            RD_INFO("EEPROM uninitialised, _pDataStrJSON empty");
-            return;
-        }
-
-        // Find out how long the string is - don't allow > _configMaxDataLen
-        int dataStrLen = _configMaxDataLen - 1;
-        for (int chIdx = 0; chIdx < _configMaxDataLen; chIdx++)
-        {
-            int ch = EEPROM.read(_eepromBaseLocation + chIdx);
-            if (ch == 0)
-            {
-                dataStrLen = chIdx;
-                break;
-            }
-        }
-
-        // Set initial size of string to avoid unnecessary resizing as we read it
-        delete[] _pDataStrJSON;
-        _pDataStrJSON = new char[dataStrLen + 1];
-
-        // Fill string from EEPROM location
-        for (int chIdx = 0; chIdx < dataStrLen; chIdx++)
-        {
-            char ch = EEPROM.read(_eepromBaseLocation + chIdx);
-            _pDataStrJSON[chIdx] = ch;
-        }
-        _pDataStrJSON[dataStrLen + 1] = 0;
-
-        RD_INFO("Read config str: %s", _pDataStrJSON);
-    }
-
-
-    // Write configuration string to EEPROM
-    bool writeToEEPROM()
-    {
-        RD_DBG("Writing config str: %s", _pDataStrJSON);
-
-        // Get length of string
-        int dataStrLen = 0;
-        if (_pDataStrJSON != NULL)
-        {
-            dataStrLen = strlen(_pDataStrJSON);
-        }
-        if (dataStrLen >= _configMaxDataLen)
-        {
-            dataStrLen = _configMaxDataLen - 1;
-        }
-
-        // Write the current value of the string to EEPROM
-        for (int chIdx = 0; chIdx < dataStrLen; chIdx++)
-        {
-            EEPROM.write(_eepromBaseLocation + chIdx, _pDataStrJSON[chIdx]);
-        }
-
-        // Terminate string
-        EEPROM.write(_eepromBaseLocation + dataStrLen, 0);
-
-        return true;
-    }
-
+public:
 	static size_t safeStringLen(const char* pSrc,
 		bool skipJSONWhitespace = false, size_t maxx = LONG_MAX)
 	{
@@ -670,8 +534,131 @@ private:
 		}
 		return pDest;
 	}
+
+#ifdef CONFIG_MANAGER_RECREATE_JSON
+	static int recreateJson(const char *js, jsmntok_t *t,
+		size_t count, int indent, String& outStr)
+	{
+		int i, j, k;
+
+		if (count == 0)
+		{
+			return 0;
+		}
+		if (t->type == JSMN_PRIMITIVE)
+		{
+			RD_DBG("\n\r#Found primitive size %d, start %d, end %d\n\r",
+				t->size, t->start, t->end);
+			RD_DBG("%.*s", t->end - t->start, js + t->start);
+			char *pStr = safeStringDup(js + t->start,
+				t->end - t->start);
+			outStr.concat(pStr);
+			delete[] pStr;
+			return 1;
+		}
+		else if (t->type == JSMN_STRING)
+		{
+			RD_DBG("\n\r#Found string size %d, start %d, end %d\n\r",
+				t->size, t->start, t->end);
+			RD_DBG("'%.*s'", t->end - t->start, js + t->start);
+			char *pStr = safeStringDup(js + t->start,
+				t->end - t->start);
+			outStr.concat("\"");
+			outStr.concat(pStr);
+			outStr.concat("\"");
+			delete[] pStr;
+			return 1;
+		}
+		else if (t->type == JSMN_OBJECT)
+		{
+			RD_DBG("\n\r#Found object size %d, start %d, end %d\n\r",
+				t->size, t->start, t->end);
+			j = 0;
+			outStr.concat("{");
+			for (i = 0; i < t->size; i++)
+			{
+				for (k = 0; k < indent; k++)
+				{
+					RD_DBG("  ");
+				}
+				j += recreateJson(js, t + 1 + j, count - j, indent + 1, outStr);
+				outStr.concat(":");
+				RD_DBG(": ");
+				j += recreateJson(js, t + 1 + j, count - j, indent + 1, outStr);
+				RD_DBG("\n\r");
+				if (i != t->size - 1)
+				{
+					outStr.concat(",");
+				}
+			}
+			outStr.concat("}");
+			return j + 1;
+		}
+		else if (t->type == JSMN_ARRAY)
+		{
+			RD_DBG("\n\r#Found array size %d, start %d, end %d\n\r",
+				t->size, t->start, t->end);
+			j = 0;
+			outStr.concat("[");
+			RD_DBG("\n\r");
+			for (i = 0; i < t->size; i++)
+			{
+				for (k = 0; k < indent - 1; k++)
+				{
+					RD_DBG("  ");
+				}
+				RD_DBG("   - ");
+				j += recreateJson(js, t + 1 + j, count - j, indent + 1, outStr);
+				if (i != t->size - 1)
+				{
+					outStr.concat(",");
+				}
+				RD_DBG("\n\r");
+			}
+			outStr.concat("]");
+			return j + 1;
+		}
+		return 0;
+	}
+
+	static bool doPrint(const char* jsonStr)
+	{
+		jsmn_parser parser;
+		jsmn_init(&parser);
+		int tokenCountRslt = jsmn_parse(&parser, jsonStr, strlen(jsonStr),
+			NULL, 1000);
+		if (tokenCountRslt < 0)
+		{
+			RD_ERR("Failed to parse JSON: %d", tokenCountRslt);
+			return false;
+		}
+		jsmntok_t* pTokens = new jsmntok_t[tokenCountRslt];
+		jsmn_init(&parser);
+		tokenCountRslt = jsmn_parse(&parser, jsonStr, strlen(jsonStr),
+			pTokens, tokenCountRslt);
+		if (tokenCountRslt < 0)
+		{
+			RD_ERR("Failed to parse JSON: %d", tokenCountRslt);
+			delete pTokens;
+			return false;
+		}
+		// Top level item must be an object
+		if (tokenCountRslt < 1 || pTokens[0].type != JSMN_OBJECT)
+		{
+			RD_ERR("JSON must have top level object");
+			delete pTokens;
+			return false;
+		}
+		RD_DBG("Dumping");
+		recreateJson(jsonStr, pTokens, parser.toknext, 0);
+		delete pTokens;
+		return true;
+	}
+
+#endif // CONFIG_MANAGER_RECREATE_JSON
+
 };
 
-#define RD_DEBUG_FNAME ""
+#pragma pop_macro("RD_DEBUG_FNAME")
 
 #endif _CONFIG_MANAGER_H_
