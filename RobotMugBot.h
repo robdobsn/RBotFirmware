@@ -31,4 +31,4 @@ public:
     }
 };
 
-#endif _ROBOT_MUGBOT_H_
+#endif // _ROBOT_MUGBOT_H_

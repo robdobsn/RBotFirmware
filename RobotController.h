@@ -21,22 +21,18 @@ public:
         _pRobot = NULL;
     }
 
-    bool init(const char* robotConfigStr)
+    bool init(const char* configStr)
     {
         // Init
         delete _pRobot;
         _pRobot = NULL;
 
         // Get the robot type from the config
-        bool isValid = false;
-        jsmntype_t objType = JSMN_UNDEFINED;
-        int objSize = 0;
-        String robotType = ConfigManager::getString("robotType", "NONE", isValid,
-                        objType, objSize, robotConfigStr);
+        String robotType = ConfigManager::getString("robotType", "NONE", configStr);
         if (robotType.equalsIgnoreCase("MugBot"))
         {
             Log.info("Constructing MugBot");
-            _pRobot = new RobotMugBot(robotConfigStr);
+            _pRobot = new RobotMugBot(configStr);
         }
         else
         {
@@ -65,4 +61,4 @@ public:
     }
 };
 
-#endif _ROBOT_CONTROLLER_H_
+#endif // _ROBOT_CONTROLLER_H_

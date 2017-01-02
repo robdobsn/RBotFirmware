@@ -88,6 +88,16 @@ public:
         return outStr;
     }
 
+	static String getString (const char* dataPath, const char* defaultValue,
+				const char* pSourceStr)
+	{
+		bool isValid = false;
+		jsmntype_t objType = JSMN_UNDEFINED;
+		int objSize = 0;
+		return getString(dataPath, defaultValue, isValid, objType, objSize,
+					pSourceStr);
+	}
+
 	// Get a string from the JSON
     String getString (const char* dataPath,
                         const char* defaultValue, bool& isValid,
@@ -122,9 +132,16 @@ public:
         return strtod(pSourceStr + pTokens[startTokenIdx].start, NULL);
     }
 
-	double getDouble (const char* dataPath,
-					double defaultValue, bool& isValid)
+	static double getDouble (const char* dataPath, double defaultValue,
+				const char* pSourceStr)
 	{
+		bool isValid = false;
+		return getDouble(dataPath, defaultValue, isValid, pSourceStr);
+	}
+
+	double getDouble (const char* dataPath, double defaultValue)
+	{
+		bool isValid = false;
 		return getDouble(dataPath, defaultValue, isValid, _pDataStrJSON);
 	}
 
@@ -153,9 +170,15 @@ public:
         return strtol(pSourceStr + pTokens[startTokenIdx].start, NULL, 10);
     }
 
-	long getLong (const char* dataPath,
-					long defaultValue, bool& isValid)
+	static long getLong (const char* dataPath, long defaultValue, const char* pSourceStr)
 	{
+		bool isValid = false;
+		return getLong(dataPath, defaultValue, isValid, pSourceStr);
+	}
+
+	long getLong (const char* dataPath,	long defaultValue)
+	{
+		bool isValid = false;
 		return getLong(dataPath, defaultValue, isValid, _pDataStrJSON);
 	}
 
