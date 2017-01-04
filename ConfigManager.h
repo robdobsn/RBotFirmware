@@ -26,6 +26,14 @@ public:
         delete[] _pDataStrJSON;
     }
 
+	// Get config data string
+	const char* getConfigData()
+	{
+		if (!_pDataStrJSON)
+			return "";
+		return _pDataStrJSON;
+	}
+
     // Set the configuration data directly
     void setConfigData(const char* configJSONStr)
     {
@@ -43,6 +51,10 @@ public:
                         jsmntype_t& objType, int& objSize,
                         const char* pSourceStr)
     {
+		// Check for null
+		if (!pSourceStr)
+			return defaultValue;
+
         // Parse json into tokens
         int numTokens = 0;
         jsmntok_t* pTokens = parseJson(pSourceStr, numTokens);
@@ -110,6 +122,10 @@ public:
                     double defaultValue, bool& isValid,
                     const char* pSourceStr)
     {
+		// Check for null
+		if (!pSourceStr)
+			return defaultValue;
+
         // Parse json into tokens
         int numTokens = 0;
         jsmntok_t* pTokens = parseJson(pSourceStr, numTokens);
@@ -148,6 +164,10 @@ public:
                     long defaultValue, bool& isValid,
                     const char* pSourceStr)
     {
+		// Check for null
+		if (!pSourceStr)
+			return defaultValue;
+
         // Parse json into tokens
         int numTokens = 0;
         jsmntok_t* pTokens = parseJson(pSourceStr, numTokens);

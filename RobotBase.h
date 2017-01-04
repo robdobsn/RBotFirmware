@@ -16,6 +16,11 @@ public:
     {
     }
 
+    virtual bool init(const char* robotConfigStr)
+    {
+        return false;
+    }
+
     // Movement commands
     virtual void actuator(double value)
     {

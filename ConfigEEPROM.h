@@ -10,7 +10,7 @@
 #define RD_DEBUG_FNAME "ConfigEEPROM.h"
 #include "RdDebugLevel.h"
 
-class ConfigEEPROM
+class ConfigEEPROM : public ConfigManager
 {
 private:
     // Base location to store dataStr in EEPROM
@@ -35,14 +35,14 @@ public:
         bool isValid = false;
         jsmntype_t objType = JSMN_UNDEFINED;
         int objSize = 0;
-        long configPos = getLong("base", 0, isValid, configStr);
+        long configPos = ConfigManager::getLong("base", 0, isValid, configStr);
         if (!isValid)
         {
             RD_ERR("configLocation base not found");
     		return false;
         }
 
-        long configMaxLen = getLong("maxLen", 500, isValid, configStr);
+        long configMaxLen = ConfigManager::getLong("maxLen", 500, isValid, configStr);
         if (!isValid)
         {
             RD_ERR("configLocation maxLen not found");
@@ -56,8 +56,7 @@ public:
         _configMaxDataLen = configMaxLen;
 
         // Debug
-        RD_INFO("configLocation source %s, base %ld, maxLen %ld",
-                configSource.c_str(), _eepromBaseLocation, _configMaxDataLen);
+        RD_INFO("configEEPROM base %ld, maxLen %ld", _eepromBaseLocation, _configMaxDataLen);
 
         // Read the config JSON str from EEPROM
         readFromEEPROM();
@@ -71,8 +70,7 @@ public:
         // Check EEPROM has been initialised - if not just start with a null string
         if (EEPROM.read(_eepromBaseLocation) == 0xff)
         {
-            delete[] _pDataStrJSON;
-            _pDataStrJSON = NULL;
+            setConfigData("");
             RD_INFO("EEPROM uninitialised, _pDataStrJSON empty");
             return;
         }
@@ -89,32 +87,38 @@ public:
             }
         }
 
-        // Set initial size of string to avoid unnecessary resizing as we read it
-        delete[] _pDataStrJSON;
-        _pDataStrJSON = new char[dataStrLen + 1];
+        // Get string from EEPROM
+        char* pData = new char[dataStrLen + 1];
 
         // Fill string from EEPROM location
         for (int chIdx = 0; chIdx < dataStrLen; chIdx++)
         {
             char ch = EEPROM.read(_eepromBaseLocation + chIdx);
-            _pDataStrJSON[chIdx] = ch;
+            pData[chIdx] = ch;
         }
-        _pDataStrJSON[dataStrLen + 1] = 0;
+        pData[dataStrLen + 1] = 0;
+        RD_INFO("Read config str: %s", pData);
 
-        RD_INFO("Read config str: %s", _pDataStrJSON);
+        // Store in config string
+        setConfigData(pData);
+
+        // Tidy up
+        delete [] pData;
     }
 
 
     // Write configuration string to EEPROM
     bool writeToEEPROM()
     {
-        RD_DBG("Writing config str: %s", _pDataStrJSON);
+        const char* pConfigData = getConfigData();
+
+        RD_DBG("Writing config str: %s", pConfigData);
 
         // Get length of string
         int dataStrLen = 0;
-        if (_pDataStrJSON != NULL)
+        if (pConfigData != NULL)
         {
-            dataStrLen = strlen(_pDataStrJSON);
+            dataStrLen = strlen(pConfigData);
         }
         if (dataStrLen >= _configMaxDataLen)
         {
@@ -124,7 +128,7 @@ public:
         // Write the current value of the string to EEPROM
         for (int chIdx = 0; chIdx < dataStrLen; chIdx++)
         {
-            EEPROM.write(_eepromBaseLocation + chIdx, _pDataStrJSON[chIdx]);
+            EEPROM.write(_eepromBaseLocation + chIdx, pConfigData[chIdx]);
         }
 
         // Terminate string

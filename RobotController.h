@@ -37,7 +37,10 @@ public:
         if (robotType.equalsIgnoreCase("MugBot"))
         {
             Log.info("Constructing MugBot");
-            _pRobot = new RobotMugBot(configStr);
+            _pRobot = new RobotMugBot();
+            if (!_pRobot)
+                return false;
+            _pRobot->init(configStr);
         }
         else
         {
