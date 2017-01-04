@@ -1,8 +1,7 @@
 // RBotFirmware
 // Rob Dobson 2016
 
-#ifndef _ROBOT_MUGBOT_H_
-#define _ROBOT_MUGBOT_H_
+#pragma once
 
 #include "application.h"
 #include "RobotBase.h"
@@ -25,10 +24,9 @@ public:
         Log.info("MugBot actuator %f", value);
     }
 
-    void moveTo(double xPos, double yPos, double zPos)
+    void moveTo(RobotCommandArgs& args)
     {
-        Log.info("MugBot moveTo %f,%f,%f", xPos, yPos, zPos);
+        Log.info("MugBot moveTo %f(%d),%f(%d),%f(%d)", args.xVal, args.xValid,
+                    args.yVal, args.yValid, args.zVal, args.zValid);
     }
 };
-
-#endif // _ROBOT_MUGBOT_H_

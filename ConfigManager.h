@@ -1,8 +1,7 @@
 // RBotFirmware
 // Rob Dobson 2016
 
-#ifndef _CONFIG_MANAGER_H_
-#define _CONFIG_MANAGER_H_
+#pragma once
 
 #include "jsmnParticleR.h"
 
@@ -683,5 +682,3 @@ public:
 };
 
 #pragma pop_macro("RD_DEBUG_FNAME")
-
-#endif _CONFIG_MANAGER_H_

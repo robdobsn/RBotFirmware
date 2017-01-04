@@ -1,8 +1,9 @@
 // RBotFirmware
 // Rob Dobson 2016
 
-#ifndef _ROBOT_BASE_H_
-#define _ROBOT_BASE_H_
+#pragma once
+
+#include "RobotCommandArgs.h"
 
 class RobotBase
 {
@@ -21,10 +22,8 @@ public:
 
     }
 
-    virtual void moveTo(double xPos, double yPos, double zPos)
+    virtual void moveTo(RobotCommandArgs& args)
     {
 
     }
 };
-
-#endif // _ROBOT_BASE_H_

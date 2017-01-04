@@ -5,31 +5,15 @@
 #define _COMMAND_QUEUE_H_
 
 #include "application.h"
+#include "CommandElem.h"
 #include <queue>
-
-class CmdQueueElem
-{
-private:
-    String _cmdStr;
-
-public:
-    CmdQueueElem(String& cmdStr)
-    {
-        _cmdStr = cmdStr;
-    }
-
-    String getString()
-    {
-        return _cmdStr;
-    }
-};
 
 class CommandQueue
 {
 private:
-    std::queue<CmdQueueElem> _cmdElemQueue;
+    std::queue<CommandElem> _cmdElemQueue;
     int _cmdQueueMaxLen;
-    static const int _cmdQueueMaxLenDefault = 100;
+    static const int _cmdQueueMaxLenDefault = 50;
 
 public:
     CommandQueue()
@@ -60,7 +44,22 @@ public:
         }
 
         // Queue up the item
-        _cmdElemQueue.push(CmdQueueElem(cmdStr));
+        _cmdElemQueue.push(CommandElem(cmdStr));
+        return true;
+    }
+
+    // Get from queue
+    bool get(CommandElem& cmdElem)
+    {
+        // Check if queue is empty
+        if (_cmdElemQueue.empty())
+        {
+            return false;
+        }
+
+        // read the item and remove
+        cmdElem = _cmdElemQueue.front();
+        _cmdElemQueue.pop();
         return true;
     }
 

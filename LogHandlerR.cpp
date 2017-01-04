@@ -1,3 +1,5 @@
+// RBotFirmware
+// Rob Dobson 2016
 
 #include "LogHandlerR.h"
 

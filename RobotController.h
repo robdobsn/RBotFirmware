@@ -1,10 +1,10 @@
 // RBotFirmware
 // Rob Dobson 2016
 
-#ifndef _ROBOT_CONTROLLER_H_
-#define _ROBOT_CONTROLLER_H_
+#pragma once
 
 #include "ConfigManager.h"
+#include "RobotCommandArgs.h"
 
 // Robot types
 #include "RobotMugBot.h"
@@ -19,6 +19,11 @@ public:
     {
         // Init
         _pRobot = NULL;
+    }
+
+    ~RobotController()
+    {
+        delete _pRobot;
     }
 
     bool init(const char* configStr)
@@ -40,11 +45,6 @@ public:
         }
     }
 
-    ~RobotController()
-    {
-        delete _pRobot;
-    }
-
     // Movement commands
     void actuator(double value)
     {
@@ -53,12 +53,10 @@ public:
         _pRobot->actuator(value);
     }
 
-    void moveTo(double xPos, double yPos, double zPos)
+    void moveTo(RobotCommandArgs& args)
     {
         if (!_pRobot)
             return;
-        _pRobot->moveTo(xPos, yPos, zPos);
+        _pRobot->moveTo(args);
     }
 };
-
-#endif // _ROBOT_CONTROLLER_H_

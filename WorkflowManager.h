@@ -1,8 +1,7 @@
 // RBotFirmware
 // Rob Dobson 2016
 
-#ifndef _WORKFLOW_MANAGER_H_
-#define _WORKFLOW_MANAGER_H_
+#pragma once
 
 #include "application.h"
 #include "CommandQueue.h"
@@ -42,6 +41,10 @@ public:
         return _cmdQueue.get(cmdStr);
     }
 
-};
+    // Get from workflow
+    bool get(CommandElem& cmdElem)
+    {
+        return _cmdQueue.get(cmdElem);
+    }
 
-#endif // _WORKFLOW_MANAGER_H_
+};

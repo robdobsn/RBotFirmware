@@ -5,6 +5,7 @@
 #include "LogHandlerR.h"
 #include "RobotController.h"
 #include "WorkflowManager.h"
+#include "GCodeInterpreter.h"
 
 /*#define RUN_TESTS*/
 #ifdef RUN_TESTS
@@ -22,7 +23,7 @@ static const char* EEPROM_CONFIG_LOCATION_STR =
 static const char* TEST_ROBOT_CONFIG_STR =
     "{\"robotType\": \"MugBot\", \"mugRotatePin\": \"D0\"}";
 static const char* TEST_WORKFLOW_CONFIG_STR =
-    "{\"CommandQueue\": { \"cmdQueueMaxLen\":100 } }";
+    "{\"CommandQueue\": { \"cmdQueueMaxLen\":50 } }";
 
 
 void setup()
@@ -48,6 +49,8 @@ long millisRateOut = 400;
 long lastMillisIn = 0;
 long lastMillisOut = 0;
 long lastMillisFlip = 0;
+long initialMemory = System.freeMemory();
+long lowestMemory = System.freeMemory();
 
 void loop()
 {
@@ -55,18 +58,22 @@ void loop()
 
     if (millis() > lastMillisIn + millisRateIn)
     {
-        String cmdStr = "G01 X0 Y1 Z2";
+        String cmdStr = "G01 X0.76Y1.885 Z12";
         bool rslt = workflowManager.add(cmdStr);
         Log.info("Add %d", rslt);
         lastMillisIn = millis();
+        if (lowestMemory > System.freeMemory())
+            lowestMemory = System.freeMemory();
     }
 
     if (millis() > lastMillisOut + millisRateOut)
     {
-        String cmdStr;
-        bool rslt = workflowManager.get(cmdStr);
-        Log.info("Get %d = %s, mem %d", rslt,
-                            cmdStr.c_str(), System.freeMemory());
+        CommandElem cmdElem;
+        bool rslt = workflowManager.get(cmdElem);
+        Log.info("Get %d = %s, initMem %d, mem %d, lowMem %d", rslt,
+                            cmdElem.getString().c_str(), initialMemory,
+                            System.freeMemory(), lowestMemory);
+        GCodeInterpreter::interpretGcode(cmdElem, robotController, true);
         lastMillisOut = millis();
     }
 

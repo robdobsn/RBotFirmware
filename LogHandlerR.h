@@ -1,8 +1,7 @@
 // RBotFirmware
 // Rob Dobson 2016
 
-#ifndef _LOG_HANDLER_H_
-#define _LOG_HANDLER_H_
+#pragma once
 
 #include "application.h"
 
@@ -92,5 +91,3 @@ public:
 };
 
 extern LoggerWiring Log;
-
-#endif // _SERIAL_LOG_HANDLER_H_
