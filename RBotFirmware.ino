@@ -7,9 +7,10 @@
 #include "WorkflowManager.h"
 #include "GCodeInterpreter.h"
 
-/*#define RUN_TESTS*/
+//define RUN_TESTS
 #ifdef RUN_TESTS
 #include "TestConfigManager.h"
+#include "TestWorkflowGCode.h"
 #endif
 
 SerialLogHandlerR logHandler(SerialLogHandlerR::LOG_LEVEL_ALL);
@@ -44,46 +45,10 @@ void setup()
 
 }
 
-long millisRateIn = 200;
-long millisRateOut = 400;
-long lastMillisIn = 0;
-long lastMillisOut = 0;
-long lastMillisFlip = 0;
-long initialMemory = System.freeMemory();
-long lowestMemory = System.freeMemory();
-
 void loop()
 {
+    #ifdef RUN_TESTS
     // TEST add to command queue
-
-    if (millis() > lastMillisIn + millisRateIn)
-    {
-        String cmdStr = "G01 X0.76Y1.885 Z12";
-        bool rslt = workflowManager.add(cmdStr);
-        Log.info("Add %d", rslt);
-        lastMillisIn = millis();
-        if (lowestMemory > System.freeMemory())
-            lowestMemory = System.freeMemory();
-    }
-
-    if (millis() > lastMillisOut + millisRateOut)
-    {
-        CommandElem cmdElem;
-        bool rslt = workflowManager.get(cmdElem);
-        Log.info("Get %d = %s, initMem %d, mem %d, lowMem %d", rslt,
-                            cmdElem.getString().c_str(), initialMemory,
-                            System.freeMemory(), lowestMemory);
-        GCodeInterpreter::interpretGcode(cmdElem, robotController, true);
-        lastMillisOut = millis();
-    }
-
-    if (millis() > lastMillisFlip + 30000)
-    {
-        if (millisRateOut > 300)
-            millisRateOut = 100;
-        else
-            millisRateOut = 400;
-        lastMillisFlip = millis();
-    }
-
+    __testWorkflowGCode.testLoop(workflowManager, robotController);
+    #endif
 }
