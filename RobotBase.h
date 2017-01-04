@@ -21,14 +21,16 @@ public:
         return false;
     }
 
+    virtual void service()
+    {
+    }
+
     // Movement commands
     virtual void actuator(double value)
     {
-
     }
 
     virtual void moveTo(RobotCommandArgs& args)
     {
-
     }
 };

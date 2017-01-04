@@ -8,7 +8,8 @@
 #include "WorkflowManager.h"
 #include "GCodeInterpreter.h"
 
-//define RUN_TESTS
+//define RUN_TESTS_CONFIG
+#define RUN_TEST_WORKFLOW
 #ifdef RUN_TEST_CONFIG
 #include "TestConfigManager.h"
 #endif
@@ -26,9 +27,9 @@ static const char* EEPROM_CONFIG_LOCATION_STR =
     "{\"base\": 0, \"maxLen\": 1000}";
 
 static const char* TEST_ROBOT_CONFIG_STR =
-    "{\"robotType\": \"MugBot\", "
-    "     \"mugRotation\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\"},"
-    "     \"xLinear\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\"}"
+    "{\"robotType\": \"MugBot\", \"motorEnPin\":\"D4\", \"motorEnOnVal\":1, \"motorDisableSecs\":60.0,"
+    " \"mugRotation\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":100.0, \"accel\":100.0},"
+    " \"xLinear\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":100.0, \"accel\":100.0}"
     "}";
 
 static const char* TEST_WORKFLOW_CONFIG_STR =
@@ -58,4 +59,7 @@ void loop()
     // TEST add to command queue
     __testWorkflowGCode.testLoop(workflowManager, robotController);
     #endif
+
+    // Service the robot controller
+    robotController.service();
 }

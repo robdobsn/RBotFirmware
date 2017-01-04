@@ -7,19 +7,22 @@ class TestWorkflowGCode
 {
 public:
 
-    long millisRateIn = 200;
-    long millisRateOut = 400;
+    long millisRateIn = 2000;
+    long millisRateOut = 4000;
     long lastMillisIn = 0;
     long lastMillisOut = 0;
     long lastMillisFlip = 0;
     long initialMemory = System.freeMemory();
     long lowestMemory = System.freeMemory();
+    double curX = 0;
+    double curY = 0;
 
     void testLoop(WorkflowManager& workflowManager, RobotController& robotController)
     {
         if (millis() > lastMillisIn + millisRateIn)
         {
-            String cmdStr = "G01 X0.76Y1.885 Z12";
+            String cmdStr = "G01 X" + String(curX) + "Y" + String(curY);
+            curY += 100;
             bool rslt = workflowManager.add(cmdStr);
             Log.info("Add %d", rslt);
             lastMillisIn = millis();
@@ -40,10 +43,10 @@ public:
 
         if (millis() > lastMillisFlip + 30000)
         {
-            if (millisRateOut > 300)
-                millisRateOut = 100;
+            if (millisRateOut > 3000)
+                millisRateOut = 1000;
             else
-                millisRateOut = 400;
+                millisRateOut = 4000;
             lastMillisFlip = millis();
         }
     }

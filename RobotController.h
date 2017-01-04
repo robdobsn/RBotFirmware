@@ -48,6 +48,16 @@ public:
         }
     }
 
+    // Service (called frequently)
+    void service()
+    {
+        if (!_pRobot)
+        {
+            return;
+        }
+        _pRobot->service();
+    }
+
     // Movement commands
     void actuator(double value)
     {
