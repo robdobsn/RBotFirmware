@@ -7,8 +7,12 @@
 
 class RobotBase
 {
+protected:
+    String _robotTypeName;
+
 public:
-    RobotBase()
+    RobotBase(const char* pRobotTypeName) :
+        _robotTypeName(pRobotTypeName)
     {
     }
 
@@ -31,6 +35,11 @@ public:
     }
 
     virtual void moveTo(RobotCommandArgs& args)
+    {
+    }
+
+    // Homing commands
+    virtual void home()
     {
     }
 };

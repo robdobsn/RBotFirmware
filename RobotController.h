@@ -8,6 +8,7 @@
 
 // Robot types
 #include "RobotMugBot.h"
+#include "RobotGeistBot.h"
 
 class RobotController
 {
@@ -37,7 +38,15 @@ public:
         if (robotType.equalsIgnoreCase("MugBot"))
         {
             Log.info("Constructing MugBot");
-            _pRobot = new RobotMugBot();
+            _pRobot = new RobotMugBot("MugBot");
+            if (!_pRobot)
+                return false;
+            _pRobot->init(configStr);
+        }
+        else if (robotType.equalsIgnoreCase("GeistBot"))
+        {
+            Log.info("Constructing GeistBot");
+            _pRobot = new RobotGeistBot("GeistBot");
             if (!_pRobot)
                 return false;
             _pRobot->init(configStr);

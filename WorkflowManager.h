@@ -30,9 +30,9 @@ public:
     }
 
     // Add to workflow
-    bool add(String& cmdStr)
+    bool add(const char* pCmdStr)
     {
-        return _cmdQueue.add(cmdStr);
+        return _cmdQueue.add(pCmdStr);
     }
 
     // Get from workflow

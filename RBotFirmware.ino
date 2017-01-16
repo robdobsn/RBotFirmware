@@ -7,6 +7,7 @@
 #include "RobotController.h"
 #include "WorkflowManager.h"
 #include "GCodeInterpreter.h"
+#include "CommsSerial.h"
 
 //define RUN_TESTS_CONFIG
 #define RUN_TEST_WORKFLOW
@@ -19,8 +20,10 @@
 
 SerialLogHandlerR logHandler(SerialLogHandlerR::LOG_LEVEL_ALL);
 
-RobotController robotController;
-WorkflowManager workflowManager;
+RobotController _robotController;
+WorkflowManager _workflowManager;
+CommandInterpreter _commandInterpreter(&_workflowManager);
+CommsSerial _commsSerial(0);
 ConfigEEPROM configEEPROM;
 
 static const char* EEPROM_CONFIG_LOCATION_STR =
@@ -48,8 +51,8 @@ void setup()
     TestConfigManager::runTests();
     #endif
 
-    robotController.init(TEST_ROBOT_CONFIG_STR);
-    workflowManager.init(TEST_WORKFLOW_CONFIG_STR);
+    _robotController.init(TEST_ROBOT_CONFIG_STR);
+    _workflowManager.init(TEST_WORKFLOW_CONFIG_STR);
 
 }
 
@@ -57,9 +60,12 @@ void loop()
 {
     #ifdef RUN_TEST_WORKFLOW
     // TEST add to command queue
-    __testWorkflowGCode.testLoop(workflowManager, robotController);
+    __testWorkflowGCode.testLoop(_workflowManager, _robotController);
     #endif
 
+    // Service CommsSerial
+    _commsSerial.service(_commandInterpreter);
+
     // Service the robot controller
-    robotController.service();
+    _robotController.service();
 }

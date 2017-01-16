@@ -35,7 +35,7 @@ public:
     }
 
     // Add to queue
-    bool add(String& cmdStr)
+    bool add(const char* pCmdStr)
     {
         // Check if queue is full
         if (_cmdElemQueue.size() >= _cmdQueueMaxLen)
@@ -44,7 +44,7 @@ public:
         }
 
         // Queue up the item
-        _cmdElemQueue.push(CommandElem(cmdStr));
+        _cmdElemQueue.push(CommandElem(pCmdStr));
         return true;
     }
 

@@ -7,10 +7,10 @@
 #include "Utils.h"
 #include "RobotPolar.h"
 
-class RobotMugBot : public RobotPolar
+class RobotGeistBot : public RobotPolar
 {
 public:
-    RobotMugBot(const char* pRobotTypeName) :
+    RobotGeistBot(const char* pRobotTypeName) :
         RobotPolar(pRobotTypeName)
     {
 

@@ -17,10 +17,10 @@ public:
     {
         _cmdStr = "";
     }
-    
-    CommandElem(String& cmdStr)
+
+    CommandElem(const char* pCmdStr)
     {
-        _cmdStr = cmdStr;
+        _cmdStr = pCmdStr;
     }
 
     String getString()
