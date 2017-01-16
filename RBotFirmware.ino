@@ -30,7 +30,7 @@ static const char* EEPROM_CONFIG_LOCATION_STR =
     "{\"base\": 0, \"maxLen\": 1000}";
 
 static const char* TEST_ROBOT_CONFIG_STR =
-    "{\"robotType\": \"MugBot\", \"motorEnPin\":\"D4\", \"motorEnOnVal\":1, \"motorDisableSecs\":60.0,"
+    "{\"robotType\": \"GeistBot\", \"motorEnPin\":\"D4\", \"motorEnOnVal\":1, \"motorDisableSecs\":60.0,"
     " \"mugRotation\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":100.0, \"accel\":100.0},"
     " \"xLinear\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":100.0, \"accel\":100.0}"
     "}";

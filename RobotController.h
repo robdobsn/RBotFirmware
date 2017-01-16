@@ -57,13 +57,19 @@ public:
         }
     }
 
+    // Check busy
+    bool isBusy()
+    {
+        if (!_pRobot)
+            return false;
+        return _pRobot->isBusy();
+    }
+
     // Service (called frequently)
     void service()
     {
         if (!_pRobot)
-        {
             return;
-        }
         _pRobot->service();
     }
 
@@ -81,4 +87,13 @@ public:
             return;
         _pRobot->moveTo(args);
     }
+
+    // Home
+    void home(RobotCommandArgs& args)
+    {
+        if (!_pRobot)
+            return;
+        _pRobot->home(args);
+    }
+
 };

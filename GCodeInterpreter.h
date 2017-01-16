@@ -108,6 +108,8 @@ public:
         RobotCommandArgs cmdArgs;
         rslt = getGcodeCmdArgs(pArgsStr, cmdArgs);
 
+        Log.info("GCODE Cmd %d", cmdNum);
+
         // Switch on number
         switch(cmdNum)
         {
@@ -118,7 +120,13 @@ public:
                     cmdArgs.moveRapid = (cmdNum == 0);
                     robotController.moveTo(cmdArgs);
                 }
-                break;
+                return true;
+            case 28: // Home axes
+                if (takeAction)
+                {
+                    robotController.home(cmdArgs);
+                }
+                return true;
         }
 
         return false;

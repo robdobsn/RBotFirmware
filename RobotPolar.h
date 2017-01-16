@@ -23,7 +23,7 @@ private:
     int _motorEnOnVal;
     double _motorDisableSecs;
     // Motors
-    AccelStepper* _pMugRotationStepper;
+    AccelStepper* _pRotationStepper;
     int _rotateStepPin, _rotateDirnPin;
     double _rotateMaxSpeed, _rotateAccel;
     AccelStepper* _pXLinearStepper;
@@ -53,6 +53,17 @@ private:
         }
     }
 
+protected:
+    bool isBusy()
+    {
+        bool steppersRunning = false;
+        if (_pRotationStepper)
+            steppersRunning |= (_pRotationStepper->distanceToGo() != 0);
+        if (_pXLinearStepper)
+            steppersRunning |= (_pXLinearStepper->distanceToGo() != 0);
+        return steppersRunning;
+    }
+
 public:
     RobotPolar(const char* pRobotTypeName) :
         RobotBase(pRobotTypeName)
@@ -60,7 +71,7 @@ public:
         _motorEnPin = -1;
         _motorEnOnVal = 1;
         _motorDisableSecs = motorDisableSecs_default;
-        _pMugRotationStepper = NULL;
+        _pRotationStepper = NULL;
         _pXLinearStepper = NULL;
         _rotateStepPin = -1;
         _rotateDirnPin = -1;
@@ -76,7 +87,7 @@ public:
 
     ~RobotPolar()
     {
-        delete _pMugRotationStepper;
+        delete _pRotationStepper;
         delete _pXLinearStepper;
         if (_motorEnPin != -1)
             pinMode(_motorEnPin, INPUT);
@@ -86,8 +97,8 @@ public:
     bool init(const char* robotConfigStr)
     {
         // Free up any previous configuration
-        delete _pMugRotationStepper;
-        _pMugRotationStepper = NULL;
+        delete _pRotationStepper;
+        _pRotationStepper = NULL;
         delete _pXLinearStepper;
         _pXLinearStepper = NULL;
         if (_motorEnPin != -1)
@@ -137,11 +148,11 @@ public:
         _motorsAreEnabled = false;
 
         // Create stepper objetcs
-        _pMugRotationStepper = new AccelStepper(AccelStepper::DRIVER, _rotateStepPin, _rotateDirnPin);
-        if (_pMugRotationStepper)
+        _pRotationStepper = new AccelStepper(AccelStepper::DRIVER, _rotateStepPin, _rotateDirnPin);
+        if (_pRotationStepper)
         {
-            _pMugRotationStepper->setMaxSpeed(_rotateMaxSpeed);
-            _pMugRotationStepper->setAcceleration(_rotateAccel);
+            _pRotationStepper->setMaxSpeed(_rotateMaxSpeed);
+            _pRotationStepper->setAcceleration(_rotateAccel);
         }
         _pXLinearStepper = new AccelStepper(AccelStepper::DRIVER, _xLinearStepPin, _xLinearDirnPin);
         if (_pXLinearStepper)
@@ -164,18 +175,25 @@ public:
 
     void moveTo(RobotCommandArgs& args)
     {
+        // Check if steppers are running - if so ignore the command
+        bool steppersMoving = isBusy();
+
         // Info
-        Log.info("%s moveTo %f(%d),%f(%d),%f(%d)", _robotTypeName.c_str(), args.xVal, args.xValid,
-                    args.yVal, args.yValid, args.zVal, args.zValid);
+        Log.info("%s moveTo %f(%d),%f(%d),%f(%d) %s", _robotTypeName.c_str(), args.xVal, args.xValid,
+                    args.yVal, args.yValid, args.zVal, args.zValid, steppersMoving ? "BUSY" : "");
+
+        // Check if busy
+        if (steppersMoving)
+            return;
 
         // Enable motors
         enableMotors(true);
 
         // Start moving
-        if (args.yValid && _pMugRotationStepper)
+        if (args.yValid && _pRotationStepper)
         {
             Log.info("Rotation to %ld", (long)args.yVal);
-            _pMugRotationStepper->moveTo((long)args.yVal);
+            _pRotationStepper->moveTo((long)args.yVal);
         }
         if (args.xValid && _pXLinearStepper)
         {
@@ -187,9 +205,6 @@ public:
     // Homing command
     void home(RobotCommandArgs& args)
     {
-        // Info
-        Log.info("%s home", _robotTypeName.c_str());
-
     }
 
     void service()
@@ -207,7 +222,7 @@ public:
         }
 
         // Run the steppers
-        _pMugRotationStepper->run();
+        _pRotationStepper->run();
         _pXLinearStepper->run();
     }
 };

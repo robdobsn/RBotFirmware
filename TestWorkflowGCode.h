@@ -7,11 +7,12 @@ class TestWorkflowGCode
 {
 public:
 
-    long millisRateIn = 2000;
-    long millisRateOut = 4000;
+    long millisRateIn = 10000;
+    long millisRateOut = 15000;
     long lastMillisIn = 0;
     long lastMillisOut = 0;
     long lastMillisFlip = 0;
+    bool hasHomed = false;
     long initialMemory = System.freeMemory();
     long lowestMemory = System.freeMemory();
     double curX = 0;
@@ -19,6 +20,13 @@ public:
 
     void testLoop(WorkflowManager& workflowManager, RobotController& robotController)
     {
+        if (!hasHomed)
+        {
+            String cmdStr = "G28 X Y Z";
+            bool rslt = workflowManager.add(cmdStr);
+            Log.info("Add %s %d", cmdStr.c_str(), rslt);
+            hasHomed = true;
+        }
         if (millis() > lastMillisIn + millisRateIn)
         {
             String cmdStr = "G01 X" + String(curX) + "Y" + String(curY);
@@ -32,13 +40,16 @@ public:
 
         if (millis() > lastMillisOut + millisRateOut)
         {
-            CommandElem cmdElem;
-            bool rslt = workflowManager.get(cmdElem);
-            Log.info("Get %d = %s, initMem %d, mem %d, lowMem %d", rslt,
-                                cmdElem.getString().c_str(), initialMemory,
-                                System.freeMemory(), lowestMemory);
-            GCodeInterpreter::interpretGcode(cmdElem, robotController, true);
-            lastMillisOut = millis();
+            if (!robotController.isBusy())
+            {
+                CommandElem cmdElem;
+                bool rslt = workflowManager.get(cmdElem);
+                Log.info("Get %d = %s, initMem %d, mem %d, lowMem %d", rslt,
+                                    cmdElem.getString().c_str(), initialMemory,
+                                    System.freeMemory(), lowestMemory);
+                GCodeInterpreter::interpretGcode(cmdElem, robotController, true);
+                lastMillisOut = millis();
+            }
         }
 
         if (millis() > lastMillisFlip + 30000)

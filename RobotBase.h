@@ -25,6 +25,11 @@ public:
         return false;
     }
 
+    virtual bool isBusy()
+    {
+        return false;
+    }
+
     virtual void service()
     {
     }
@@ -39,7 +44,7 @@ public:
     }
 
     // Homing commands
-    virtual void home()
+    virtual void home(RobotCommandArgs& args)
     {
     }
 };
