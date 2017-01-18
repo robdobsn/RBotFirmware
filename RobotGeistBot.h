@@ -31,7 +31,7 @@ public:
     {
         // GeistBot can only home X & Y axes together so ignore params
         // Info
-        Log.info("%s home", _robotTypeName.c_str());
+        Log.info("%s home x%d, y%d, z%d", _robotTypeName.c_str(), args.xValid, args.yValid, args.zValid);
 
         // Set homing state
         _homingState = HOMING_STATE_INIT;
