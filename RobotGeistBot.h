@@ -15,13 +15,19 @@ private:
         HOMING_STATE_IDLE,
         HOMING_STATE_INIT,
         ROTATE_TO_ENDSTOP,
-        SEEK_FOR_LINEAR,
+        PREP_FOR_LINEAR_SEEK,
+        LINEAR_TO_ENDSTOP,
     };
     HOMING_STATE _homingState;
     unsigned long _homeReqTime;
     static const int _timeBetweenHomingStepsUs = 500;
     int _homingStepsDone;
     int _homingStepsRequired;
+
+
+
+    bool testWasOn;
+    int testRotCount;
 
 public:
     RobotGeistBot(const char* pRobotTypeName) :
@@ -73,10 +79,10 @@ public:
                 break;
             }
             case ROTATE_TO_ENDSTOP:
-            case SEEK_FOR_LINEAR:
+            case PREP_FOR_LINEAR_SEEK:
             {
                 // Check for timeout
-                if (millis() > _homeReqTime + 15000)
+                if (millis() > _homeReqTime + 200000)
                 {
                     _homingState = HOMING_STATE_IDLE;
                     Log.info("Homing Timed Out");
@@ -87,9 +93,11 @@ public:
                 {
                     if (_motionController.isAtEndStop(0,0))
                     {
-                        _homingState = SEEK_FOR_LINEAR;
+                        _homingState = PREP_FOR_LINEAR_SEEK;
+                        testWasOn = 1;
+                        testRotCount = 0;
                         _homingStepsDone = 0;
-                        _homingStepsRequired = 3000;
+                        _homingStepsRequired = 100000;
                         Log.info("Homing - at rotate endstop");
                     }
                 }
@@ -99,12 +107,14 @@ public:
                 if (Utils::isTimeout(micros(), lastStepMicros, _timeBetweenHomingStepsUs))
                 {
                     // Check which direction to rotate
-                    bool rotateDirection = (_homingState == SEEK_FOR_LINEAR);
+                    bool rotateDirection = 0;
+                    if (_homingState == PREP_FOR_LINEAR_SEEK)
+                        rotateDirection = 0;
 
                     // Rotate
-                    if (_homingState == ROTATE_TO_ENDSTOP || _homingState == SEEK_FOR_LINEAR)
+                    if (_homingState == ROTATE_TO_ENDSTOP || _homingState == PREP_FOR_LINEAR_SEEK)
                         _motionController.step(0, rotateDirection);
-                    if (_homingState == ROTATE_TO_ENDSTOP || _homingState == SEEK_FOR_LINEAR)
+                    if (_homingState == ROTATE_TO_ENDSTOP || _homingState == PREP_FOR_LINEAR_SEEK)
                         _motionController.step(1, rotateDirection);
                 }
 
@@ -114,9 +124,23 @@ public:
                 // Check for max steps in this stage
                 if (_homingStepsRequired != 0)
                 {
+                    if (_motionController.isAtEndStop(0,0) && !testWasOn)
+                    {
+                        testRotCount++;
+                        Log.info("Reached endstop again - diff steps = %d, rotations %d", _homingStepsDone, testRotCount);
+                        if (testRotCount >= 10)
+                        {
+                            _homingState = HOMING_STATE_IDLE;
+                        }
+                        testWasOn = true;
+                    }
+                    else if (!_motionController.isAtEndStop(0,0))
+                    {
+                        testWasOn = false;
+                    }
                     if (_homingStepsDone >= _homingStepsRequired)
                     {
-                        if (_homingState == SEEK_FOR_LINEAR)
+                        if (_homingState == PREP_FOR_LINEAR_SEEK)
                         {
                             _homingState = HOMING_STATE_IDLE;
                             Log.info("Homing - at linear point");

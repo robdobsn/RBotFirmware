@@ -41,15 +41,37 @@ public:
     }
 };
 
+class AxisParams
+{
+public:
+    static constexpr double maxSpeed_default = 100.0;
+    static constexpr double acceleration_default = 100.0;
+    static constexpr double stepsPerUnit_default = 100.0;
+    double _maxSpeed;
+    double _acceleration;
+    double _stepsPerUnit;
+
+public:
+    AxisParams()
+    {
+        _maxSpeed = maxSpeed_default;
+        _acceleration = acceleration_default;
+        _stepsPerUnit = stepsPerUnit_default;
+    }
+};
+
 class MotionController
 {
 public:
     static const int MAX_AXES = 3;
     static const int MAX_ENDSTOPS_PER_AXIS = 2;
+    static constexpr double motorDisableSecs_default = 60.0;
 
 private:
     // Motors
     StepperMotor* _stepperMotors[MAX_AXES];
+    // Axis parameters
+    AxisParams _axisParams[MAX_AXES];
     // Step enable
     int _stepEnablePin;
     bool _stepEnableActiveLevel = true;
@@ -61,6 +83,83 @@ private:
     EndStop* _endStops[MAX_AXES][MAX_ENDSTOPS_PER_AXIS];
     // Stepping times
     unsigned long _axisLastStepMicros[MAX_AXES];
+
+private:
+
+    bool configureMotorEnable(const char* robotConfigJSON)
+    {
+        // Get motor enable info
+        String motorEnPinName = ConfigManager::getString("motorEnPin", "-1", robotConfigJSON);
+        long motorEnOnVal = ConfigManager::getLong("motorEnOnVal", 1, robotConfigJSON);
+        long motorEnPin = ConfigPinMap::getPinFromName(motorEnPinName.c_str());
+        double motorDisableSecs = ConfigManager::getDouble("motorDisableSecs", motorDisableSecs_default, robotConfigJSON);
+        Log.info("MotorEnable (pin %d, onVal %d, %0.2f secs)", motorEnPin, motorEnOnVal, motorDisableSecs);
+        if (motorEnPin == -1)
+            return false;
+        return true;
+    }
+
+    bool configureAxis(const char* robotConfigJSON, int axisIdx)
+    {
+        if (axisIdx < 0 || axisIdx >= MAX_AXES)
+            return false;
+
+        // Get rotation params
+        String motorIdStr = "axis" + String(axisIdx);
+        String axisJSON = ConfigManager::getString(motorIdStr, "{}", robotConfigJSON);
+        if (axisJSON.length() == 0 || axisJSON.equals("{}"))
+            return false;
+        String stepPinName = ConfigManager::getString("stepPin", "-1", axisJSON);
+        String dirnPinName = ConfigManager::getString("dirnPin", "-1", axisJSON);
+        _axisParams[axisIdx]._maxSpeed = ConfigManager::getDouble("maxSpeed", AxisParams::maxSpeed_default, axisJSON);
+        _axisParams[axisIdx]._acceleration = ConfigManager::getDouble("acceleration", AxisParams::acceleration_default, axisJSON);
+        _axisParams[axisIdx]._stepsPerUnit = ConfigManager::getDouble("stepsPerUnit", AxisParams::stepsPerUnit_default, axisJSON);
+        long stepPin = ConfigPinMap::getPinFromName(stepPinName.c_str());
+        long dirnPin = ConfigPinMap::getPinFromName(dirnPinName.c_str());
+        Log.info("Axis%d (step pin %d, dirn pin %d)", axisIdx, stepPin, dirnPin);
+        if (stepPin == -1 || dirnPin == -1)
+            return false;
+    //
+    //     new StepperMotor(StepperMotor::MOTOR_TYPE_DRIVER, orbitalStepperStepPin, orbitalStepperDirnPin);
+    //
+    //     // Get rotation end stop - can operate without a rotation end stop
+    //     String axis1EndStop1JSON = ConfigManager::getString("axis1EndStop1", "{}", robotConfigStr);
+    //     String axis1EndStop1PinName = ConfigManager::getString("sensePin", "-1", axis1EndStop1JSON);
+    //     long axis1EndStop1ActiveLevel = ConfigManager::getLong("activeLevel", 1, axis1EndStop1JSON);
+    //     String axis1EndStop1InputTypeStr = ConfigManager::getString("inputType", "", axis1EndStop1JSON);
+    //     long axis1EndStop1Pin = ConfigPinMap::getPinFromName(axis1EndStop1PinName.c_str());
+    //     int axis1EndStop1InputType = ConfigPinMap::getInputType(axis1EndStop1InputTypeStr.c_str());
+    //     Log.info("%s Rotation EndStop 1 (sense %d, level %d, type %d)", _robotTypeName.c_str(), axis1EndStop1Pin,
+    //                 axis1EndStop1ActiveLevel, axis1EndStop1InputType);
+    //
+    //
+    //
+    // }
+    //
+    //
+    // // Get axis2 params
+    // String axis2MotorJSON = ConfigManager::getString("axis2Motor", "{}", robotConfigStr);
+    // String axis2StepPinName = ConfigManager::getString("stepPin", "-1", axis2MotorJSON);
+    // String axis2DirnPinName = ConfigManager::getString("dirnPin", "-1", axis2MotorJSON);
+    // _axis2MaxSpeed = ConfigManager::getDouble("maxSpeed", axis2MaxSpeed_default, axis2MotorJSON);
+    // _axis2Accel = ConfigManager::getDouble("accel", axis2Accel_default, axis2MotorJSON);
+    // _axis2StepsPerUnit = ConfigManager::getDouble("stepsPerUnit", axis2StepsPerUnit_default, axis2MotorJSON);
+    // long axis2StepPin = ConfigPinMap::getPinFromName(axis2StepPinName.c_str());
+    // long axis2DirnPin = ConfigPinMap::getPinFromName(axis2DirnPinName.c_str());
+    // Log.info("%s axis2 (step %d, dirn %d)", _robotTypeName.c_str(), axis2StepPin, axis2DirnPin);
+    // if (axis2StepPin == -1 || axis2DirnPin == -1)
+    //     return false;
+    //
+    // // Get axis2 end stop - can't operate without a axis2 end stop
+    // String axis2EndStop1JSON = ConfigManager::getString("axis2EndStop1", "{}", robotConfigStr);
+    // String axis2EndStop1PinName = ConfigManager::getString("sensePin", "-1", axis2EndStop1JSON);
+    // long axis2EndStop1ActiveLevel = ConfigManager::getLong("activeLevel", 1, axis2EndStop1JSON);
+    // String axis2EndStop1InputTypeStr = ConfigManager::getString("inputType", "", axis2EndStop1JSON);
+    // long axis2EndStop1Pin = ConfigPinMap::getPinFromName(axis2EndStop1PinName.c_str());
+    // int axis2EndStop1InputType = ConfigPinMap::getInputType(axis2EndStop1InputTypeStr.c_str());
+    // Log.info("%s axis2 EndStop 1 (sense %d, level %d, type %d)", _robotTypeName.c_str(), axis2EndStop1Pin,
+    //             axis2EndStop1ActiveLevel, axis2EndStop1InputType);
+}
 
 protected:
     bool isBusy()
@@ -131,29 +230,25 @@ public:
         }
     }
 
-    void setOrbitalParams(int orbitalStepperStepPin, int orbitalStepperDirnPin,
-                int linearStepperStepPin, int linearStepperDirnPin,
-                int stepEnablePin, bool stepEnableActiveLevel, int motorDisableSecs,
-                int orbitalEndStop1Pin, bool orbitalEndStop1ActiveLevel, int orbitalEndStop1InputType,
-                int linearEndStop1Pin, bool linearEndStop1ActiveLevel, int linearEndStop1InputType)
+    void setOrbitalParams(const char* robotConfigJSON)
     {
         // Deinitialise
         deinit();
 
-        // Construct stepper motors
-        _stepperMotors[0] = new StepperMotor(StepperMotor::MOTOR_TYPE_DRIVER, orbitalStepperStepPin, orbitalStepperDirnPin);
-        _stepperMotors[1] = new StepperMotor(StepperMotor::MOTOR_TYPE_DRIVER, linearStepperStepPin, linearStepperDirnPin);
-
-        // Enable pin - initially disable
-        _stepEnablePin = stepEnablePin;
-        _stepEnableActiveLevel = stepEnableActiveLevel;
-        _motorDisableSecs = motorDisableSecs;
-        pinMode(_stepEnablePin, OUTPUT);
-        digitalWrite(_stepEnablePin, !_stepEnableActiveLevel);
-
-        // End stops
-        _endStops[0][0] = new EndStop(orbitalEndStop1Pin, orbitalEndStop1ActiveLevel, orbitalEndStop1InputType);
-        _endStops[1][0] = new EndStop(linearEndStop1Pin, linearEndStop1ActiveLevel, linearEndStop1InputType);
+        // // Construct stepper motors
+        // _stepperMotors[0] = new StepperMotor(StepperMotor::MOTOR_TYPE_DRIVER, orbitalStepperStepPin, orbitalStepperDirnPin);
+        // _stepperMotors[1] = new StepperMotor(StepperMotor::MOTOR_TYPE_DRIVER, linearStepperStepPin, linearStepperDirnPin);
+        //
+        // // Enable pin - initially disable
+        // _stepEnablePin = stepEnablePin;
+        // _stepEnableActiveLevel = stepEnableActiveLevel;
+        // _motorDisableSecs = motorDisableSecs;
+        // pinMode(_stepEnablePin, OUTPUT);
+        // digitalWrite(_stepEnablePin, !_stepEnableActiveLevel);
+        //
+        // // End stops
+        // _endStops[0][0] = new EndStop(orbitalEndStop1Pin, orbitalEndStop1ActiveLevel, orbitalEndStop1InputType);
+        // _endStops[1][0] = new EndStop(linearEndStop1Pin, linearEndStop1ActiveLevel, linearEndStop1InputType);
     }
 
     void step(int axisIdx, bool direction)
