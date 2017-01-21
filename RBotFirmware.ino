@@ -29,10 +29,17 @@ ConfigEEPROM configEEPROM;
 static const char* EEPROM_CONFIG_LOCATION_STR =
     "{\"base\": 0, \"maxLen\": 1000}";
 
-static const char* TEST_ROBOT_CONFIG_STR =
-    "{\"robotType\": \"GeistBot\", \"motorEnPin\":\"D4\", \"motorEnOnVal\":1, \"motorDisableSecs\":60.0,"
+/*static const char* TEST_ROBOT_CONFIG_STR =
+    "{\"robotType\": \"MugBot\", \"motorEnPin\":\"A2\", \"motorEnOnVal\":1, \"motorDisableSecs\":60.0,"
     " \"mugRotation\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":100.0, \"accel\":100.0},"
     " \"xLinear\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":100.0, \"accel\":100.0}"
+    "}";*/
+static const char* TEST_ROBOT_CONFIG_STR =
+    "{\"robotType\": \"GeistBot\", \"motorEnPin\":\"A2\", \"motorEnOnVal\":1, \"motorDisableSecs\":60.0,"
+    " \"axis1Motor\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":100.0, \"accel\":100.0},"
+    " \"axis1EndStop1\": { \"sensePin\": \"A6\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"},"
+    " \"axis2Motor\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":100.0, \"accel\":100.0},"
+    " \"axis2EndStop1\": { \"sensePin\": \"A7\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"},"
     "}";
 
 static const char* TEST_WORKFLOW_CONFIG_STR =
@@ -43,6 +50,15 @@ void setup()
     delay(5000);
     Log.info("RBotFirmware (built %s %s)", __DATE__, __TIME__);
     Log.info("System version: %s", (const char*)System.version());
+
+/*
+    pinMode(A6, INPUT_PULLUP);
+    pinMode(A7, INPUT_PULLUP);
+    for (int i = 0; i < 40; i++)
+    {
+        Serial.printlnf("A6=%d A7=%d", digitalRead(A6), digitalRead(A7));
+        delay(500);
+    }*/
 
     // Initialise the config manager
     configEEPROM.setConfigLocation(EEPROM_CONFIG_LOCATION_STR);

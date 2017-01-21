@@ -28,5 +28,4 @@ public:
         return 0;
         return maxDuration - (ULONG_MAX - (lastTime-curTime));
     }
-
 };

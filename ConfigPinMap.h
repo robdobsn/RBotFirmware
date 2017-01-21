@@ -32,4 +32,15 @@ public:
         }
         return (int)strtol(pinName, NULL, 10);
     }
+
+    // Conversion from strings like:
+    // PULLUP, PULLDOWN to INPUT_PULLUP, etc
+    static int getInputType(const char* inputTypeStr)
+    {
+        if (stricmp(inputTypeStr, "INPUT_PULLUP") == 0)
+            return INPUT_PULLUP;
+        if (stricmp(inputTypeStr, "INPUT_PULLDOWN") == 0)
+            return INPUT_PULLDOWN;
+        return INPUT;
+    }
 };
