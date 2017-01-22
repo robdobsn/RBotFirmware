@@ -5,13 +5,13 @@
 
 #include "application.h"
 #include "Utils.h"
-#include "RobotPolar.h"
+#include "RobotBase.h"
 
-class RobotMugBot : public RobotPolar
+class RobotMugBot : public RobotBase
 {
 public:
     RobotMugBot(const char* pRobotTypeName) :
-        RobotPolar(pRobotTypeName)
+        RobotBase(pRobotTypeName)
     {
 
     }

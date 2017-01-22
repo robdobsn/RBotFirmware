@@ -265,7 +265,7 @@ private:
                             dataPath, endTokenIdx);
         if (keyIdx < 0)
         {
-            RD_INFO("JSON cannot find key");
+            RD_INFO("getTokenByDataPath not found %s", dataPath);
             return false;
         }
 

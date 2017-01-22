@@ -35,11 +35,14 @@ static const char* EEPROM_CONFIG_LOCATION_STR =
     " \"xLinear\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":100.0, \"accel\":100.0}"
     "}";*/
 static const char* TEST_ROBOT_CONFIG_STR =
-    "{\"robotType\": \"GeistBot\", \"motorEnPin\":\"A2\", \"motorEnOnVal\":1, \"motorDisableSecs\":60.0,"
-    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":100.0, \"acceleration\":100.0, \"stepsPerUnit\":33.3333,"
+    "{\"robotType\": \"GeistBot\", \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":10.0,"
+    " \"maxHomingSecs\":120, \"homingLinOffsetDegs\":70, \"homingCentreOffsetMM\":0,"
+    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":100.0, \"acceleration\":100.0,"
+    " \"stepsPerRotation\":12000, \"unitsPerRotation\":360, "
     " \"endStop0\": { \"sensePin\": \"A6\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"}},"
-    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":100.0, \"acceleration\":100.0, \"stepsPerUnit\":33.3333,"
-    " \"endStop0\": { \"sensePin\": \"A7\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"}},"
+    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":100.0, \"acceleration\":100.0, "
+    "\"stepsPerRotation\":12000, \"unitsPerRotation\":44.8, "
+    " \"endStop0\": { \"sensePin\": \"A7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
     "}";
 
 static const char* TEST_WORKFLOW_CONFIG_STR =
@@ -59,7 +62,7 @@ void setup()
     Log.info("RBotFirmware (built %s %s)", __DATE__, __TIME__);
     Log.info("System version: %s", (const char*)System.version());
 
-/*
+    /*
     pinMode(A6, INPUT_PULLUP);
     pinMode(A7, INPUT_PULLUP);
     for (int i = 0; i < 40; i++)
@@ -67,40 +70,6 @@ void setup()
         Serial.printlnf("A6=%d A7=%d", digitalRead(A6), digitalRead(A7));
         delay(500);
     }*/
-    /*pinMode(A6, INPUT_PULLUP);
-    pinMode(D2, OUTPUT);
-    pinMode(D3, OUTPUT);
-    pinMode(A2, OUTPUT);
-    digitalWrite(A2, 1);
-    digitalWrite(D3, 0);
-    int turnCount = 0;
-    for (int i = 0; i < 30000; i++)
-    {
-        if (!digitalRead(A6))
-            break;
-        step1();
-    }
-    for (int i = 0; i < 30000; i++)
-    {
-        if (digitalRead(A6))
-            break;
-        step1();
-    }
-    for (int i = 0; i < 30000; i++)
-    {
-        if (!digitalRead(A6))
-            break;
-        step1();
-        turnCount++;
-    }
-    for (int i = 0; i < 30000; i++)
-    {
-        if (digitalRead(A6))
-            break;
-        step1();
-        turnCount++;
-    }
-    Log.info("TURN COUNT %d", turnCount);*/
 
     // Initialise the config manager
     configEEPROM.setConfigLocation(EEPROM_CONFIG_LOCATION_STR);

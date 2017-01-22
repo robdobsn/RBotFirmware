@@ -4,6 +4,7 @@
 #pragma once
 
 #include "RobotCommandArgs.h"
+#include "AxisParams.h"
 
 class RobotBase
 {
@@ -46,5 +47,10 @@ public:
     // Homing commands
     virtual void home(RobotCommandArgs& args)
     {
+    }
+
+    virtual bool convertPositionToSteps(double pos[], unsigned long steps[], AxisParams axisParams[])
+    {
+        return false;
     }
 };
