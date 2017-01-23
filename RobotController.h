@@ -57,14 +57,6 @@ public:
         }
     }
 
-    // Check busy
-    bool isBusy()
-    {
-        if (!_pRobot)
-            return false;
-        return _pRobot->isBusy();
-    }
-
     // Service (called frequently)
     void service()
     {
@@ -79,6 +71,14 @@ public:
         if (!_pRobot)
             return;
         _pRobot->actuator(value);
+    }
+
+    // Check if the robot can accept a (motion) command
+    bool canAcceptCommand()
+    {
+        if (!_pRobot)
+            return false;
+        return _pRobot->canAcceptCommand();
     }
 
     void moveTo(RobotCommandArgs& args)

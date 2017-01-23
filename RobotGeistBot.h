@@ -19,9 +19,9 @@ public:
         double reqAlphaRads = atan2(xy[0], xy[1]);
         double reqLinearMM = sqrt(xy[0] * xy[0] + xy[1] * xy[1]);
 
-        Log.trace("xyToActuator x %0.2f y %0.2f axis0StFrHome %d axis1StFrHome %d reqAlphaRads %0.2f reqLinearMM %0.2f",
+        Log.trace("xyToActuator x %0.2f y %0.2f ax0St %d ax1St %d rqAlphaD %0.2f rqLinMM %0.2f",
                 xy[0], xy[1], axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome,
-                reqAlphaRads, reqLinearMM);
+                reqAlphaRads * 180 / M_PI, reqLinearMM);
 
         // Get current position
         double axisPosns[NUM_ROBOT_AXES] = {
@@ -173,28 +173,19 @@ public:
         homingSetNewState(HOMING_STATE_INIT);
     }
 
-    bool isBusy()
+    bool canAcceptCommand()
     {
         // Check if homing
         if (_homingState != HOMING_STATE_IDLE)
-            return true;
+            return false;
 
-        // Check if steppers busy
-        return _motionController.isBusy();
+        // Check if motionController is can accept a command
+        return _motionController.canAcceptCommand();
     }
 
     void moveTo(RobotCommandArgs& args)
     {
-        if (!args.xValid || !args.yValid)
-            return;
-
-        // Get steps to move
-        double xy[2] = { args.xVal, args.yVal };
-        double stepsToMove[NUM_ROBOT_AXES];
-        bool valid = xyToActuator(xy, stepsToMove, _motionController.getAxisParamsArray(), NUM_ROBOT_AXES);
-        Serial.printlnf("Move to %s x %0.2f y %0.2f -> rot %0.2f lin %0.2f",
-                    valid?"":"INVALID", xy[0], xy[1], stepsToMove[0], stepsToMove[1]);
-
+        _motionController.moveTo(args);
     }
 
     void homingSetNewState(HOMING_STATE newState)
@@ -326,11 +317,11 @@ public:
         }
     }
 
-    void homingService()
+    bool homingService()
     {
         // Check for idle
         if (_homingState == HOMING_STATE_IDLE)
-            return;
+            return false;
 
         // Check for timeout
         if (millis() > _homeReqTime + (_maxHomingSecs * 1000))
@@ -404,15 +395,17 @@ public:
         //     }
         // }
 
+        return true;
+
     }
 
     void service()
     {
         // Service homing activity
-        homingService();
+        bool homingActive = homingService();
 
         // Service the motion controller
-        _motionController.service();
+        _motionController.service(!homingActive);
     }
 
 };

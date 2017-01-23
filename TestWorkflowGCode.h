@@ -43,7 +43,7 @@ public:
 
         if (millis() > lastMillisOut + millisRateOut)
         {
-            if (!robotController.isBusy())
+            if (robotController.canAcceptCommand())
             {
                 CommandElem cmdElem;
                 bool rslt = workflowManager.get(cmdElem);
@@ -63,7 +63,7 @@ public:
             }
             else if (!busyNotified)
             {
-                Log.info("Robot Busy");
+                Log.info("Robot queue full");
                 busyNotified = true;
             }
         }

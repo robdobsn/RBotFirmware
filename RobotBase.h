@@ -26,7 +26,7 @@ public:
         return false;
     }
 
-    virtual bool isBusy()
+    virtual bool canAcceptCommand()
     {
         return false;
     }

@@ -10,15 +10,22 @@ public:
     static constexpr double acceleration_default = 100.0;
     static constexpr double stepsPerRotation_default = 1.0;
     static constexpr double unitsPerRotation_default = 1.0;
+
+    // Parameters
     double _maxSpeed;
     double _acceleration;
     double _stepsPerRotation;
     double _unitsPerRotation;
-    unsigned long _stepsFromHome;
     bool _minValValid;
     double _minVal;
     bool _maxValValid;
     double _maxVal;
+
+    // Motion values
+    unsigned long _stepsFromHome;
+    unsigned long _targetStepsFromHome;
+    unsigned long _lastStepMicros;
+    unsigned long _microsBetweenSteps;
 
 public:
     AxisParams()
