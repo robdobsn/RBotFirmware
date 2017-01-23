@@ -36,7 +36,7 @@ static const char* EEPROM_CONFIG_LOCATION_STR =
     "}";*/
 static const char* TEST_ROBOT_CONFIG_STR =
     "{\"robotType\": \"GeistBot\", \"xMaxMM\":400, \"yMaxMM\":400, "
-    " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":10.0,"
+    " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
     " \"maxHomingSecs\":120, \"homingLinOffsetDegs\":70, \"homingCentreOffsetMM\":0,"
     " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":100.0, \"acceleration\":100.0,"
     " \"stepsPerRotation\":12000, \"unitsPerRotation\":360, "

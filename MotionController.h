@@ -168,7 +168,7 @@ private:
             anyAxisMoving = true;
 
             // Check if time to move
-            if (Utils::isTimeout(micros(), _axisParams[i]._lastStepMicros, _axisParams[i]._microsBetweenSteps))
+            if (Utils::isTimeout(micros(), _axisParams[i]._lastStepMicros, _axisParams[i]._betweenStepsUs))
             {
                 step(i, _axisParams[i]._targetStepsFromHome > _axisParams[i]._stepsFromHome);
                 // Serial.printlnf("Step %d %d", i, _axisParams[i]._targetStepsFromHome > _axisParams[i]._stepsFromHome);
@@ -182,20 +182,24 @@ private:
             MotionPipelineElem motionElem;
              if (_motionPipeline.get(motionElem))
              {
+                 // Correct for any overflows in stepper values (may occur with rotational robots)
+                 _correctStepOverflowFn(_axisParams, _numRobotAxes);
+
                 // Get steps to move
                 double xy[MAX_AXES] = { motionElem._xPos, motionElem._yPos };
                 double stepsToMove[MAX_AXES];
                 bool valid = _xyToActuatorFn(xy, stepsToMove, _axisParams, _numRobotAxes);
-                Serial.printlnf("Move to %s x %0.2f y %0.2f -> rot %0.2f lin %0.2f tg0 %0.2f tg1 %0.2f",
-                            valid?"":"INVALID", xy[0], xy[1], stepsToMove[0], stepsToMove[1],
-                        _axisParams[0]._targetStepsFromHome, _axisParams[1]._targetStepsFromHome);
 
                 // Activate motion if valid - otherwise ignore
                 if (valid)
                 {
-                    _axisParams[0]._targetStepsFromHome = _axisParams[0]._stepsFromHome + stepsToMove[0];
-                    _axisParams[1]._targetStepsFromHome = _axisParams[1]._stepsFromHome + stepsToMove[1];
+                    _axisParams[0]._targetStepsFromHome = _axisParams[0]._stepsFromHome + (int)(stepsToMove[0]);
+                    _axisParams[1]._targetStepsFromHome = _axisParams[1]._stepsFromHome + (int)(stepsToMove[1]);
                 }
+
+                Serial.printlnf("Move to %sx %0.2f y %0.2f -> rot %0.2f lin %0.2f tg0 %d tg1 %d",
+                            valid?"":"INVALID ", xy[0], xy[1], stepsToMove[0], stepsToMove[1],
+                        _axisParams[0]._targetStepsFromHome, _axisParams[1]._targetStepsFromHome);
             }
         }
     }
@@ -237,7 +241,7 @@ public:
             _axisParams[i]._lastStepMicros = 0;
             _axisParams[i]._stepsFromHome = 0;
             _axisParams[i]._targetStepsFromHome = 0;
-            _axisParams[i]._microsBetweenSteps = 1000;
+            _axisParams[i]._betweenStepsUs = 100;
         }
         _stepEnablePin = -1;
         _stepEnableActiveLevel = true;
@@ -422,56 +426,33 @@ public:
             startPos._yPos = curXy[1];
         }
 
-        // Split up into blocks of maximum length
-        double xDiff = args.xVal - startPos._xPos;
-        double yDiff = args.yVal - startPos._yPos;
-        int lineLen = sqrt(xDiff * xDiff + yDiff * yDiff);
-        // Ensure at least one block
-        int numBlocks = int(lineLen / _blockDistanceMM) + 1;
-        double xStep = xDiff / numBlocks;
-        double yStep = yDiff / numBlocks;
-        for (int i = 0; i < numBlocks; i++)
-        {
-            // Create block
-            double blkX = startPos._xPos + xStep * i;
-            double blkY = startPos._yPos + yStep * i;
-            // If last block then just use end point coords
-            if (i == numBlocks-1)
-            {
-                blkX = args.xVal;
-                blkY = args.yVal;
-            }
-            Serial.printlnf("Adding x %0.2f y %0.2f", blkX, blkY);
-            // Add to pipeline
-            if (!_motionPipeline.add(blkX, blkY))
-                break;
-        }
+        _motionPipeline.add(args.xVal, args.yVal);
 
-        // // Check if steppers are running - if so ignore the command
-        // bool steppersMoving = isBusy();
-        //
-        // // Info
-        // Log.info("%s moveTo %f(%d),%f(%d),%f(%d) %s", _robotTypeName.c_str(), args.xVal, args.xValid,
-        //             args.yVal, args.yValid, args.zVal, args.zValid, steppersMoving ? "BUSY" : "");
-        //
-        // // Check if busy
-        // if (steppersMoving)
-        //     return;
-        //
-        // // Enable motors
-        // enableMotors(true);
-        //
-        // // Start moving
-        // if (args.yValid && _pRotationStepper)
+        // // Split up into blocks of maximum length
+        // double xDiff = args.xVal - startPos._xPos;
+        // double yDiff = args.yVal - startPos._yPos;
+        // int lineLen = sqrt(xDiff * xDiff + yDiff * yDiff);
+        // // Ensure at least one block
+        // int numBlocks = int(lineLen / _blockDistanceMM) + 1;
+        // double xStep = xDiff / numBlocks;
+        // double yStep = yDiff / numBlocks;
+        // for (int i = 0; i < numBlocks; i++)
         // {
-        //     Log.info("Rotation to %ld", (long)args.yVal);
-        //     _pRotationStepper->moveTo((long)args.yVal);
+        //     // Create block
+        //     double blkX = startPos._xPos + xStep * i;
+        //     double blkY = startPos._yPos + yStep * i;
+        //     // If last block then just use end point coords
+        //     if (i == numBlocks-1)
+        //     {
+        //         blkX = args.xVal;
+        //         blkY = args.yVal;
+        //     }
+        //     // Serial.printlnf("Adding x %0.2f y %0.2f", blkX, blkY);
+        //     // Add to pipeline
+        //     if (!_motionPipeline.add(blkX, blkY))
+        //         break;
         // }
-        // if (args.xValid && _pXaxis2Stepper)
-        // {
-        //     Log.info("axis2 to %ld", (long)args.xVal);
-        //     _pXaxis2Stepper->moveTo(args.xVal);
-        // }
+
     }
 
     void service(bool processPipeline)

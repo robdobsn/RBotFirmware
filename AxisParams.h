@@ -22,10 +22,10 @@ public:
     double _maxVal;
 
     // Motion values
-    unsigned long _stepsFromHome;
-    unsigned long _targetStepsFromHome;
+    long _stepsFromHome;
+    long _targetStepsFromHome;
     unsigned long _lastStepMicros;
-    unsigned long _microsBetweenSteps;
+    unsigned long _betweenStepsUs;
 
 public:
     AxisParams()

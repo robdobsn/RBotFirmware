@@ -15,8 +15,10 @@ public:
     static const int NUM_ROBOT_AXES = 2;
     static bool xyToActuator(double xy[], double actuatorCoords[], AxisParams axisParams[], int numAxes)
     {
-        // Trig for required position (azimuth is mearsured clockwise from North)
+        // Trig for required position (azimuth is measured clockwise from North)
         double reqAlphaRads = atan2(xy[0], xy[1]);
+        if (reqAlphaRads < 0)
+            reqAlphaRads = 2 * M_PI + reqAlphaRads;
         double reqLinearMM = sqrt(xy[0] * xy[0] + xy[1] * xy[1]);
 
         Log.trace("xyToActuator x %0.2f y %0.2f ax0St %d ax1St %d rqAlphaD %0.2f rqLinMM %0.2f",
@@ -33,17 +35,24 @@ public:
 
         // Calculate shortest azimuth distance
         double alphaDiffRads = reqAlphaRads - currentPolar[0];
+        bool alphaRotateCw = alphaDiffRads > 0;
         if (fabs(alphaDiffRads) > M_PI)
-            alphaDiffRads = 2 * M_PI - alphaDiffRads;
-        double alphaDiffDegs = alphaDiffRads * 180 / M_PI;
+        {
+            alphaDiffRads = 2 * M_PI - fabs(alphaDiffRads);
+            alphaRotateCw = !alphaRotateCw;
+        }
+        double alphaDiffDegs = fabs(alphaDiffRads) * 180 / M_PI;
 
         // Linear distance
         double linearDiffMM = reqLinearMM - currentPolar[1];
 
         // Convert to steps - note that to keep the linear position constant the linear stepper needs to step one step in the same
         // direction as the arm rotation stepper - so the linear stepper steps required is the sum of the rotation and linear steps
-        actuatorCoords[0] = alphaDiffDegs * axisParams[0].stepsPerUnit();
+        actuatorCoords[0] = alphaDiffDegs * axisParams[0].stepsPerUnit() * (alphaRotateCw ? 1 : -1);
         actuatorCoords[1] = linearDiffMM * axisParams[1].stepsPerUnit() + actuatorCoords[0];
+
+        Log.trace("xyToActuator reqAlphaRads %0.2f currentPolar0 %0.2f alphaDiffRads %0.2f alphaRotateCw %d alphaDiffDegs %0.2f linearDiffMM %0.2f actuatorCoords0 %0.2f actuatorCoords1 %0.2f",
+                        reqAlphaRads, currentPolar[0], alphaDiffRads, alphaRotateCw, alphaDiffDegs, linearDiffMM, actuatorCoords[0], actuatorCoords[1]);
 
         // Check machine bounds for linear axis
         if (axisParams[1]._minValValid && reqLinearMM < axisParams[1]._minVal)
@@ -77,18 +86,42 @@ public:
         actuatorToPolar(actuatorCoords, polarCoords, axisParams, numAxes);
 
         // Trig
-        xy[0] = polarCoords[1] * cos(polarCoords[0]);
-        xy[1] = polarCoords[1] * sin(polarCoords[0]);
+        xy[0] = polarCoords[1] * sin(polarCoords[0]);
+        xy[1] = polarCoords[1] * cos(polarCoords[0]);
+        Log.trace("actuatorToXy curX %0.2f curY %0.2f", xy[0], xy[1]);
     }
 
     static void correctStepOverflow(AxisParams axisParams[], int numAxes)
     {
-
+        int rotationSteps = (int)(axisParams[0]._stepsPerRotation);
+        // Debug
+        bool showDebug = false;
+        if (axisParams[0]._stepsFromHome > rotationSteps || axisParams[0]._stepsFromHome <= -rotationSteps)
+        {
+            Serial.printlnf("CORRECTING ax0 %d ax1 %d", axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome);
+            showDebug = true;
+        }
+        // Bring steps from home values back within a single rotation
+        while (axisParams[0]._stepsFromHome > rotationSteps)
+        {
+            axisParams[0]._stepsFromHome -= rotationSteps;
+            axisParams[1]._stepsFromHome -= rotationSteps;
+        }
+        while (axisParams[0]._stepsFromHome <= -rotationSteps)
+        {
+            axisParams[0]._stepsFromHome += rotationSteps;
+            axisParams[1]._stepsFromHome += rotationSteps;
+        }
+        if (showDebug)
+            Serial.printlnf("CORRECTED ax0 %d ax1 %d", axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome);
     }
 
 private:
     // Defaults
-    static constexpr int _timeBetweenHomingStepsUs = 1000;
+    static constexpr int _homingRotateFastStepTimeUs = 100;
+    static constexpr int _homingRotateSlowStepTimeUs = 200;
+    static constexpr int _homingLinearFastStepTimeUs = 40;
+    static constexpr int _homingLinearSlowStepTimeUs = 200;
     static constexpr int maxHomingSecs_default = 1000;
     static constexpr double homingLinOffsetDegs_default = 30;
     static constexpr int homingLinMaxSteps_default = 100;
@@ -102,9 +135,10 @@ private:
         ROTATE_FROM_ENDSTOP,
         ROTATE_TO_ENDSTOP,
         ROTATE_TO_LINEAR_SEEK_ANGLE,
+        LINEAR_SEEK_ENDSTOP,
         LINEAR_CLEAR_ENDSTOP,
         LINEAR_FULLY_CLEAR_ENDSTOP,
-        LINEAR_TO_ENDSTOP,
+        LINEAR_SLOW_ENDSTOP,
         OFFSET_TO_CENTRE,
         ROTATE_TO_HOME,
         HOMING_STATE_COMPLETE
@@ -127,6 +161,7 @@ private:
     typedef enum HOMING_STEP_TYPE { HSTEP_NONE, HSTEP_FORWARDS, HSTEP_BACKWARDS } HOMING_STEP_TYPE;
     HOMING_STEP_TYPE _homingAxis0Step;
     HOMING_STEP_TYPE _homingAxis1Step;
+    double _timeBetweenHomingStepsUs;
 
     // MotionController for the robot motion
     MotionController _motionController;
@@ -140,6 +175,7 @@ public:
         _homingStepsDone = 0;
         _homingStepsLimit = 0;
         _maxHomingSecs = maxHomingSecs_default;
+        _timeBetweenHomingStepsUs = _homingRotateSlowStepTimeUs;
         _motionController.setTransforms(xyToActuator, actuatorToXy, correctStepOverflow);
     }
 
@@ -221,6 +257,7 @@ public:
                 // To purely rotate both steppers must turn in the same direction
                 _homingAxis0Step = HSTEP_FORWARDS;
                 _homingAxis1Step = HSTEP_FORWARDS;
+                _timeBetweenHomingStepsUs = _homingRotateFastStepTimeUs;
                 Log.info("Homing started");
                 break;
             }
@@ -237,7 +274,7 @@ public:
             }
             case ROTATE_TO_LINEAR_SEEK_ANGLE:
             {
-                _homingStateNext = LINEAR_CLEAR_ENDSTOP;
+                _homingStateNext = LINEAR_SEEK_ENDSTOP;
                 _motionController.axisIsHome(0);
                 _homingStepsLimit = _homingLinOffsetDegs * _motionController.getStepsPerUnit(0);
                 _homingApplyStepLimit = true;
@@ -245,6 +282,19 @@ public:
                 _homingAxis0Step = HSTEP_FORWARDS;
                 _homingAxis1Step = HSTEP_FORWARDS;
                 Log.info("Homing - at rotate endstop, prep linear seek %d steps back", _homingStepsLimit);
+                break;
+            }
+            case LINEAR_SEEK_ENDSTOP:
+            {
+                // Seek the linear end stop
+                _homingStateNext = LINEAR_CLEAR_ENDSTOP;
+                _homingSeekAxis1Endstop0 = HSEEK_ON;
+                // For linear motion just the rack and pinion stepper needs to rotate
+                // - forwards is towards the centre in this case
+                _homingAxis0Step = HSTEP_NONE;
+                _homingAxis1Step = HSTEP_BACKWARDS;
+                _timeBetweenHomingStepsUs = _homingLinearFastStepTimeUs;
+                Log.info("Homing - linear seek");
                 break;
             }
             case LINEAR_CLEAR_ENDSTOP:
@@ -256,22 +306,23 @@ public:
                 // - forwards is towards the centre in this case
                 _homingAxis0Step = HSTEP_NONE;
                 _homingAxis1Step = HSTEP_FORWARDS;
+                Log.info("Homing - clear endstop");
                 break;
             }
             case LINEAR_FULLY_CLEAR_ENDSTOP:
             {
                 // Move a little from the further from the endstop
-                _homingStateNext = LINEAR_TO_ENDSTOP;
+                _homingStateNext = LINEAR_SLOW_ENDSTOP;
                 _homingStepsLimit = 5 * _motionController.getStepsPerUnit(1);
                 _homingApplyStepLimit = true;
                 // For linear motion just the rack and pinion stepper needs to rotate
                 // - forwards is towards the centre in this case
                 _homingAxis0Step = HSTEP_NONE;
                 _homingAxis1Step = HSTEP_FORWARDS;
-                Log.info("Homing - fully clear endstop");
+                Log.info("Homing - nudge away from linear endstop");
                 break;
             }
-            case LINEAR_TO_ENDSTOP:
+            case LINEAR_SLOW_ENDSTOP:
             {
                 // Seek the linear end stop
                 _homingStateNext = OFFSET_TO_CENTRE;
@@ -280,6 +331,7 @@ public:
                 // - forwards is towards the centre in this case
                 _homingAxis0Step = HSTEP_NONE;
                 _homingAxis1Step = HSTEP_BACKWARDS;
+                _timeBetweenHomingStepsUs = _homingLinearSlowStepTimeUs;
                 Log.info("Homing - linear seek");
                 break;
             }
