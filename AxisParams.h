@@ -15,6 +15,10 @@ public:
     double _stepsPerRotation;
     double _unitsPerRotation;
     unsigned long _stepsFromHome;
+    bool _minValValid;
+    double _minVal;
+    bool _maxValValid;
+    double _maxVal;
 
 public:
     AxisParams()
@@ -24,6 +28,8 @@ public:
         _stepsPerRotation = stepsPerRotation_default;
         _unitsPerRotation = unitsPerRotation_default;
         _stepsFromHome = 0;
+        _minValValid = false;
+        _maxValValid = false;
     }
 
     double stepsPerUnit()

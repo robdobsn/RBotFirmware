@@ -48,9 +48,4 @@ public:
     virtual void home(RobotCommandArgs& args)
     {
     }
-
-    virtual bool convertPositionToSteps(double pos[], unsigned long steps[], AxisParams axisParams[])
-    {
-        return false;
-    }
 };

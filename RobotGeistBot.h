@@ -12,23 +12,73 @@
 class RobotGeistBot : public RobotBase
 {
 public:
-    static void xyToActuator(double xy[], double actuatorCoords[], AxisParams axisParams[], int numAxes)
+    static const int NUM_ROBOT_AXES = 2;
+    static bool xyToActuator(double xy[], double actuatorCoords[], AxisParams axisParams[], int numAxes)
     {
+        // Trig for required position (azimuth is mearsured clockwise from North)
+        double reqAlphaRads = atan2(xy[0], xy[1]);
+        double reqLinearMM = sqrt(xy[0] * xy[0] + xy[1] * xy[1]);
 
+        Log.trace("xyToActuator x %0.2f y %0.2f axis0StFrHome %d axis1StFrHome %d reqAlphaRads %0.2f reqLinearMM %0.2f",
+                xy[0], xy[1], axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome,
+                reqAlphaRads, reqLinearMM);
+
+        // Get current position
+        double axisPosns[NUM_ROBOT_AXES] = {
+            axisParams[0]._stepsFromHome,
+            axisParams[1]._stepsFromHome
+        };
+        double currentPolar[NUM_ROBOT_AXES];
+        actuatorToPolar(axisPosns, currentPolar, axisParams, 2);
+
+        // Calculate shortest azimuth distance
+        double alphaDiffRads = reqAlphaRads - currentPolar[0];
+        if (fabs(alphaDiffRads) > M_PI)
+            alphaDiffRads = 2 * M_PI - alphaDiffRads;
+        double alphaDiffDegs = alphaDiffRads * 180 / M_PI;
+
+        // Linear distance
+        double linearDiffMM = reqLinearMM - currentPolar[1];
+
+        // Convert to steps - note that to keep the linear position constant the linear stepper needs to step one step in the same
+        // direction as the arm rotation stepper - so the linear stepper steps required is the sum of the rotation and linear steps
+        actuatorCoords[0] = alphaDiffDegs * axisParams[0].stepsPerUnit();
+        actuatorCoords[1] = linearDiffMM * axisParams[1].stepsPerUnit() + actuatorCoords[0];
+
+        // Check machine bounds for linear axis
+        if (axisParams[1]._minValValid && reqLinearMM < axisParams[1]._minVal)
+            return false;
+        if (axisParams[1]._maxValValid && reqLinearMM > axisParams[1]._maxVal)
+            return false;
+        return true;
+    }
+
+    static void actuatorToPolar(double actuatorCoords[], double polarCoordsAzFirst[], AxisParams axisParams[], int numAxes)
+    {
+        // Calculate azimuth
+        int alphaSteps = (abs(int(actuatorCoords[0])) % (int)(axisParams[0]._stepsPerRotation));
+        double alphaDegs = alphaSteps / axisParams[0].stepsPerUnit();
+        if (actuatorCoords[0] < 0)
+            alphaDegs = axisParams[0]._unitsPerRotation-alphaDegs;
+        polarCoordsAzFirst[0] = alphaDegs * M_PI / 180;
+
+        // Calculate linear position (note that this robot has interaction between aximuth and linear motion as the rack moves
+        // if the pinion gear remains still and the arm assembly moves around it) - so the required linear calculation uses the
+        // difference in linear and arm rotation steps
+        long linearStepsFromHome = actuatorCoords[1] - actuatorCoords[0];
+        polarCoordsAzFirst[1] = linearStepsFromHome / axisParams[1].stepsPerUnit();
+
+        Log.trace("actuatorToPolar rot %0.2f lin %0.2f", polarCoordsAzFirst[0], polarCoordsAzFirst[1]);
     }
 
     static void actuatorToXy(double actuatorCoords[], double xy[], AxisParams axisParams[], int numAxes)
     {
-        // Calculate azimuth
-        int alphaSteps = (abs(int(actuatorCoords[0])) % (int)(axisParams[0]._stepsPerRotation));
-        double alphaUnits = alphaSteps / axisParams[0].stepsPerUnit();
-        if (actuatorCoords[0] < 0)
-            alphaUnits = axisParams[0]._unitsPerRotation-alphaUnits;
+        double polarCoords[NUM_ROBOT_AXES];
+        actuatorToPolar(actuatorCoords, polarCoords, axisParams, numAxes);
 
-        // Calculate linear position
-        long linearStepsFromHome = actuatorCoords[1] - actuatorCoords[0];
-        double linearMM = linearStepsFromHome / axisParams[1].stepsPerUnit();
-
+        // Trig
+        xy[0] = polarCoords[1] * cos(polarCoords[0]);
+        xy[1] = polarCoords[1] * sin(polarCoords[0]);
     }
 
     static void correctStepOverflow(AxisParams axisParams[], int numAxes)
@@ -131,6 +181,20 @@ public:
 
         // Check if steppers busy
         return _motionController.isBusy();
+    }
+
+    void moveTo(RobotCommandArgs& args)
+    {
+        if (!args.xValid || !args.yValid)
+            return;
+
+        // Get steps to move
+        double xy[2] = { args.xVal, args.yVal };
+        double stepsToMove[NUM_ROBOT_AXES];
+        bool valid = xyToActuator(xy, stepsToMove, _motionController.getAxisParamsArray(), NUM_ROBOT_AXES);
+        Serial.printlnf("Move to %s x %0.2f y %0.2f -> rot %0.2f lin %0.2f",
+                    valid?"":"INVALID", xy[0], xy[1], stepsToMove[0], stepsToMove[1]);
+
     }
 
     void homingSetNewState(HOMING_STATE newState)
@@ -288,7 +352,7 @@ public:
         }
 
         // Check if we are ready for the next step
-        unsigned long lastStepMicros = _motionController.getAxisLastStepMicros(0);
+        unsigned long lastStepMicros = _motionController.getAxisLastStepMicros(1);
         if (Utils::isTimeout(micros(), lastStepMicros, _timeBetweenHomingStepsUs))
         {
             // Axis 0
@@ -349,26 +413,6 @@ public:
 
         // Service the motion controller
         _motionController.service();
-    }
-
-    bool getCurrentPosition(double curPos[], AxisParams axisParams[])
-    {
-        // Get the positions of the motors from home
-        double axisPosns[2] = {
-            _motionController.getAxisStepsFromHome(0),
-            _motionController.getAxisStepsFromHome(1)
-        };
-        double xyVals[2];
-
-        actuatorToXy(axisPosns, xyVals, _motionController.getAxisParamsArray(), 2);
-
-
-    }
-
-    bool convertPositionToSteps(double pos[], unsigned long steps[], AxisParams axisParams[])
-    {
-        // Calculate the current position of the robot
-        return false;
     }
 
 };

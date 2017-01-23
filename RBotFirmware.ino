@@ -41,7 +41,7 @@ static const char* TEST_ROBOT_CONFIG_STR =
     " \"stepsPerRotation\":12000, \"unitsPerRotation\":360, "
     " \"endStop0\": { \"sensePin\": \"A6\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"}},"
     " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":100.0, \"acceleration\":100.0, "
-    "\"stepsPerRotation\":12000, \"unitsPerRotation\":44.8, "
+    "\"stepsPerRotation\":12000, \"unitsPerRotation\":44.8, \"minVal\":0, \"maxVal\":180, "
     " \"endStop0\": { \"sensePin\": \"A7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
     "}";
 

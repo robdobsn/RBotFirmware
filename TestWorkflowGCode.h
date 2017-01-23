@@ -24,14 +24,16 @@ public:
         if (!hasHomed)
         {
             String cmdStr = "G28 XYZ";
-            bool rslt = workflowManager.add(cmdStr);
+            bool rslt = false;
+            rslt = workflowManager.add(cmdStr);
             Log.info("Add %s %d", cmdStr.c_str(), rslt);
             hasHomed = true;
         }
         if (millis() > lastMillisIn + millisRateIn)
         {
             String cmdStr = "G01 X" + String(curX) + "Y" + String(curY);
-            curY += 100;
+            curX += 10;
+            curY += 10;
             bool rslt = workflowManager.add(cmdStr);
             Log.info("Add %d", rslt);
             lastMillisIn = millis();

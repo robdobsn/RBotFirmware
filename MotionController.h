@@ -7,7 +7,7 @@
 #include "AxisParams.h"
 #include "ConfigPinMap.h"
 
-typedef void (*xyToActuatorFnType) (double xy[], double actuatorCoords[], AxisParams axisParams[], int numAxes);
+typedef bool (*xyToActuatorFnType) (double xy[], double actuatorCoords[], AxisParams axisParams[], int numAxes);
 typedef void (*actuatorToXyFnType) (double actuatorCoords[], double xy[], AxisParams axisParams[], int numAxes);
 typedef void (*correctStepOverflowFnType) (AxisParams axisParams[], int numAxes);
 
@@ -109,6 +109,8 @@ private:
         _axisParams[axisIdx]._acceleration = ConfigManager::getDouble("acceleration", AxisParams::acceleration_default, axisJSON);
         _axisParams[axisIdx]._stepsPerRotation = ConfigManager::getDouble("stepsPerRotation", AxisParams::stepsPerRotation_default, axisJSON);
         _axisParams[axisIdx]._unitsPerRotation = ConfigManager::getDouble("unitsPerRotation", AxisParams::unitsPerRotation_default, axisJSON);
+        _axisParams[axisIdx]._minVal = ConfigManager::getDouble("minVal", 0, _axisParams[axisIdx]._minValValid, axisJSON);
+        _axisParams[axisIdx]._maxVal = ConfigManager::getDouble("maxVal", 0, _axisParams[axisIdx]._maxValValid, axisJSON);
         long stepPin = ConfigPinMap::getPinFromName(stepPinName.c_str());
         long dirnPin = ConfigPinMap::getPinFromName(dirnPinName.c_str());
         Log.info("Axis%d (step pin %d, dirn pin %d)", axisIdx, stepPin, dirnPin);
@@ -139,6 +141,34 @@ private:
 
         // Other data
         _axisParams[axisIdx]._stepsFromHome = 0;
+    }
+
+    void pipelinePrep()
+    {
+
+    }
+
+    void pipelineService()
+    {
+        // // Check if we are ready for the next step
+        // unsigned long lastStepMicros = _motionController.getAxisLastStepMicros(1);
+        // if (Utils::isTimeout(micros(), lastStepMicros, _timeBetweenHomingStepsUs))
+        // {
+        //     // Axis 0
+        //     if (_homingAxis0Step != HSTEP_NONE)
+        //         _motionController.step(0, _homingAxis0Step == HSTEP_FORWARDS);
+        //
+        //     // Axis 1
+        //     if (_homingAxis1Step != HSTEP_NONE)
+        //         _motionController.step(1, _homingAxis1Step == HSTEP_FORWARDS);
+        //
+        //     // Count homing steps in this stage
+        //     _homingStepsDone++;
+        //
+        //     // Check for step limit in this stage
+        //     if (_homingApplyStepLimit && (_homingStepsDone >= _homingStepsLimit))
+        //         homingSetNewState(_homingStateNext);
+        //
     }
 
 public:
