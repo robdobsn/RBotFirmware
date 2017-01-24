@@ -84,6 +84,9 @@ void setup()
 
 }
 
+long initialMemory = System.freeMemory();
+long lowestMemory = System.freeMemory();
+
 void loop()
 {
     #ifdef RUN_TEST_WORKFLOW
@@ -96,4 +99,19 @@ void loop()
 
     // Service the robot controller
     _robotController.service();
+
+    // Work the workflow here
+    CommandElem cmdElem;
+    bool rslt = _workflowManager.get(cmdElem);
+    if (rslt)
+    {
+        if (lowestMemory > System.freeMemory())
+            lowestMemory = System.freeMemory();
+        Log.info("");
+        Log.info("Get %d = %s, initMem %d, mem %d, lowMem %d", rslt,
+                        cmdElem.getString().c_str(), initialMemory,
+                        System.freeMemory(), lowestMemory);
+        GCodeInterpreter::interpretGcode(cmdElem, _robotController, true);
+    }
+
 }

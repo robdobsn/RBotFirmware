@@ -426,32 +426,32 @@ public:
             startPos._yPos = curXy[1];
         }
 
-        _motionPipeline.add(args.xVal, args.yVal);
+        // _motionPipeline.add(args.xVal, args.yVal);
 
-        // // Split up into blocks of maximum length
-        // double xDiff = args.xVal - startPos._xPos;
-        // double yDiff = args.yVal - startPos._yPos;
-        // int lineLen = sqrt(xDiff * xDiff + yDiff * yDiff);
-        // // Ensure at least one block
-        // int numBlocks = int(lineLen / _blockDistanceMM) + 1;
-        // double xStep = xDiff / numBlocks;
-        // double yStep = yDiff / numBlocks;
-        // for (int i = 0; i < numBlocks; i++)
-        // {
-        //     // Create block
-        //     double blkX = startPos._xPos + xStep * i;
-        //     double blkY = startPos._yPos + yStep * i;
-        //     // If last block then just use end point coords
-        //     if (i == numBlocks-1)
-        //     {
-        //         blkX = args.xVal;
-        //         blkY = args.yVal;
-        //     }
-        //     // Serial.printlnf("Adding x %0.2f y %0.2f", blkX, blkY);
-        //     // Add to pipeline
-        //     if (!_motionPipeline.add(blkX, blkY))
-        //         break;
-        // }
+        // Split up into blocks of maximum length
+        double xDiff = args.xVal - startPos._xPos;
+        double yDiff = args.yVal - startPos._yPos;
+        int lineLen = sqrt(xDiff * xDiff + yDiff * yDiff);
+        // Ensure at least one block
+        int numBlocks = int(lineLen / _blockDistanceMM) + 1;
+        double xStep = xDiff / numBlocks;
+        double yStep = yDiff / numBlocks;
+        for (int i = 0; i < numBlocks; i++)
+        {
+            // Create block
+            double blkX = startPos._xPos + xStep * i;
+            double blkY = startPos._yPos + yStep * i;
+            // If last block then just use end point coords
+            if (i == numBlocks-1)
+            {
+                blkX = args.xVal;
+                blkY = args.yVal;
+            }
+            // Serial.printlnf("Adding x %0.2f y %0.2f", blkX, blkY);
+            // Add to pipeline
+            if (!_motionPipeline.add(blkX, blkY))
+                break;
+        }
 
     }
 

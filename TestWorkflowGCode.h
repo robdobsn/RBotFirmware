@@ -26,6 +26,10 @@ public:
     double curY = 0;
     int testPosIdx = 0;
 
+    static const bool TEST_ADD_TO_QUEUE = false;
+    static const bool TEST_REMOVE_FROM_QUEUE = false;
+    static const bool TEST_FLIP_ADD_REMOVE_RATES = false;
+
     void testLoop(WorkflowManager& workflowManager, RobotController& robotController)
     {
         if (!hasHomed)
@@ -36,7 +40,8 @@ public:
             Log.info("Add %s %d", cmdStr.c_str(), rslt);
             hasHomed = true;
         }
-        if (millis() > lastMillisIn + millisRateIn)
+
+        if (TEST_ADD_TO_QUEUE && (millis() > lastMillisIn + millisRateIn))
         {
             curX = testPositions[testPosIdx].x;
             curY = testPositions[testPosIdx].y;
@@ -51,7 +56,7 @@ public:
                 lowestMemory = System.freeMemory();
         }
 
-        if (millis() > lastMillisOut + millisRateOut)
+        if (TEST_REMOVE_FROM_QUEUE && (millis() > lastMillisOut + millisRateOut))
         {
             if (robotController.canAcceptCommand())
             {
@@ -79,7 +84,7 @@ public:
             }
         }
 
-        if (millis() > lastMillisFlip + 30000)
+        if (TEST_FLIP_ADD_REMOVE_RATES && (millis() > lastMillisFlip + 30000))
         {
             if (millisRateOut > 3000)
                 millisRateOut = 1000;
