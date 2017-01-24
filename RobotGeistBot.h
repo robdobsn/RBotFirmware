@@ -13,6 +13,15 @@ class RobotGeistBot : public RobotBase
 {
 public:
     static const int NUM_ROBOT_AXES = 2;
+    // Defaults
+    static constexpr int _homingRotateFastStepTimeUs = 1000;
+    static constexpr int _homingRotateSlowStepTimeUs = 3000;
+    static constexpr int _homingLinearFastStepTimeUs = 100;
+    static constexpr int _homingLinearSlowStepTimeUs = 500;
+    static constexpr int maxHomingSecs_default = 1000;
+    static constexpr double homingLinOffsetDegs_default = 30;
+    static constexpr int homingLinMaxSteps_default = 100;
+    static constexpr double homingCentreOffsetMM_default = 20;
 
 public:
 
@@ -136,16 +145,6 @@ public:
     }
 
 private:
-    // Defaults
-    static constexpr int _homingRotateFastStepTimeUs = 100;
-    static constexpr int _homingRotateSlowStepTimeUs = 200;
-    static constexpr int _homingLinearFastStepTimeUs = 40;
-    static constexpr int _homingLinearSlowStepTimeUs = 200;
-    static constexpr int maxHomingSecs_default = 1000;
-    static constexpr double homingLinOffsetDegs_default = 30;
-    static constexpr int homingLinMaxSteps_default = 100;
-    static constexpr double homingCentreOffsetMM_default = 20;
-
     // Homing state
     typedef enum HOMING_STATE
     {
@@ -414,7 +413,10 @@ public:
         }
 
         // Check if we are ready for the next step
-        unsigned long lastStepMicros = _motionController.getAxisLastStepMicros(1);
+        unsigned long lastStepMicros = _motionController.getAxisLastStepMicros(0);
+        unsigned long lastStepMicros1 = _motionController.getAxisLastStepMicros(1);
+        if (lastStepMicros < lastStepMicros1)
+            lastStepMicros = lastStepMicros1;
         if (Utils::isTimeout(micros(), lastStepMicros, _timeBetweenHomingStepsUs))
         {
             // Axis 0

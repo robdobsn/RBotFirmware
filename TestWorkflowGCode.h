@@ -36,7 +36,7 @@ public:
         {
             String cmdStr = "G28 XYZ";
             bool rslt = false;
-//            rslt = workflowManager.add(cmdStr);
+            rslt = workflowManager.add(cmdStr);
             Log.info("Add %s %d", cmdStr.c_str(), rslt);
             hasHomed = true;
         }

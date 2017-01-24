@@ -18,6 +18,9 @@
 #include "TestWorkflowGCode.h"
 #endif
 
+SYSTEM_MODE(AUTOMATIC);
+SYSTEM_THREAD(ENABLED);
+
 SerialLogHandlerR logHandler(SerialLogHandlerR::LOG_LEVEL_ALL);
 
 RobotController _robotController;
@@ -49,14 +52,6 @@ static const char* TEST_ROBOT_CONFIG_STR =
 static const char* TEST_WORKFLOW_CONFIG_STR =
     "{\"CommandQueue\": { \"cmdQueueMaxLen\":50 } }";
 
-void step1()
-{
-    digitalWrite(D2, 1);
-    delayMicroseconds(1);
-    digitalWrite(D2, 0);
-    delayMicroseconds(500);
-}
-
 void setup()
 {
     delay(5000);
@@ -87,8 +82,57 @@ void setup()
 long initialMemory = System.freeMemory();
 long lowestMemory = System.freeMemory();
 
+
+// Timing of the loop - used to determine if blocking/slow processes are delaying the loop iteration
+const int loopTimeAvgWinLen = 50;
+int loopTimeAvgWin[loopTimeAvgWinLen];
+int loopTimeAvgWinHead = 0;
+int loopTimeAvgWinCount = 0;
+unsigned long loopTimeAvgWinSum = 0;
+unsigned long lastLoopStartMicros = 0;
+unsigned long lastDebugLoopTime = 0;
+void debugLoopTimer()
+{
+    // Monitor how long it takes to go around loop
+    if (lastLoopStartMicros != 0)
+    {
+        unsigned long loopTime = micros() - lastLoopStartMicros;
+        if (loopTime > 0)
+        {
+            if (loopTimeAvgWinCount == loopTimeAvgWinLen)
+            {
+                int oldVal = loopTimeAvgWin[loopTimeAvgWinHead];
+                loopTimeAvgWinSum -= oldVal;
+            }
+            loopTimeAvgWin[loopTimeAvgWinHead++] = loopTime;
+            if (loopTimeAvgWinHead >= loopTimeAvgWinLen)
+            loopTimeAvgWinHead = 0;
+            if (loopTimeAvgWinCount < loopTimeAvgWinLen)
+            loopTimeAvgWinCount++;
+            loopTimeAvgWinSum += loopTime;
+        }
+    }
+    lastLoopStartMicros = micros();
+    if (millis() > lastDebugLoopTime + 10000)
+    {
+        if (loopTimeAvgWinLen > 0)
+        {
+            Serial.printlnf("Avg loop time %0.3fus (val %lu)",
+            1.0 * loopTimeAvgWinSum / loopTimeAvgWinLen,
+            lastLoopStartMicros);
+        }
+        else
+        {
+            Serial.println("No avg loop time yet");
+        }
+        lastDebugLoopTime = millis();
+    }
+}
+
 void loop()
 {
+    debugLoopTimer();
+
     #ifdef RUN_TEST_WORKFLOW
     // TEST add to command queue
     __testWorkflowGCode.testLoop(_workflowManager, _robotController);
@@ -100,7 +144,7 @@ void loop()
     // Service the robot controller
     _robotController.service();
 
-    // Work the workflow here
+    // Pump the workflow here
     CommandElem cmdElem;
     bool rslt = _workflowManager.get(cmdElem);
     if (rslt)

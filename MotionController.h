@@ -171,7 +171,7 @@ private:
             anyAxisMoving = true;
 
             // Check if time to move
-            if (Utils::isTimeout(micros(), _axisParams[i]._lastStepMicros, _axisParams[i]._betweenStepsUs))
+            if (Utils::isTimeout(micros(), _axisParams[i]._lastStepMicros, 200))
             {
                 step(i, _axisParams[i]._targetStepsFromHome > _axisParams[i]._stepsFromHome);
                 // Serial.printlnf("Step %d %d", i, _axisParams[i]._targetStepsFromHome > _axisParams[i]._stepsFromHome);
@@ -258,6 +258,10 @@ public:
         _xyToActuatorFn = NULL;
         _actuatorToXyFn = NULL;
         _correctStepOverflowFn = NULL;
+
+        // TESTCODE
+        _axisParams[0]._betweenStepsUs = 5000;
+        _axisParams[1]._betweenStepsUs = 100;
     }
 
     ~MotionController()
