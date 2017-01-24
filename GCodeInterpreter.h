@@ -44,7 +44,7 @@ public:
         char* pEndStr = NULL;
         while (*pStr)
         {
-            switch(*pStr)
+            switch(toupper(*pStr))
             {
                 case 'X':
                     cmdArgs.xValid = true;

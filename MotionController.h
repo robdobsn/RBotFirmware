@@ -85,6 +85,9 @@ private:
     // Block distance
     double _blockDistanceMM;
 
+    // Debug
+    unsigned long _debugLastPosDispMs;
+
 private:
 
     bool configureMotorEnable(const char* robotConfigJSON)
@@ -187,20 +190,26 @@ private:
 
                 // Get steps to move
                 double xy[MAX_AXES] = { motionElem._xPos, motionElem._yPos };
-                double stepsToMove[MAX_AXES];
-                bool valid = _xyToActuatorFn(xy, stepsToMove, _axisParams, _numRobotAxes);
+                double actuatorCoords[MAX_AXES];
+                bool valid = _xyToActuatorFn(xy, actuatorCoords, _axisParams, _numRobotAxes);
 
                 // Activate motion if valid - otherwise ignore
                 if (valid)
                 {
-                    _axisParams[0]._targetStepsFromHome = _axisParams[0]._stepsFromHome + (int)(stepsToMove[0]);
-                    _axisParams[1]._targetStepsFromHome = _axisParams[1]._stepsFromHome + (int)(stepsToMove[1]);
+                    _axisParams[0]._targetStepsFromHome = (int)(actuatorCoords[0]);
+                    _axisParams[1]._targetStepsFromHome = (int)(actuatorCoords[1]);
                 }
 
-                Serial.printlnf("Move to %sx %0.2f y %0.2f -> rot %0.2f lin %0.2f tg0 %d tg1 %d",
-                            valid?"":"INVALID ", xy[0], xy[1], stepsToMove[0], stepsToMove[1],
-                        _axisParams[0]._targetStepsFromHome, _axisParams[1]._targetStepsFromHome);
+                Serial.printlnf("Move to %sx %0.2f y %0.2f -> ax0Tgt %0.2f Ax1Tgt %0.2f",
+                            valid?"":"INVALID ", xy[0], xy[1], actuatorCoords[0], actuatorCoords[1]);
             }
+        }
+
+        // Debug
+        if (Utils::isTimeout(millis(), _debugLastPosDispMs, 1000) && anyAxisMoving)
+        {
+            Log.info("-------> %0d %0d", _axisParams[0]._stepsFromHome, _axisParams[1]._stepsFromHome);
+            _debugLastPosDispMs = millis();
         }
     }
 
@@ -426,32 +435,32 @@ public:
             startPos._yPos = curXy[1];
         }
 
-        // _motionPipeline.add(args.xVal, args.yVal);
-
-        // Split up into blocks of maximum length
-        double xDiff = args.xVal - startPos._xPos;
-        double yDiff = args.yVal - startPos._yPos;
-        int lineLen = sqrt(xDiff * xDiff + yDiff * yDiff);
-        // Ensure at least one block
-        int numBlocks = int(lineLen / _blockDistanceMM) + 1;
-        double xStep = xDiff / numBlocks;
-        double yStep = yDiff / numBlocks;
-        for (int i = 0; i < numBlocks; i++)
-        {
-            // Create block
-            double blkX = startPos._xPos + xStep * i;
-            double blkY = startPos._yPos + yStep * i;
-            // If last block then just use end point coords
-            if (i == numBlocks-1)
-            {
-                blkX = args.xVal;
-                blkY = args.yVal;
-            }
-            // Serial.printlnf("Adding x %0.2f y %0.2f", blkX, blkY);
-            // Add to pipeline
-            if (!_motionPipeline.add(blkX, blkY))
-                break;
-        }
+        _motionPipeline.add(args.xVal, args.yVal);
+        //
+        // // Split up into blocks of maximum length
+        // double xDiff = args.xVal - startPos._xPos;
+        // double yDiff = args.yVal - startPos._yPos;
+        // int lineLen = sqrt(xDiff * xDiff + yDiff * yDiff);
+        // // Ensure at least one block
+        // int numBlocks = int(lineLen / _blockDistanceMM) + 1;
+        // double xStep = xDiff / numBlocks;
+        // double yStep = yDiff / numBlocks;
+        // for (int i = 0; i < numBlocks; i++)
+        // {
+        //     // Create block
+        //     double blkX = startPos._xPos + xStep * i;
+        //     double blkY = startPos._yPos + yStep * i;
+        //     // If last block then just use end point coords
+        //     if (i == numBlocks-1)
+        //     {
+        //         blkX = args.xVal;
+        //         blkY = args.yVal;
+        //     }
+        //     // Serial.printlnf("Adding x %0.2f y %0.2f", blkX, blkY);
+        //     // Add to pipeline
+        //     if (!_motionPipeline.add(blkX, blkY))
+        //         break;
+        // }
 
     }
 

@@ -13,6 +13,9 @@ class RobotGeistBot : public RobotBase
 {
 public:
     static const int NUM_ROBOT_AXES = 2;
+
+public:
+
     static bool xyToActuator(double xy[], double actuatorCoords[], AxisParams axisParams[], int numAxes)
     {
         // Trig for required position (azimuth is measured clockwise from North)
@@ -21,7 +24,7 @@ public:
             reqAlphaRads = 2 * M_PI + reqAlphaRads;
         double reqLinearMM = sqrt(xy[0] * xy[0] + xy[1] * xy[1]);
 
-        Log.trace("xyToActuator x %0.2f y %0.2f ax0St %d ax1St %d rqAlphaD %0.2f rqLinMM %0.2f",
+        Log.trace("xyToActuator x %0.2f y %0.2f ax0StNow %d ax1StNow %d rqAlphaD %0.2f rqLinMM %0.2f",
                 xy[0], xy[1], axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome,
                 reqAlphaRads * 180 / M_PI, reqLinearMM);
 
@@ -48,11 +51,26 @@ public:
 
         // Convert to steps - note that to keep the linear position constant the linear stepper needs to step one step in the same
         // direction as the arm rotation stepper - so the linear stepper steps required is the sum of the rotation and linear steps
-        actuatorCoords[0] = alphaDiffDegs * axisParams[0].stepsPerUnit() * (alphaRotateCw ? 1 : -1);
-        actuatorCoords[1] = linearDiffMM * axisParams[1].stepsPerUnit() + actuatorCoords[0];
+        double actuator0Diff = alphaDiffDegs * axisParams[0].stepsPerUnit() * (alphaRotateCw ? 1 : -1);
+        double actuator1Diff = linearDiffMM * axisParams[1].stepsPerUnit() + actuator0Diff;
+        actuatorCoords[0] = axisParams[0]._stepsFromHome + actuator0Diff;
+        actuatorCoords[1] = axisParams[1]._stepsFromHome + actuator1Diff;
 
-        Log.trace("xyToActuator reqAlphaRads %0.2f currentPolar0 %0.2f alphaDiffRads %0.2f alphaRotateCw %d alphaDiffDegs %0.2f linearDiffMM %0.2f actuatorCoords0 %0.2f actuatorCoords1 %0.2f",
-                        reqAlphaRads, currentPolar[0], alphaDiffRads, alphaRotateCw, alphaDiffDegs, linearDiffMM, actuatorCoords[0], actuatorCoords[1]);
+        Log.trace("xyToActuator reqAlphaD %0.2f curAlphaD %0.2f alphaDiffD %0.2f aRotCw %d linDiffMM %0.2f ax0Diff %0.2f ax1Diff %0.2f ax0Tgt %0.2f ax1Tgt %0.2f",
+                        reqAlphaRads * 180 / M_PI, currentPolar[0] * 180 / M_PI, alphaDiffDegs, alphaRotateCw,
+                        linearDiffMM, actuator0Diff, actuator1Diff, actuatorCoords[0], actuatorCoords[1]);
+
+        Log.trace("bounds check X (En%d) %d, Y (En%d) %d", axisParams[1]._minValValid, reqLinearMM < axisParams[1]._minVal,
+                    axisParams[1]._maxValValid, reqLinearMM > axisParams[1]._maxVal);
+
+        // Cross check
+        double checkPolarCoords[NUM_ROBOT_AXES];
+        actuatorToPolar(actuatorCoords, checkPolarCoords, axisParams, numAxes);
+        double checkX = checkPolarCoords[1] * sin(checkPolarCoords[0]);
+        double checkY = checkPolarCoords[1] * cos(checkPolarCoords[0]);
+        double checkErr = sqrt((checkX-xy[0]) * (checkX-xy[0]) + (checkY-xy[1]) * (checkY-xy[1]));
+        Log.trace("check reqX %02.f checkX %0.2f, reqY %0.2f checkY %0.2f, error %0.2f, %s", xy[0], checkX, xy[1], checkY,
+                            checkErr, (checkErr>0.01) ? "****** FAILED ERROR CHECK" : "");
 
         // Check machine bounds for linear axis
         if (axisParams[1]._minValValid && reqLinearMM < axisParams[1]._minVal)
@@ -77,7 +95,8 @@ public:
         long linearStepsFromHome = actuatorCoords[1] - actuatorCoords[0];
         polarCoordsAzFirst[1] = linearStepsFromHome / axisParams[1].stepsPerUnit();
 
-        Log.trace("actuatorToPolar rot %0.2f lin %0.2f", polarCoordsAzFirst[0], polarCoordsAzFirst[1]);
+        Log.trace("actuatorToPolar c0 %0.2f c1 %0.2f alphaSteps %d alphaDegs %0.2f linStpHm %d rotD %0.2f lin %0.2f", actuatorCoords[0], actuatorCoords[1],
+            alphaSteps, alphaDegs, linearStepsFromHome, polarCoordsAzFirst[0] * 180 / M_PI, polarCoordsAzFirst[1]);
     }
 
     static void actuatorToXy(double actuatorCoords[], double xy[], AxisParams axisParams[], int numAxes)
