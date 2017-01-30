@@ -20,6 +20,7 @@ public:
     static constexpr int _homingLinearSlowStepTimeUs = 500;
     static constexpr int maxHomingSecs_default = 1000;
     static constexpr double homingLinOffsetDegs_default = 30;
+    static constexpr double homingRotCentreDegs_default = 2;
     static constexpr int homingLinMaxSteps_default = 100;
     static constexpr double homingCentreOffsetMM_default = 20;
 
@@ -152,6 +153,7 @@ private:
         HOMING_STATE_INIT,
         ROTATE_FROM_ENDSTOP,
         ROTATE_TO_ENDSTOP,
+        ROTATE_FOR_HOME_SET,
         ROTATE_TO_LINEAR_SEEK_ANGLE,
         LINEAR_SEEK_ENDSTOP,
         LINEAR_CLEAR_ENDSTOP,
@@ -171,6 +173,7 @@ private:
     bool _homingApplyStepLimit;
     unsigned long _maxHomingSecs;
     double _homingLinOffsetDegs;
+    double _homingRotCentreDegs;
     double _homingCentreOffsetMM;
     typedef enum HOMING_SEEK_TYPE { HSEEK_NONE, HSEEK_ON, HSEEK_OFF } HOMING_SEEK_TYPE;
     HOMING_SEEK_TYPE _homingSeekAxis0Endstop0;
@@ -210,9 +213,10 @@ public:
         _maxHomingSecs = ConfigManager::getLong("maxHomingSecs", maxHomingSecs_default, robotConfigStr);
         _homingLinOffsetDegs = ConfigManager::getDouble("homingLinOffsetDegs", homingLinOffsetDegs_default, robotConfigStr);
         _homingCentreOffsetMM = ConfigManager::getDouble("homingCentreOffsetMM", homingCentreOffsetMM_default, robotConfigStr);
+        _homingRotCentreDegs = ConfigManager::getDouble("homingRotCentreDegs", homingRotCentreDegs_default, robotConfigStr);
 
-        Log.info("%s maxHomingSecs %d homingLinOffsetDegs %0.3f homingCentreOffsetMM %0.3f",
-                    _robotTypeName.c_str(), _maxHomingSecs, _homingLinOffsetDegs, _homingCentreOffsetMM);
+        Log.info("%s maxHomingSecs %d homingLinOffsetDegs %0.3f homingCentreOffsetMM %0.3f homingRotCentreDegs %0.3f",
+                    _robotTypeName.c_str(), _maxHomingSecs, _homingLinOffsetDegs, _homingCentreOffsetMM, _homingRotCentreDegs);
 
         return true;
     }
@@ -282,12 +286,24 @@ public:
             case ROTATE_TO_ENDSTOP:
             {
                 // Rotate to the rotation endstop
-                _homingStateNext = ROTATE_TO_LINEAR_SEEK_ANGLE;
+                _homingStateNext = ROTATE_FOR_HOME_SET;
                 _homingSeekAxis0Endstop0 = HSEEK_ON;
                 // To purely rotate both steppers must turn in the same direction
                 _homingAxis0Step = HSTEP_BACKWARDS;
                 _homingAxis1Step = HSTEP_BACKWARDS;
                 Log.info("Homing - rotating to end stop 0");
+                break;
+            }
+            case ROTATE_FOR_HOME_SET:
+            {
+                // Rotate to the rotation endstop
+                _homingStateNext = ROTATE_TO_LINEAR_SEEK_ANGLE;
+                _homingStepsLimit = _homingRotCentreDegs * _motionController.getStepsPerUnit(0);
+                _homingApplyStepLimit = true;
+                // To purely rotate both steppers must turn in the same direction
+                _homingAxis0Step = HSTEP_BACKWARDS;
+                _homingAxis1Step = HSTEP_BACKWARDS;
+                Log.info("Homing - rotating to home position 0");
                 break;
             }
             case ROTATE_TO_LINEAR_SEEK_ANGLE:
