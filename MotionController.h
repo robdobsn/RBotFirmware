@@ -30,7 +30,7 @@ public:
         {
             pinMode(_pin, (PinMode) _inputType);
         }
-        Serial.printlnf("EndStop %d, %d, %d", _pin, _activeLevel, _inputType);
+        Log.info("EndStop %d, %d, %d", _pin, _activeLevel, _inputType);
     }
     ~EndStop()
     {
@@ -161,7 +161,7 @@ private:
 
     void pipelineService()
     {
-        // Check if we are ready for the next step on each axis
+        // Check if any axis is moving
         bool anyAxisMoving = false;
         for (int i = 0; i < MAX_AXES; i++)
         {
@@ -169,27 +169,19 @@ private:
             if (_axisParams[i]._targetStepsFromHome == _axisParams[i]._stepsFromHome)
                 continue;
             anyAxisMoving = true;
-
-            // Check if time to move
-            if (Utils::isTimeout(micros(), _axisParams[i]._lastStepMicros, _axisParams[i]._betweenStepsUs))
-            {
-                step(i, _axisParams[i]._targetStepsFromHome > _axisParams[i]._stepsFromHome);
-                // Serial.printlnf("Step %d %d", i, _axisParams[i]._targetStepsFromHome > _axisParams[i]._stepsFromHome);
-            }
         }
 
-        // If nothing moving then prep the next pipeline element
+        // If nothing moving then prep the next pipeline element (if there is one)
         if (!anyAxisMoving)
         {
-            // Get element
             MotionPipelineElem motionElem;
              if (_motionPipeline.get(motionElem))
              {
                  // Correct for any overflows in stepper values (may occur with rotational robots)
                  _correctStepOverflowFn(_axisParams, _numRobotAxes);
 
-                // Get steps to move
-                double xy[MAX_AXES] = { motionElem._xPos, motionElem._yPos };
+                // Get absolute step position to move to
+                double xy[MAX_AXES] = { motionElem._x2MM, motionElem._y2MM };
                 double actuatorCoords[MAX_AXES];
                 bool valid = _xyToActuatorFn(xy, actuatorCoords, _axisParams, _numRobotAxes);
 
@@ -198,17 +190,47 @@ private:
                 {
                     _axisParams[0]._targetStepsFromHome = (int)(actuatorCoords[0]);
                     _axisParams[1]._targetStepsFromHome = (int)(actuatorCoords[1]);
+
+                    // Balance the time for each direction
+                    double speedTargetMMps = _axisParams[0]._maxSpeed;
+                    double deltaX = motionElem._x2MM - motionElem._x1MM;
+                    double deltaY = motionElem._y2MM - motionElem._y1MM;
+                    double distToTravelMM = sqrt(deltaX*deltaX+deltaY*deltaY);
+                    double timeToTargetS = distToTravelMM / speedTargetMMps;
+                    unsigned long stepsX = labs(_axisParams[0]._targetStepsFromHome - _axisParams[0]._stepsFromHome);
+                    unsigned long stepsY = labs(_axisParams[1]._targetStepsFromHome - _axisParams[1]._stepsFromHome);
+                    double timePerStepXS = timeToTargetS / stepsX;
+                    double timePerStepYS = timeToTargetS / stepsY;
+                    _axisParams[0]._betweenStepsNs = timePerStepXS * 1000000000;
+                    _axisParams[1]._betweenStepsNs = timePerStepYS * 1000000000;
                 }
 
-                Serial.printlnf("Move to %sx %0.2f y %0.2f -> ax0Tgt %0.2f Ax1Tgt %0.2f",
-                            valid?"":"INVALID ", xy[0], xy[1], actuatorCoords[0], actuatorCoords[1]);
+                Log.trace("Move to %sx %0.2f y %0.2f -> ax0Tgt %0.2f Ax1Tgt %0.2f (stpNSXY %ld %ld)",
+                            valid?"":"INVALID ", xy[0], xy[1], actuatorCoords[0], actuatorCoords[1],
+                            _axisParams[0]._betweenStepsNs, _axisParams[1]._betweenStepsNs);
+            }
+        }
+
+        // Make the next step on each axis as requred
+        for (int i = 0; i < MAX_AXES; i++)
+        {
+            // Check if a move is required
+            if (_axisParams[i]._targetStepsFromHome == _axisParams[i]._stepsFromHome)
+                continue;
+
+            // Check if time to move
+            if (Utils::isTimeout(micros(), _axisParams[i]._lastStepMicros, _axisParams[i]._betweenStepsNs / 1000))
+            {
+                step(i, _axisParams[i]._targetStepsFromHome > _axisParams[i]._stepsFromHome);
+                // Serial.printlnf("Step %d %d", i, _axisParams[i]._targetStepsFromHome > _axisParams[i]._stepsFromHome);
+                _axisParams[i]._betweenStepsNs += _axisParams[i]._betweenStepsNsChangePerStep;
             }
         }
 
         // Debug
         if (Utils::isTimeout(millis(), _debugLastPosDispMs, 1000) && anyAxisMoving)
         {
-            Log.info("-------> %0d %0d", _axisParams[0]._stepsFromHome, _axisParams[1]._stepsFromHome);
+            // Log.info("-------> %0d %0d", _axisParams[0]._stepsFromHome, _axisParams[1]._stepsFromHome);
             _debugLastPosDispMs = millis();
         }
     }
@@ -250,7 +272,7 @@ public:
             _axisParams[i]._lastStepMicros = 0;
             _axisParams[i]._stepsFromHome = 0;
             _axisParams[i]._targetStepsFromHome = 0;
-            _axisParams[i]._betweenStepsUs = 100;
+            _axisParams[i]._betweenStepsNs = 100 * 1000;
         }
         _stepEnablePin = -1;
         _stepEnableActiveLevel = true;
@@ -260,8 +282,8 @@ public:
         _correctStepOverflowFn = NULL;
 
         // TESTCODE
-        _axisParams[0]._betweenStepsUs = 5000;
-        _axisParams[1]._betweenStepsUs = 100;
+        _axisParams[0]._betweenStepsNs = 5000 * 1000;
+        _axisParams[1]._betweenStepsNs = 100 * 1000;
     }
 
     ~MotionController()
@@ -422,12 +444,19 @@ public:
         if (!args.xValid || !args.yValid)
             return;
 
-        // Get the starting position - this is either the last block in the pipeline or
-        // the target location of the robot (if currently moving or idle)
+        // Get the starting position - this is either the destination of the
+        // last block in the pipeline or the current target location of the
+        // robot (whether currently moving or idle)
         // Peek at the last block in the pipeline if there is one
-        MotionPipelineElem startPos;
-        bool queueValid = _motionPipeline.peekLast(startPos);
-        if (!queueValid)
+        double startPos[MAX_AXES];
+        MotionPipelineElem lastPipelineEntry;
+        bool queueValid = _motionPipeline.peekLast(lastPipelineEntry);
+        if (queueValid)
+        {
+            startPos[0] = lastPipelineEntry._x2MM;
+            startPos[1] = lastPipelineEntry._y2MM;
+        }
+        else
         {
             double axisPosns[MAX_AXES] = {
                 _axisParams[0]._stepsFromHome,
@@ -435,36 +464,38 @@ public:
             };
             double curXy[MAX_AXES];
             _actuatorToXyFn(axisPosns, curXy, _axisParams, _numRobotAxes);
-            startPos._xPos = curXy[0];
-            startPos._yPos = curXy[1];
+            startPos[0] = curXy[0];
+            startPos[1] = curXy[1];
         }
 
-        _motionPipeline.add(args.xVal, args.yVal);
-        //
-        // // Split up into blocks of maximum length
-        // double xDiff = args.xVal - startPos._xPos;
-        // double yDiff = args.yVal - startPos._yPos;
-        // int lineLen = sqrt(xDiff * xDiff + yDiff * yDiff);
-        // // Ensure at least one block
-        // int numBlocks = int(lineLen / _blockDistanceMM) + 1;
-        // double xStep = xDiff / numBlocks;
-        // double yStep = yDiff / numBlocks;
-        // for (int i = 0; i < numBlocks; i++)
-        // {
-        //     // Create block
-        //     double blkX = startPos._xPos + xStep * i;
-        //     double blkY = startPos._yPos + yStep * i;
-        //     // If last block then just use end point coords
-        //     if (i == numBlocks-1)
-        //     {
-        //         blkX = args.xVal;
-        //         blkY = args.yVal;
-        //     }
-        //     // Serial.printlnf("Adding x %0.2f y %0.2f", blkX, blkY);
-        //     // Add to pipeline
-        //     if (!_motionPipeline.add(blkX, blkY))
-        //         break;
-        // }
+        // _motionPipeline.add(startPos[0], startPos[1], args.xVal, args.yVal);
+
+        // Split up into blocks of maximum length
+        double xDiff = args.xVal - startPos[0];
+        double yDiff = args.yVal - startPos[1];
+        int lineLen = sqrt(xDiff * xDiff + yDiff * yDiff);
+        // Ensure at least one block
+        int numBlocks = int(lineLen / _blockDistanceMM) + 1;
+        double xStep = xDiff / numBlocks;
+        double yStep = yDiff / numBlocks;
+        for (int i = 1; i < numBlocks; i++)
+        {
+            // Create block
+            double blkX1 = startPos[0] + xStep * (i-1);
+            double blkY1 = startPos[1] + yStep * (i-1);
+            double blkX2 = startPos[0] + xStep * i;
+            double blkY2 = startPos[1] + yStep * i;
+            // If last block then just use end point coords
+            if (i == numBlocks-1)
+            {
+                blkX2 = args.xVal;
+                blkY2 = args.yVal;
+            }
+            // Serial.printlnf("Adding x %0.2f y %0.2f", blkX, blkY);
+            // Add to pipeline
+            if (!_motionPipeline.add(blkX1, blkY1, blkX2, blkY2))
+                break;
+        }
 
     }
 

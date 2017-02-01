@@ -62,6 +62,6 @@ public:
         // Add char to line
         _curLine.concat((char)ch);
 
-        Serial.printlnf("Str = %s (%c)", _curLine.c_str(), ch);
+        //Serial.printlnf("Str = %s (%c)", _curLine.c_str(), ch);
     }
 };

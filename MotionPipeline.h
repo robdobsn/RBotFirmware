@@ -8,20 +8,32 @@
 class MotionPipelineElem
 {
 public:
-    double _xPos;
-    double _yPos;
+    double _x1MM;
+    double _y1MM;
+    double _x2MM;
+    double _y2MM;
+    double _accMMpss;
+    double _speedMMps;
 
 public:
     MotionPipelineElem()
     {
-        _xPos = 0;
-        _yPos = 0;
+        _x1MM = 0;
+        _y1MM = 0;
+        _x2MM = 0;
+        _y2MM = 0;
+        _accMMpss = 0;
+        _speedMMps = 0;
     }
 
-    MotionPipelineElem(double& x, double& y)
+    MotionPipelineElem(double& x1, double& y1, double& x2, double& y2)
     {
-        _xPos = x;
-        _yPos = y;
+        _x1MM = x1;
+        _y1MM = y1;
+        _x2MM = x2;
+        _y2MM = y2;
+        _accMMpss = 0;
+        _speedMMps = 0;
     }
 };
 
@@ -54,7 +66,7 @@ public:
     }
 
     // Add to pipeline
-    bool add(double& x, double& y)
+    bool add(double& x1, double& y1, double& x2, double& y2)
     {
         // Check if queue is full
         if (_pipeline.size() >= _pipelineMaxLen)
@@ -63,7 +75,7 @@ public:
         }
 
         // Queue up the item
-        MotionPipelineElem elem(x,y);
+        MotionPipelineElem elem(x1,y1,x2,y2);
         _pipeline.push(elem);
         return true;
     }
@@ -102,5 +114,4 @@ public:
     {
         return _pipeline.size();
     }
-
 };

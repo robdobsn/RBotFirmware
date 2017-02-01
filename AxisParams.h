@@ -25,7 +25,8 @@ public:
     long _stepsFromHome;
     long _targetStepsFromHome;
     unsigned long _lastStepMicros;
-    unsigned long _betweenStepsUs;
+    unsigned long _betweenStepsNs;
+    long _betweenStepsNsChangePerStep;
 
 public:
     AxisParams()
@@ -35,8 +36,12 @@ public:
         _stepsPerRotation = stepsPerRotation_default;
         _unitsPerRotation = unitsPerRotation_default;
         _stepsFromHome = 0;
+        _targetStepsFromHome = 0;
+        _lastStepMicros = 0;
         _minValValid = false;
         _maxValValid = false;
+        _betweenStepsNs = 1000000;
+        _betweenStepsNsChangePerStep = 0;
     }
 
     double stepsPerUnit()

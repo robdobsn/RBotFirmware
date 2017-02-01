@@ -29,6 +29,12 @@ public:
         _cmdQueue.init(cmdQueueCfg);
     }
 
+    // Check if new queue full
+    bool isFull()
+    {
+        return _cmdQueue.isFull();
+    }
+
     // Add to workflow
     bool add(const char* pCmdStr)
     {

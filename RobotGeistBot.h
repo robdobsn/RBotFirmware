@@ -34,9 +34,9 @@ public:
             reqAlphaRads = 2 * M_PI + reqAlphaRads;
         double reqLinearMM = sqrt(xy[0] * xy[0] + xy[1] * xy[1]);
 
-        Log.trace("xyToActuator x %0.2f y %0.2f ax0StNow %d ax1StNow %d rqAlphaD %0.2f rqLinMM %0.2f",
-                xy[0], xy[1], axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome,
-                reqAlphaRads * 180 / M_PI, reqLinearMM);
+        // Log.trace("xyToActuator x %0.2f y %0.2f ax0StNow %d ax1StNow %d rqAlphaD %0.2f rqLinMM %0.2f",
+        //         xy[0], xy[1], axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome,
+        //         reqAlphaRads * 180 / M_PI, reqLinearMM);
 
         // Get current position
         double axisPosns[NUM_ROBOT_AXES] = {
@@ -66,12 +66,12 @@ public:
         actuatorCoords[0] = axisParams[0]._stepsFromHome + actuator0Diff;
         actuatorCoords[1] = axisParams[1]._stepsFromHome + actuator1Diff;
 
-        Log.trace("xyToActuator reqAlphaD %0.2f curAlphaD %0.2f alphaDiffD %0.2f aRotCw %d linDiffMM %0.2f ax0Diff %0.2f ax1Diff %0.2f ax0Tgt %0.2f ax1Tgt %0.2f",
-                        reqAlphaRads * 180 / M_PI, currentPolar[0] * 180 / M_PI, alphaDiffDegs, alphaRotateCw,
-                        linearDiffMM, actuator0Diff, actuator1Diff, actuatorCoords[0], actuatorCoords[1]);
-
-        Log.trace("bounds check X (En%d) %d, Y (En%d) %d", axisParams[1]._minValValid, reqLinearMM < axisParams[1]._minVal,
-                    axisParams[1]._maxValValid, reqLinearMM > axisParams[1]._maxVal);
+        // Log.trace("xyToActuator reqAlphaD %0.2f curAlphaD %0.2f alphaDiffD %0.2f aRotCw %d linDiffMM %0.2f ax0Diff %0.2f ax1Diff %0.2f ax0Tgt %0.2f ax1Tgt %0.2f",
+        //                 reqAlphaRads * 180 / M_PI, currentPolar[0] * 180 / M_PI, alphaDiffDegs, alphaRotateCw,
+        //                 linearDiffMM, actuator0Diff, actuator1Diff, actuatorCoords[0], actuatorCoords[1]);
+        //
+        // Log.trace("bounds check X (En%d) %d, Y (En%d) %d", axisParams[1]._minValValid, reqLinearMM < axisParams[1]._minVal,
+        //             axisParams[1]._maxValValid, reqLinearMM > axisParams[1]._maxVal);
 
         // Cross check
         double checkPolarCoords[NUM_ROBOT_AXES];
@@ -79,8 +79,9 @@ public:
         double checkX = checkPolarCoords[1] * sin(checkPolarCoords[0]);
         double checkY = checkPolarCoords[1] * cos(checkPolarCoords[0]);
         double checkErr = sqrt((checkX-xy[0]) * (checkX-xy[0]) + (checkY-xy[1]) * (checkY-xy[1]));
-        Log.trace("check reqX %02.f checkX %0.2f, reqY %0.2f checkY %0.2f, error %0.2f, %s", xy[0], checkX, xy[1], checkY,
-                            checkErr, (checkErr>0.01) ? "****** FAILED ERROR CHECK" : "");
+        if (checkErr > 0.1)
+            Log.trace("check reqX %02.f checkX %0.2f, reqY %0.2f checkY %0.2f, error %0.2f, %s", xy[0], checkX, xy[1], checkY,
+                            checkErr, (checkErr>0.1) ? "****** FAILED ERROR CHECK" : "");
 
         // Check machine bounds for linear axis
         if (axisParams[1]._minValValid && reqLinearMM < axisParams[1]._minVal)
@@ -105,8 +106,8 @@ public:
         long linearStepsFromHome = actuatorCoords[1] - actuatorCoords[0];
         polarCoordsAzFirst[1] = linearStepsFromHome / axisParams[1].stepsPerUnit();
 
-        Log.trace("actuatorToPolar c0 %0.2f c1 %0.2f alphaSteps %d alphaDegs %0.2f linStpHm %d rotD %0.2f lin %0.2f", actuatorCoords[0], actuatorCoords[1],
-            alphaSteps, alphaDegs, linearStepsFromHome, polarCoordsAzFirst[0] * 180 / M_PI, polarCoordsAzFirst[1]);
+        // Log.trace("actuatorToPolar c0 %0.2f c1 %0.2f alphaSteps %d alphaDegs %0.2f linStpHm %d rotD %0.2f lin %0.2f", actuatorCoords[0], actuatorCoords[1],
+        //     alphaSteps, alphaDegs, linearStepsFromHome, polarCoordsAzFirst[0] * 180 / M_PI, polarCoordsAzFirst[1]);
     }
 
     static void actuatorToXy(double actuatorCoords[], double xy[], AxisParams axisParams[], int numAxes)
@@ -117,7 +118,7 @@ public:
         // Trig
         xy[0] = polarCoords[1] * sin(polarCoords[0]);
         xy[1] = polarCoords[1] * cos(polarCoords[0]);
-        Log.trace("actuatorToXy curX %0.2f curY %0.2f", xy[0], xy[1]);
+        // Log.trace("actuatorToXy curX %0.2f curY %0.2f", xy[0], xy[1]);
     }
 
     static void correctStepOverflow(AxisParams axisParams[], int numAxes)
@@ -127,7 +128,7 @@ public:
         bool showDebug = false;
         if (axisParams[0]._stepsFromHome > rotationSteps || axisParams[0]._stepsFromHome <= -rotationSteps)
         {
-            Serial.printlnf("CORRECTING ax0 %d ax1 %d", axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome);
+            Log.trace("CORRECTING ax0 %d ax1 %d", axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome);
             showDebug = true;
         }
         // Bring steps from home values back within a single rotation
@@ -142,7 +143,7 @@ public:
             axisParams[1]._stepsFromHome += rotationSteps;
         }
         if (showDebug)
-            Serial.printlnf("CORRECTED ax0 %d ax1 %d", axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome);
+            Log.trace("CORRECTED ax0 %d ax1 %d", axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome);
     }
 
 private:
@@ -250,7 +251,7 @@ public:
     {
         // Debug
         if (_homingStepsDone != 0)
-            Log.info("Changing state ... HomingSteps %d", _homingStepsDone);
+            Log.trace("Changing state ... HomingSteps %d", _homingStepsDone);
 
         // Reset homing vars
         _homingStepsDone = 0;
@@ -291,7 +292,7 @@ public:
                 // To purely rotate both steppers must turn in the same direction
                 _homingAxis0Step = HSTEP_BACKWARDS;
                 _homingAxis1Step = HSTEP_BACKWARDS;
-                Log.info("Homing - rotating to end stop 0");
+                Log.trace("Homing - rotating to end stop 0");
                 break;
             }
             case ROTATE_FOR_HOME_SET:
@@ -303,7 +304,7 @@ public:
                 // To purely rotate both steppers must turn in the same direction
                 _homingAxis0Step = HSTEP_BACKWARDS;
                 _homingAxis1Step = HSTEP_BACKWARDS;
-                Log.info("Homing - rotating to home position 0");
+                Log.trace("Homing - rotating to home position 0");
                 break;
             }
             case ROTATE_TO_LINEAR_SEEK_ANGLE:
@@ -315,7 +316,7 @@ public:
                 // To purely rotate both steppers must turn in the same direction
                 _homingAxis0Step = HSTEP_FORWARDS;
                 _homingAxis1Step = HSTEP_FORWARDS;
-                Log.info("Homing - at rotate endstop, prep linear seek %d steps back", _homingStepsLimit);
+                Log.trace("Homing - at rotate endstop, prep linear seek %d steps back", _homingStepsLimit);
                 break;
             }
             case LINEAR_SEEK_ENDSTOP:
@@ -328,7 +329,7 @@ public:
                 _homingAxis0Step = HSTEP_NONE;
                 _homingAxis1Step = HSTEP_BACKWARDS;
                 _timeBetweenHomingStepsUs = _homingLinearFastStepTimeUs;
-                Log.info("Homing - linear seek");
+                Log.trace("Homing - linear seek");
                 break;
             }
             case LINEAR_CLEAR_ENDSTOP:
@@ -340,7 +341,7 @@ public:
                 // - forwards is towards the centre in this case
                 _homingAxis0Step = HSTEP_NONE;
                 _homingAxis1Step = HSTEP_FORWARDS;
-                Log.info("Homing - clear endstop");
+                Log.trace("Homing - clear endstop");
                 break;
             }
             case LINEAR_FULLY_CLEAR_ENDSTOP:
@@ -353,7 +354,7 @@ public:
                 // - forwards is towards the centre in this case
                 _homingAxis0Step = HSTEP_NONE;
                 _homingAxis1Step = HSTEP_FORWARDS;
-                Log.info("Homing - nudge away from linear endstop");
+                Log.trace("Homing - nudge away from linear endstop");
                 break;
             }
             case LINEAR_SLOW_ENDSTOP:
@@ -366,7 +367,7 @@ public:
                 _homingAxis0Step = HSTEP_NONE;
                 _homingAxis1Step = HSTEP_BACKWARDS;
                 _timeBetweenHomingStepsUs = _homingLinearSlowStepTimeUs;
-                Log.info("Homing - linear seek");
+                Log.trace("Homing - linear seek");
                 break;
             }
             case OFFSET_TO_CENTRE:
@@ -379,7 +380,7 @@ public:
                 // - forwards is towards the centre in this case
                 _homingAxis0Step = HSTEP_NONE;
                 _homingAxis1Step = HSTEP_BACKWARDS;
-                Log.info("Homing - offet to centre");
+                Log.trace("Homing - offet to centre");
                 break;
             }
             case ROTATE_TO_HOME:
@@ -390,7 +391,7 @@ public:
                 // To purely rotate both steppers must turn in the same direction
                 _homingAxis0Step = HSTEP_BACKWARDS;
                 _homingAxis1Step = HSTEP_BACKWARDS;
-                Log.info("Homing - rotating back home %d steps", _homingStepsLimit);
+                Log.trace("Homing - rotating back home %d steps", _homingStepsLimit);
                 break;
             }
             case HOMING_STATE_COMPLETE:

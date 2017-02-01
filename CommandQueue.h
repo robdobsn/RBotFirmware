@@ -34,6 +34,12 @@ public:
         Log.info("CmdQueueMaxLen %d", _cmdQueueMaxLen);
     }
 
+    // Check if queue full
+    bool isFull()
+    {
+        return (_cmdElemQueue.size() >= _cmdQueueMaxLen);
+    }
+
     // Add to queue
     bool add(const char* pCmdStr)
     {

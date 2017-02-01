@@ -8,6 +8,7 @@
 #include "WorkflowManager.h"
 #include "GCodeInterpreter.h"
 #include "CommsSerial.h"
+#include "PatternGeneratorModSpiral.h"
 
 //define RUN_TESTS_CONFIG
 #define RUN_TEST_WORKFLOW
@@ -25,7 +26,10 @@ SerialLogHandlerR logHandler(SerialLogHandlerR::LOG_LEVEL_ALL);
 
 RobotController _robotController;
 WorkflowManager _workflowManager;
-CommandInterpreter _commandInterpreter(&_workflowManager);
+PatternGeneratorModSpiral _patternGeneratorModSpiral;
+PatternGenerator* _patternGenerators[] = { &_patternGeneratorModSpiral };
+constexpr int NUM_PATTERN_GENERATORS = sizeof(_patternGenerators)/sizeof(_patternGenerators[0]);
+CommandInterpreter _commandInterpreter(&_workflowManager, _patternGenerators, NUM_PATTERN_GENERATORS);
 CommsSerial _commsSerial(0);
 ConfigEEPROM configEEPROM;
 
@@ -40,12 +44,12 @@ static const char* EEPROM_CONFIG_LOCATION_STR =
 static const char* TEST_ROBOT_CONFIG_STR =
     "{\"robotType\": \"GeistBot\", \"xMaxMM\":400, \"yMaxMM\":400, "
     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
-    " \"maxHomingSecs\":120, \"homingLinOffsetDegs\":70, \"homingCentreOffsetMM\":0,"
-    " \"homingRotCentreDegs\":3.3,"
-    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":100.0, \"acceleration\":100.0,"
+    " \"maxHomingSecs\":120, \"homingLinOffsetDegs\":70, \"homingCentreOffsetMM\":4,"
+    " \"homingRotCentreDegs\":3.7,"
+    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":50.0, \"acceleration\":5.0,"
     " \"stepsPerRotation\":12000, \"unitsPerRotation\":360, "
     " \"endStop0\": { \"sensePin\": \"A6\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"}},"
-    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":100.0, \"acceleration\":100.0, "
+    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":50.0, \"acceleration\":5.0, "
     "\"stepsPerRotation\":12000, \"unitsPerRotation\":44.8, \"minVal\":0, \"maxVal\":195, "
     " \"endStop0\": { \"sensePin\": \"A7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
     "}";
@@ -142,21 +146,31 @@ void loop()
     // Service CommsSerial
     _commsSerial.service(_commandInterpreter);
 
+    // Service the pattern generators
+    for (int i = 0; i < NUM_PATTERN_GENERATORS; i++)
+    {
+        _patternGenerators[i]->service(_workflowManager);
+    }
+
     // Service the robot controller
     _robotController.service();
 
     // Pump the workflow here
-    CommandElem cmdElem;
-    bool rslt = _workflowManager.get(cmdElem);
-    if (rslt)
+    // Check if the RobotController can accept more
+    if (_robotController.canAcceptCommand())
     {
-        if (lowestMemory > System.freeMemory())
-            lowestMemory = System.freeMemory();
-        Log.info("");
-        Log.info("Get %d = %s, initMem %d, mem %d, lowMem %d", rslt,
-                        cmdElem.getString().c_str(), initialMemory,
-                        System.freeMemory(), lowestMemory);
-        GCodeInterpreter::interpretGcode(cmdElem, _robotController, true);
+        CommandElem cmdElem;
+        bool rslt = _workflowManager.get(cmdElem);
+        if (rslt)
+        {
+            if (lowestMemory > System.freeMemory())
+                lowestMemory = System.freeMemory();
+            Log.info("");
+            Log.info("Get %d = %s, initMem %d, mem %d, lowMem %d", rslt,
+                            cmdElem.getString().c_str(), initialMemory,
+                            System.freeMemory(), lowestMemory);
+            GCodeInterpreter::interpretGcode(cmdElem, _robotController, true);
+        }
     }
 
 }
