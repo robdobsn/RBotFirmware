@@ -17,6 +17,7 @@ public:
         _startRadius = 185;
         _endRadius = 20;
         _modulationAmp = 10;
+        _modulationDampingFactor = 0.6;
         _modulationFreqMult = 20;
         _overRotationFactor = 1.03;
         _segmentsPerRev = 200;
@@ -72,11 +73,11 @@ private:
     double _startRadius;
     double _endRadius;
     double _modulationAmp;
+    double _modulationDampingFactor;
     double _modulationFreqMult;
     double _overRotationFactor;
     double _segmentsPerRev;
     double _outstepPerRev;
-
 
     // State vars
     bool _isRunning;
@@ -104,8 +105,11 @@ private:
         double rRadians = tVal * 2 * M_PI * _overRotationFactor / _segmentsPerRev;
         double curModu = sin(tVal * _modulationFreqMult * 2 * M_PI / _segmentsPerRev);
         double curRadius = _startRadius + _outstepPerRev * tVal / _segmentsPerRev;
-        double posX = _centreX + (curRadius + curModu * _modulationAmp) * sin(rRadians);
-        double posY = _centreY + (curRadius + curModu * _modulationAmp) * cos(rRadians);
+        double radiusProp = (curRadius-min(_startRadius,_endRadius))/fabs(_startRadius-_endRadius);
+        double modDampFact = (1 - radiusProp) * _modulationDampingFactor;
+        double modAmpl = curRadius + curModu * _modulationAmp * (1 - modDampFact);
+        double posX = _centreX + modAmpl * sin(rRadians);
+        double posY = _centreY + modAmpl * cos(rRadians);
         xy[0] = posX;
         xy[1] = posY;
     }

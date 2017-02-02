@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "ConfigManager.h"
+
 class AxisParams
 {
 public:
@@ -20,6 +22,7 @@ public:
     double _minVal;
     bool _maxValValid;
     double _maxVal;
+    bool _isDominantAxis;
 
     // Motion values
     long _stepsFromHome;
@@ -40,6 +43,7 @@ public:
         _lastStepMicros = 0;
         _minValValid = false;
         _maxValValid = false;
+        _isDominantAxis = false;
         _betweenStepsNs = 1000000;
         _betweenStepsNsChangePerStep = 0;
     }
@@ -49,5 +53,17 @@ public:
         if (_unitsPerRotation != 0)
             return _stepsPerRotation / _unitsPerRotation;
         return 1;
+    }
+
+    void setFromJSON(const char* axisJSON)
+    {
+        // Stepper motor
+        _maxSpeed = ConfigManager::getDouble("maxSpeed", AxisParams::maxSpeed_default, axisJSON);
+        _acceleration = ConfigManager::getDouble("acceleration", AxisParams::acceleration_default, axisJSON);
+        _stepsPerRotation = ConfigManager::getDouble("stepsPerRotation", AxisParams::stepsPerRotation_default, axisJSON);
+        _unitsPerRotation = ConfigManager::getDouble("unitsPerRotation", AxisParams::unitsPerRotation_default, axisJSON);
+        _minVal = ConfigManager::getDouble("minVal", 0, _minValValid, axisJSON);
+        _maxVal = ConfigManager::getDouble("maxVal", 0, _maxValValid, axisJSON);
+        _isDominantAxis = ConfigManager::getLong("isDominantAxis", 0, axisJSON) != 0;
     }
 };

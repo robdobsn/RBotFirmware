@@ -5,6 +5,7 @@
 
 #include "StepperMotor.h"
 #include "AxisParams.h"
+#include "EndStop.h"
 #include "ConfigPinMap.h"
 #include "MotionPipeline.h"
 #include "math.h"
@@ -12,42 +13,6 @@
 typedef bool (*xyToActuatorFnType) (double xy[], double actuatorCoords[], AxisParams axisParams[], int numAxes);
 typedef void (*actuatorToXyFnType) (double actuatorCoords[], double xy[], AxisParams axisParams[], int numAxes);
 typedef void (*correctStepOverflowFnType) (AxisParams axisParams[], int numAxes);
-
-class EndStop
-{
-private:
-    int _pin;
-    bool _activeLevel;
-    int _inputType;
-
-public:
-    EndStop(int pin, bool activeLevel, int inputType)
-    {
-        _pin = pin;
-        _activeLevel = activeLevel;
-        _inputType = inputType;
-        if (_pin != -1)
-        {
-            pinMode(_pin, (PinMode) _inputType);
-        }
-        Log.info("EndStop %d, %d, %d", _pin, _activeLevel, _inputType);
-    }
-    ~EndStop()
-    {
-        // Restore pin to input (may have had pullup)
-        if (_pin != -1)
-            pinMode(_pin, INPUT);
-    }
-    bool isAtEndStop()
-    {
-        if (_pin != -1)
-        {
-            bool val = digitalRead(_pin);
-            return val == _activeLevel;
-        }
-        return true;
-    }
-};
 
 class MotionController
 {
@@ -90,6 +55,11 @@ private:
 
 private:
 
+    bool isInBounds(double v, double b1, double b2)
+    {
+        return (v > min(b1, b2) && v < max(b1,b2));
+    }
+
     bool configureMotorEnable(const char* robotConfigJSON)
     {
         // Get motor enable info
@@ -118,15 +88,12 @@ private:
         if (axisJSON.length() == 0 || axisJSON.equals("{}"))
             return false;
 
-        // Stepper motor
+        // Set the axis parameters
+        _axisParams[axisIdx].setFromJSON(axisJSON.c_str());
+
+        // Create the stepper motor for the axis
         String stepPinName = ConfigManager::getString("stepPin", "-1", axisJSON);
         String dirnPinName = ConfigManager::getString("dirnPin", "-1", axisJSON);
-        _axisParams[axisIdx]._maxSpeed = ConfigManager::getDouble("maxSpeed", AxisParams::maxSpeed_default, axisJSON);
-        _axisParams[axisIdx]._acceleration = ConfigManager::getDouble("acceleration", AxisParams::acceleration_default, axisJSON);
-        _axisParams[axisIdx]._stepsPerRotation = ConfigManager::getDouble("stepsPerRotation", AxisParams::stepsPerRotation_default, axisJSON);
-        _axisParams[axisIdx]._unitsPerRotation = ConfigManager::getDouble("unitsPerRotation", AxisParams::unitsPerRotation_default, axisJSON);
-        _axisParams[axisIdx]._minVal = ConfigManager::getDouble("minVal", 0, _axisParams[axisIdx]._minValValid, axisJSON);
-        _axisParams[axisIdx]._maxVal = ConfigManager::getDouble("maxVal", 0, _axisParams[axisIdx]._maxValValid, axisJSON);
         long stepPin = ConfigPinMap::getPinFromName(stepPinName.c_str());
         long dirnPin = ConfigPinMap::getPinFromName(dirnPinName.c_str());
         Log.info("Axis%d (step pin %d, dirn pin %d)", axisIdx, stepPin, dirnPin);
@@ -142,18 +109,13 @@ private:
             if (endStopJSON.length() == 0 || endStopJSON.equals("{}"))
                 continue;
 
-            // Get end stop
-            String pinName = ConfigManager::getString("sensePin", "-1", endStopJSON);
-            long activeLevel = ConfigManager::getLong("activeLevel", 1, endStopJSON);
-            String inputTypeStr = ConfigManager::getString("inputType", "", endStopJSON);
-            long pinId = ConfigPinMap::getPinFromName(pinName.c_str());
-            int inputType = ConfigPinMap::getInputType(inputTypeStr.c_str());
-            Log.info("Axis%dEndStop%d (sense %d, level %d, type %d)", axisIdx, endStopIdx, pinId,
-                    activeLevel, inputType);
-
-            // Create end stop
-            _endStops[axisIdx][endStopIdx] = new EndStop(pinId, activeLevel, inputType);
+            // Create endStop from JSON
+            _endStops[axisIdx][endStopIdx] = new EndStop(axisIdx, endStopIdx, endStopJSON);
         }
+
+        // TEST Major axis
+        if (axisIdx == 0)
+            _axisParams[0]._isDominantAxis = true;
 
         // Other data
         _axisParams[axisIdx]._stepsFromHome = 0;
@@ -197,12 +159,30 @@ private:
                     double deltaY = motionElem._y2MM - motionElem._y1MM;
                     double distToTravelMM = sqrt(deltaX*deltaX+deltaY*deltaY);
                     double timeToTargetS = distToTravelMM / speedTargetMMps;
-                    unsigned long stepsX = labs(_axisParams[0]._targetStepsFromHome - _axisParams[0]._stepsFromHome);
-                    unsigned long stepsY = labs(_axisParams[1]._targetStepsFromHome - _axisParams[1]._stepsFromHome);
-                    double timePerStepXS = timeToTargetS / stepsX;
-                    double timePerStepYS = timeToTargetS / stepsY;
-                    _axisParams[0]._betweenStepsNs = timePerStepXS * 1000000000;
-                    _axisParams[1]._betweenStepsNs = timePerStepYS * 1000000000;
+                    unsigned long stepsAxis0 = labs(_axisParams[0]._targetStepsFromHome - _axisParams[0]._stepsFromHome);
+                    unsigned long stepsAxis1 = labs(_axisParams[1]._targetStepsFromHome - _axisParams[1]._stepsFromHome);
+                    double timePerStepAxis0nS = timeToTargetS * 1000000000 / stepsAxis0;
+                    double timePerStepAxis1nS = timeToTargetS * 1000000000 / stepsAxis1;
+
+                    // Check if there is little difference from current timePerStep on the
+                    // dominant axis
+                    if (_axisParams[0]._isDominantAxis && isInBounds(timePerStepAxis0nS,
+                                _axisParams[0]._betweenStepsNs*0.66, _axisParams[0]._betweenStepsNs*1.33))
+                    {
+                        double speedCorrectionFactor = _axisParams[0]._betweenStepsNs / timePerStepAxis0nS;
+                        _axisParams[1]._betweenStepsNs = timePerStepAxis1nS * speedCorrectionFactor;
+                    }
+                    else if (_axisParams[1]._isDominantAxis && isInBounds(timePerStepAxis1nS,
+                                _axisParams[1]._betweenStepsNs*0.66, _axisParams[1]._betweenStepsNs*1.33))
+                    {
+                        double speedCorrectionFactor = _axisParams[1]._betweenStepsNs / timePerStepAxis1nS;
+                        _axisParams[0]._betweenStepsNs = timePerStepAxis0nS * speedCorrectionFactor;
+                    }
+                    else
+                    {
+                        _axisParams[0]._betweenStepsNs = timePerStepAxis0nS;
+                        _axisParams[1]._betweenStepsNs = timePerStepAxis1nS;
+                    }
                 }
 
                 Log.trace("Move to %sx %0.2f y %0.2f -> ax0Tgt %0.2f Ax1Tgt %0.2f (stpNSXY %ld %ld)",
