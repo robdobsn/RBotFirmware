@@ -14,7 +14,7 @@ public:
     {
         _centreX = 0;
         _centreY = 0;
-        _startRadius = 185;
+        _startRadius = 180;
         _endRadius = 20;
         _modulationAmp = 10;
         _modulationDampingFactor = 0.6;
@@ -39,24 +39,22 @@ public:
         _tVal = 0;
     }
 
-    void service(WorkflowManager& workflowManager)
+    void service(CommandInterpreter& commandInterpreter)
     {
         // Check running
         if (!_isRunning)
             return;
 
-        // Check if there is space in the workflowManager
-        if (workflowManager.isFull())
-        {
+        // Check if the command interpreter can accept new stuff
+        if (!commandInterpreter.canAcceptCommand())
             return;
-        }
 
-        // Get next point and add to workflow manager
+        // Get next point and send to commandInterpreter
         double xy[2];
         getPoint(_tVal, xy);
         String cmdStr = String::format("G0 X%0.2fY%0.2f", xy[0], xy[1]);
-        workflowManager.add(cmdStr.c_str());
-        Log.trace("WorkflowManager add %s", cmdStr.c_str());
+        commandInterpreter.process(cmdStr.c_str());
+        Log.trace("CommandInterpreter process %s", cmdStr.c_str());
         _tVal += _tInc;
 
         // Check if we reached a limit

@@ -70,7 +70,7 @@ private:
         _xMaxMM = ConfigManager::getDouble("xMaxMM", 0, robotConfigJSON);
         _yMaxMM = ConfigManager::getDouble("yMaxMM", 0, robotConfigJSON);
         _maxMotionDistanceMM = sqrt(_xMaxMM * _xMaxMM + _yMaxMM * _yMaxMM);
-        Log.info("MotorEnable (pin %d, onVal %d, %0.2f secs)", _stepEnablePin, _stepEnableActiveLevel, _stepDisableSecs);
+        Log.info("MotorEnable (pin %d, actLvl %d, disableAfter %0.2fs)", _stepEnablePin, _stepEnableActiveLevel, _stepDisableSecs);
 
         // Enable pin - initially disable
         pinMode(_stepEnablePin, OUTPUT);

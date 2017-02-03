@@ -205,7 +205,7 @@ public:
     bool init(const char* robotConfigStr)
     {
         // Info
-        Log.info("Constructing %s from %s", _robotTypeName.c_str(), robotConfigStr);
+        // Log.info("Constructing %s from %s", _robotTypeName.c_str(), robotConfigStr);
 
         // Init motion controller from config
         _motionController.setOrbitalParams(robotConfigStr);
@@ -216,7 +216,7 @@ public:
         _homingCentreOffsetMM = ConfigManager::getDouble("homingCentreOffsetMM", homingCentreOffsetMM_default, robotConfigStr);
         _homingRotCentreDegs = ConfigManager::getDouble("homingRotCentreDegs", homingRotCentreDegs_default, robotConfigStr);
 
-        Log.info("%s maxHomingSecs %d homingLinOffsetDegs %0.3f homingCentreOffsetMM %0.3f homingRotCentreDegs %0.3f",
+        Log.info("%s maxHome %ds linOff %0.3fd ctrOff %0.3fmm rotCtr %0.3fd",
                     _robotTypeName.c_str(), _maxHomingSecs, _homingLinOffsetDegs, _homingCentreOffsetMM, _homingRotCentreDegs);
 
         return true;

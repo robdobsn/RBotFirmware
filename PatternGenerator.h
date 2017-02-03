@@ -5,6 +5,8 @@
 
 #include "application.h"
 
+class CommandInterpreter;
+
 class PatternGenerator
 {
 protected:
@@ -24,7 +26,7 @@ public:
     virtual void setParameters(const char* drawParams)
     {
     }
-    virtual void service(WorkflowManager& workflowManager)
+    virtual void service(CommandInterpreter& CommandInterpreter)
     {
     }
 };

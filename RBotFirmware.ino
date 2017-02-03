@@ -11,7 +11,7 @@
 #include "PatternGeneratorModSpiral.h"
 
 //define RUN_TESTS_CONFIG
-#define RUN_TEST_WORKFLOW
+//#define RUN_TEST_WORKFLOW
 #ifdef RUN_TEST_CONFIG
 #include "TestConfigManager.h"
 #endif
@@ -41,20 +41,20 @@ static const char* EEPROM_CONFIG_LOCATION_STR =
     " \"mugRotation\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":100.0, \"accel\":100.0},"
     " \"xLinear\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":100.0, \"accel\":100.0}"
     "}";*/
-static const char* TEST_ROBOT_CONFIG_STR =
+static const char* DEFAULT_ROBOT_CONFIG_STR =
     "{\"robotType\": \"GeistBot\", \"xMaxMM\":400, \"yMaxMM\":400, "
     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
     " \"maxHomingSecs\":120, \"homingLinOffsetDegs\":70, \"homingCentreOffsetMM\":4,"
-    " \"homingRotCentreDegs\":3.7,"
-    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":50.0, \"acceleration\":5.0,"
-    " \"stepsPerRotation\":12000, \"unitsPerRotation\":360, "
+    " \"homingRotCentreDegs\":3.7, \"cmdsAtStart\":\"G28;ModSpiral\", "
+    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
+    " \"stepsPerRotation\":12000, \"unitsPerRotation\":360, \"isDominantAxis\":1,"
     " \"endStop0\": { \"sensePin\": \"A6\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"}},"
-    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":50.0, \"acceleration\":5.0, "
+    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":75.0, \"acceleration\":5.0, "
     "\"stepsPerRotation\":12000, \"unitsPerRotation\":44.8, \"minVal\":0, \"maxVal\":195, "
     " \"endStop0\": { \"sensePin\": \"A7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
     "}";
 
-static const char* TEST_WORKFLOW_CONFIG_STR =
+static const char* DEFAULT_WORKFLOW_CONFIG_STR =
     "{\"CommandQueue\": { \"cmdQueueMaxLen\":50 } }";
 
 void setup()
@@ -63,15 +63,6 @@ void setup()
     Log.info("RBotFirmware (built %s %s)", __DATE__, __TIME__);
     Log.info("System version: %s", (const char*)System.version());
 
-    /*
-    pinMode(A6, INPUT_PULLUP);
-    pinMode(A7, INPUT_PULLUP);
-    for (int i = 0; i < 40; i++)
-    {
-        Serial.printlnf("A6=%d A7=%d", digitalRead(A6), digitalRead(A7));
-        delay(500);
-    }*/
-
     // Initialise the config manager
     configEEPROM.setConfigLocation(EEPROM_CONFIG_LOCATION_STR);
 
@@ -79,8 +70,12 @@ void setup()
     TestConfigManager::runTests();
     #endif
 
-    _robotController.init(TEST_ROBOT_CONFIG_STR);
-    _workflowManager.init(TEST_WORKFLOW_CONFIG_STR);
+    _robotController.init(DEFAULT_ROBOT_CONFIG_STR);
+    _workflowManager.init(DEFAULT_WORKFLOW_CONFIG_STR);
+
+    // Check for cmdsAtStart
+    String cmdsAtStart = ConfigManager::getString("cmdsAtStart", "", DEFAULT_ROBOT_CONFIG_STR);
+    _commandInterpreter.process(cmdsAtStart);
 
 }
 
@@ -149,7 +144,7 @@ void loop()
     // Service the pattern generators
     for (int i = 0; i < NUM_PATTERN_GENERATORS; i++)
     {
-        _patternGenerators[i]->service(_workflowManager);
+        _patternGenerators[i]->service(_commandInterpreter);
     }
 
     // Service the robot controller

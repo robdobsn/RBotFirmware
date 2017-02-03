@@ -28,10 +28,10 @@ public:
     // Set configuration
     void init(const char* configStr)
     {
-        Log.info("Configuring CommandQueue from %s", configStr);
+//        Log.info("Configuring CommandQueue from %s", configStr);
         _cmdQueueMaxLen = (int) ConfigManager::getLong("cmdQueueMaxLen",
                                             _cmdQueueMaxLenDefault, configStr);
-        Log.info("CmdQueueMaxLen %d", _cmdQueueMaxLen);
+//        Log.info("CmdQueueMaxLen %d", _cmdQueueMaxLen);
     }
 
     // Check if queue full

@@ -32,7 +32,14 @@ public:
         return pStr;
     }
 
-    bool process(const char* pCmdStr)
+    bool canAcceptCommand()
+    {
+        if (_pWorkflowManager)
+            return !_pWorkflowManager->isFull();
+        return false;
+    }
+
+    bool processSingle(const char* pCmdStr)
     {
         // RWAD TODO check if this is an immediate command
 
@@ -61,7 +68,56 @@ public:
         // Send the line for processing
         bool rslt = false;
         if (_pWorkflowManager)
-            rslt = _pWorkflowManager->add(pCmdStr);
+        {
+            if (strlen(pCmdStart) != 0)
+                rslt = _pWorkflowManager->add(pCmdStart);
+        }
         return rslt;
+    }
+
+    bool process(const char* pCmdStr)
+    {
+        // Handle the case of a single string
+        if (strstr(pCmdStr, ";") == NULL)
+        {
+            Log.trace("cmdProc oneline %s", pCmdStr);
+            return processSingle(pCmdStr);
+        }
+
+        // Handle multiple commands (tab delimited)
+        Log.trace("cmdProc multiline %s", pCmdStr);
+        const int MAX_TEMP_CMD_STR_LEN = 1000;
+        const char* pCurStr = pCmdStr;
+        const char* pCurStrEnd = pCmdStr;
+        while (true)
+        {
+            // Find line end
+            if ((*pCurStrEnd == ';') || (*pCurStrEnd == '\0'))
+            {
+                // Extract the line
+                int stLen = pCurStrEnd-pCurStr;
+                if ((stLen == 0) || (stLen > MAX_TEMP_CMD_STR_LEN))
+                    break;
+
+                // Alloc
+                char* pCurCmd = new char [stLen+1];
+                if (!pCurCmd)
+                    break;
+                for (int i = 0; i < stLen; i++)
+                    pCurCmd[i] = *pCurStr++;
+                pCurCmd[stLen] = 0;
+
+                // process
+                Log.trace("cmdProc single %d %s", stLen, pCurCmd);
+                processSingle(pCurCmd);
+                delete [] pCurCmd;
+
+                // Move on
+                if (*pCurStrEnd == '\0')
+                    break;
+                pCurStr = pCurStrEnd + 1;
+            }
+            pCurStrEnd++;
+        }
     }
 };
