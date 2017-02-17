@@ -1,6 +1,8 @@
 // RBotFirmware
 // Rob Dobson 2016
 
+#if PLATFORM_ID == 88 // RedBear Duo
+
 #include "LogHandlerR.h"
 
 bool LoggerWiring::_logToSerial = false;
@@ -14,3 +16,5 @@ SerialLogHandlerR::SerialLogHandlerR(SerialLogHandlerR::LOG_LEVEL_TYPE logLevel)
 {
     Log.setLogLevel(logLevel);
 }
+
+#endif

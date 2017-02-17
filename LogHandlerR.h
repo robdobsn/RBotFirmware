@@ -7,6 +7,8 @@
 
 #define LOG_MAX_STRING_LENGTH_R 160
 
+#if PLATFORM_ID == 88 // RedBear Duo
+
 class SerialLogHandlerR
 {
 public:
@@ -91,3 +93,5 @@ public:
 };
 
 extern LoggerWiring Log;
+
+#endif
