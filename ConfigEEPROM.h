@@ -33,7 +33,7 @@ public:
     {
         // configStr defines the location of config
         bool isValid = false;
-        jsmntype_t objType = JSMN_UNDEFINED;
+        jsmnrtype_t objType = JSMNR_UNDEFINED;
         int objSize = 0;
         long configPos = ConfigManager::getLong("base", 0, isValid, configStr);
         if (!isValid)

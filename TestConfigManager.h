@@ -182,21 +182,21 @@ public:
         {
             return 0;
         }
-        if (t->type == JSMN_PRIMITIVE)
+        if (t->type == JSMNR_PRIMITIVE)
         {
             Serial.printf("\n\r#Found primitive size %d, start %d, end %d\n\r",
                     t->size, t->start, t->end);
             Serial.printf("%.*s", t->end - t->start, js + t->start);
             return 1;
         }
-        else if (t->type == JSMN_STRING)
+        else if (t->type == JSMNR_STRING)
         {
             Serial.printf("\n\r#Found string size %d, start %d, end %d\n\r",
                     t->size, t->start, t->end);
             Serial.printf("'%.*s'", t->end - t->start, js + t->start);
             return 1;
         }
-        else if (t->type == JSMN_OBJECT)
+        else if (t->type == JSMNR_OBJECT)
         {
             Serial.printf("\n\r#Found object size %d, start %d, end %d\n\r",
                     t->size, t->start, t->end);
@@ -214,7 +214,7 @@ public:
             }
             return j + 1;
         }
-        else if (t->type == JSMN_ARRAY)
+        else if (t->type == JSMNR_ARRAY)
         {
             Serial.printf("\n\r#Found array size %d, start %d, end %d\n\r",
                     t->size, t->start, t->end);
@@ -237,9 +237,9 @@ public:
 
     static bool doPrint(const char* jsonStr)
     {
-        jsmn_parser parser;
-        jsmn_init(&parser);
-        int tokenCountRslt = jsmn_parse(&parser, jsonStr, strlen(jsonStr),
+        JSMNR_parser parser;
+        JSMNR_init(&parser);
+        int tokenCountRslt = JSMNR_parse(&parser, jsonStr, strlen(jsonStr),
                     NULL, 1000);
         if (tokenCountRslt < 0)
         {
@@ -247,8 +247,8 @@ public:
             return false;
         }
         jsmntok_t* pTokens = new jsmntok_t[tokenCountRslt];
-        jsmn_init(&parser);
-        tokenCountRslt = jsmn_parse(&parser, jsonStr, strlen(jsonStr),
+        JSMNR_init(&parser);
+        tokenCountRslt = JSMNR_parse(&parser, jsonStr, strlen(jsonStr),
                     pTokens, tokenCountRslt);
         if (tokenCountRslt < 0)
         {
@@ -257,7 +257,7 @@ public:
             return false;
         }
         // Top level item must be an object
-        if (tokenCountRslt < 1 || pTokens[0].type != JSMN_OBJECT)
+        if (tokenCountRslt < 1 || pTokens[0].type != JSMNR_OBJECT)
         {
             RD_ERR("JSON must have top level object");
             delete pTokens;
@@ -284,7 +284,7 @@ public:
     static bool testGets()
     {
         bool isValid = false;
-    	jsmntype_t objType = JSMN_UNDEFINED;
+    	jsmntype_t objType = JSMNR_UNDEFINED;
     	int objSize = 0;
         bool allValid = true;
         for (int i = 0; i < 1000000; i++)
@@ -331,7 +331,7 @@ public:
     	dumpTokens(pStrippedStr, pTokens, numTokens);
 
     	bool isValid = false;
-    	jsmntype_t objType = JSMN_UNDEFINED;
+    	jsmntype_t objType = JSMNR_UNDEFINED;
     	int objSize = 0;
     	bool testSuccess = true;
     	String myStr, myVal;
@@ -360,7 +360,7 @@ public:
     		isValid, ConfigManager::getObjType(objType), objSize, myStr.c_str());
     	if (objSize != 2)
     		thisTestResult = false;
-    	if (objType != JSMN_OBJECT)
+    	if (objType != JSMNR_OBJECT)
     		thisTestResult = false;
     	RD_DBG("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
     	testSuccess &= thisTestResult;
@@ -373,7 +373,7 @@ public:
     		isValid, ConfigManager::getObjType(objType), objSize, myStr.c_str());
     	if (objSize != 1)
     		thisTestResult = false;
-    	if (objType != JSMN_OBJECT)
+    	if (objType != JSMNR_OBJECT)
     		thisTestResult = false;
     	myVal = configManager.getString("pet/type", "NOTFOUND2", isValid,
     		objType, objSize, myStr.c_str());
@@ -381,7 +381,7 @@ public:
     		isValid, ConfigManager::getObjType(objType), objSize, myVal.c_str());
     	if (!myVal.equals("wolf"))
     		thisTestResult = false;
-    	if (objType != JSMN_STRING)
+    	if (objType != JSMNR_STRING)
     		thisTestResult = false;
     	RD_DBG("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
     	testSuccess &= thisTestResult;
@@ -394,7 +394,7 @@ public:
     		isValid, ConfigManager::getObjType(objType), objSize, myStr.c_str());
     	if (objSize != 7)
     		thisTestResult = false;
-    	if (objType != JSMN_ARRAY)
+    	if (objType != JSMNR_ARRAY)
     		thisTestResult = false;
     	 myVal = configManager.getString("[1]", "NOTFOUND2", isValid,
     	                     objType, objSize, myStr.c_str());

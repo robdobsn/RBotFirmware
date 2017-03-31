@@ -2,10 +2,7 @@
 // Rob Dobson 2016
 
 #define RD_DEBUG_LEVEL 4
-#if PLATFORM_ID == 88 // RedBear Duo
-#include "LogHandlerR.h"
-SerialLogHandlerR logHandler(SerialLogHandlerR::LOG_LEVEL_ALL);
-#endif
+
 #include "ConfigEEPROM.h"
 #include "RobotController.h"
 #include "WorkflowManager.h"

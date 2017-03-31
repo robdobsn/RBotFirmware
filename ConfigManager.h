@@ -48,7 +48,7 @@ public:
     // Get a string from the JSON
     static String getString (const char* dataPath,
                         const char* defaultValue, bool& isValid,
-                        jsmntype_t& objType, int& objSize,
+                        jsmnrtype_t& objType, int& objSize,
                         const char* pSourceStr)
     {
 		// Check for null
@@ -57,7 +57,7 @@ public:
 
         // Parse json into tokens
         int numTokens = 0;
-        jsmntok_t* pTokens = parseJson(pSourceStr, numTokens);
+        jsmnrtok_t* pTokens = parseJson(pSourceStr, numTokens);
         if (pTokens == NULL)
             return defaultValue;
 
@@ -75,7 +75,7 @@ public:
         objType = pTokens[startTokenIdx].type;
         objSize = pTokens[startTokenIdx].size;
         String outStr;
-        if (objType == JSMN_STRING || objType == JSMN_PRIMITIVE)
+        if (objType == JSMNR_STRING || objType == JSMNR_PRIMITIVE)
         {
             char* pStr = safeStringDup(pSourceStr + pTokens[startTokenIdx].start,
                         pTokens[startTokenIdx].end - pTokens[startTokenIdx].start,
@@ -103,7 +103,7 @@ public:
 				const char* pSourceStr)
 	{
 		bool isValid = false;
-		jsmntype_t objType = JSMN_UNDEFINED;
+		jsmnrtype_t objType = JSMNR_UNDEFINED;
 		int objSize = 0;
 		return getString(dataPath, defaultValue, isValid, objType, objSize,
 					pSourceStr);
@@ -112,7 +112,7 @@ public:
 	// Get a string from the JSON
     String getString (const char* dataPath,
                         const char* defaultValue, bool& isValid,
-                        jsmntype_t& objType, int& objSize)
+                        jsmnrtype_t& objType, int& objSize)
     {
 		return getString(dataPath, defaultValue, isValid, objType, objSize,
 					_pDataStrJSON);
@@ -128,7 +128,7 @@ public:
 
         // Parse json into tokens
         int numTokens = 0;
-        jsmntok_t* pTokens = parseJson(pSourceStr, numTokens);
+        jsmnrtok_t* pTokens = parseJson(pSourceStr, numTokens);
         if (pTokens == NULL)
             return defaultValue;
 
@@ -170,7 +170,7 @@ public:
 
         // Parse json into tokens
         int numTokens = 0;
-        jsmntok_t* pTokens = parseJson(pSourceStr, numTokens);
+        jsmnrtok_t* pTokens = parseJson(pSourceStr, numTokens);
         if (pTokens == NULL)
             return defaultValue;
 
@@ -201,21 +201,21 @@ public:
 		return getLong(dataPath, defaultValue, isValid, _pDataStrJSON);
 	}
 
-	static const char* getObjType(jsmntype_t type)
+	static const char* getObjType(jsmnrtype_t type)
 	{
 		switch (type)
 		{
-		case JSMN_PRIMITIVE: return "PRIMITIVE";
-		case JSMN_STRING: return "STRING";
-		case JSMN_OBJECT: return "OBJECT";
-		case JSMN_ARRAY: return "ARRAY";
-		case JSMN_UNDEFINED: return "UNDEFINED";
+		case JSMNR_PRIMITIVE: return "PRIMITIVE";
+		case JSMNR_STRING: return "STRING";
+		case JSMNR_OBJECT: return "OBJECT";
+		case JSMNR_ARRAY: return "ARRAY";
+		case JSMNR_UNDEFINED: return "UNDEFINED";
 		}
 		return "UNKNOWN";
 	}
 
 public:
-    static jsmntok_t* parseJson(const char* jsonStr, int& numTokens,
+    static jsmnrtok_t* parseJson(const char* jsonStr, int& numTokens,
                 int maxTokens = 10000)
     {
         // Check for null source string
@@ -226,9 +226,9 @@ public:
         }
 
         // Find how many tokens in the string
-        jsmn_parser parser;
-        jsmn_init(&parser);
-        int tokenCountRslt = jsmn_parse(&parser, jsonStr, strlen(jsonStr),
+        JSMNR_parser parser;
+        JSMNR_init(&parser);
+        int tokenCountRslt = JSMNR_parse(&parser, jsonStr, strlen(jsonStr),
                     NULL, maxTokens);
         if (tokenCountRslt < 0)
         {
@@ -239,11 +239,11 @@ public:
         // Allocate space for tokens
         if (tokenCountRslt > maxTokens)
             tokenCountRslt = maxTokens;
-        jsmntok_t* pTokens = new jsmntok_t[tokenCountRslt];
+        jsmnrtok_t* pTokens = new jsmnrtok_t[tokenCountRslt];
 
         // Parse again
-        jsmn_init(&parser);
-        tokenCountRslt = jsmn_parse(&parser, jsonStr, strlen(jsonStr),
+        JSMNR_init(&parser);
+        tokenCountRslt = JSMNR_parse(&parser, jsonStr, strlen(jsonStr),
                     pTokens, tokenCountRslt);
         if (tokenCountRslt < 0)
         {
@@ -257,7 +257,7 @@ public:
 
 private:
     static bool getTokenByDataPath(const char* jsonStr, const char* dataPath,
-                jsmntok_t* pTokens, int numTokens,
+                jsmnrtok_t* pTokens, int numTokens,
                 int& startTokenIdx, int& endTokenIdx)
     {
         // Get required token
@@ -274,7 +274,7 @@ private:
         return true;
     }
 
-    static int findObjectEnd(const char *jsonOriginal, jsmntok_t tokens[],
+    static int findObjectEnd(const char *jsonOriginal, jsmnrtok_t tokens[],
                 unsigned int numTokens, int curTokenIdx,
                 int count, bool atObjectKey = true)
     {
@@ -286,13 +286,13 @@ private:
         unsigned int tokIdx = curTokenIdx;
         for (int objIdx = 0; objIdx < count; objIdx++)
         {
-            jsmntok_t* pTok = tokens + tokIdx;
-            if (pTok->type == JSMN_PRIMITIVE)
+            jsmnrtok_t* pTok = tokens + tokIdx;
+            if (pTok->type == JSMNR_PRIMITIVE)
             {
                 // RD_DBG("findObjectEnd PRIMITIVE");
                 tokIdx += 1;
             }
-            else if (pTok->type == JSMN_STRING)
+            else if (pTok->type == JSMNR_STRING)
             {
                 // RD_DBG("findObjectEnd STRING");
 				if (atObjectKey)
@@ -304,12 +304,12 @@ private:
 					tokIdx += 1;
 				}
             }
-            else if (pTok->type == JSMN_OBJECT)
+            else if (pTok->type == JSMNR_OBJECT)
             {
                 // RD_DBG("findObjectEnd OBJECT");
                 tokIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx+1, pTok->size, true);
             }
-            else if (pTok->type == JSMN_ARRAY)
+            else if (pTok->type == JSMNR_ARRAY)
             {
                 // RD_DBG("findObjectEnd ARRAY");
                 tokIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx+1, pTok->size, false);
@@ -330,10 +330,10 @@ private:
         return tokIdx;
     }
 
-    static int findKeyInJson(const char *jsonOriginal, jsmntok_t tokens[],
+    static int findKeyInJson(const char *jsonOriginal, jsmnrtok_t tokens[],
                              unsigned int numTokens, const char *dataPath,
                              int& endTokenIdx,
-                             jsmntype_t keyType = JSMN_UNDEFINED)
+                             jsmnrtype_t keyType = JSMNR_UNDEFINED)
     {
         const int  MAX_SRCH_KEY_LEN = 100;
         char       srchKey[MAX_SRCH_KEY_LEN + 1];
@@ -388,21 +388,21 @@ private:
             // Iterate over tokens to find key of the right type
             // If we are already looking at the node level then search for requested type
             // Otherwise search for and object that will contain the next level key
-            jsmntype_t keyTypeToFind = atNodeLevel ? keyType : JSMN_STRING;
+            jsmnrtype_t keyTypeToFind = atNodeLevel ? keyType : JSMNR_STRING;
             for (int tokIdx = curTokenIdx; tokIdx <= maxTokenIdx; )
             {
 				// See if the key matches - this can either be a string match on an object key or
 				// just an array element match (with an empty key)
-                jsmntok_t *pTok = tokens + tokIdx;
+                jsmnrtok_t *pTok = tokens + tokIdx;
 				bool keyMatchFound = false;
-				if ( (pTok->type == JSMN_STRING) &&
+				if ( (pTok->type == JSMNR_STRING) &&
 					((int)strlen(srchKey) == pTok->end - pTok->start) &&
 					(strncmp(jsonOriginal + pTok->start, srchKey, pTok->end - pTok->start) == 0) )
 				{
 					keyMatchFound = true;
 					tokIdx += 1;
 				}
-				else if ((pTok->type == JSMN_ARRAY) &&
+				else if ((pTok->type == JSMNR_ARRAY) &&
 					((int)strlen(srchKey) == 0) &&
 					(arrayElementReqd))
 				{
@@ -416,7 +416,7 @@ private:
                     // Check if we were looking for an array element
                     if (arrayElementReqd)
                     {
-                        if (tokens[tokIdx].type == JSMN_ARRAY)
+                        if (tokens[tokIdx].type == JSMNR_ARRAY)
                         {
                             int newTokIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx+1, reqdArrayIdx, false);
                             RD_DBG("TokIdxArray inIdx %d, reqdArrayIdx %d, outTokIdx %d",
@@ -435,7 +435,7 @@ private:
                     if (atNodeLevel)
                     {
                         // RD_DBG("findObjectEnd we have got it %d", tokIdx);
-                        if ((keyTypeToFind == JSMN_UNDEFINED) || (tokens[tokIdx].type == keyTypeToFind))
+                        if ((keyTypeToFind == JSMNR_UNDEFINED) || (tokens[tokIdx].type == keyTypeToFind))
                         {
                             endTokenIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx, 1, false);
                             //int testTokenIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx+1, 1);
@@ -448,7 +448,7 @@ private:
                     {
                         // Check for an object
                         // RD_DBG("findObjectEnd inside");
-                        if (tokens[tokIdx].type == JSMN_OBJECT)
+                        if (tokens[tokIdx].type == JSMNR_OBJECT)
                         {
                             // Continue next level of search in this object
                             maxTokenIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx, 1);
@@ -464,17 +464,17 @@ private:
                         }
                     }
                 }
-                else if (pTok->type == JSMN_STRING)
+                else if (pTok->type == JSMNR_STRING)
                 {
                     // We're at a key string but it isn't the one we want so skip its contents
                     tokIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx, 1);
                 }
-				else if (pTok->type == JSMN_OBJECT)
+				else if (pTok->type == JSMNR_OBJECT)
 				{
 					// Move to the first key of the object
 					tokIdx++;
 				}
-				else if (pTok->type == JSMN_ARRAY)
+				else if (pTok->type == JSMNR_ARRAY)
 				{
 					// Root level array which doesn't match the dataPath
 					return -1;
@@ -578,7 +578,7 @@ public:
 	}
 
 #ifdef CONFIG_MANAGER_RECREATE_JSON
-	static int recreateJson(const char *js, jsmntok_t *t,
+	static int recreateJson(const char *js, jsmnrtok_t *t,
 		size_t count, int indent, String& outStr)
 	{
 		int i, j, k;
@@ -587,7 +587,7 @@ public:
 		{
 			return 0;
 		}
-		if (t->type == JSMN_PRIMITIVE)
+		if (t->type == JSMNR_PRIMITIVE)
 		{
 			RD_DBG("\n\r#Found primitive size %d, start %d, end %d\n\r",
 				t->size, t->start, t->end);
@@ -598,7 +598,7 @@ public:
 			delete[] pStr;
 			return 1;
 		}
-		else if (t->type == JSMN_STRING)
+		else if (t->type == JSMNR_STRING)
 		{
 			RD_DBG("\n\r#Found string size %d, start %d, end %d\n\r",
 				t->size, t->start, t->end);
@@ -611,7 +611,7 @@ public:
 			delete[] pStr;
 			return 1;
 		}
-		else if (t->type == JSMN_OBJECT)
+		else if (t->type == JSMNR_OBJECT)
 		{
 			RD_DBG("\n\r#Found object size %d, start %d, end %d\n\r",
 				t->size, t->start, t->end);
@@ -636,7 +636,7 @@ public:
 			outStr.concat("}");
 			return j + 1;
 		}
-		else if (t->type == JSMN_ARRAY)
+		else if (t->type == JSMNR_ARRAY)
 		{
 			RD_DBG("\n\r#Found array size %d, start %d, end %d\n\r",
 				t->size, t->start, t->end);
@@ -665,18 +665,18 @@ public:
 
 	static bool doPrint(const char* jsonStr)
 	{
-		jsmn_parser parser;
-		jsmn_init(&parser);
-		int tokenCountRslt = jsmn_parse(&parser, jsonStr, strlen(jsonStr),
+		JSMNR_parser parser;
+		JSMNR_init(&parser);
+		int tokenCountRslt = JSMNR_parse(&parser, jsonStr, strlen(jsonStr),
 			NULL, 1000);
 		if (tokenCountRslt < 0)
 		{
 			RD_ERR("Failed to parse JSON: %d", tokenCountRslt);
 			return false;
 		}
-		jsmntok_t* pTokens = new jsmntok_t[tokenCountRslt];
-		jsmn_init(&parser);
-		tokenCountRslt = jsmn_parse(&parser, jsonStr, strlen(jsonStr),
+		jsmnrtok_t* pTokens = new jsmnrtok_t[tokenCountRslt];
+		JSMNR_init(&parser);
+		tokenCountRslt = JSMNR_parse(&parser, jsonStr, strlen(jsonStr),
 			pTokens, tokenCountRslt);
 		if (tokenCountRslt < 0)
 		{
@@ -685,7 +685,7 @@ public:
 			return false;
 		}
 		// Top level item must be an object
-		if (tokenCountRslt < 1 || pTokens[0].type != JSMN_OBJECT)
+		if (tokenCountRslt < 1 || pTokens[0].type != JSMNR_OBJECT)
 		{
 			RD_ERR("JSON must have top level object");
 			delete pTokens;
