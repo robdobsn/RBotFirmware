@@ -26,23 +26,22 @@ public:
 
 public:
 
-    static bool xyToActuator(double xy[], double actuatorCoords[], AxisParams axisParams[], int numAxes)
+    static bool ptToActuator(PointND& pt, PointND& actuatorCoords, AxisParams axisParams[], int numAxes)
     {
         // Trig for required position (azimuth is measured clockwise from North)
-        double reqAlphaRads = atan2(xy[0], xy[1]);
+        double reqAlphaRads = atan2(pt._pt[0], pt._pt[1]);
         if (reqAlphaRads < 0)
             reqAlphaRads = 2 * M_PI + reqAlphaRads;
-        double reqLinearMM = sqrt(xy[0] * xy[0] + xy[1] * xy[1]);
+        double reqLinearMM = sqrt(pt._pt[0] * pt._pt[0] + pt._pt[1] * pt._pt[1]);
 
         // Log.trace("xyToActuator x %0.2f y %0.2f ax0StNow %d ax1StNow %d rqAlphaD %0.2f rqLinMM %0.2f",
         //         xy[0], xy[1], axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome,
         //         reqAlphaRads * 180 / M_PI, reqLinearMM);
 
         // Get current position
-        double axisPosns[NUM_ROBOT_AXES] = {
-            axisParams[0]._stepsFromHome,
-            axisParams[1]._stepsFromHome
-        };
+        PointND axisPosns;
+        for (int i = 0; i < MAX_AXES; i++)
+            axisPosns._pt[i] = axisParams[i]._stepsFromHome;
         double currentPolar[NUM_ROBOT_AXES];
         actuatorToPolar(axisPosns, currentPolar, axisParams, 2);
 
@@ -63,8 +62,8 @@ public:
         // direction as the arm rotation stepper - so the linear stepper steps required is the sum of the rotation and linear steps
         double actuator0Diff = alphaDiffDegs * axisParams[0].stepsPerUnit() * (alphaRotateCw ? 1 : -1);
         double actuator1Diff = linearDiffMM * axisParams[1].stepsPerUnit() + actuator0Diff;
-        actuatorCoords[0] = axisParams[0]._stepsFromHome + actuator0Diff;
-        actuatorCoords[1] = axisParams[1]._stepsFromHome + actuator1Diff;
+        actuatorCoords._pt[0] = axisParams[0]._stepsFromHome + actuator0Diff;
+        actuatorCoords._pt[1] = axisParams[1]._stepsFromHome + actuator1Diff;
 
         // Log.trace("xyToActuator reqAlphaD %0.2f curAlphaD %0.2f alphaDiffD %0.2f aRotCw %d linDiffMM %0.2f ax0Diff %0.2f ax1Diff %0.2f ax0Tgt %0.2f ax1Tgt %0.2f",
         //                 reqAlphaRads * 180 / M_PI, currentPolar[0] * 180 / M_PI, alphaDiffDegs, alphaRotateCw,
@@ -75,12 +74,12 @@ public:
 
         // Cross check
         double checkPolarCoords[NUM_ROBOT_AXES];
-        actuatorToPolar(actuatorCoords, checkPolarCoords, axisParams, numAxes);
+        actuatorToPolar(actuatorCoords, checkPolarCoords, axisParams, 2);
         double checkX = checkPolarCoords[1] * sin(checkPolarCoords[0]);
         double checkY = checkPolarCoords[1] * cos(checkPolarCoords[0]);
-        double checkErr = sqrt((checkX-xy[0]) * (checkX-xy[0]) + (checkY-xy[1]) * (checkY-xy[1]));
+        double checkErr = sqrt((checkX-pt._pt[0]) * (checkX-pt._pt[0]) + (checkY-pt._pt[1]) * (checkY-pt._pt[1]));
         if (checkErr > 0.1)
-            Log.trace("check reqX %02.f checkX %0.2f, reqY %0.2f checkY %0.2f, error %0.2f, %s", xy[0], checkX, xy[1], checkY,
+            Log.trace("check reqX %02.f checkX %0.2f, reqY %0.2f checkY %0.2f, error %0.2f, %s", pt._pt[0], checkX, pt._pt[1], checkY,
                             checkErr, (checkErr>0.1) ? "****** FAILED ERROR CHECK" : "");
 
         // Check machine bounds for linear axis
@@ -91,33 +90,33 @@ public:
         return true;
     }
 
-    static void actuatorToPolar(double actuatorCoords[], double polarCoordsAzFirst[], AxisParams axisParams[], int numAxes)
+    static void actuatorToPolar(PointND& actuatorCoords, double polarCoordsAzFirst[], AxisParams axisParams[], int numAxes)
     {
         // Calculate azimuth
-        int alphaSteps = (abs(int(actuatorCoords[0])) % (int)(axisParams[0]._stepsPerRotation));
+        int alphaSteps = (abs(int(actuatorCoords._pt[0])) % (int)(axisParams[0]._stepsPerRotation));
         double alphaDegs = alphaSteps / axisParams[0].stepsPerUnit();
-        if (actuatorCoords[0] < 0)
+        if (actuatorCoords._pt[0] < 0)
             alphaDegs = axisParams[0]._unitsPerRotation-alphaDegs;
         polarCoordsAzFirst[0] = alphaDegs * M_PI / 180;
 
-        // Calculate linear position (note that this robot has interaction between aximuth and linear motion as the rack moves
+        // Calculate linear position (note that this robot has interaction between azimuth and linear motion as the rack moves
         // if the pinion gear remains still and the arm assembly moves around it) - so the required linear calculation uses the
         // difference in linear and arm rotation steps
-        long linearStepsFromHome = actuatorCoords[1] - actuatorCoords[0];
+        long linearStepsFromHome = actuatorCoords._pt[1] - actuatorCoords._pt[0];
         polarCoordsAzFirst[1] = linearStepsFromHome / axisParams[1].stepsPerUnit();
 
         // Log.trace("actuatorToPolar c0 %0.2f c1 %0.2f alphaSteps %d alphaDegs %0.2f linStpHm %d rotD %0.2f lin %0.2f", actuatorCoords[0], actuatorCoords[1],
         //     alphaSteps, alphaDegs, linearStepsFromHome, polarCoordsAzFirst[0] * 180 / M_PI, polarCoordsAzFirst[1]);
     }
 
-    static void actuatorToXy(double actuatorCoords[], double xy[], AxisParams axisParams[], int numAxes)
+    static void actuatorToPt(PointND& actuatorCoords, PointND& pt, AxisParams axisParams[], int numAxes)
     {
         double polarCoords[NUM_ROBOT_AXES];
         actuatorToPolar(actuatorCoords, polarCoords, axisParams, numAxes);
 
         // Trig
-        xy[0] = polarCoords[1] * sin(polarCoords[0]);
-        xy[1] = polarCoords[1] * cos(polarCoords[0]);
+        pt._pt[0] = polarCoords[1] * sin(polarCoords[0]);
+        pt._pt[1] = polarCoords[1] * cos(polarCoords[0]);
         // Log.trace("actuatorToXy curX %0.2f curY %0.2f", xy[0], xy[1]);
     }
 
@@ -198,7 +197,7 @@ public:
         _homingStepsLimit = 0;
         _maxHomingSecs = maxHomingSecs_default;
         _timeBetweenHomingStepsUs = _homingRotateSlowStepTimeUs;
-        _motionController.setTransforms(xyToActuator, actuatorToXy, correctStepOverflow);
+        _motionController.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
     }
 
     // Set config
@@ -208,7 +207,7 @@ public:
         // Log.info("Constructing %s from %s", _robotTypeName.c_str(), robotConfigStr);
 
         // Init motion controller from config
-        _motionController.setOrbitalParams(robotConfigStr);
+        _motionController.setAxisParams(robotConfigStr);
 
         // Get params specific to GeistBot
         _maxHomingSecs = ConfigManager::getLong("maxHomingSecs", maxHomingSecs_default, robotConfigStr);
@@ -216,6 +215,7 @@ public:
         _homingCentreOffsetMM = ConfigManager::getDouble("homingCentreOffsetMM", homingCentreOffsetMM_default, robotConfigStr);
         _homingRotCentreDegs = ConfigManager::getDouble("homingRotCentreDegs", homingRotCentreDegs_default, robotConfigStr);
 
+        // Info
         Log.info("%s maxHome %ds linOff %0.3fd ctrOff %0.3fmm rotCtr %0.3fd",
                     _robotTypeName.c_str(), _maxHomingSecs, _homingLinOffsetDegs, _homingCentreOffsetMM, _homingRotCentreDegs);
 
@@ -226,7 +226,7 @@ public:
     {
         // GeistBot can only home X & Y axes together so ignore params
         // Info
-        Log.info("%s home x%d, y%d, z%d", _robotTypeName.c_str(), args.xValid, args.yValid, args.zValid);
+        Log.info("%s home x%d, y%d, z%d", _robotTypeName.c_str(), args.valid.X(), args.valid.Y(), args.valid.Z());
 
         // Set homing state
         homingSetNewState(HOMING_STATE_INIT);

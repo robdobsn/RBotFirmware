@@ -4,36 +4,34 @@
 #pragma once
 
 #include <queue>
+#include "PointND.h"
 
 class MotionPipelineElem
 {
 public:
-    double _x1MM;
-    double _y1MM;
-    double _x2MM;
-    double _y2MM;
+    PointND _pt1MM;
+    PointND _pt2MM;
     double _accMMpss;
     double _speedMMps;
 
 public:
     MotionPipelineElem()
     {
-        _x1MM = 0;
-        _y1MM = 0;
-        _x2MM = 0;
-        _y2MM = 0;
         _accMMpss = 0;
         _speedMMps = 0;
     }
 
-    MotionPipelineElem(double& x1, double& y1, double& x2, double& y2)
+    MotionPipelineElem(PointND& pt1, PointND& pt2)
     {
-        _x1MM = x1;
-        _y1MM = y1;
-        _x2MM = x2;
-        _y2MM = y2;
+        _pt1MM = pt1;
+        _pt2MM = pt2;
         _accMMpss = 0;
         _speedMMps = 0;
+    }
+
+    double delta()
+    {
+        return _pt1MM.distanceTo(_pt2MM);
     }
 };
 
@@ -66,7 +64,7 @@ public:
     }
 
     // Add to pipeline
-    bool add(double& x1, double& y1, double& x2, double& y2)
+    bool add(PointND& pt1, PointND& pt2)
     {
         // Check if queue is full
         if (_pipeline.size() >= _pipelineMaxLen)
@@ -75,7 +73,7 @@ public:
         }
 
         // Queue up the item
-        MotionPipelineElem elem(x1,y1,x2,y2);
+        MotionPipelineElem elem(pt1, pt2);
         _pipeline.push(elem);
         return true;
     }

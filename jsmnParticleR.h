@@ -1,5 +1,4 @@
-#ifndef __JSMNRPARTICLER_H_
-#define __JSMNRPARTICLER_H_
+#pragma once
 
 #include "application.h"
 
@@ -43,7 +42,7 @@ typedef struct jsmnrtok_t {
 #ifdef JSMNR_PARENT_LINKS
 	int parent;
 #endif
-};
+} jsmnrtok_t;
 
 /**
  * JSON parser. Contains an array of token blocks available. Also stores
@@ -67,5 +66,3 @@ void JSMNR_init(JSMNR_parser *parser);
  */
 int JSMNR_parse(JSMNR_parser *parser, const char *js, size_t len,
 		jsmnrtok_t *tokens, unsigned int num_tokens);
-
-#endif /* __JSMNRPARTICLER_H_ */

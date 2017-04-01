@@ -1,14 +1,9 @@
 // RBotFirmware
 // Rob Dobson 2016
 
-#ifndef _CONFIG_EEPROM_H_
-#define _CONFIG_EEPROM_H_
+#pragma once
 
 #include "ConfigManager.h"
-
-#pragma push_macro("RD_DEBUG_FNAME")
-#define RD_DEBUG_FNAME "ConfigEEPROM.h"
-#include "RdDebugLevel.h"
 
 class ConfigEEPROM : public ConfigManager
 {
@@ -33,19 +28,17 @@ public:
     {
         // configStr defines the location of config
         bool isValid = false;
-        jsmnrtype_t objType = JSMNR_UNDEFINED;
-        int objSize = 0;
         long configPos = ConfigManager::getLong("base", 0, isValid, configStr);
         if (!isValid)
         {
-            RD_ERR("configLocation base not found");
+            Log.error("configLocation base not found");
     		return false;
         }
 
         long configMaxLen = ConfigManager::getLong("maxLen", 500, isValid, configStr);
         if (!isValid)
         {
-            RD_ERR("configLocation maxLen not found");
+            Log.error("configLocation maxLen not found");
     		return false;
         }
 
@@ -56,7 +49,7 @@ public:
         _configMaxDataLen = configMaxLen;
 
         // Debug
-        RD_INFO("configEEPROM base %ld, maxLen %ld", _eepromBaseLocation, _configMaxDataLen);
+        Log.info("configEEPROM base %d, maxLen %d", _eepromBaseLocation, _configMaxDataLen);
 
         // Read the config JSON str from EEPROM
         readFromEEPROM();
@@ -71,7 +64,7 @@ public:
         if (EEPROM.read(_eepromBaseLocation) == 0xff)
         {
             setConfigData("");
-            RD_INFO("EEPROM uninitialised, _pDataStrJSON empty");
+            Log.info("EEPROM uninitialised, _pDataStrJSON empty");
             return;
         }
 
@@ -97,7 +90,7 @@ public:
             pData[chIdx] = ch;
         }
         pData[dataStrLen + 1] = 0;
-        RD_INFO("Read config str: %s", pData);
+        Log.info("Read config str: %s", pData);
 
         // Store in config string
         setConfigData(pData);
@@ -112,7 +105,7 @@ public:
     {
         const char* pConfigData = getConfigData();
 
-        RD_DBG("Writing config str: %s", pConfigData);
+        Log.trace("Writing config str: %s", pConfigData);
 
         // Get length of string
         int dataStrLen = 0;
@@ -137,7 +130,3 @@ public:
         return true;
     }
 };
-
-#pragma pop_macro("RD_DEBUG_FNAME")
-
-#endif _CONFIG_EEPROM_H_

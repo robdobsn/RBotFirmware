@@ -86,7 +86,7 @@ private:
     bool checkLimit(double tVal)
     {
         double curRadius = _startRadius + _outstepPerRev * tVal / _segmentsPerRev;
-        Serial.printlnf("curRadius %0.2f endRad %0.2f stRad %0.2f v1 %d v2 %d",
+        Log.trace("curRadius %0.2f endRad %0.2f stRad %0.2f v1 %d v2 %d",
                 curRadius, _endRadius, _startRadius,
                 curRadius > max(_endRadius, _startRadius),
                 curRadius < min(_endRadius, _startRadius));

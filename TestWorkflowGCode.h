@@ -1,8 +1,4 @@
 
-#pragma push_macro("RD_DEBUG_FNAME")
-#define RD_DEBUG_FNAME "TestWorkflowGCode.h"
-#include "RdDebugLevel.h"
-
 typedef struct TEST_POSN_TYPE { double x; double y; };
 static TEST_POSN_TYPE testPositions[] =
     {
@@ -96,5 +92,3 @@ public:
 };
 
 TestWorkflowGCode __testWorkflowGCode;
-
-#pragma pop_macro("RD_DEBUG_FNAME")

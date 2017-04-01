@@ -1,10 +1,6 @@
 
 #include "ConfigManager.h"
 
-#pragma push_macro("RD_DEBUG_FNAME")
-#define RD_DEBUG_FNAME "TestConfigManager.h"
-#include "RdDebugLevel.h"
-
 static const char *TEST_JSON_STRING_001 =
     "{\"user\": \"johndoe\", \"admin\": false, \"uid\": 1000,\n  "
     "\"things\": [\"users\", \"wheel\", \"audio\", \"video\"], "
@@ -243,7 +239,7 @@ public:
                     NULL, 1000);
         if (tokenCountRslt < 0)
         {
-            RD_ERR("Failed to parse JSON: %d", tokenCountRslt);
+            Log.error("Failed to parse JSON: %d", tokenCountRslt);
             return false;
         }
         jsmntok_t* pTokens = new jsmntok_t[tokenCountRslt];
@@ -252,33 +248,33 @@ public:
                     pTokens, tokenCountRslt);
         if (tokenCountRslt < 0)
         {
-            RD_ERR("Failed to parse JSON: %d", tokenCountRslt);
+            Log.error("Failed to parse JSON: %d", tokenCountRslt);
             delete pTokens;
             return false;
         }
         // Top level item must be an object
         if (tokenCountRslt < 1 || pTokens[0].type != JSMNR_OBJECT)
         {
-            RD_ERR("JSON must have top level object");
+            Log.error("JSON must have top level object");
             delete pTokens;
             return false;
         }
-        RD_DBG("Dumping toknext = %d", parser.toknext);
+        Log.trace("Dumping toknext = %d", parser.toknext);
         // Reserve the same amount of space as the original string
         String outStr;
         outStr.reserve(strlen(jsonStr));
         dump(jsonStr, pTokens, parser.toknext, 0);
         delete pTokens;
-        RD_DBG("---------------------------------");
-        RD_DBG("RECREATED");
-        RD_DBG("%s", outStr.c_str());
+        Log.trace("---------------------------------");
+        Log.trace("RECREATED");
+        Log.trace("%s", outStr.c_str());
         return true;
     }
 
     static bool displayFreeMem()
     {
         uint32_t freemem = System.freeMemory();
-        RD_INFO("Free memory: %d", freemem);
+        Log.info("Free memory: %d", freemem);
     }
 
     static bool testGets()
@@ -295,7 +291,7 @@ public:
                 allValid = false;
             if (i % 100000 == 0)
             {
-                RD_DBG("CStr %s, allvalid %d", cStr.c_str(), allValid);
+                Log.trace("CStr %s, allvalid %d", cStr.c_str(), allValid);
                 displayFreeMem();
             }
         }
@@ -303,7 +299,7 @@ public:
 
     static void dumpTokens(const char* origStr, jsmntok_t* pTokens, int numTokens)
     {
-    	RD_DBG("%5s %15s %5s %5s %5s %s", "idx", "type", "strt", "end", "size", "content");
+    	Log.trace("%5s %15s %5s %5s %5s %s", "idx", "type", "strt", "end", "size", "content");
     	for (int i = 0; i < numTokens; i++)
     	{
     		jsmntok_t* pTok = pTokens + i;
@@ -314,7 +310,7 @@ public:
     			toShow = 40;
     			elipStr = "...";
     		}
-    		RD_DBG("%05d %15s %5d %5d %5d %.*s %s", i,
+    		Log.trace("%05d %15s %5d %5d %5d %.*s %s", i,
     						ConfigManager::getObjType(pTok->type),
     						pTok->start, pTok->end, pTok->size, toShow, origStr+pTok->start,
     						elipStr)
@@ -338,38 +334,38 @@ public:
     	int testIdx = 0;
     	bool thisTestResult = true;
 
-        RD_DBG("---------------------------------");
+        Log.trace("---------------------------------");
         displayFreeMem();
 
-    	RD_DBG("---------------------------------");
+    	Log.trace("---------------------------------");
     	thisTestResult = true;
     	myStr = configManager.getString("groups/my-str", "NOTFOUND",
     		isValid, objType, objSize, TEST_JSON_STRING_001);
-    	RD_DBG("Result str valid %d, type %s, size %d, contents %s",
+    	Log.trace("Result str valid %d, type %s, size %d, contents %s",
     		isValid, ConfigManager::getObjType(objType), objSize, myStr.c_str());
     	if (!myStr.equals("TESTSTR"))
     		thisTestResult = false;
-    	RD_DBG("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
+    	Log.trace("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
     	testSuccess &= thisTestResult;
 
-    	RD_DBG("---------------------------------");
+    	Log.trace("---------------------------------");
     	thisTestResult = true;
     	myStr = configManager.getString("groups", "NOTFOUND", isValid,
     		objType, objSize, TEST_JSON_STRING_001);
-    	RD_DBG("Result str valid %d, type %s, size %d, contents %s",
+    	Log.trace("Result str valid %d, type %s, size %d, contents %s",
     		isValid, ConfigManager::getObjType(objType), objSize, myStr.c_str());
     	if (objSize != 2)
     		thisTestResult = false;
     	if (objType != JSMNR_OBJECT)
     		thisTestResult = false;
-    	RD_DBG("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
+    	Log.trace("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
     	testSuccess &= thisTestResult;
 
-    	RD_DBG("---------------------------------");
+    	Log.trace("---------------------------------");
     	thisTestResult = true;
     	myStr = configManager.getString("info", "NOTFOUND", isValid,
     		objType, objSize, TEST_JSON_STRING_002);
-    	RD_DBG("Middle object valid %d, type %s, size %d, contents %s",
+    	Log.trace("Middle object valid %d, type %s, size %d, contents %s",
     		isValid, ConfigManager::getObjType(objType), objSize, myStr.c_str());
     	if (objSize != 1)
     		thisTestResult = false;
@@ -377,20 +373,20 @@ public:
     		thisTestResult = false;
     	myVal = configManager.getString("pet/type", "NOTFOUND2", isValid,
     		objType, objSize, myStr.c_str());
-    	RD_DBG("Result str valid %d, type %s, size %d, contents %s",
+    	Log.trace("Result str valid %d, type %s, size %d, contents %s",
     		isValid, ConfigManager::getObjType(objType), objSize, myVal.c_str());
     	if (!myVal.equals("wolf"))
     		thisTestResult = false;
     	if (objType != JSMNR_STRING)
     		thisTestResult = false;
-    	RD_DBG("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
+    	Log.trace("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
     	testSuccess &= thisTestResult;
 
-    	RD_DBG("---------------------------------");
+    	Log.trace("---------------------------------");
     	thisTestResult = true;
     	myStr = configManager.getString("tags", "NOTFOUND", isValid,
     		objType, objSize, TEST_JSON_STRING_002);
-    	RD_DBG("Middle object valid %d, type %s, size %d, contents %s",
+    	Log.trace("Middle object valid %d, type %s, size %d, contents %s",
     		isValid, ConfigManager::getObjType(objType), objSize, myStr.c_str());
     	if (objSize != 7)
     		thisTestResult = false;
@@ -398,45 +394,43 @@ public:
     		thisTestResult = false;
     	 myVal = configManager.getString("[1]", "NOTFOUND2", isValid,
     	                     objType, objSize, myStr.c_str());
-    	 RD_DBG("Result str valid %d, type %s, size %d, contents %s",
+    	 Log.trace("Result str valid %d, type %s, size %d, contents %s",
     	                     isValid, ConfigManager::getObjType(objType), objSize, myVal.c_str());
     	 if (!myVal.equals("veniam"))
     	     thisTestResult = false;
-    	 RD_DBG("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
+    	 Log.trace("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
     	 testSuccess &= thisTestResult;
 
-    	RD_DBG("---------------------------------");
+    	Log.trace("---------------------------------");
     	thisTestResult = true;
     	myStr = configManager.getString("info", "NOTFOUND",
     		isValid, objType, objSize, pStrippedStr);
-    	RD_DBG("Result str valid %d, type %s, size %d, len %d, contents %s",
+    	Log.trace("Result str valid %d, type %s, size %d, len %d, contents %s",
     		isValid, ConfigManager::getObjType(objType), objSize, myStr.length(), myStr.c_str());
     	if (myStr.length() != 53)
     		thisTestResult = false;
-    	RD_DBG("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
+    	Log.trace("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
     	testSuccess &= thisTestResult;
 
-    	RD_DBG("---------------------------------");
+    	Log.trace("---------------------------------");
     	thisTestResult = true;
     	myStr = configManager.getString("friends[1]/name", "NOTFOUND",
     		isValid, objType, objSize, pStrippedStr);
-    	RD_DBG("Result str valid %d, type %s, size %d, contents %s",
+    	Log.trace("Result str valid %d, type %s, size %d, contents %s",
     		isValid, ConfigManager::getObjType(objType), objSize, myStr.c_str());
     	if (!myStr.equals("GilmoreBray"))
     		thisTestResult = false;
-    	RD_DBG("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
+    	Log.trace("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
     	testSuccess &= thisTestResult;
 
-    	RD_DBG("---------------------------------");
-    	RD_DBG("");
-    	RD_DBG("TEST RESULTS: %s", testSuccess ? "PASSED" : "FAILED");
+    	Log.trace("---------------------------------");
+    	Log.trace("");
+    	Log.trace("TEST RESULTS: %s", testSuccess ? "PASSED" : "FAILED");
 
-        RD_DBG("---------------------------------");
+        Log.trace("---------------------------------");
         testGets();
 
-        RD_DBG("---------------------------------");
+        Log.trace("---------------------------------");
         displayFreeMem();
     }
 };
-
-#pragma pop_macro("RD_DEBUG_FNAME")

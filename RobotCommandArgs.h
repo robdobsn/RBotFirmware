@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "PointND.h"
+
 enum RobotEndstopArg
 {
     RobotEndstopArg_None,
@@ -13,12 +15,8 @@ enum RobotEndstopArg
 class RobotCommandArgs
 {
 public:
-    bool xValid;
-    double xVal;
-    bool yValid;
-    double yVal;
-    bool zValid;
-    double zVal;
+    PointND pt;
+    PointNDValid valid;
     bool extrudeValid;
     double extrudeVal;
     bool feedrateValid;
@@ -30,9 +28,17 @@ public:
 public:
     RobotCommandArgs()
     {
-        xValid = yValid = zValid = extrudeValid = feedrateValid = false;
-        xVal = yVal = zVal = extrudeVal = feedrateVal = 0.0;
+        extrudeValid = feedrateValid = false;
+        extrudeVal = feedrateVal = 0.0;
         endstopEnum = RobotEndstopArg_None;
         moveClockwise = moveRapid = false;
+    }
+    void setAxisValue(int axisIdx, double value, bool isValid)
+    {
+        if (axisIdx >= 0 && axisIdx < MAX_AXES)
+        {
+            pt.setVal(axisIdx, value);
+            valid.setVal(axisIdx, isValid);
+        }
     }
 };

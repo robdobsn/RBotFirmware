@@ -72,6 +72,8 @@ public:
             if (strlen(pCmdStart) != 0)
                 rslt = _pWorkflowManager->add(pCmdStart);
         }
+        Log.trace("processSingle rslt %s", rslt ? "OK" : "Fail");
+
         return rslt;
     }
 

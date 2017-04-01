@@ -12,6 +12,8 @@ public:
     static constexpr double acceleration_default = 100.0;
     static constexpr double stepsPerRotation_default = 1.0;
     static constexpr double unitsPerRotation_default = 1.0;
+    static constexpr long servoHomeVal_default = 90;
+    static constexpr long servoHomeSteps_default = 1500;
 
     // Parameters
     double _maxSpeed;
@@ -23,6 +25,10 @@ public:
     bool _maxValValid;
     double _maxVal;
     bool _isDominantAxis;
+    // A servo axis is one which does not require blockwise stepping to a destination
+    bool _isServoAxis;
+    long _servoHomeVal;
+    long _servoHomeSteps;
 
     // Motion values
     long _stepsFromHome;
@@ -46,6 +52,9 @@ public:
         _isDominantAxis = false;
         _betweenStepsNs = 1000000;
         _betweenStepsNsChangePerStep = 0;
+        _isServoAxis = false;
+        _servoHomeVal = servoHomeVal_default;
+        _servoHomeSteps = servoHomeSteps_default;
     }
 
     double stepsPerUnit()
@@ -65,5 +74,8 @@ public:
         _minVal = ConfigManager::getDouble("minVal", 0, _minValValid, axisJSON);
         _maxVal = ConfigManager::getDouble("maxVal", 0, _maxValValid, axisJSON);
         _isDominantAxis = ConfigManager::getLong("isDominantAxis", 0, axisJSON) != 0;
+        _isServoAxis = ConfigManager::getLong("isServoAxis", 0, axisJSON) != 0;
+        _servoHomeVal = ConfigManager::getLong("servoHomeVal", 0, axisJSON);
+        _servoHomeSteps = ConfigManager::getLong("servoHomeSteps", 0, axisJSON);
     }
 };

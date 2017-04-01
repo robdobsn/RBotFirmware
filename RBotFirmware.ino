@@ -1,8 +1,6 @@
 // RBotFirmware
 // Rob Dobson 2016
 
-#define RD_DEBUG_LEVEL 4
-
 #include "ConfigEEPROM.h"
 #include "RobotController.h"
 #include "WorkflowManager.h"
@@ -22,6 +20,7 @@
 SYSTEM_MODE(AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 
+SerialLogHandler logHandler(LOG_LEVEL_TRACE);
 RobotController _robotController;
 WorkflowManager _workflowManager;
 PatternGeneratorModSpiral _patternGeneratorModSpiral;
@@ -34,12 +33,18 @@ ConfigEEPROM configEEPROM;
 static const char* EEPROM_CONFIG_LOCATION_STR =
     "{\"base\": 0, \"maxLen\": 1000}";
 
-/*static const char* TEST_ROBOT_CONFIG_STR =
-    "{\"robotType\": \"MugBot\", \"motorEnPin\":\"A2\", \"motorEnOnVal\":1, \"motorDisableSecs\":60.0,"
-    " \"mugRotation\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":100.0, \"accel\":100.0},"
-    " \"xLinear\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":100.0, \"accel\":100.0}"
-    "}";*/
-static const char* DEFAULT_ROBOT_CONFIG_STR =
+static const char* ROBOT_CONFIG_STR_MUGBOT_PIHAT_1_1 =
+    "{\"robotType\": \"MugBot\", \"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":60.0,"
+    " \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
+    " \"stepsPerRotation\":12000, \"unitsPerRotation\":360, \"minVal\":0, \"maxVal\":240}, "
+    " \"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":75.0, \"acceleration\":5.0, "
+    " \"stepsPerRotation\":12000, \"unitsPerRotation\":44.8, \"minVal\":0, \"maxVal\":195, "
+    " \"endStop0\": { \"sensePin\": \"D7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
+    " \"axis2\": { \"servoPin\": \"D0\", \"isServoAxis\": 1, \"servoHomeVal\": 90, \"servoHomeSteps\": 1500,"
+    " \"minVal\":0, \"maxVal\":180, \"stepsPerRotation\":2000, \"unitsPerRotation\":360 },"
+    "}";
+
+static const char* ROBOT_CONFIG_STR_GEISTBOT =
     "{\"robotType\": \"GeistBot\", \"xMaxMM\":400, \"yMaxMM\":400, "
     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
     " \"maxHomingSecs\":120, \"homingLinOffsetDegs\":70, \"homingCentreOffsetMM\":4,"
@@ -48,15 +53,18 @@ static const char* DEFAULT_ROBOT_CONFIG_STR =
     " \"stepsPerRotation\":12000, \"unitsPerRotation\":360, \"isDominantAxis\":1,"
     " \"endStop0\": { \"sensePin\": \"A6\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"}},"
     " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":75.0, \"acceleration\":5.0, "
-    "\"stepsPerRotation\":12000, \"unitsPerRotation\":44.8, \"minVal\":0, \"maxVal\":195, "
+    " \"stepsPerRotation\":12000, \"unitsPerRotation\":44.8, \"minVal\":0, \"maxVal\":195, "
     " \"endStop0\": { \"sensePin\": \"A7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
     "}";
 
-static const char* DEFAULT_WORKFLOW_CONFIG_STR =
+static const char* ROBOT_CONFIG_STR = ROBOT_CONFIG_STR_MUGBOT_PIHAT_1_1;
+
+static const char* WORKFLOW_CONFIG_STR =
     "{\"CommandQueue\": { \"cmdQueueMaxLen\":50 } }";
 
 void setup()
 {
+    Serial.begin(115200);
     delay(5000);
     Log.info("RBotFirmware (built %s %s)", __DATE__, __TIME__);
     Log.info("System version: %s", (const char*)System.version());
@@ -68,11 +76,11 @@ void setup()
     TestConfigManager::runTests();
     #endif
 
-    _robotController.init(DEFAULT_ROBOT_CONFIG_STR);
-    _workflowManager.init(DEFAULT_WORKFLOW_CONFIG_STR);
+    _robotController.init(ROBOT_CONFIG_STR);
+    _workflowManager.init(WORKFLOW_CONFIG_STR);
 
     // Check for cmdsAtStart
-    String cmdsAtStart = ConfigManager::getString("cmdsAtStart", "", DEFAULT_ROBOT_CONFIG_STR);
+    String cmdsAtStart = ConfigManager::getString("cmdsAtStart", "", ROBOT_CONFIG_STR);
     _commandInterpreter.process(cmdsAtStart);
 
 }
@@ -115,13 +123,13 @@ void debugLoopTimer()
     {
         if (loopTimeAvgWinLen > 0)
         {
-            Serial.printlnf("Avg loop time %0.3fus (val %lu)",
+            Log.info("Avg loop time %0.3fus (val %lu)",
             1.0 * loopTimeAvgWinSum / loopTimeAvgWinLen,
             lastLoopStartMicros);
         }
         else
         {
-            Serial.println("No avg loop time yet");
+            Log.info("No avg loop time yet");
         }
         lastDebugLoopTime = millis();
     }

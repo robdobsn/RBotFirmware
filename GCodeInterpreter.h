@@ -47,18 +47,15 @@ public:
             switch(toupper(*pStr))
             {
                 case 'X':
-                    cmdArgs.xValid = true;
-                    cmdArgs.xVal = strtod(++pStr, &pEndStr);
+                    cmdArgs.setAxisValue(0, strtod(++pStr, &pEndStr), true);
                     pStr = pEndStr;
                     break;
                 case 'Y':
-                    cmdArgs.yValid = true;
-                    cmdArgs.yVal = strtod(++pStr, &pEndStr);
+                    cmdArgs.setAxisValue(1, strtod(++pStr, &pEndStr), true);
                     pStr = pEndStr;
                     break;
                 case 'Z':
-                    cmdArgs.zValid = true;
-                    cmdArgs.zVal = strtod(++pStr, &pEndStr);
+                    cmdArgs.setAxisValue(2, strtod(++pStr, &pEndStr), true);
                     pStr = pEndStr;
                     break;
                 case 'E':

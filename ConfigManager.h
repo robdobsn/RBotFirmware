@@ -5,10 +5,6 @@
 
 #include "jsmnParticleR.h"
 
-#pragma push_macro("RD_DEBUG_FNAME")
-#define RD_DEBUG_FNAME "ConfigManager.h"
-#include "RdDebugLevel.h"
-
 class ConfigManager
 {
 private:
@@ -98,6 +94,15 @@ public:
         delete[] pTokens;
         return outStr;
     }
+
+	static String getString (const char* dataPath, const char* defaultValue,
+				const char* pSourceStr, bool& isValid)
+	{
+		jsmnrtype_t objType = JSMNR_UNDEFINED;
+		int objSize = 0;
+		return getString(dataPath, defaultValue, isValid, objType, objSize,
+					pSourceStr);
+	}
 
 	static String getString (const char* dataPath, const char* defaultValue,
 				const char* pSourceStr)
@@ -221,7 +226,7 @@ public:
         // Check for null source string
         if (jsonStr == NULL)
         {
-            RD_ERR("Source JSON is NULL");
+            Log.error("Source JSON is NULL");
             return NULL;
         }
 
@@ -232,7 +237,7 @@ public:
                     NULL, maxTokens);
         if (tokenCountRslt < 0)
         {
-            RD_ERR("Failed to parse JSON: %d", tokenCountRslt);
+            Log.error("Failed to parse JSON: %d", tokenCountRslt);
             return NULL;
         }
 
@@ -247,7 +252,7 @@ public:
                     pTokens, tokenCountRslt);
         if (tokenCountRslt < 0)
         {
-            RD_ERR("Failed to parse JSON: %d", tokenCountRslt);
+            Log.error("Failed to parse JSON: %d", tokenCountRslt);
             delete[] pTokens;
             return NULL;
         }
@@ -265,7 +270,7 @@ private:
                             dataPath, endTokenIdx);
         if (keyIdx < 0)
         {
-            //RD_INFO("getTokenByDataPath not found %s", dataPath);
+            //Log.info("getTokenByDataPath not found %s", dataPath);
             return false;
         }
 
@@ -278,7 +283,7 @@ private:
                 unsigned int numTokens, int curTokenIdx,
                 int count, bool atObjectKey = true)
     {
-        // RD_DBG("findObjectEnd idx %d, count %d, start %s", curTokenIdx, count,
+        // Log.trace("findObjectEnd idx %d, count %d, start %s", curTokenIdx, count,
         //                 jsonOriginal + tokens[curTokenIdx].start);
 		// Primitives have a size of 0 but we still need to skip over them ...
 		if (count == 0)
@@ -289,12 +294,12 @@ private:
             jsmnrtok_t* pTok = tokens + tokIdx;
             if (pTok->type == JSMNR_PRIMITIVE)
             {
-                // RD_DBG("findObjectEnd PRIMITIVE");
+                // Log.trace("findObjectEnd PRIMITIVE");
                 tokIdx += 1;
             }
             else if (pTok->type == JSMNR_STRING)
             {
-                // RD_DBG("findObjectEnd STRING");
+                // Log.trace("findObjectEnd STRING");
 				if (atObjectKey)
 				{
 					tokIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx + 1, 1, false);
@@ -306,17 +311,17 @@ private:
             }
             else if (pTok->type == JSMNR_OBJECT)
             {
-                // RD_DBG("findObjectEnd OBJECT");
+                // Log.trace("findObjectEnd OBJECT");
                 tokIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx+1, pTok->size, true);
             }
             else if (pTok->type == JSMNR_ARRAY)
             {
-                // RD_DBG("findObjectEnd ARRAY");
+                // Log.trace("findObjectEnd ARRAY");
                 tokIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx+1, pTok->size, false);
 			}
 			else
 			{
-				RD_DBG("findObjectEnd UNKNOWN!!!!!!! %d", pTok->type);
+				Log.trace("findObjectEnd UNKNOWN!!!!!!! %d", pTok->type);
 				tokIdx += 1;
 			}
             if (tokIdx >= numTokens)
@@ -324,7 +329,7 @@ private:
                 break;
             }
         }
-        // RD_DBG("findObjectEnd returning %d, start %s, end %s", tokIdx,
+        // Log.trace("findObjectEnd returning %d, start %s, end %s", tokIdx,
         //                 jsonOriginal + tokens[tokIdx].start,
         //             jsonOriginal + tokens[tokIdx].end);
         return tokIdx;
@@ -348,7 +353,7 @@ private:
         {
             // Get the next part of the path
             const char *slashPos = strstr(pDataPathPos, "/");
-            // RD_DBG("SlashPos %d, %d", slashPos, slashPos-pDataPathPos);
+            // Log.trace("SlashPos %d, %d", slashPos, slashPos-pDataPathPos);
             if (slashPos == NULL)
             {
                 safeStringCopy(srchKey, pDataPathPos, MAX_SRCH_KEY_LEN);
@@ -383,7 +388,7 @@ private:
                 *sqBracketPos = 0;
             }
 
-            // RD_DBG("findKeyInJson srchKey %s", srchKey);
+            // Log.trace("findKeyInJson srchKey %s", srchKey);
 
             // Iterate over tokens to find key of the right type
             // If we are already looking at the node level then search for requested type
@@ -419,7 +424,7 @@ private:
                         if (tokens[tokIdx].type == JSMNR_ARRAY)
                         {
                             int newTokIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx+1, reqdArrayIdx, false);
-                            RD_DBG("TokIdxArray inIdx %d, reqdArrayIdx %d, outTokIdx %d",
+                            Log.trace("TokIdxArray inIdx %d, reqdArrayIdx %d, outTokIdx %d",
                                             tokIdx, reqdArrayIdx, newTokIdx);
                             tokIdx = newTokIdx;
                         }
@@ -434,12 +439,12 @@ private:
 					// - so we should be extracting the value referenced now
                     if (atNodeLevel)
                     {
-                        // RD_DBG("findObjectEnd we have got it %d", tokIdx);
+                        // Log.trace("findObjectEnd we have got it %d", tokIdx);
                         if ((keyTypeToFind == JSMNR_UNDEFINED) || (tokens[tokIdx].type == keyTypeToFind))
                         {
                             endTokenIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx, 1, false);
                             //int testTokenIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx+1, 1);
-                            //RD_DBG("TokIdxDiff max %d, test %d, diff %d", endTokenIdx, testTokenIdx, testTokenIdx-endTokenIdx);
+                            //Log.trace("TokIdxDiff max %d, test %d, diff %d", endTokenIdx, testTokenIdx, testTokenIdx-endTokenIdx);
                             return tokIdx;
                         }
                         return -1;
@@ -447,13 +452,13 @@ private:
                     else
                     {
                         // Check for an object
-                        // RD_DBG("findObjectEnd inside");
+                        // Log.trace("findObjectEnd inside");
                         if (tokens[tokIdx].type == JSMNR_OBJECT)
                         {
                             // Continue next level of search in this object
                             maxTokenIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx, 1);
                             //int testTokenIdx = findObjectEnd(jsonOriginal, tokens, numTokens, tokIdx+1, 1);
-                            //RD_DBG("TokIdxDiff2 max %d, test %d, diff %d", maxTokenIdx, testTokenIdx, testTokenIdx- maxTokenIdx);
+                            //Log.trace("TokIdxDiff2 max %d, test %d, diff %d", maxTokenIdx, testTokenIdx, testTokenIdx- maxTokenIdx);
                             curTokenIdx = tokIdx + 1;
                             break;
                         }
@@ -589,9 +594,9 @@ public:
 		}
 		if (t->type == JSMNR_PRIMITIVE)
 		{
-			RD_DBG("\n\r#Found primitive size %d, start %d, end %d\n\r",
+			Log.trace("\n\r#Found primitive size %d, start %d, end %d\n\r",
 				t->size, t->start, t->end);
-			RD_DBG("%.*s", t->end - t->start, js + t->start);
+			Log.trace("%.*s", t->end - t->start, js + t->start);
 			char *pStr = safeStringDup(js + t->start,
 				t->end - t->start);
 			outStr.concat(pStr);
@@ -600,9 +605,9 @@ public:
 		}
 		else if (t->type == JSMNR_STRING)
 		{
-			RD_DBG("\n\r#Found string size %d, start %d, end %d\n\r",
+			Log.trace("\n\r#Found string size %d, start %d, end %d\n\r",
 				t->size, t->start, t->end);
-			RD_DBG("'%.*s'", t->end - t->start, js + t->start);
+			Log.trace("'%.*s'", t->end - t->start, js + t->start);
 			char *pStr = safeStringDup(js + t->start,
 				t->end - t->start);
 			outStr.concat("\"");
@@ -613,7 +618,7 @@ public:
 		}
 		else if (t->type == JSMNR_OBJECT)
 		{
-			RD_DBG("\n\r#Found object size %d, start %d, end %d\n\r",
+			Log.trace("\n\r#Found object size %d, start %d, end %d\n\r",
 				t->size, t->start, t->end);
 			j = 0;
 			outStr.concat("{");
@@ -621,13 +626,13 @@ public:
 			{
 				for (k = 0; k < indent; k++)
 				{
-					RD_DBG("  ");
+					Log.trace("  ");
 				}
 				j += recreateJson(js, t + 1 + j, count - j, indent + 1, outStr);
 				outStr.concat(":");
-				RD_DBG(": ");
+				Log.trace(": ");
 				j += recreateJson(js, t + 1 + j, count - j, indent + 1, outStr);
-				RD_DBG("\n\r");
+				Log.trace("\n\r");
 				if (i != t->size - 1)
 				{
 					outStr.concat(",");
@@ -638,24 +643,24 @@ public:
 		}
 		else if (t->type == JSMNR_ARRAY)
 		{
-			RD_DBG("\n\r#Found array size %d, start %d, end %d\n\r",
+			Log.trace("\n\r#Found array size %d, start %d, end %d\n\r",
 				t->size, t->start, t->end);
 			j = 0;
 			outStr.concat("[");
-			RD_DBG("\n\r");
+			Log.trace("\n\r");
 			for (i = 0; i < t->size; i++)
 			{
 				for (k = 0; k < indent - 1; k++)
 				{
-					RD_DBG("  ");
+					Log.trace("  ");
 				}
-				RD_DBG("   - ");
+				Log.trace("   - ");
 				j += recreateJson(js, t + 1 + j, count - j, indent + 1, outStr);
 				if (i != t->size - 1)
 				{
 					outStr.concat(",");
 				}
-				RD_DBG("\n\r");
+				Log.trace("\n\r");
 			}
 			outStr.concat("]");
 			return j + 1;
@@ -671,7 +676,7 @@ public:
 			NULL, 1000);
 		if (tokenCountRslt < 0)
 		{
-			RD_ERR("Failed to parse JSON: %d", tokenCountRslt);
+			Log.error("Failed to parse JSON: %d", tokenCountRslt);
 			return false;
 		}
 		jsmnrtok_t* pTokens = new jsmnrtok_t[tokenCountRslt];
@@ -680,18 +685,18 @@ public:
 			pTokens, tokenCountRslt);
 		if (tokenCountRslt < 0)
 		{
-			RD_ERR("Failed to parse JSON: %d", tokenCountRslt);
+			Log.error("Failed to parse JSON: %d", tokenCountRslt);
 			delete pTokens;
 			return false;
 		}
 		// Top level item must be an object
 		if (tokenCountRslt < 1 || pTokens[0].type != JSMNR_OBJECT)
 		{
-			RD_ERR("JSON must have top level object");
+			Log.error("JSON must have top level object");
 			delete pTokens;
 			return false;
 		}
-		RD_DBG("Dumping");
+		Log.trace("Dumping");
 		recreateJson(jsonStr, pTokens, parser.toknext, 0);
 		delete pTokens;
 		return true;
