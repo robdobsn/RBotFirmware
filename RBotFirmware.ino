@@ -34,13 +34,14 @@ static const char* EEPROM_CONFIG_LOCATION_STR =
     "{\"base\": 0, \"maxLen\": 1000}";
 
 static const char* ROBOT_CONFIG_STR_MUGBOT_PIHAT_1_1 =
-    "{\"robotType\": \"MugBot\", \"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":60.0,"
-    " \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
+    "{\"robotType\": \"MugBot\", \"xMaxMM\":150, \"yMaxMM\":120, "
+    " \"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":60.0,"
+    " \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":5.0, \"acceleration\":2.0,"
     " \"stepsPerRotation\":12000, \"unitsPerRotation\":360, \"minVal\":0, \"maxVal\":240}, "
     " \"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":75.0, \"acceleration\":5.0, "
-    " \"stepsPerRotation\":12000, \"unitsPerRotation\":44.8, \"minVal\":0, \"maxVal\":195, "
-    " \"endStop0\": { \"sensePin\": \"D7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
-    " \"axis2\": { \"servoPin\": \"D0\", \"isServoAxis\": 1, \"servoHomeVal\": 90, \"servoHomeSteps\": 1500,"
+    " \"stepsPerRotation\":12000, \"unitsPerRotation\":1, \"minVal\":0, \"maxVal\":110, "
+    " \"endStop0\": { \"sensePin\": \"D7\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"}},"
+    " \"axis2\": { \"servoPin\": \"D0\", \"isServoAxis\": 1, \"homeOffsetVal\": 120, \"homeOffsetSteps\": 1666,"
     " \"minVal\":0, \"maxVal\":180, \"stepsPerRotation\":2000, \"unitsPerRotation\":360 },"
     "}";
 

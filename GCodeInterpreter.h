@@ -144,9 +144,9 @@ public:
             return false;
 
         // Check for G or M codes
-        if (cmdStr.charAt(0) == 'G')
+        if (toupper(cmdStr.charAt(0)) == 'G')
             return interpG(cmdStr, robotController, takeAction);
-        else if (cmdStr.charAt(0) == 'M')
+        else if (toupper(cmdStr.charAt(0)) == 'M')
             return interpM(cmdStr, robotController, takeAction);
 
         // Failed

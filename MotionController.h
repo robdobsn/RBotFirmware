@@ -228,6 +228,7 @@ private:
             // Check for servo driven axis (doesn't need individually stepping)
             if (_axisParams[i]._isServoAxis)
             {
+                Log.info("Servo jump to %ld", _axisParams[i]._targetStepsFromHome);
                 jump(i, _axisParams[i]._targetStepsFromHome);
                 _axisParams[i]._stepsFromHome = _axisParams[i]._targetStepsFromHome;
                 continue;
@@ -246,9 +247,9 @@ private:
         if (Utils::isTimeout(millis(), _debugLastPosDispMs, 1000))
         {
             if  (anyAxisMoving)
-                Log.info("-------> %0d %0d %0d", _axisParams[0]._stepsFromHome, _axisParams[1]._stepsFromHome, _axisParams[2]._stepsFromHome);
-            else
-                Log.info("-------> Nothing moving");
+                Log.info("-------> %ld %ld %ld", _axisParams[0]._stepsFromHome, _axisParams[1]._stepsFromHome, _axisParams[2]._stepsFromHome);
+            // else
+            //     Log.info("-------> Nothing moving");
             _debugLastPosDispMs = millis();
         }
     }
@@ -408,6 +409,20 @@ public:
             _servoMotors[axisIdx]->writeMicroseconds(targetStepsFromHome);
         }
         _axisParams[axisIdx]._stepsFromHome = targetStepsFromHome;
+    }
+
+    void jumpHome(int axisIdx)
+    {
+        if (axisIdx < 0 || axisIdx >= MAX_AXES)
+            return;
+
+        if (_servoMotors[axisIdx])
+        {
+            Log.trace("SERVO %d jumpHome to %ld", axisIdx, _axisParams[axisIdx]._homeOffsetSteps);
+            _servoMotors[axisIdx]->writeMicroseconds(_axisParams[axisIdx]._homeOffsetSteps);
+        }
+        _axisParams[axisIdx]._stepsFromHome = _axisParams[axisIdx]._homeOffsetSteps;
+        _axisParams[axisIdx]._targetStepsFromHome = _axisParams[axisIdx]._homeOffsetSteps;
     }
 
     unsigned long getAxisStepsFromHome(int axisIdx)

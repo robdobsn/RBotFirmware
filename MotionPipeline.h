@@ -39,7 +39,7 @@ class MotionPipeline
 {
 private:
     std::queue<MotionPipelineElem> _pipeline;
-    static const int _pipelineMaxLenDefault = 1000;
+    static const int _pipelineMaxLenDefault = 300;
     int _pipelineMaxLen = _pipelineMaxLenDefault;
 
 public:

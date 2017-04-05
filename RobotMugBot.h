@@ -14,8 +14,8 @@ class RobotMugBot : public RobotBase
 public:
     // Defaults
     static constexpr int maxHomingSecs_default = 30;
-    static constexpr int _homingLinearFastStepTimeUs = 100;
-    static constexpr int _homingLinearSlowStepTimeUs = 500;
+    static constexpr int _homingLinearFastStepTimeUs = 50;
+    static constexpr int _homingLinearSlowStepTimeUs = 80;
 
 public:
 
@@ -30,20 +30,21 @@ public:
         for (int i = 0; i < MAX_AXES; i++)
         {
             // Axis val from home point
-            double axisValFromHome = pt.getVal(i) - axisParams[i]._servoHomeVal;
+            double axisValFromHome = pt.getVal(i) - axisParams[i]._homeOffsetVal;
             // Convert to steps and add offset to home in steps
             actuatorCoords.setVal(i, axisValFromHome * axisParams[i].stepsPerUnit()
-                            + axisParams[i]._servoHomeSteps);
+                            + axisParams[i]._homeOffsetSteps);
+
             // Check machine bounds
+            bool thisAxisValid = true;
             if (axisParams[i]._minValValid && pt.getVal(i) < axisParams[i]._minVal)
-                isValid = false;
+                thisAxisValid = false;
             if (axisParams[i]._maxValValid && pt.getVal(i) > axisParams[i]._maxVal)
-                isValid = false;
+                thisAxisValid = false;
+            Log.info("ptToActuator (%s) %f -> %f (homeOffVal %f, homeOffSteps %ld)", thisAxisValid ? "OK" : "INVALID",
+                pt.getVal(i), actuatorCoords._pt[i], axisParams[i]._homeOffsetVal, axisParams[i]._homeOffsetSteps);
+            isValid &= thisAxisValid;
         }
-
-        Log.info("actuatorCoords (%s) %f, %f, %f", isValid ? "OK" : "INVALID",
-            actuatorCoords._pt[0], actuatorCoords._pt[1], actuatorCoords._pt[2]);
-
         return isValid;
     }
 
@@ -55,7 +56,14 @@ public:
     {
         for (int i = 0; i < MAX_AXES; i++)
         {
-            pt.setVal(i, actuatorCoords.getVal(i) / axisParams[i].stepsPerUnit());
+            double ptVal = actuatorCoords.getVal(i) - axisParams[i]._homeOffsetSteps;
+            ptVal = ptVal / axisParams[i].stepsPerUnit() + axisParams[i]._homeOffsetVal;
+            if (axisParams[i]._minValValid && ptVal < axisParams[i]._minVal)
+                ptVal = axisParams[i]._minVal;
+            if (axisParams[i]._maxValValid && ptVal > axisParams[i]._maxVal)
+                ptVal = axisParams[i]._maxVal;
+            pt.setVal(i, ptVal);
+            Log.info("actuatorToPt %d %f -> %f (perunit %f)", i, actuatorCoords.getVal(i), ptVal, axisParams[i].stepsPerUnit());
         }
     }
 
@@ -177,9 +185,9 @@ public:
                 // Move away from endstop if needed
                 _homingAxis1Step = HSTEP_FORWARDS;
                 _timeBetweenHomingStepsUs = _homingLinearFastStepTimeUs;
-                // _homingStepsLimit = 10000;
-                // _homingApplyStepLimit = true;
-                Log.info("Homing started");
+                bool endstop1Val = _motionController.isAtEndStop(1,0);
+                Log.info("Homing started%s", endstop1Val ? " moving from endstop" : "");
+                _motionController.jumpHome(2);
                 break;
             }
             case HOMING_STATE_SEEK_ENDSTOP:
@@ -190,13 +198,12 @@ public:
                 // To purely rotate both steppers must turn in the same direction
                 _homingAxis1Step = HSTEP_BACKWARDS;
                 _timeBetweenHomingStepsUs = _homingLinearSlowStepTimeUs;
-                // _homingStepsLimit = 100000;
-                // _homingApplyStepLimit = true;
                 Log.trace("Homing to end stop");
                 break;
             }
             case HOMING_STATE_COMPLETE:
             {
+                _motionController.axisIsHome(0);
                 _motionController.axisIsHome(1);
                 _homingState = HOMING_STATE_IDLE;
                 Log.info("Homing - complete");
