@@ -382,6 +382,7 @@ public:
         if (axisIdx < 0 || axisIdx >= MAX_AXES)
             return;
         _axisParams[axisIdx]._stepsFromHome = 0;
+        _axisParams[axisIdx]._targetStepsFromHome = 0;
     }
 
     void step(int axisIdx, bool direction)

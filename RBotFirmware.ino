@@ -33,13 +33,16 @@ ConfigEEPROM configEEPROM;
 static const char* EEPROM_CONFIG_LOCATION_STR =
     "{\"base\": 0, \"maxLen\": 1000}";
 
+// Mugbot on PiHat 1.1
+// linear axis 1/8 microstepping,
+// rotary axis 1/16 microstepping
 static const char* ROBOT_CONFIG_STR_MUGBOT_PIHAT_1_1 =
     "{\"robotType\": \"MugBot\", \"xMaxMM\":150, \"yMaxMM\":120, "
     " \"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":60.0,"
     " \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":5.0, \"acceleration\":2.0,"
-    " \"stepsPerRotation\":12000, \"unitsPerRotation\":360, \"minVal\":0, \"maxVal\":240}, "
+    " \"stepsPerRotation\":3200, \"unitsPerRotation\":360, \"minVal\":0, \"maxVal\":240}, "
     " \"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":75.0, \"acceleration\":5.0, "
-    " \"stepsPerRotation\":12000, \"unitsPerRotation\":1, \"minVal\":0, \"maxVal\":110, "
+    " \"stepsPerRotation\":1600, \"unitsPerRotation\":2.0, \"minVal\":0, \"maxVal\":78, "
     " \"endStop0\": { \"sensePin\": \"D7\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"}},"
     " \"axis2\": { \"servoPin\": \"D0\", \"isServoAxis\": 1, \"homeOffsetVal\": 120, \"homeOffsetSteps\": 1666,"
     " \"minVal\":0, \"maxVal\":180, \"stepsPerRotation\":2000, \"unitsPerRotation\":360 },"
