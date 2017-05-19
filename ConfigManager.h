@@ -705,5 +705,3 @@ public:
 #endif // CONFIG_MANAGER_RECREATE_JSON
 
 };
-
-#pragma pop_macro("RD_DEBUG_FNAME")
