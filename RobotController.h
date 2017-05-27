@@ -9,6 +9,7 @@
 // Robot types
 #include "RobotMugBot.h"
 #include "RobotGeistBot.h"
+#include "RobotSandTableScara.h"
 
 class RobotController
 {
@@ -37,16 +38,24 @@ public:
         String robotType = ConfigManager::getString("robotType", "NONE", configStr);
         if (robotType.equalsIgnoreCase("MugBot"))
         {
-            Log.info("Constructing MugBot");
-            _pRobot = new RobotMugBot("MugBot");
+            Log.info("Constructing %s", robotType.c_str());
+            _pRobot = new RobotMugBot(robotType.c_str());
             if (!_pRobot)
                 return false;
             _pRobot->init(configStr);
         }
         else if (robotType.equalsIgnoreCase("GeistBot"))
         {
-            Log.info("Constructing GeistBot");
-            _pRobot = new RobotGeistBot("GeistBot");
+            Log.info("Constructing %s", robotType.c_str());
+            _pRobot = new RobotGeistBot(robotType.c_str());
+            if (!_pRobot)
+                return false;
+            _pRobot->init(configStr);
+        }
+        else if (robotType.equalsIgnoreCase("SandTableScara"))
+        {
+            Log.info("Constructing %s", robotType.c_str());
+            _pRobot = new RobotSandTableScara(robotType.c_str());
             if (!_pRobot)
                 return false;
             _pRobot->init(configStr);
@@ -83,6 +92,7 @@ public:
 
     void moveTo(RobotCommandArgs& args)
     {
+//        Log.trace("RobotController moveTo");
         if (!_pRobot)
             return;
         _pRobot->moveTo(args);

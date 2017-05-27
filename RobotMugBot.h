@@ -6,7 +6,7 @@
 #include "application.h"
 #include "Utils.h"
 #include "RobotBase.h"
-#include "MotionController.h"
+#include "MotionHelper.h"
 #include "math.h"
 
 class RobotMugBot : public RobotBase
@@ -84,7 +84,7 @@ private:
     HOMING_STATE _homingStateNext;
 
     // Homing variables
-    unsigned long _homeReqTime;
+    unsigned long _homeReqMillis;
     int _homingStepsDone;
     int _homingStepsLimit;
     bool _homingApplyStepLimit;
@@ -96,20 +96,20 @@ private:
     HOMING_STEP_TYPE _homingAxis1Step;
     double _timeBetweenHomingStepsUs;
 
-    // MotionController for the robot motion
-    MotionController _motionController;
+    // MotionHelper for the robot motion
+    MotionHelper _motionHelper;
 
 public:
     RobotMugBot(const char* pRobotTypeName) :
         RobotBase(pRobotTypeName)
     {
         _homingState = HOMING_STATE_IDLE;
-        _homeReqTime = 0;
+        _homeReqMillis = 0;
         _homingStepsDone = 0;
         _homingStepsLimit = 0;
         _maxHomingSecs = maxHomingSecs_default;
         _timeBetweenHomingStepsUs = _homingLinearSlowStepTimeUs;
-        _motionController.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
+        _motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
     }
 
     // Set config
@@ -119,7 +119,7 @@ public:
         // Log.info("Constructing %s from %s", _robotTypeName.c_str(), robotConfigStr);
 
         // Init motion controller from config
-        _motionController.setAxisParams(robotConfigStr);
+        _motionHelper.setAxisParams(robotConfigStr);
 
         // Get params specific to GeistBot
         _maxHomingSecs = ConfigManager::getLong("maxHomingSecs", maxHomingSecs_default, robotConfigStr);
@@ -145,13 +145,13 @@ public:
         if (_homingState != HOMING_STATE_IDLE)
             return false;
 
-        // Check if motionController is can accept a command
-        return _motionController.canAcceptCommand();
+        // Check if motionHelper is can accept a command
+        return _motionHelper.canAcceptCommand();
     }
 
     void moveTo(RobotCommandArgs& args)
     {
-        _motionController.moveTo(args);
+        _motionHelper.moveTo(args);
     }
 
     void homingSetNewState(HOMING_STATE newState)
@@ -178,16 +178,16 @@ public:
             }
             case HOMING_STATE_INIT:
             {
-                _homeReqTime = millis();
+                _homeReqMillis = millis();
                 // If we are at the endstop we need to move away from it first
                 _homingStateNext = HOMING_STATE_SEEK_ENDSTOP;
                 _homingSeekAxis1Endstop0 = HSEEK_OFF;
                 // Move away from endstop if needed
                 _homingAxis1Step = HSTEP_FORWARDS;
                 _timeBetweenHomingStepsUs = _homingLinearFastStepTimeUs;
-                bool endstop1Val = _motionController.isAtEndStop(1,0);
+                bool endstop1Val = _motionHelper.isAtEndStop(1,0);
                 Log.info("Homing started%s", endstop1Val ? " moving from endstop" : "");
-                _motionController.jumpHome(2);
+                _motionHelper.jumpHome(2);
                 break;
             }
             case HOMING_STATE_SEEK_ENDSTOP:
@@ -203,8 +203,8 @@ public:
             }
             case HOMING_STATE_COMPLETE:
             {
-                _motionController.axisIsHome(0);
-                _motionController.axisIsHome(1);
+                _motionHelper.axisIsHome(0);
+                _motionHelper.axisIsHome(1);
                 _homingState = HOMING_STATE_IDLE;
                 Log.info("Homing - complete");
                 break;
@@ -219,26 +219,26 @@ public:
             return false;
 
         // Check for timeout
-        if (millis() > _homeReqTime + (_maxHomingSecs * 1000))
+        if (millis() > _homeReqMillis + (_maxHomingSecs * 1000))
         {
             Log.info("Homing Timed Out");
             homingSetNewState(HOMING_STATE_IDLE);
         }
 
         // Check for endstop if seeking them
-        bool endstop1Val = _motionController.isAtEndStop(1,0);
+        bool endstop1Val = _motionHelper.isAtEndStop(1,0);
         if (((_homingSeekAxis1Endstop0 == HSEEK_ON) && endstop1Val) || ((_homingSeekAxis1Endstop0 == HSEEK_OFF) && !endstop1Val))
         {
             homingSetNewState(_homingStateNext);
         }
 
         // Check if we are ready for the next step
-        unsigned long lastStepMicros = _motionController.getAxisLastStepMicros(1);
+        unsigned long lastStepMicros = _motionHelper.getAxisLastStepMicros(1);
         if (Utils::isTimeout(micros(), lastStepMicros, _timeBetweenHomingStepsUs))
         {
             // Axis 1
             if (_homingAxis1Step != HSTEP_NONE)
-                _motionController.step(1, _homingAxis1Step == HSTEP_FORWARDS);
+                _motionHelper.step(1, _homingAxis1Step == HSTEP_FORWARDS);
 
             // Count homing steps in this stage
             _homingStepsDone++;
@@ -257,7 +257,7 @@ public:
         bool homingActive = homingService();
 
         // Service the motion controller
-        _motionController.service(!homingActive);
+        _motionHelper.service(!homingActive);
     }
 
 };

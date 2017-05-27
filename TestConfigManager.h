@@ -180,51 +180,51 @@ public:
         }
         if (t->type == JSMNR_PRIMITIVE)
         {
-            Serial.printf("\n\r#Found primitive size %d, start %d, end %d\n\r",
+            Log.trace("#Found primitive size %d, start %d, end %d",
                     t->size, t->start, t->end);
-            Serial.printf("%.*s", t->end - t->start, js + t->start);
+            Log.trace("%.*s", t->end - t->start, js + t->start);
             return 1;
         }
         else if (t->type == JSMNR_STRING)
         {
-            Serial.printf("\n\r#Found string size %d, start %d, end %d\n\r",
+            Log.trace("#Found string size %d, start %d, end %d",
                     t->size, t->start, t->end);
-            Serial.printf("'%.*s'", t->end - t->start, js + t->start);
+            Log.trace("'%.*s'", t->end - t->start, js + t->start);
             return 1;
         }
         else if (t->type == JSMNR_OBJECT)
         {
-            Serial.printf("\n\r#Found object size %d, start %d, end %d\n\r",
+            Log.trace("#Found object size %d, start %d, end %d",
                     t->size, t->start, t->end);
             j = 0;
             for (i = 0; i < t->size; i++)
             {
                 for (k = 0; k < indent; k++)
                 {
-                    Serial.printf("  ");
+                    Log.trace("  ");
                 }
                 j += dump(js, t + 1 + j, count - j, indent + 1);
-                Serial.printf(": ");
+                Log.trace(": ");
                 j += dump(js, t + 1 + j, count - j, indent + 1);
-                Serial.printf("\n\r");
+                Log.trace("\n\r");
             }
             return j + 1;
         }
         else if (t->type == JSMNR_ARRAY)
         {
-            Serial.printf("\n\r#Found array size %d, start %d, end %d\n\r",
+            Log.trace("#Found array size %d, start %d, end %d",
                     t->size, t->start, t->end);
             j = 0;
-            Serial.printf("\n\r");
+            Log.trace("-----");
             for (i = 0; i < t->size; i++)
             {
                 for (k = 0; k < indent - 1; k++)
                 {
-                    Serial.printf("  ");
+                    Log.trace("  ");
                 }
-                Serial.printf("   - ");
+                Log.trace("   - ");
                 j += dump(js, t + 1 + j, count - j, indent + 1);
-                Serial.printf("\n\r");
+                Log.trace("");
             }
             return j + 1;
         }

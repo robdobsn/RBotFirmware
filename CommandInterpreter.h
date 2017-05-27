@@ -51,7 +51,7 @@ public:
         {
             // See if pattern name is at the start of the string
             pPatternPos = strstr(pCmdStart, _patternGenerators[i]->getPatternName());
-            // Serial.printlnf("Pat %s %s %ld %ld", pCmdStart, _patternGenerators[i]->getPatternName(), pPatternPos, pCmdStart);
+            // Log.trace("Pat %s %s %ld %ld", pCmdStart, _patternGenerators[i]->getPatternName(), pPatternPos, pCmdStart);
             if (pPatternPos == pCmdStart)
             {
                 patternGenIdx = i;

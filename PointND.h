@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "math.h"
+
 static const int MAX_AXES = 3;
 
 class PointND
@@ -21,6 +23,12 @@ public:
         for (int i = 0; i < MAX_AXES; i++)
             _pt[i] = pt._pt[i];
     }
+    PointND(double x, double y)
+    {
+        _pt[0] = x;
+        _pt[1] = y;
+        _pt[2] = 0;
+    }
     PointND(double x, double y, double z)
     {
         _pt[0] = x;
@@ -37,6 +45,12 @@ public:
     {
         if (axisIdx >= 0 && axisIdx < MAX_AXES)
             _pt[axisIdx] = val;
+    }
+    void set(double val0, double val1, double val2 = 0)
+    {
+        _pt[0] = val0;
+        _pt[1] = val1;
+        _pt[2] = val2;
     }
     double X()
     {
@@ -135,9 +149,9 @@ public:
         }
         return sqrt(distSum);
     }
-    void logDebugStr()
+    void logDebugStr(const char* prefixStr)
     {
-        Log.trace("X:%0.2f,Y:%0.2f,Z:%0.2f", _pt[0], _pt[1], _pt[2]);
+        Log.trace("%s X %0.2f Y %0.2f Z %0.2f", prefixStr, _pt[0], _pt[1], _pt[2]);
     }
 };
 

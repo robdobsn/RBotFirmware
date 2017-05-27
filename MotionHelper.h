@@ -14,11 +14,12 @@ typedef bool (*ptToActuatorFnType) (PointND& pt, PointND& actuatorCoords, AxisPa
 typedef void (*actuatorToPtFnType) (PointND& actuatorCoords, PointND& xy, AxisParams axisParams[], int numAxes);
 typedef void (*correctStepOverflowFnType) (AxisParams axisParams[], int numAxes);
 
-class MotionController
+class MotionHelper
 {
 public:
     static const int MAX_ENDSTOPS_PER_AXIS = 2;
     static constexpr double stepDisableSecs_default = 60.0;
+    static constexpr double blockDistanceMM_default = 1.0;
 
 private:
     // Robot dimensions
@@ -61,7 +62,7 @@ private:
         return (v > min(b1, b2) && v < max(b1,b2));
     }
 
-    bool configureMotorEnable(const char* robotConfigJSON)
+    bool configure(const char* robotConfigJSON)
     {
         // Get motor enable info
         String stepEnablePinName = ConfigManager::getString("stepEnablePin", "-1", robotConfigJSON);
@@ -71,7 +72,9 @@ private:
         _xMaxMM = ConfigManager::getDouble("xMaxMM", 0, robotConfigJSON);
         _yMaxMM = ConfigManager::getDouble("yMaxMM", 0, robotConfigJSON);
         _maxMotionDistanceMM = sqrt(_xMaxMM * _xMaxMM + _yMaxMM * _yMaxMM);
+        _blockDistanceMM = ConfigManager::getDouble("blockDistanceMM", blockDistanceMM_default, robotConfigJSON);
         Log.info("MotorEnable (pin %d, actLvl %d, disableAfter %0.2fs)", _stepEnablePin, _stepEnableActiveLevel, _stepDisableSecs);
+        configMotionPipeline();
 
         // Enable pin - initially disable
         pinMode(_stepEnablePin, OUTPUT);
@@ -91,6 +94,14 @@ private:
 
         // Set the axis parameters
         _axisParams[axisIdx].setFromJSON(axisJSON.c_str());
+        Log.info("Axis%d params maxSpeed %02.f, acceleration %0.2f, minNsBetweenSteps %0.2f stepsPerRotation %0.2f, unitsPerRotation %0.2f",
+                axisIdx, _axisParams[axisIdx]._maxSpeed, _axisParams[axisIdx]._acceleration, _axisParams[axisIdx]._minNsBetweenSteps,
+                _axisParams[axisIdx]._stepsPerRotation, _axisParams[axisIdx]._unitsPerRotation);
+        Log.info("Axis%d params minVal %02.f (%d), maxVal %0.2f (%d), isDominant %d, isServo %d, homeOffVal %0.2f, homeOffSteps %ld",
+                axisIdx, _axisParams[axisIdx]._minVal, _axisParams[axisIdx]._minValValid,
+                _axisParams[axisIdx]._maxVal, _axisParams[axisIdx]._maxValValid,
+                _axisParams[axisIdx]._isDominantAxis, _axisParams[axisIdx]._isServoAxis,
+                _axisParams[axisIdx]._homeOffsetVal, _axisParams[axisIdx]._homeOffsetSteps);
 
         // Check the kind of motor to use
         bool isValid = false;
@@ -176,13 +187,22 @@ private:
                     double speedTargetMMps = _axisParams[0]._maxSpeed;
                     double distToTravelMM = motionElem.delta();
                     double timeToTargetS = distToTravelMM / speedTargetMMps;
-                    unsigned long stepsAxis[MAX_AXES];
+                    long stepsAxis[MAX_AXES];
                     double timePerStepAxisNs[MAX_AXES];
+                    Log.trace("motionHelper speedTargetMMps %0.2f distToTravelMM %0.2f timeToTargetMS %0.2f",
+                            speedTargetMMps, distToTravelMM, timeToTargetS*1000.0);
                     for (int i = 0; i < MAX_AXES; i++)
                     {
                         stepsAxis[i] = labs(_axisParams[i]._targetStepsFromHome - _axisParams[i]._stepsFromHome);
-                        timePerStepAxisNs[i] = timeToTargetS * 1000000000 / stepsAxis[i];
-                        Log.trace("Bing %ld %ld %ld %f", _axisParams[i]._targetStepsFromHome, _axisParams[i]._stepsFromHome, stepsAxis[i], timePerStepAxisNs[i]);
+                        if (stepsAxis[i] == 0)
+                            timePerStepAxisNs[i] = 1000000000;
+                        else
+                            timePerStepAxisNs[i] = timeToTargetS * 1000000000 / stepsAxis[i];
+                        if (timePerStepAxisNs[i] < _axisParams[i]._minNsBetweenSteps)
+                            timePerStepAxisNs[i] = _axisParams[i]._minNsBetweenSteps;
+                        Log.trace("motionHelper axis%d target %ld fromHome %ld timerPerStepNs %f",
+                                    i, _axisParams[i]._targetStepsFromHome, _axisParams[i]._stepsFromHome,
+                                    timePerStepAxisNs[i]);
                     }
 
                     // Check if there is little difference from current timePerStep on the
@@ -190,26 +210,30 @@ private:
                     if (_axisParams[0]._isDominantAxis && isInBounds(timePerStepAxisNs[0],
                                 _axisParams[0]._betweenStepsNs*0.66, _axisParams[0]._betweenStepsNs*1.33))
                     {
+                        // In that case use the dominant axis time with a correction factor
                         double speedCorrectionFactor = _axisParams[0]._betweenStepsNs / timePerStepAxisNs[0];
                         _axisParams[1]._betweenStepsNs = timePerStepAxisNs[1] * speedCorrectionFactor;
                     }
                     else if (_axisParams[1]._isDominantAxis && isInBounds(timePerStepAxisNs[1],
                                 _axisParams[1]._betweenStepsNs*0.66, _axisParams[1]._betweenStepsNs*1.33))
                     {
+                        // In that case use the dominant axis time with a correction factor
                         double speedCorrectionFactor = _axisParams[1]._betweenStepsNs / timePerStepAxisNs[1];
                         _axisParams[0]._betweenStepsNs = timePerStepAxisNs[0] * speedCorrectionFactor;
                     }
                     else
                     {
+                        // allow each axis to use a different stepping time
                         _axisParams[0]._betweenStepsNs = timePerStepAxisNs[0];
                         _axisParams[1]._betweenStepsNs = timePerStepAxisNs[1];
                     }
                 }
 
-                Log.trace("MoveTo (stpNS XYZ %ld %ld %ld)", _axisParams[1]._betweenStepsNs,
+                // Debug
+                Log.trace("MotionHelper StepNS X %ld Y %ld Z %ld)", _axisParams[0]._betweenStepsNs,
                             _axisParams[1]._betweenStepsNs, _axisParams[2]._betweenStepsNs);
-                motionElem._pt1MM.logDebugStr();
-                motionElem._pt2MM.logDebugStr();
+                motionElem._pt1MM.logDebugStr("Axis0 target");
+                motionElem._pt2MM.logDebugStr("Axis1 target");
 
                 // Log.trace("Move to %sx %0.2f y %0.2f -> ax0Tgt %0.2f Ax1Tgt %0.2f (stpNSXY %ld %ld)",
                 //             valid?"":"INVALID ", motionElem._pt2MM._pt[0], motionElem._pt2MM._pt[1],
@@ -238,7 +262,7 @@ private:
             if (Utils::isTimeout(micros(), _axisParams[i]._lastStepMicros, _axisParams[i]._betweenStepsNs / 1000))
             {
                 step(i, _axisParams[i]._targetStepsFromHome > _axisParams[i]._stepsFromHome);
-                // Serial.printlnf("Step %d %d", i, _axisParams[i]._targetStepsFromHome > _axisParams[i]._stepsFromHome);
+                // Log.trace("Step %d %d", i, _axisParams[i]._targetStepsFromHome > _axisParams[i]._stepsFromHome);
                 _axisParams[i]._betweenStepsNs += _axisParams[i]._betweenStepsNsChangePerStep;
             }
         }
@@ -247,7 +271,8 @@ private:
         if (Utils::isTimeout(millis(), _debugLastPosDispMs, 1000))
         {
             if  (anyAxisMoving)
-                Log.info("-------> %ld %ld %ld", _axisParams[0]._stepsFromHome, _axisParams[1]._stepsFromHome, _axisParams[2]._stepsFromHome);
+                Log.info("MotionHelper pipelineService isMoving fromHome x %ld y %ld z %ld",
+                            _axisParams[0]._stepsFromHome, _axisParams[1]._stepsFromHome, _axisParams[2]._stepsFromHome);
             // else
             //     Log.info("-------> Nothing moving");
             _debugLastPosDispMs = millis();
@@ -268,20 +293,27 @@ public:
 
     bool canAcceptCommand()
     {
-        // Check if there is enough room in the pipeline for the maximum possible number of
-        // blocks that a movement command can translate into
-        int maxPossibleBlocks = _maxMotionDistanceMM / _blockDistanceMM;
-        return _motionPipeline.slotsEmpty() >= maxPossibleBlocks;
+        // Check that at the motion pipeline can accept new data
+        return _motionPipeline.canAccept();
     }
 
 public:
-    MotionController()
+    void configMotionPipeline()
+    {
+        // Calculate max blocks that a movement command can translate into
+        int maxPossibleBlocksInMove = _maxMotionDistanceMM / _blockDistanceMM;
+        // Log.trace("MotionHelper configMotionPipeline _maxMotionDistanceMM %0.2f _blockDistanceMM %0.2f",
+        //         _maxMotionDistanceMM, _blockDistanceMM);
+        _motionPipeline.setParameters(maxPossibleBlocksInMove);
+    }
+
+    MotionHelper()
     {
         // Init
         _xMaxMM = 0;
         _yMaxMM = 0;
         _maxMotionDistanceMM = 0;
-        _blockDistanceMM = 1;
+        _blockDistanceMM = blockDistanceMM_default;
         _numRobotAxes = 0;
         for (int i = 0; i < MAX_AXES; i++)
         {
@@ -300,13 +332,14 @@ public:
         _ptToActuatorFn = NULL;
         _actuatorToPtFn = NULL;
         _correctStepOverflowFn = NULL;
+        configMotionPipeline();
 
         // // TESTCODE
         // _axisParams[0]._betweenStepsNs = 5000 * 1000;
         // _axisParams[1]._betweenStepsNs = 100 * 1000;
     }
 
-    ~MotionController()
+    ~MotionHelper()
     {
         deinit();
     }
@@ -343,20 +376,28 @@ public:
             pinMode(_stepEnablePin, INPUT);
     }
 
-    void enableMotors(bool en)
+    void enableMotors(bool en, bool timeout)
     {
-        //Serial.printlnf("Enable %d, disable level %d, disable after time %0.2f", en, !_stepEnableActiveLevel, _stepDisableSecs);
+//        Log.trace("Enable %d, disable level %d, disable after time %0.2f", en, !_stepEnableActiveLevel, _stepDisableSecs);
         if (en)
         {
             if (_stepEnablePin != -1)
+            {
+                if (!_motorsAreEnabled)
+                    Log.info("MotionHelper motors enabled, disable after time %0.2f", _stepDisableSecs);
                 digitalWrite(_stepEnablePin, _stepEnableActiveLevel);
+            }
             _motorsAreEnabled = true;
             _motorEnLastMillis = millis();
         }
         else
         {
             if (_stepEnablePin != -1)
+            {
+                if (_motorsAreEnabled)
+                    Log.info("MotionHelper motors disabled by %s", timeout ? "timeout" : "command");
                 digitalWrite(_stepEnablePin, !_stepEnableActiveLevel);
+            }
             _motorsAreEnabled = false;
         }
     }
@@ -366,8 +407,8 @@ public:
         // Deinitialise
         deinit();
 
-        // Motor enables
-        configureMotorEnable(robotConfigJSON);
+        // Configure robot
+        configure(robotConfigJSON);
 
         // Axes
         for (int i = 0; i < MAX_AXES; i++)
@@ -390,7 +431,7 @@ public:
         if (axisIdx < 0 || axisIdx >= MAX_AXES)
             return;
 
-        enableMotors(true);
+        enableMotors(true, false);
         if (_stepperMotors[axisIdx])
         {
             _stepperMotors[axisIdx]->step(direction);
@@ -426,7 +467,7 @@ public:
         _axisParams[axisIdx]._targetStepsFromHome = _axisParams[axisIdx]._homeOffsetSteps;
     }
 
-    unsigned long getAxisStepsFromHome(int axisIdx)
+    long getAxisStepsFromHome(int axisIdx)
     {
         if (axisIdx < 0 || axisIdx >= MAX_AXES)
             return 0;
@@ -459,6 +500,13 @@ public:
         if (axisIdx < 0 || axisIdx >= MAX_AXES)
             return 0;
         return _axisParams[axisIdx]._lastStepMicros;
+    }
+
+    long getHomeOffsetSteps(int axisIdx)
+    {
+        if (axisIdx < 0 || axisIdx >= MAX_AXES)
+            return 0;
+        return _axisParams[axisIdx]._homeOffsetSteps;
     }
 
     AxisParams* getAxisParamsArray()
@@ -494,6 +542,8 @@ public:
 
     void moveTo(RobotCommandArgs& args)
     {
+        Log.trace("MotionHelper moveTo x %0.2f y %0.2f", args.pt._pt[0], args.pt._pt[1]);
+
         // Get the starting position - this is either the destination of the
         // last block in the pipeline or the current target location of the
         // robot (whether currently moving or idle)
@@ -504,6 +554,8 @@ public:
         if (queueValid)
         {
             startPos = lastPipelineEntry._pt2MM;
+            Log.trace("MotionHelper using queue end, startPos X %0.2f Y %0.2f",
+                    startPos._pt[0], startPos._pt[1]);
         }
         else
         {
@@ -513,6 +565,8 @@ public:
             PointND curXy;
             _actuatorToPtFn(axisPosns, curXy, _axisParams, _numRobotAxes);
             startPos = curXy;
+            Log.trace("MotionHelper queue empty startPos X %0.2f Y%0.2f",
+                    startPos._pt[0], startPos._pt[1]);
         }
 
         // Fill in the destPos for axes for which values not specified
@@ -533,6 +587,8 @@ public:
         int numBlocks = int(lineLen / _blockDistanceMM);
         if (numBlocks == 0)
             numBlocks = 1;
+        Log.trace("MotionHelper numBlocks %d (lineLen %0.2f / blockDistMM %02.f)",
+                    numBlocks, lineLen, _blockDistanceMM);
         PointND steps = (destPos - startPos) / numBlocks;
         for (int i = 0; i < numBlocks; i++)
         {
@@ -551,7 +607,7 @@ public:
             // If last block then just use end point coords
             if (i == numBlocks-1)
                 pt2 = destPos;
-            // Serial.printlnf("Adding x %0.2f y %0.2f", blkX, blkY);
+            // Log.trace("Adding x %0.2f y %0.2f", blkX, blkY);
             // Add to pipeline
             if (!_motionPipeline.add(pt1, pt2))
                 break;
@@ -570,7 +626,7 @@ public:
         // Check for motor enable timeout
         if (_motorsAreEnabled && Utils::isTimeout(millis(), _motorEnLastMillis, (unsigned long)(_stepDisableSecs * 1000)))
         {
-            enableMotors(false);
+            enableMotors(false, true);
         }
 
         // Check if we should process the movement pipeline

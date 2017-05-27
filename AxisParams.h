@@ -10,6 +10,7 @@ class AxisParams
 public:
     static constexpr double maxSpeed_default = 100.0;
     static constexpr double acceleration_default = 100.0;
+    static constexpr double minNsBetweenSteps_default = 10000.0;
     static constexpr double stepsPerRotation_default = 1.0;
     static constexpr double unitsPerRotation_default = 1.0;
     static constexpr double homeOffsetVal_default = 0;
@@ -18,6 +19,7 @@ public:
     // Parameters
     double _maxSpeed;
     double _acceleration;
+    double _minNsBetweenSteps;
     double _stepsPerRotation;
     double _unitsPerRotation;
     bool _minValValid;
@@ -42,6 +44,7 @@ public:
     {
         _maxSpeed = maxSpeed_default;
         _acceleration = acceleration_default;
+        _minNsBetweenSteps = minNsBetweenSteps_default;
         _stepsPerRotation = stepsPerRotation_default;
         _unitsPerRotation = unitsPerRotation_default;
         _stepsFromHome = 0;
@@ -69,6 +72,7 @@ public:
         // Stepper motor
         _maxSpeed = ConfigManager::getDouble("maxSpeed", AxisParams::maxSpeed_default, axisJSON);
         _acceleration = ConfigManager::getDouble("acceleration", AxisParams::acceleration_default, axisJSON);
+        _minNsBetweenSteps = ConfigManager::getDouble("minNsBetweenSteps", AxisParams::minNsBetweenSteps_default, axisJSON);
         _stepsPerRotation = ConfigManager::getDouble("stepsPerRotation", AxisParams::stepsPerRotation_default, axisJSON);
         _unitsPerRotation = ConfigManager::getDouble("unitsPerRotation", AxisParams::unitsPerRotation_default, axisJSON);
         _minVal = ConfigManager::getDouble("minVal", 0, _minValValid, axisJSON);

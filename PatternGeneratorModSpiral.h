@@ -52,7 +52,7 @@ public:
         // Get next point and send to commandInterpreter
         double xy[2];
         getPoint(_tVal, xy);
-        String cmdStr = String::format("G0 X%0.2fY%0.2f", xy[0], xy[1]);
+        String cmdStr = String::format("G0 X%0.2f Y%0.2f", xy[0], xy[1]);
         commandInterpreter.process(cmdStr.c_str());
         Log.trace("CommandInterpreter process %s", cmdStr.c_str());
         _tVal += _tInc;

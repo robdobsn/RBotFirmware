@@ -105,7 +105,7 @@ public:
         RobotCommandArgs cmdArgs;
         rslt = getGcodeCmdArgs(pArgsStr, cmdArgs);
 
-        Log.info("GCODE Cmd %d", cmdNum);
+        Log.info("GCodeInterpreter Cmd G%d %s", cmdNum, pArgsStr);
 
         // Switch on number
         switch(cmdNum)

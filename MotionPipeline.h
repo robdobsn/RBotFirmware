@@ -41,12 +41,38 @@ private:
     std::queue<MotionPipelineElem> _pipeline;
     static const int _pipelineMaxLenDefault = 300;
     int _pipelineMaxLen = _pipelineMaxLenDefault;
+    int _maxBlocksInAMove = 1;
 
 public:
     // Get slots available
     int slotsEmpty()
     {
         return _pipelineMaxLen - _pipeline.size();
+    }
+
+    // Set parameters to determine pipeline space required to be left free
+    void setParameters(int maxBlocksInAMove)
+    {
+        if (maxBlocksInAMove < 1)
+            maxBlocksInAMove = 1;
+        _maxBlocksInAMove = maxBlocksInAMove;
+    }
+
+    // Check if ready to accept data
+    bool canAccept()
+    {
+        // Check if block len is reasonable
+        if (_maxBlocksInAMove < _pipelineMaxLen / 2)
+        {
+            // Log.trace("MotionPipeline canAccept %d slotsEmpty %d _maxBlocksInAMove %d",
+            //     slotsEmpty() >= _maxBlocksInAMove, slotsEmpty(), _maxBlocksInAMove);
+            // If so ensure enough space for maximal block length
+            return slotsEmpty() >= _maxBlocksInAMove;
+        }
+        // Log.trace("MotionPipeline canAccept %d slotsEmpty %d _maxBlocksInAMove %d, _pipelineMaxLen %d",
+        //     slotsEmpty() >= _pipelineMaxLen / 3, slotsEmpty(), _maxBlocksInAMove, _pipelineMaxLen);
+        // If not return ok if 33%+ of pipeline is free
+        return slotsEmpty() >= _pipelineMaxLen / 3;
     }
 
     // Add to pipeline
