@@ -10,7 +10,7 @@
 #include "MotionPipeline.h"
 #include "math.h"
 
-typedef bool (*ptToActuatorFnType) (PointND& pt, PointND& actuatorCoords, AxisParams axisParams[], int numAxes);
+typedef bool (*ptToActuatorFnType) (MotionPipelineElem& motionElem, PointND& actuatorCoords, AxisParams axisParams[], int numAxes);
 typedef void (*actuatorToPtFnType) (PointND& actuatorCoords, PointND& xy, AxisParams axisParams[], int numAxes);
 typedef void (*correctStepOverflowFnType) (AxisParams axisParams[], int numAxes);
 
@@ -175,7 +175,7 @@ private:
 
                 // Get absolute step position to move to
                 PointND actuatorCoords;
-                bool valid = _ptToActuatorFn(motionElem._pt2MM, actuatorCoords, _axisParams, _numRobotAxes);
+                bool valid = _ptToActuatorFn(motionElem, actuatorCoords, _axisParams, _numRobotAxes);
 
                 // Activate motion if valid - otherwise ignore
                 if (valid)
@@ -232,8 +232,8 @@ private:
                 // Debug
                 Log.trace("MotionHelper StepNS X %ld Y %ld Z %ld)", _axisParams[0]._betweenStepsNs,
                             _axisParams[1]._betweenStepsNs, _axisParams[2]._betweenStepsNs);
-                motionElem._pt1MM.logDebugStr("Axis0 target");
-                motionElem._pt2MM.logDebugStr("Axis1 target");
+                motionElem._pt1MM.logDebugStr("MotionFrom");
+                motionElem._pt2MM.logDebugStr("MotionTo");
 
                 // Log.trace("Move to %sx %0.2f y %0.2f -> ax0Tgt %0.2f Ax1Tgt %0.2f (stpNSXY %ld %ld)",
                 //             valid?"":"INVALID ", motionElem._pt2MM._pt[0], motionElem._pt2MM._pt[1],

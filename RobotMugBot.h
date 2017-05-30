@@ -19,7 +19,7 @@ public:
 
 public:
 
-    static bool ptToActuator(PointND& pt, PointND& actuatorCoords, AxisParams axisParams[], int numAxes)
+    static bool ptToActuator(MotionPipelineElem& motionElem, PointND& actuatorCoords, AxisParams axisParams[], int numAxes)
     {
         // Note that the rotation angle comes straight from the Y parameter
         // This means that drawings in the range 0 .. 240mm height (assuming 1:1 scaling is chosen)
@@ -30,19 +30,19 @@ public:
         for (int i = 0; i < MAX_AXES; i++)
         {
             // Axis val from home point
-            double axisValFromHome = pt.getVal(i) - axisParams[i]._homeOffsetVal;
+            double axisValFromHome = motionElem._pt2MM.getVal(i) - axisParams[i]._homeOffsetVal;
             // Convert to steps and add offset to home in steps
             actuatorCoords.setVal(i, axisValFromHome * axisParams[i].stepsPerUnit()
                             + axisParams[i]._homeOffsetSteps);
 
             // Check machine bounds
             bool thisAxisValid = true;
-            if (axisParams[i]._minValValid && pt.getVal(i) < axisParams[i]._minVal)
+            if (axisParams[i]._minValValid && motionElem._pt2MM.getVal(i) < axisParams[i]._minVal)
                 thisAxisValid = false;
-            if (axisParams[i]._maxValValid && pt.getVal(i) > axisParams[i]._maxVal)
+            if (axisParams[i]._maxValValid && motionElem._pt2MM.getVal(i) > axisParams[i]._maxVal)
                 thisAxisValid = false;
             Log.info("ptToActuator (%s) %f -> %f (homeOffVal %f, homeOffSteps %ld)", thisAxisValid ? "OK" : "INVALID",
-                pt.getVal(i), actuatorCoords._pt[i], axisParams[i]._homeOffsetVal, axisParams[i]._homeOffsetSteps);
+                motionElem._pt2MM.getVal(i), actuatorCoords._pt[i], axisParams[i]._homeOffsetVal, axisParams[i]._homeOffsetSteps);
             isValid &= thisAxisValid;
         }
         return isValid;

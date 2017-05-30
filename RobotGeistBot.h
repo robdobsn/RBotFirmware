@@ -26,9 +26,10 @@ public:
 
 public:
 
-    static bool ptToActuator(PointND& pt, PointND& actuatorCoords, AxisParams axisParams[], int numAxes)
+    static bool ptToActuator(MotionPipelineElem& motionElem, PointND& actuatorCoords, AxisParams axisParams[], int numAxes)
     {
         // Trig for required position (azimuth is measured clockwise from North)
+        PointND& pt = motionElem._pt2MM;
         double reqAlphaRads = atan2(pt._pt[0], pt._pt[1]);
         if (reqAlphaRads < 0)
             reqAlphaRads = 2 * M_PI + reqAlphaRads;
