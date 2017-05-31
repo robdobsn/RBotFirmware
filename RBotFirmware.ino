@@ -6,8 +6,6 @@
 #include "WorkflowManager.h"
 #include "GCodeInterpreter.h"
 #include "CommsSerial.h"
-#include "PatternGeneratorModSpiral.h"
-#include "PatternGeneratorTestPattern.h"
 
 //define RUN_TESTS_CONFIG
 //#define RUN_TEST_WORKFLOW
@@ -21,14 +19,10 @@
 SYSTEM_MODE(AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 
-SerialLogHandler logHandler(LOG_LEVEL_TRACE);
+SerialLogHandler logHandler(LOG_LEVEL_INFO);
 RobotController _robotController;
 WorkflowManager _workflowManager;
-PatternGeneratorModSpiral _patternGeneratorModSpiral;
-PatternGeneratorTestPattern _patternGeneratorTestPattern;
-PatternGenerator* _patternGenerators[] = { &_patternGeneratorModSpiral, &_patternGeneratorTestPattern };
-constexpr int NUM_PATTERN_GENERATORS = sizeof(_patternGenerators)/sizeof(_patternGenerators[0]);
-CommandInterpreter _commandInterpreter(&_workflowManager, _patternGenerators, NUM_PATTERN_GENERATORS);
+CommandInterpreter _commandInterpreter(&_workflowManager);
 CommsSerial _commsSerial(0);
 ConfigEEPROM configEEPROM;
 
@@ -66,7 +60,7 @@ static const char* ROBOT_CONFIG_STR_GEISTBOT =
 static const char* ROBOT_CONFIG_STR_SANDTABLESCARA =
     "{\"robotType\": \"SandTableScara\", \"xMaxMM\":200, \"yMaxMM\":200, "
     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
-    " \"blockDistanceMM\":400.0, \"homingAxis1OffsetDegs\":20.0,"
+    " \"blockDistanceMM\":1.0, \"homingAxis1OffsetDegs\":20.0,"
     " \"maxHomingSecs\":120, \"cmdsAtStart\":\"G28\","
     " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
     " \"minNsBetweenSteps\":1000000,"
@@ -168,11 +162,8 @@ void loop()
     // Service CommsSerial
     _commsSerial.service(_commandInterpreter);
 
-    // Service the pattern generators
-    for (int i = 0; i < NUM_PATTERN_GENERATORS; i++)
-    {
-        _patternGenerators[i]->service(_commandInterpreter);
-    }
+    // Service the command interpreter
+    _commandInterpreter.service();
 
     // Service the robot controller
     _robotController.service();

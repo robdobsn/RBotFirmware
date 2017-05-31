@@ -26,7 +26,7 @@ public:
     virtual void setParameters(const char* drawParams)
     {
     }
-    virtual void service(CommandInterpreter& CommandInterpreter)
+    virtual void service(CommandInterpreter* pCommandInterpreter)
     {
     }
 };
