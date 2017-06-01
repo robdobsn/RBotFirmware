@@ -4,7 +4,6 @@
 #include "ConfigEEPROM.h"
 #include "RobotController.h"
 #include "WorkflowManager.h"
-#include "GCodeInterpreter.h"
 #include "CommsSerial.h"
 
 //define RUN_TESTS_CONFIG
@@ -22,7 +21,7 @@ SYSTEM_THREAD(ENABLED);
 SerialLogHandler logHandler(LOG_LEVEL_INFO);
 RobotController _robotController;
 WorkflowManager _workflowManager;
-CommandInterpreter _commandInterpreter(&_workflowManager);
+CommandInterpreter _commandInterpreter(&_workflowManager, &_robotController);
 CommsSerial _commsSerial(0);
 ConfigEEPROM configEEPROM;
 
@@ -61,7 +60,7 @@ static const char* ROBOT_CONFIG_STR_SANDTABLESCARA =
     "{\"robotType\": \"SandTableScara\", \"xMaxMM\":200, \"yMaxMM\":200, "
     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
     " \"blockDistanceMM\":1.0, \"homingAxis1OffsetDegs\":20.0,"
-    " \"maxHomingSecs\":120, \"cmdsAtStart\":\"G28\","
+    " \"maxHomingSecs\":120, \"cmdsAtStart\":\"G28;ModSpiral\","
     " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
     " \"minNsBetweenSteps\":1000000,"
     " \"stepsPerRotation\":9600, \"unitsPerRotation\":628.318,"
@@ -103,7 +102,6 @@ void setup()
 long initialMemory = System.freeMemory();
 long lowestMemory = System.freeMemory();
 
-
 // Timing of the loop - used to determine if blocking/slow processes are delaying the loop iteration
 const int loopTimeAvgWinLen = 50;
 int loopTimeAvgWin[loopTimeAvgWinLen];
@@ -136,11 +134,16 @@ void debugLoopTimer()
     lastLoopStartMicros = micros();
     if (millis() > lastDebugLoopMillis + 10000)
     {
+        if (lowestMemory > System.freeMemory())
+            lowestMemory = System.freeMemory();
         if (loopTimeAvgWinLen > 0)
         {
-            Log.info("Avg loop time %0.3fus (val %lu)",
+            Log.info("Avg loop time %0.3fus (val %lu) initMem %d mem %d lowMem %d wkFlowItems %d canAccept %d",
             1.0 * loopWindowSumMicros / loopTimeAvgWinLen,
-            lastLoopStartMicros);
+            lastLoopStartMicros, initialMemory,
+            System.freeMemory(), lowestMemory,
+            _workflowManager.numWaiting(),
+            _commandInterpreter.canAcceptCommand());
         }
         else
         {
@@ -162,27 +165,9 @@ void loop()
     // Service CommsSerial
     _commsSerial.service(_commandInterpreter);
 
-    // Service the command interpreter
+    // Service the command interpreter (which pumps the workflow queue)
     _commandInterpreter.service();
 
     // Service the robot controller
     _robotController.service();
-
-    // Pump the workflow here
-    // Check if the RobotController can accept more
-    if (_robotController.canAcceptCommand())
-    {
-        CommandElem cmdElem;
-        bool rslt = _workflowManager.get(cmdElem);
-        if (rslt)
-        {
-            if (lowestMemory > System.freeMemory())
-                lowestMemory = System.freeMemory();
-            Log.info("----RBotFirmware WorkflowGet Rlst=%d, %s, initMem %d, mem %d, lowMem %d", rslt,
-                            cmdElem.getString().c_str(), initialMemory,
-                            System.freeMemory(), lowestMemory);
-            GCodeInterpreter::interpretGcode(cmdElem, _robotController, true);
-        }
-    }
-
 }

@@ -11,19 +11,6 @@ class GCodeInterpreter
 {
 
 public:
-    GCodeInterpreter()
-    {
-    }
-
-    ~GCodeInterpreter()
-    {
-    }
-
-    static bool init(const char* configStr)
-    {
-
-    }
-
     static bool getCmdNumber(const char* pCmdStr, int& cmdNum)
     {
         // String passed in should start with a G or M
@@ -86,7 +73,7 @@ public:
     }
 
     // Interpret GCode G commands
-    static bool interpG(String& cmdStr, RobotController& robotController, bool takeAction)
+    static bool interpG(String& cmdStr, RobotController* pRobotController, bool takeAction)
     {
         // Command string as a text buffer
         const char* pCmdStr = cmdStr.c_str();
@@ -115,13 +102,13 @@ public:
                 if (takeAction)
                 {
                     cmdArgs.moveRapid = (cmdNum == 0);
-                    robotController.moveTo(cmdArgs);
+                    pRobotController->moveTo(cmdArgs);
                 }
                 return true;
             case 28: // Home axes
                 if (takeAction)
                 {
-                    robotController.home(cmdArgs);
+                    pRobotController->home(cmdArgs);
                 }
                 return true;
         }
@@ -130,13 +117,13 @@ public:
     }
 
     // Interpret GCode M commands
-    static bool interpM(String& cmdStr, RobotController& robotController, bool takeAction)
+    static bool interpM(String& cmdStr, RobotController* pRobotController, bool takeAction)
     {
         return false;
     }
 
     // Interpret GCode commands
-    static bool interpretGcode(CommandElem& cmd, RobotController& robotController, bool takeAction)
+    static bool interpretGcode(CommandElem& cmd, RobotController* pRobotController, bool takeAction)
     {
         // Extract code
         String cmdStr = cmd.getString().trim();
@@ -145,9 +132,9 @@ public:
 
         // Check for G or M codes
         if (toupper(cmdStr.charAt(0)) == 'G')
-            return interpG(cmdStr, robotController, takeAction);
+            return interpG(cmdStr, pRobotController, takeAction);
         else if (toupper(cmdStr.charAt(0)) == 'M')
-            return interpM(cmdStr, robotController, takeAction);
+            return interpM(cmdStr, pRobotController, takeAction);
 
         // Failed
         return false;

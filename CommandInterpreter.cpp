@@ -4,10 +4,13 @@
 #include "WorkflowManager.h"
 #include "CommandInterpreter.h"
 #include "CommandExtender.h"
+#include "RobotController.h"
+#include "GCodeInterpreter.h"
 
-CommandInterpreter::CommandInterpreter(WorkflowManager* pWorkflowManager)
+CommandInterpreter::CommandInterpreter(WorkflowManager* pWorkflowManager, RobotController* pRobotController)
 {
     _pWorkflowManager = pWorkflowManager;
+    _pRobotController = pRobotController;
     _pCommandExtender = new CommandExtender(this);
 }
 
@@ -22,13 +25,9 @@ bool CommandInterpreter::processSingle(const char* pCmdStr)
 {
     // RWAD TODO check if this is an immediate command
 
-    // Check for extended commands
+    // Send the line to the workflow manager
     bool rslt = false;
-    if (_pCommandExtender)
-        rslt = _pCommandExtender->procCommand(pCmdStr);
-
-    // Send the line for processing
-    if (!rslt && (_pWorkflowManager != NULL))
+    if (_pWorkflowManager)
     {
         if (strlen(pCmdStr) != 0)
             rslt = _pWorkflowManager->add(pCmdStr);
@@ -43,12 +42,12 @@ bool CommandInterpreter::process(const char* pCmdStr)
     // Handle the case of a single string
     if (strstr(pCmdStr, ";") == NULL)
     {
-        Log.trace("cmdProc oneline %s", pCmdStr);
+        Log.trace("cmdProc onecmd %s", pCmdStr);
         return processSingle(pCmdStr);
     }
 
     // Handle multiple commands (tab delimited)
-    Log.trace("cmdProc multiline %s", pCmdStr);
+    Log.trace("cmdProc multicmd %s", pCmdStr);
     const int MAX_TEMP_CMD_STR_LEN = 1000;
     const char* pCurStr = pCmdStr;
     const char* pCurStrEnd = pCmdStr;
@@ -86,5 +85,28 @@ bool CommandInterpreter::process(const char* pCmdStr)
 
 void CommandInterpreter::service()
 {
+    // Pump the workflow here
+    // Check if the RobotController can accept more
+    if (_pRobotController->canAcceptCommand())
+    {
+        CommandElem cmdElem;
+        bool rslt = _pWorkflowManager->get(cmdElem);
+        if (rslt)
+        {
+            Log.info("WorkflowGet rlst=%d (waiting %d), %s", rslt,
+                            _pWorkflowManager->numWaiting(),
+                            cmdElem.getString().c_str());
+
+            // Check for extended commands
+            if (_pCommandExtender)
+                rslt = _pCommandExtender->procCommand(cmdElem.getString().c_str());
+
+            // Check for GCode
+            if (!rslt)
+                GCodeInterpreter::interpretGcode(cmdElem, _pRobotController, true);
+        }
+    }
+
+    // Service command extender (which pumps the state machines associated with extended commands)
     _pCommandExtender->service();
 }

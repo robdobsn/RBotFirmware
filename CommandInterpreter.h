@@ -11,10 +11,11 @@ class CommandInterpreter
 {
 private:
     WorkflowManager* _pWorkflowManager;
+    RobotController* _pRobotController;
     CommandExtender* _pCommandExtender;
 
 public:
-    CommandInterpreter(WorkflowManager* pWorkflowManager);
+    CommandInterpreter(WorkflowManager* pWorkflowManager, RobotController* pRobotController);
 
     bool canAcceptCommand();
 

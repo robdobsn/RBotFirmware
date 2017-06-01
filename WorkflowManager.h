@@ -38,7 +38,10 @@ public:
     // Add to workflow
     bool add(const char* pCmdStr)
     {
-        return _cmdQueue.add(pCmdStr);
+        bool rslt = _cmdQueue.add(pCmdStr);
+        Log.trace("WorkflowManager add %s rslt %d numInQueue %d",
+                        pCmdStr, rslt, _cmdQueue.size());
+        return rslt;
     }
 
     // Get from workflow
@@ -51,6 +54,12 @@ public:
     bool get(CommandElem& cmdElem)
     {
         return _cmdQueue.get(cmdElem);
+    }
+
+    // Get number of items in workflow queue
+    int numWaiting()
+    {
+        return _cmdQueue.size();
     }
 
 };

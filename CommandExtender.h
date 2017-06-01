@@ -14,7 +14,7 @@ public:
     {
         _patternGenerators[0] = &_patternGeneratorModSpiral;
         _patternGenerators[1] = &_patternGeneratorTestPattern;
-        _numPatternGenerators = 2;
+        _numPatternGenerators = MAX_PATTERN_GENERATORS;
         _pCommandInterpreter = pCommandInterpreter;
     }
 
@@ -38,8 +38,8 @@ public:
         for (int i = 0; i < _numPatternGenerators; i++)
         {
             // See if pattern name is at the start of the string
-            pPatternPos = strstr(pCmdStart, _patternGenerators[i]->getPatternName());
-            // Log.trace("Pat %s %s %ld %ld", pCmdStart, _patternGenerators[i]->getPatternName(), pPatternPos, pCmdStart);
+            pPatternPos = strcasestr(pCmdStart, _patternGenerators[i]->getPatternName());
+            Log.trace("Pat %s %s %ld %ld", pCmdStart, _patternGenerators[i]->getPatternName(), pPatternPos, pCmdStart);
             if (pPatternPos == pCmdStart)
             {
                 patternGenIdx = i;
@@ -50,16 +50,14 @@ public:
         {
             // Start the pattern generator
             _patternGenerators[patternGenIdx]->start();
+            Log.trace("CommandExtender generating pattern %s", _patternGenerators[patternGenIdx]->getPatternName());
             return true;
         }
-
         // See if it is a pattern evaluator
-        if (strstr(pCmdStart, "pattern"))
+        pPatternPos = strcasestr(pCmdStart, "evalpattern");
+        if (pPatternPos == pCmdStart)
         {
-            if (pPatternPos == pCmdStart)
-            {
-                _patternEvaluator.start();
-            }
+            _patternEvaluator.start();
         }
         return false;
     }
@@ -73,9 +71,10 @@ private:
     }
 
 private:
+    static constexpr int MAX_PATTERN_GENERATORS = 2;
     PatternGeneratorModSpiral _patternGeneratorModSpiral;
     PatternGeneratorTestPattern _patternGeneratorTestPattern;
-    PatternGenerator* _patternGenerators[10];
+    PatternGenerator* _patternGenerators[MAX_PATTERN_GENERATORS];
     int _numPatternGenerators;
     CommandInterpreter* _pCommandInterpreter;
     PatternEvaluator _patternEvaluator;

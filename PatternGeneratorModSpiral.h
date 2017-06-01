@@ -8,6 +8,8 @@
 
 // Generalized spiral pattern
 
+unsigned long lastMillis = millis();
+
 class PatternGeneratorModSpiral : public PatternGenerator
 {
 public:
@@ -34,20 +36,20 @@ public:
         _patternName = "ModSpiral";
     }
 
-    void start()
+    virtual void start()
     {
         _isRunning = true;
         _tVal = 0;
     }
 
-    void service(CommandInterpreter* pCommandInterpreter)
+    virtual void service(CommandInterpreter* pCommandInterpreter)
     {
         // Check running
         if (!_isRunning)
             return;
 
         // Check if the command interpreter can accept new stuff
-        if (pCommandInterpreter->canAcceptCommand())
+        if (!pCommandInterpreter->canAcceptCommand())
             return;
 
         // Get next point and send to commandInterpreter
@@ -61,7 +63,7 @@ public:
         // Check if we reached a limit
         if (checkLimit(_tVal))
         {
-            _tInc = -_tInc;
+            _isRunning = false;
         }
     }
 

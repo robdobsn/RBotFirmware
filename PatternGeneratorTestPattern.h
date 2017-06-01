@@ -23,13 +23,13 @@ public:
         _patternName = "TestPattern";
     }
 
-    void start()
+    virtual void start()
     {
         _isRunning = true;
         _tVal = 0;
     }
 
-    void service(CommandInterpreter* pCommandInterpreter)
+    virtual void service(CommandInterpreter* pCommandInterpreter)
     {
         // Check running
         if (!_isRunning)

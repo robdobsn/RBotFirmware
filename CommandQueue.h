@@ -84,6 +84,12 @@ public:
         return true;
     }
 
+    // Get size
+    int size()
+    {
+        return _cmdElemQueue.size();
+    }
+
 };
 
 #endif // _COMMAND_QUEUE_H_
