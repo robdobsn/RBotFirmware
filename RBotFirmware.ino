@@ -60,7 +60,7 @@ static const char* ROBOT_CONFIG_STR_SANDTABLESCARA =
     "{\"robotType\": \"SandTableScara\", \"xMaxMM\":200, \"yMaxMM\":200, "
     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
     " \"blockDistanceMM\":1.0, \"homingAxis1OffsetDegs\":20.0,"
-    " \"maxHomingSecs\":120, \"cmdsAtStart\":\"G28;ModSpiral\","
+    " \"maxHomingSecs\":120, \"cmdsAtStart\":\"G28\","
     " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
     " \"minNsBetweenSteps\":1000000,"
     " \"stepsPerRotation\":9600, \"unitsPerRotation\":628.318,"
@@ -69,6 +69,13 @@ static const char* ROBOT_CONFIG_STR_SANDTABLESCARA =
     " \"minNsBetweenSteps\":1000000,"
     " \"stepsPerRotation\":9600, \"unitsPerRotation\":628.318, \"homeOffsetSteps\": 0,"
     " \"endStop0\": { \"sensePin\": \"A7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
+    "}";
+
+static const char* ROBOT_PATTERN_COMMANDS =
+    "{"
+    " \"patternName\":\"customPattern\","
+    " \"setupExprs\":\"t=0\","
+    " \"loopExprs\":\"x=t-100;y=t-100;t=t+1;stop=t=200\""
     "}";
 
 static const char* ROBOT_CONFIG_STR = ROBOT_CONFIG_STR_SANDTABLESCARA;
@@ -93,10 +100,12 @@ void setup()
     _robotController.init(ROBOT_CONFIG_STR);
     _workflowManager.init(WORKFLOW_CONFIG_STR);
 
+    // Configure the command interpreter
+    _commandInterpreter.setConfig(ROBOT_PATTERN_COMMANDS);
+
     // Check for cmdsAtStart
     String cmdsAtStart = ConfigManager::getString("cmdsAtStart", "", ROBOT_CONFIG_STR);
     _commandInterpreter.process(cmdsAtStart);
-
 }
 
 long initialMemory = System.freeMemory();

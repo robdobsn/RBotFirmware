@@ -194,7 +194,11 @@ static double mul(double a, double b) { return a * b; }
 static double divide(double a, double b) { return a / b; }
 static double negate(double a) { return -a; }
 static double comma(double a, double b) { return b; }
-
+static double equals(double a, double b) { return a == b; }
+static double lessthan(double a, double b) { return a < b; }
+static double morethan(double a, double b) { return a > b; }
+static double lessthanequal(double a, double b) { return a <= b; }
+static double morethanequal(double a, double b) { return a >= b; }
 
 void next_token(state *s) {
 	s->type = TOK_NULL;
@@ -254,6 +258,9 @@ void next_token(state *s) {
 				case '/': s->type = TOK_INFIX; s->function = divide; break;
 				case '^': s->type = TOK_INFIX; s->function = pow; break;
 				case '%': s->type = TOK_INFIX; s->function = fmod; break;
+				case '=': s->type = TOK_INFIX; s->function = equals; if (s->next[0] == '=') s->next++; break;
+				case '>': s->type = TOK_INFIX; s->function = morethan; if (s->next[0] == '=') { s->function = morethanequal; s->next++; }; break;
+				case '<': s->type = TOK_INFIX; s->function = lessthan; if (s->next[0] == '=') { s->function = lessthanequal; s->next++; }; break;
 				case '(': s->type = TOK_OPEN; break;
 				case ')': s->type = TOK_CLOSE; break;
 				case ',': s->type = TOK_SEP; break;
@@ -466,10 +473,10 @@ static te_expr *term(state *s) {
 
 
 static te_expr *expr(state *s) {
-	/* <expr>      =    <term> {("+" | "-") <term>} */
+	/* <expr>      =    <term> {("+" | "-" | "==" | "=" | ">" | "<" | ">=" | "<=") <term>} */
 	te_expr *ret = term(s);
 
-	while (s->type == TOK_INFIX && (s->function == add || s->function == sub)) {
+	while (s->type == TOK_INFIX && (s->function == add || s->function == sub || s->function == equals || s->function == morethan || s->function == lessthan || s->function == morethanequal || s->function == lessthanequal)) {
 		te_fun2 t = s->function;
 		next_token(s);
 		ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, term(s));

@@ -18,6 +18,11 @@ public:
         _pCommandInterpreter = pCommandInterpreter;
     }
 
+    void setConfig(const char* configStr)
+    {
+        _patternEvaluator.setConfig(configStr);
+    }
+
     void service()
     {
         // Service pattern generators
@@ -57,6 +62,7 @@ public:
         pPatternPos = strcasestr(pCmdStart, "evalpattern");
         if (pPatternPos == pCmdStart)
         {
+            Log.trace("CommandExtender evaluating pattern");
             _patternEvaluator.start();
         }
         return false;

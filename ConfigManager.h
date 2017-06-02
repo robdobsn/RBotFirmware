@@ -594,7 +594,7 @@ public:
 		}
 		if (t->type == JSMNR_PRIMITIVE)
 		{
-			Log.trace("\n\r#Found primitive size %d, start %d, end %d\n\r",
+			Log.trace("#Found primitive size %d, start %d, end %d",
 				t->size, t->start, t->end);
 			Log.trace("%.*s", t->end - t->start, js + t->start);
 			char *pStr = safeStringDup(js + t->start,
@@ -605,7 +605,7 @@ public:
 		}
 		else if (t->type == JSMNR_STRING)
 		{
-			Log.trace("\n\r#Found string size %d, start %d, end %d\n\r",
+			Log.trace("#Found string size %d, start %d, end %d",
 				t->size, t->start, t->end);
 			Log.trace("'%.*s'", t->end - t->start, js + t->start);
 			char *pStr = safeStringDup(js + t->start,
@@ -618,7 +618,7 @@ public:
 		}
 		else if (t->type == JSMNR_OBJECT)
 		{
-			Log.trace("\n\r#Found object size %d, start %d, end %d\n\r",
+			Log.trace("#Found object size %d, start %d, end %d",
 				t->size, t->start, t->end);
 			j = 0;
 			outStr.concat("{");
@@ -632,7 +632,7 @@ public:
 				outStr.concat(":");
 				Log.trace(": ");
 				j += recreateJson(js, t + 1 + j, count - j, indent + 1, outStr);
-				Log.trace("\n\r");
+				Log.trace("");
 				if (i != t->size - 1)
 				{
 					outStr.concat(",");
@@ -643,11 +643,11 @@ public:
 		}
 		else if (t->type == JSMNR_ARRAY)
 		{
-			Log.trace("\n\r#Found array size %d, start %d, end %d\n\r",
+			Log.trace("#Found array size %d, start %d, end %d",
 				t->size, t->start, t->end);
 			j = 0;
 			outStr.concat("[");
-			Log.trace("\n\r");
+			Log.trace("");
 			for (i = 0; i < t->size; i++)
 			{
 				for (k = 0; k < indent - 1; k++)
@@ -660,7 +660,7 @@ public:
 				{
 					outStr.concat(",");
 				}
-				Log.trace("\n\r");
+				Log.trace("");
 			}
 			outStr.concat("]");
 			return j + 1;

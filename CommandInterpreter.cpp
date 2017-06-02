@@ -14,6 +14,14 @@ CommandInterpreter::CommandInterpreter(WorkflowManager* pWorkflowManager, RobotC
     _pCommandExtender = new CommandExtender(this);
 }
 
+void CommandInterpreter::setConfig(const char* configStr)
+{
+    Log.trace("PatternCmds %s", configStr);
+    
+    // Simply pass the whole config to the extender at present
+    _pCommandExtender->setConfig(configStr);
+}
+
 bool CommandInterpreter::canAcceptCommand()
 {
     if (_pWorkflowManager)

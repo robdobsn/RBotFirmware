@@ -16,12 +16,9 @@ private:
 
 public:
     CommandInterpreter(WorkflowManager* pWorkflowManager, RobotController* pRobotController);
-
+    void setConfig(const char* configStr);
     bool canAcceptCommand();
-
     bool processSingle(const char* pCmdStr);
-
     bool process(const char* pCmdStr);
-
     void service();
 };
