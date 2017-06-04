@@ -109,10 +109,10 @@ private:
         // All angles are calculated anticlockwise from East
 
         // Check for 0,0 point as this is a special case for this robot
-        if (isApprox(pt._pt[0],0,1) && (isApprox(pt._pt[1],0,1)))
+        if (isApprox(pt._pt[0],0,0.1) && (isApprox(pt._pt[1],0,0.1)))
         {
             // Special case
-            Log.trace("ptToRotations x %0.2f y %0.2f close to zero", pt._pt[0], pt._pt[1]);
+            Log.trace("ptToRotations x %0.2f y %0.2f close to origin", pt._pt[0], pt._pt[1]);
 
             // Return values
             rot1Degrees.set(0.0, 180.0);
