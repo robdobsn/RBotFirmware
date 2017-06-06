@@ -6,6 +6,16 @@
 #include "WorkflowManager.h"
 #include "CommsSerial.h"
 
+// API Endpoints
+#include "RestAPIEndpoints.h"
+RestAPIEndpoints restAPIEndpoints;
+
+// Web server
+#include "RdWebServer.h"
+const int webServerPort = 80;
+RdWebServer* pWebServer = NULL;
+#include "GenResources.h"
+
 //define RUN_TESTS_CONFIG
 //#define RUN_TEST_WORKFLOW
 #ifdef RUN_TEST_CONFIG
@@ -18,7 +28,7 @@
 SYSTEM_MODE(AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 
-SerialLogHandler logHandler(LOG_LEVEL_INFO);
+SerialLogHandler logHandler(LOG_LEVEL_TRACE);
 RobotController _robotController;
 WorkflowManager _workflowManager;
 CommandInterpreter _commandInterpreter(&_workflowManager, &_robotController);
@@ -74,8 +84,8 @@ static const char* ROBOT_CONFIG_STR_SANDTABLESCARA =
 static const char* ROBOT_PATTERN_COMMANDS =
     "{"
     " \"patternName\":\"customPattern\","
-    " \"setupExprs\":\"t=0\","
-    " \"loopExprs\":\"x=t-100;y=t-100;t=t+1;stop=t=200\""
+    " \"setupExprs\":\"angle=0;diam=10\","
+    " \"loopExprs\":\"x=diam*sin(angle*3);y=diam*cos(angle*3);diam=diam+0.1;angle=angle+0.0314;stop=angle=6.28\""
     "}";
 
 static const char* ROBOT_CONFIG_STR = ROBOT_CONFIG_STR_SANDTABLESCARA;
@@ -97,6 +107,19 @@ void setup()
     TestConfigManager::runTests();
     #endif
 
+    // Construct web server
+    pWebServer = new RdWebServer();
+
+    // Configure web server
+    if (pWebServer)
+    {
+        // Add resources to web server
+        pWebServer->addStaticResources(genResources, genResourcesCount);
+        // Start the web server
+        pWebServer->start(webServerPort);
+    }
+
+    // Init robot controller and workflow manager
     _robotController.init(ROBOT_CONFIG_STR);
     _workflowManager.init(WORKFLOW_CONFIG_STR);
 
@@ -111,6 +134,15 @@ void setup()
 long initialMemory = System.freeMemory();
 long lowestMemory = System.freeMemory();
 
+// Local IP Addr as string
+char _localIPStr[20];
+char *localIPStr()
+{
+    IPAddress ipA = WiFi.localIP();
+
+    sprintf(_localIPStr, "%d.%d.%d.%d", ipA[0], ipA[1], ipA[2], ipA[3]);
+    return _localIPStr;
+}
 // Timing of the loop - used to determine if blocking/slow processes are delaying the loop iteration
 const int loopTimeAvgWinLen = 50;
 int loopTimeAvgWin[loopTimeAvgWinLen];
@@ -147,12 +179,13 @@ void debugLoopTimer()
             lowestMemory = System.freeMemory();
         if (loopTimeAvgWinLen > 0)
         {
-            Log.info("Avg loop time %0.3fus (val %lu) initMem %d mem %d lowMem %d wkFlowItems %d canAccept %d",
+            Log.info("Avg loop time %0.3fus (val %lu) initMem %d mem %d lowMem %d wkFlowItems %d canAccept %d IP %s",
             1.0 * loopWindowSumMicros / loopTimeAvgWinLen,
             lastLoopStartMicros, initialMemory,
             System.freeMemory(), lowestMemory,
             _workflowManager.numWaiting(),
-            _commandInterpreter.canAcceptCommand());
+            _commandInterpreter.canAcceptCommand(),
+            localIPStr());
         }
         else
         {
@@ -161,6 +194,7 @@ void debugLoopTimer()
         lastDebugLoopMillis = millis();
     }
 }
+
 
 void loop()
 {
@@ -179,4 +213,11 @@ void loop()
 
     // Service the robot controller
     _robotController.service();
+
+    // Service the web server
+    if (pWebServer)
+    {
+        pWebServer->service();
+    }
+
 }

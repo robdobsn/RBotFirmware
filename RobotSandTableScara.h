@@ -350,6 +350,7 @@ private:
         return (fabs(t1 - t2) < withinRng) || (fabs(t1 - wrapSize - t2) < withinRng) || (fabs(t1 + wrapSize - t2) < withinRng);
     }
 
+/*
     static void testCoordTransforms(AxisParams axisParams[])
     {
 
@@ -426,6 +427,7 @@ private:
                         finalPoint._pt[0], finalPoint._pt[1]);
         }
     }
+*/
 
     // Homing state
     typedef enum HOMING_STATE
