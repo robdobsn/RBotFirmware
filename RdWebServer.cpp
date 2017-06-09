@@ -32,9 +32,13 @@ const char *RdWebClient::connStateStr()
         return "None";
 
     case WEB_CLIENT_ACCEPTED:
-    case WEB_CLIENT_SEND_RESOURCE_WAIT:
-    case WEB_CLIENT_SEND_RESOURCE:
         return "Accepted";
+
+    case WEB_CLIENT_SEND_RESOURCE_WAIT:
+        return "Wait";
+
+    case WEB_CLIENT_SEND_RESOURCE:
+        return "Send";
     }
     return "Unknown";
 }
@@ -111,17 +115,11 @@ void RdWebClient::service(RdWebServer *pWebServer)
                     _resourceSendIdx = 0;
                     _resourceSendBlkCount = 0;
                     _resourceSendMillis   = millis();
-
-                   // Go into a state to wait until response complete
-                   if (handledOk)
+                    // Wait until response complete
+                    setState(WEB_CLIENT_SEND_RESOURCE_WAIT);
+                   if (!handledOk)
                    {
-                       setState(WEB_CLIENT_SEND_RESOURCE_WAIT);
-                   }
-                   else
-                   {
-                       Log.trace("Web client couldn't handle request");
-                       _TCPClient.stop();
-                       setState(WEB_CLIENT_NONE);
+                       Log.info("Web client couldn't handle request");
                    }
                }
                else
@@ -141,13 +139,19 @@ void RdWebClient::service(RdWebServer *pWebServer)
        }
 
     case WEB_CLIENT_SEND_RESOURCE_WAIT:
-        // Check for timeout on resource send
-        if (Utils::isTimeout(millis(), _resourceSendMillis, MS_WAIT_BETWEEN_TCP_FRAMES))
         {
-            setState(WEB_CLIENT_SEND_RESOURCE);
-        }
-        break;
+            // Check how long to wait
+            unsigned long msToWait = MS_WAIT_AFTER_LAST_TCP_FRAME;
+            if ((_pResourceToSend != NULL) && (_resourceSendIdx < _pResourceToSend->_dataLen))
+                msToWait = MS_WAIT_BETWEEN_TCP_FRAMES;
 
+            // Check for timeout on resource send
+            if (Utils::isTimeout(millis(), _resourceSendMillis, msToWait))
+            {
+                setState(WEB_CLIENT_SEND_RESOURCE);
+            }
+            break;
+        }
     case WEB_CLIENT_SEND_RESOURCE:
        {
            if (!_pResourceToSend)
@@ -227,8 +231,6 @@ RdWebServerResourceDescr* RdWebClient::handleReceivedHttp(const char *httpReq, i
         // Received cmd and arguments
         Log.trace("EndPtStr %s", endpointStr.c_str());
         Log.trace("ArgStr %s", argStr.c_str());
-
-        Log.trace("pWebServer %08x", pWebServer);
 
         // Handle REST API commands
         RestAPIEndpointDef *pEndpoint = pWebServer->getEndpoint(endpointStr);
