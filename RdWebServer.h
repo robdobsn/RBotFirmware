@@ -20,8 +20,8 @@ static const int HTTPD_MAX_REQ_LENGTH = 2048;
     static const unsigned long MAX_MS_IN_CLIENT_STATE_WITHOUT_DATA = 2000;
 
     // Time between TCP frames
-    static const unsigned long MS_WAIT_BETWEEN_TCP_FRAMES = 5;
-    static const unsigned long MS_WAIT_AFTER_LAST_TCP_FRAME = 30;
+    static const unsigned long MS_WAIT_BETWEEN_TCP_FRAMES = 10;
+    static const unsigned long MS_WAIT_AFTER_LAST_TCP_FRAME = 200;
 
     // Max chunk size of HTTP response sending
     static const int HTTPD_MAX_RESP_CHUNK_SIZE = 500;

@@ -28,7 +28,7 @@ RdWebServer* pWebServer = NULL;
 SYSTEM_MODE(AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 
-SerialLogHandler logHandler(LOG_LEVEL_TRACE);
+SerialLogHandler logHandler(LOG_LEVEL_INFO);
 RobotController _robotController;
 WorkflowManager _workflowManager;
 CommandInterpreter _commandInterpreter(&_workflowManager, &_robotController);
@@ -83,9 +83,13 @@ static const char* ROBOT_CONFIG_STR_SANDTABLESCARA =
 
 static const char* ROBOT_PATTERN_COMMANDS =
     "{"
+    "["
+    "{"
     " \"patternName\":\"customPattern\","
     " \"setupExprs\":\"angle=0;diam=10\","
     " \"loopExprs\":\"x=diam*sin(angle*3);y=diam*cos(angle*3);diam=diam+0.1;angle=angle+0.0314;stop=angle=6.28\""
+    "}"
+    "]"
     "}";
 
 static const char* ROBOT_CONFIG_STR = ROBOT_CONFIG_STR_SANDTABLESCARA;
