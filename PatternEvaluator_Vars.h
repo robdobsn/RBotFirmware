@@ -111,6 +111,7 @@ public:
         if (!_pTeVars)
         {
             _numTeVars = 0;
+            Log.error("PatternEvaluator failed to add variable");
             return -1;
         }
         // Add the variable name
@@ -143,7 +144,6 @@ public:
             int varIdx = getVariableIdx(varName);
             if (varIdx >= 0)
             {
-                int err;
                 *((double*)(_pTeVars[varIdx].address)) = 0;
             }
 			else

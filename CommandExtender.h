@@ -4,6 +4,7 @@
 #include "PatternEvaluator.h"
 #include "PatternGeneratorModSpiral.h"
 #include "PatternGeneratorTestPattern.h"
+#include "CommandSequencer.h"
 
 class CommandInterpreter;
 
@@ -18,7 +19,12 @@ public:
         _pCommandInterpreter = pCommandInterpreter;
     }
 
-    void setConfig(const char* configStr)
+    void setSequences(const char* configStr)
+    {
+        _commandSequencer.setConfig(configStr);
+    }
+
+    void setPatterns(const char* configStr)
     {
         _patternEvaluator.setConfig(configStr);
     }
@@ -32,11 +38,14 @@ public:
         }
         // Service pattern evaluator
         _patternEvaluator.service(_pCommandInterpreter);
+        // Service command sequencer
+        _commandSequencer.service(_pCommandInterpreter);
     }
 
     bool procCommand(const char* pCmdStr)
     {
         // See if the command is a pattern generator
+        bool handledOk = false;
         const char* pCmdStart = trimWhitespace(pCmdStr);
         const char* pPatternPos = NULL;
         int patternGenIdx = -1;
@@ -45,7 +54,7 @@ public:
             // See if pattern name is at the start of the string
             pPatternPos = strcasestr(pCmdStart, _patternGenerators[i]->getPatternName());
             Log.trace("Pat %s %s %ld %ld", pCmdStart, _patternGenerators[i]->getPatternName(), pPatternPos, pCmdStart);
-            if (pPatternPos == pCmdStart)
+            if ((pPatternPos == pCmdStart) && (strlen(pCmdStart) == strlen(_patternGenerators[i]->getPatternName())))
             {
                 patternGenIdx = i;
                 break;
@@ -56,16 +65,16 @@ public:
             // Start the pattern generator
             _patternGenerators[patternGenIdx]->start();
             Log.trace("CommandExtender generating pattern %s", _patternGenerators[patternGenIdx]->getPatternName());
-            return true;
+            handledOk = true;
+            return handledOk;
         }
         // See if it is a pattern evaluator
-        pPatternPos = strcasestr(pCmdStart, "evalpattern");
-        if (pPatternPos == pCmdStart)
-        {
-            Log.trace("CommandExtender evaluating pattern");
-            _patternEvaluator.start();
-        }
-        return false;
+        handledOk = _patternEvaluator.procCommand(pCmdStr);
+        if (handledOk)
+            return handledOk;
+        // See if it is a command sequencer
+        handledOk = _commandSequencer.procCommand(pCmdStr);
+        return handledOk;
     }
 
 private:
@@ -84,4 +93,5 @@ private:
     int _numPatternGenerators;
     CommandInterpreter* _pCommandInterpreter;
     PatternEvaluator _patternEvaluator;
+    CommandSequencer _commandSequencer;
 };

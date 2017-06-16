@@ -51,6 +51,7 @@ public:
 
             // Reset line
             _curLine = "";
+            return;
         }
 
         // Check line not too long

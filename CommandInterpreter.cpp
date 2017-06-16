@@ -14,18 +14,33 @@ CommandInterpreter::CommandInterpreter(WorkflowManager* pWorkflowManager, RobotC
     _pCommandExtender = new CommandExtender(this);
 }
 
-void CommandInterpreter::setConfig(const char* configStr)
+void CommandInterpreter::setSequences(const char* configStr)
 {
-    Log.trace("PatternCmds %s", configStr);
-    
+    Log.trace("setSequences %s", configStr);
+
     // Simply pass the whole config to the extender at present
-    _pCommandExtender->setConfig(configStr);
+    _pCommandExtender->setSequences(configStr);
+}
+
+void CommandInterpreter::setPatterns(const char* configStr)
+{
+    Log.trace("setPatterns %s", configStr);
+
+    // Simply pass the whole config to the extender at present
+    _pCommandExtender->setPatterns(configStr);
 }
 
 bool CommandInterpreter::canAcceptCommand()
 {
     if (_pWorkflowManager)
         return !_pWorkflowManager->isFull();
+    return false;
+}
+
+bool CommandInterpreter::queueIsEmpty()
+{
+    if (_pWorkflowManager)
+        return _pWorkflowManager->isEmpty();
     return false;
 }
 
@@ -45,7 +60,7 @@ bool CommandInterpreter::processSingle(const char* pCmdStr)
     return rslt;
 }
 
-bool CommandInterpreter::process(const char* pCmdStr)
+bool CommandInterpreter::process(const char* pCmdStr, int cmdIdx)
 {
     // Handle the case of a single string
     if (strstr(pCmdStr, ";") == NULL)
@@ -54,11 +69,12 @@ bool CommandInterpreter::process(const char* pCmdStr)
         return processSingle(pCmdStr);
     }
 
-    // Handle multiple commands (tab delimited)
+    // Handle multiple commands (semicolon delimited)
     Log.trace("cmdProc multicmd %s", pCmdStr);
     const int MAX_TEMP_CMD_STR_LEN = 1000;
     const char* pCurStr = pCmdStr;
     const char* pCurStrEnd = pCmdStr;
+    int curCmdIdx = 0;
     while (true)
     {
         // Find line end
@@ -78,11 +94,15 @@ bool CommandInterpreter::process(const char* pCmdStr)
             pCurCmd[stLen] = 0;
 
             // process
-            Log.trace("cmdProc single %d %s", stLen, pCurCmd);
-            processSingle(pCurCmd);
+            if (cmdIdx == -1 || cmdIdx == curCmdIdx)
+            {
+                Log.trace("cmdProc single %d %s", stLen, pCurCmd);
+                processSingle(pCurCmd);
+            }
             delete [] pCurCmd;
 
             // Move on
+            curCmdIdx++;
             if (*pCurStrEnd == '\0')
                 break;
             pCurStr = pCurStrEnd + 1;

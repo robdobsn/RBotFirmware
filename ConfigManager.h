@@ -1,6 +1,10 @@
 // RBotFirmware
 // Rob Dobson 2016
 
+// Many of the methods here support a dataPath parameter. This uses a syntax like a much simplified XPath:
+// [0] returns the 0th element of an array
+// / is a separator of nodes
+
 #pragma once
 
 #include "jsmnParticleR.h"
@@ -206,7 +210,7 @@ public:
 		return getLong(dataPath, defaultValue, isValid, _pDataStrJSON);
 	}
 
-	static const char* getObjType(jsmnrtype_t type)
+	static const char* getObjTypeStr(jsmnrtype_t type)
 	{
 		switch (type)
 		{
@@ -218,6 +222,23 @@ public:
 		}
 		return "UNKNOWN";
 	}
+
+    static const jsmnrtype_t getType(int& arrayLen, const char* pSourceStr)
+    {
+        // Check for null
+		if (!pSourceStr)
+			return JSMNR_UNDEFINED;
+
+        // Parse json into tokens
+        int numTokens = 0;
+        jsmnrtok_t* pTokens = parseJson(pSourceStr, numTokens);
+        if (pTokens == NULL)
+            return JSMNR_UNDEFINED;
+
+        // Get the type of the first token
+        arrayLen = pTokens->size;
+        return pTokens->type;
+    }
 
 public:
     static jsmnrtok_t* parseJson(const char* jsonStr, int& numTokens,
@@ -286,9 +307,13 @@ private:
         // Log.trace("findObjectEnd idx %d, count %d, start %s", curTokenIdx, count,
         //                 jsonOriginal + tokens[curTokenIdx].start);
 		// Primitives have a size of 0 but we still need to skip over them ...
-		if (count == 0)
-			count = 1;
         unsigned int tokIdx = curTokenIdx;
+		if (count == 0)
+		{
+            jsmnrtok_t* pTok = tokens + tokIdx;
+            if (pTok->type == JSMNR_ARRAY)
+                return tokIdx+1;
+        }
         for (int objIdx = 0; objIdx < count; objIdx++)
         {
             jsmnrtok_t* pTok = tokens + tokIdx;
@@ -388,7 +413,7 @@ private:
                 *sqBracketPos = 0;
             }
 
-            // Log.trace("findKeyInJson srchKey %s", srchKey);
+            Log.trace("findKeyInJson srchKey %s arrayIdx %ld", srchKey, reqdArrayIdx);
 
             // Iterate over tokens to find key of the right type
             // If we are already looking at the node level then search for requested type

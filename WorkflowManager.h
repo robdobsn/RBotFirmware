@@ -29,10 +29,16 @@ public:
         _cmdQueue.init(cmdQueueCfg);
     }
 
-    // Check if new queue full
+    // Check if queue full
     bool isFull()
     {
         return _cmdQueue.isFull();
+    }
+
+    // Check if queue empty
+    bool isEmpty()
+    {
+        return _cmdQueue.isEmpty();
     }
 
     // Add to workflow

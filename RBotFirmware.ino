@@ -81,15 +81,21 @@ static const char* ROBOT_CONFIG_STR_SANDTABLESCARA =
     " \"endStop0\": { \"sensePin\": \"A7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
     "}";
 
+static const char* ROBOT_SEQUENCE_COMMANDS =
+    "{"
+    " \"testSequence\":"
+    "  {\"commands\":\"G28;testPattern\"},"
+    " \"testSequence2\":"
+    "  {\"commands\":\"G28;G28\"}"
+    "}";
+
 static const char* ROBOT_PATTERN_COMMANDS =
     "{"
-    "["
-    "{"
-    " \"patternName\":\"customPattern\","
-    " \"setupExprs\":\"angle=0;diam=10\","
-    " \"loopExprs\":\"x=diam*sin(angle*3);y=diam*cos(angle*3);diam=diam+0.1;angle=angle+0.0314;stop=angle=6.28\""
-    "}"
-    "]"
+    " \"pattern1\":"
+    "  {"
+    "  \"setup\":\"angle=0;diam=10\","
+    "  \"loop\":\"x=diam*sin(angle*3);y=diam*cos(angle*3);diam=diam+0.1;angle=angle+0.0314;stop=angle=6.28\""
+    "  }"
     "}";
 
 static const char* ROBOT_CONFIG_STR = ROBOT_CONFIG_STR_SANDTABLESCARA;
@@ -128,7 +134,8 @@ void setup()
     _workflowManager.init(WORKFLOW_CONFIG_STR);
 
     // Configure the command interpreter
-    _commandInterpreter.setConfig(ROBOT_PATTERN_COMMANDS);
+    _commandInterpreter.setSequences(ROBOT_SEQUENCE_COMMANDS);
+    _commandInterpreter.setPatterns(ROBOT_PATTERN_COMMANDS);
 
     // Check for cmdsAtStart
     String cmdsAtStart = ConfigManager::getString("cmdsAtStart", "", ROBOT_CONFIG_STR);

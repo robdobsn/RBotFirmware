@@ -21,16 +21,8 @@ public:
 
     void setConfig(const char* configStr)
     {
-        // Get pattern details
-        String patternName = ConfigManager::getString("patternName", "NONE", configStr);
-        String setupExprs = ConfigManager::getString("setupExprs", "", configStr);
-        String loopExprs = ConfigManager::getString("loopExprs", "", configStr);
-        Log.trace("PatternEvaluator patternName %s setup %s loop %s",
-                        patternName.c_str(), setupExprs.c_str(), loopExprs.c_str());
-
-        // Add to the pattern evaluator expressions
-        addExpression(setupExprs.c_str(), true);
-        addExpression(loopExprs.c_str(), false);
+        // Store the config string
+        _jsonConfigStr = configStr;
     }
 
     void addExpression(const char* exprStr, bool isInitialValue)
@@ -158,14 +150,59 @@ public:
         }
     }
 
+    bool procCommand(const char* cmdStr)
+    {
+        // Find the pattern matching the command
+        bool isValid = false;
+        String patternJson = ConfigManager::getString(cmdStr, "{}", _jsonConfigStr, isValid);
+        Log.trace("PatternEvaluator proc cmdStr %s seqStr %s", cmdStr, patternJson.c_str());
+        if (isValid)
+        {
+            // Remove existing pattern
+            cleanUp();
+
+            // Get pattern details
+            String patternName = ConfigManager::getString("name", "NONE", patternJson);
+            _curPattern = patternName;
+            String setupExprs = ConfigManager::getString("setup", "", patternJson);
+            String loopExprs = ConfigManager::getString("loop", "", patternJson);
+            Log.trace("PatternEvaluator patternName %s setup %s",
+                            patternName.c_str(), setupExprs.c_str());
+            Log.trace("PatternEvaluator patternName %s loop %s",
+                            patternName.c_str(), loopExprs.c_str());
+
+            // Add to the pattern evaluator expressions
+            addExpression(setupExprs.c_str(), true);
+            addExpression(loopExprs.c_str(), false);
+
+            // Start the pattern evaluation process
+            start();
+
+        }
+        return isValid;
+    }
+
 private:
+    // Full configuration JSON
+    String _jsonConfigStr;
+
+    // All variables used in the pattern
+    PatternEvaluator_Vars _patternVars;
+
+    // Store for a variable index and compiled expression that evaluates to that variable
     typedef struct VarIdxAndCompiledExpr
     {
         te_expr* _pCompExpr;
         int _varIdx;
         bool _isInitialValue;
     } VarIdxAndCompiledExpr;
-    PatternEvaluator_Vars _patternVars;
+
+    // List of variable indices and compiled expressions
     std::vector<VarIdxAndCompiledExpr> _varIdxAndCompiledExprs;
+
+    // Indicator that the current pattern is running
     bool _isRunning;
+
+    // Current pattern name
+    String _curPattern;
 };

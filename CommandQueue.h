@@ -40,6 +40,12 @@ public:
         return (_cmdElemQueue.size() >= _cmdQueueMaxLen);
     }
 
+    // Check if queue empty
+    bool isEmpty()
+    {
+        return (_cmdElemQueue.size() == 0);
+    }
+
     // Add to queue
     bool add(const char* pCmdStr)
     {
