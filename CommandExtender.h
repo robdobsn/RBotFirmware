@@ -24,9 +24,19 @@ public:
         _commandSequencer.setConfig(configStr);
     }
 
+    const char* getSequences()
+    {
+        return _commandSequencer.getConfig();
+    }
+
     void setPatterns(const char* configStr)
     {
         _patternEvaluator.setConfig(configStr);
+    }
+
+    const char* getPatterns()
+    {
+        return _patternEvaluator.getConfig();
     }
 
     void service()

@@ -19,6 +19,11 @@ public:
         _jsonConfigStr = configStr;
     }
 
+    const char* getConfig()
+    {
+        return _jsonConfigStr.c_str();
+    }
+
     bool procCommand(const char* cmdStr)
     {
         // Find the command info

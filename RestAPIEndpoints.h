@@ -4,8 +4,8 @@
 #pragma once
 
 // Callback function for any endpoint
-typedef char * (*RestAPIEndpointCallbackType)(int method, const char *endpointStr, const char *argStr, const char *msgBuffer, int msgLen,
-                                              int contentLen, const unsigned char *pPayload, int payloadLen, int splitPayloadPos);
+typedef void (*RestAPIEndpointCallbackType)(int method, const char *endpointStr, const char *argStr, const char *msgBuffer, int msgLen,
+                                              int contentLen, const unsigned char *pPayload, int payloadLen, int splitPayloadPos, String& retStr);
 
 // Definition of an endpoint
 class RestAPIEndpointDef
@@ -107,12 +107,13 @@ public:
 
 
     // Handle an API request
-    char *handleApiRequest(const char *requestStr)
+    void handleApiRequest(const char *requestStr, String& retStr)
     {
         // Get the command
         static char *emptyStr       = (char *)"";
         String      requestEndpoint = getNthArgStr(requestStr, 0).toUpperCase();
         char        *argStart       = strstr(requestStr, "/");
+        retStr = "";
 
         if (argStart == NULL)
         {
@@ -140,10 +141,9 @@ public:
             }
             if (requestEndpoint.equalsIgnoreCase(pEndpointStr))
             {
-                return callback(0, NULL, argStart, NULL, 0, 0, NULL, 0, 0);
+                callback(0, NULL, argStart, NULL, 0, 0, NULL, 0, 0, retStr);
             }
         }
-        return emptyStr;
     }
 
 

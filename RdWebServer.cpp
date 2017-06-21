@@ -239,9 +239,10 @@ RdWebServerResourceDescr* RdWebClient::handleReceivedHttp(const char *httpReq, i
             Log.trace("FoundEndpoint <%s> Type %d", endpointStr.c_str(), pEndpoint->_endpointType);
             if (pEndpoint->_endpointType == RestAPIEndpointDef::ENDPOINT_CALLBACK)
             {
-                char *respStr = (pEndpoint->_callback)(httpMethod, endpointStr.c_str(), argStr.c_str(),
-                                                       httpReq, httpReqLen, contentLen, pPayload, payloadLen, 0);
-                formHTTPResponse(_httpRespStr, "200 OK", "application/json", respStr, -1);
+                String retStr;
+                (pEndpoint->_callback)(httpMethod, endpointStr.c_str(), argStr.c_str(),
+                            httpReq, httpReqLen, contentLen, pPayload, payloadLen, 0, retStr);
+                formHTTPResponse(_httpRespStr, "200 OK", "application/json", retStr.c_str(), -1);
                 _TCPClient.write((uint8_t *)_httpRespStr.c_str(), _httpRespStr.length());
                 handledOk = true;
             }

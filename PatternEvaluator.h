@@ -25,6 +25,11 @@ public:
         _jsonConfigStr = configStr;
     }
 
+    const char* getConfig()
+    {
+        return _jsonConfigStr.c_str();
+    }
+
     void addExpression(const char* exprStr, bool isInitialValue)
     {
         const char* pExpr = exprStr;

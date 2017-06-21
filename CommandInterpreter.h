@@ -17,7 +17,9 @@ private:
 public:
     CommandInterpreter(WorkflowManager* pWorkflowManager, RobotController* pRobotController);
     void setSequences(const char* configStr);
+    const char* getSequences();
     void setPatterns(const char* configStr);
+    const char* getPatterns();
     bool canAcceptCommand();
     bool queueIsEmpty();
     bool processSingle(const char* pCmdStr);

@@ -22,12 +22,22 @@ void CommandInterpreter::setSequences(const char* configStr)
     _pCommandExtender->setSequences(configStr);
 }
 
+const char* CommandInterpreter::getSequences()
+{
+    return _pCommandExtender->getSequences();
+}
+
 void CommandInterpreter::setPatterns(const char* configStr)
 {
     Log.trace("setPatterns %s", configStr);
 
     // Simply pass the whole config to the extender at present
     _pCommandExtender->setPatterns(configStr);
+}
+
+const char* CommandInterpreter::getPatterns()
+{
+    return _pCommandExtender->getPatterns();
 }
 
 bool CommandInterpreter::canAcceptCommand()

@@ -28,7 +28,7 @@ RdWebServer* pWebServer = NULL;
 SYSTEM_MODE(AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 
-SerialLogHandler logHandler(LOG_LEVEL_INFO);
+SerialLogHandler logHandler(LOG_LEVEL_TRACE);
 RobotController _robotController;
 WorkflowManager _workflowManager;
 CommandInterpreter _commandInterpreter(&_workflowManager, &_robotController);
@@ -94,7 +94,7 @@ static const char* ROBOT_PATTERN_COMMANDS =
     " \"pattern1\":"
     "  {"
     "  \"setup\":\"angle=0;diam=10\","
-    "  \"loop\":\"x=diam*sin(angle*3);y=diam*cos(angle*3);diam=diam+0.1;angle=angle+0.0314;stop=angle=6.28\""
+    "  \"loop\":\"x=diam*sin(angle*3);y=diam*cos(angle*3);diam=diam+0.5;angle=angle+0.0314;stop=angle>6.28\""
     "  }"
     "}";
 
@@ -102,6 +102,31 @@ static const char* ROBOT_CONFIG_STR = ROBOT_CONFIG_STR_SANDTABLESCARA;
 
 static const char* WORKFLOW_CONFIG_STR =
     "{\"CommandQueue\": { \"cmdQueueMaxLen\":50 } }";
+
+                   int contentLen, const unsigned char *pPayload, int payloadLen, int splitPayloadPos, String& retStr)
+{
+    if (msgBuffer)
+    if (pPayload)
+    // Result
+    retStr = "{\"ok\"}";
+}
+
+// Get settings information via API
+void restAPI_GetSettings(int method, const char *cmdStr, const char *argStr, const char *msgBuffer, int msgLen,
+                   int contentLen, const unsigned char *pPayload, int payloadLen, int splitPayloadPos, String& retStr)
+{
+    Log.trace("RestAPI GetSettings method %d contentLen %d payloadLen %d", method, contentLen, payloadLen);
+    // Get settings from each sub-element
+    const char* patterns = _commandInterpreter.getPatterns();
+    const char* sequences = _commandInterpreter.getSequences();
+    Log.trace("RestAPI GetSettings patterns %s", patterns);
+    Log.trace("RestAPI GetSettings sequences %s", sequences);
+    retStr = "{\"name\":\"Sand Table\",\"patterns\":";
+    retStr += patterns;
+    retStr += ", \"sequences\":";
+    retStr += sequences;
+    retStr += ", \"startup\":\"\"}";
+}
 
 void setup()
 {
@@ -117,6 +142,9 @@ void setup()
     TestConfigManager::runTests();
     #endif
 
+    // Add API endpoints
+    restAPIEndpoints.addEndpoint("getsettings", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_GetSettings);
+
     // Construct web server
     pWebServer = new RdWebServer();
 
@@ -125,6 +153,7 @@ void setup()
     {
         // Add resources to web server
         pWebServer->addStaticResources(genResources, genResourcesCount);
+        pWebServer->addRestAPIEndpoints(&restAPIEndpoints);
         // Start the web server
         pWebServer->start(webServerPort);
     }
