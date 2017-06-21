@@ -1,0 +1,204 @@
+<html><head>
+	<title>Sand Table</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript">
+		function bodyIsLoaded()
+		{
+			window.sandTableState = {
+                "name": "Sand Table",
+                "patterns":
+                {
+
+                },
+                "sequences":
+                {
+
+                },
+                "startup": ""
+			};
+			updateDisplay();
+		}
+        function callAjax(url, callback)
+        {
+            var xmlhttp = new XMLHttpRequest();
+            xmlhttp.onreadystatechange = function()
+            {
+                if (xmlhttp.readyState == 4 && xmlhttp.status == 200)
+                {
+                    callback(xmlhttp.responseText);
+                }
+            }
+
+            xmlhttp.open("GET", url, true);
+            xmlhttp.send();
+        }
+        function ajaxCallback()
+        {
+        }
+        function postJson(url, objToPost)
+        {
+            var xmlhttp = new XMLHttpRequest();
+            xmlhttp.open("POST", url);
+            xmlhttp.setRequestHeader("Content-Type", "application/json");
+            xmlhttp.send(JSON.stringify(objToPost));
+        }
+		function sandTableInfoCallback(jsonResp)
+		{
+			jsonData = JSON.parse(jsonResp);
+			window.sandTableState = jsonData;
+            genPageHeader();
+			genPageBody();
+		}
+		function sendSandTableInfo()
+		{
+            postJson("/putsettings", window.sandTableState);
+		}
+		function genPageHeader()
+		{
+			var sandTableState = window.sandTableState;
+			var headerDiv = document.getElementById("pageHeader");
+			var headStr = "<div class='body-header'>";
+			headStr += sandTableState.name;
+			headStr += '</div>\r\n';
+			headerDiv.innerHTML = headStr;
+		}
+		function genPageBody()
+		{
+			var sandTableState = window.sandTableState;
+			var shadesDiv = document.getElementById("pageBody");
+			var listStr = "<div class='body-list'>";
+			Object.keys(sandTableState.patterns).forEach(function(key,index) {
+			    listStr += "<a class='body-list-item'>";
+			    listStr += key;
+			    listStr += "</a>";
+    		});
+            listStr += "</div>";
+			shadesDiv.innerHTML = listStr;
+		}
+		function updateDisplay()
+		{
+			callAjax("/getsettings", sandTableInfoCallback);
+		}
+    </script>
+    <style>
+	body {
+	  font-family: Helvetica;
+	  line-height: 1.4em;
+	  font-size:12pt;
+	  background-color: #000000;
+	  color: #c0c0c0;
+	}
+	.page-header{
+	  padding-top: 20px;
+	  padding-bottom: 20px;
+	  background-color: #000000;
+	  width: 100%;
+	  font-size: 2em;
+	  color: #f0f0f0;
+	  text-align: center;
+	}
+	.body-list{
+        padding-top: 25px;
+	}
+	.body-group{
+        background-color: #003080;
+        margin-top: 15px;
+	}
+	.body-group-header{
+        margin: 5px;
+        position: absolute;
+        padding-bottom:20px;
+	}
+	.body-name{
+	  padding: 10px;
+	  background-color: #303030;
+	  width: 100%;
+	  font-size: 1.5em;
+	  color: #ffffff;
+	}
+	.body-list-line{
+		display:block;
+		padding: 10px;
+	}
+	.body-list-item{
+		display: inline-block;
+	  padding: 10px;
+	  padding-left: 30px;
+	  /*width: 25%;*/
+	  font-size: 1.2em;
+	  color: #ffffff;
+	}
+	.body-list-item a {
+	  text-decoration: none;
+	  color: #94f3ff;
+	}
+	.body-config {
+        padding: 20px;
+        margin-top: 30px;
+        width: 100%;
+	  font-size: 1.5em;
+	  color: #f0f0f0;
+	}
+	.body-advanced {
+		padding-top: 10px;
+		padding-bottom: 10px;
+		margin-top: 30px;
+  	  background-color: #202020;
+  	  width: 100%;
+  	  font-size: 1.2em;
+  	  color: #000000;
+  	  text-align: center;
+	}
+	.body-advanced a {
+	  text-decoration: none;
+	  color: #808080;
+	}
+	.body-name-edit {
+		font-size: 1em;
+	}
+	.body-num-edit {
+		font-size: 1em;
+	}
+	.body-name-edit {
+		font-size: 1em;
+	}
+    </style>
+</head>
+<body>
+
+<div>
+	<div id="pageHeader"><div class="page-header">Sand Table</div>
+</div>
+	<div id="pageBody">
+        <div class="body-group">
+            <div class="body-group-header">Control</div>
+            <div class="body-list">
+                <a class="body-list-item" href="#">Pause</a>
+                <a class="body-list-item">Resume</a>
+                <a class="body-list-item">Restart</a>
+            </div>
+        </div>
+        <div class="body-group">
+            <div class="body-group-header">Patterns</div>
+            <div class="body-list">
+                <a class="body-list-item" href="#">pattern1</a>
+                <a class="body-list-item">pattern2</a>
+            </div>
+        </div>
+        <div class="body-group">
+            <div class="body-group-header">Sequences</div>
+            <div class="body-list">
+                <a class="body-list-item">Sequence1</a>
+                <a class="body-list-item">Sequence2</a>
+                <a class="body-list-item">Sequence3</a>
+                <a class="body-list-item">Sequence4</a>
+                <a class="body-list-item">Sequence5</a>
+                <a class="body-list-item">Sequence6</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+</body></html>

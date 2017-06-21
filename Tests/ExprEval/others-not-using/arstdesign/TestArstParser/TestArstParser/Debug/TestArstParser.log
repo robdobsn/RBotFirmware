@@ -1,0 +1,247 @@
+﻿  util.cpp
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(47): error C3646: 'addChar': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(47): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(47): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(48): error C3646: 'addWord': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(48): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(48): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(49): error C3646: 'addLong': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(49): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(49): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(50): error C3646: 'addDouble': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(50): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(50): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(51): error C3646: 'addString': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(51): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(51): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(52): error C3646: 'addStringWithEOL': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(52): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(52): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(53): error C3646: 'addBuffer': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(53): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(53): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(54): error C3646: 'addBuffer': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(54): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(54): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(55): error C3646: 'addEOLIfRequired': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(55): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(55): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(88): error C3646: '_operator': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(88): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(93): error C3646: '_isfunction': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(93): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(121): error C3646: 'm_bIsAfunction': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(121): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(143): error C2061: syntax error: identifier 'BOOL'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(144): error C3646: 'getIsAFunction': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(144): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(144): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(146): error C3646: 'isHigherPriorityThan': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(146): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(146): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(147): error C3646: 'isParenthesis': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(147): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(147): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(170): error C3646: 'isEmpty': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(170): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(170): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(173): error C3646: 'setOrigString': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(173): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(173): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(174): error C3646: 'setOrigString': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(174): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(174): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(175): error C3646: 'setString': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(175): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(175): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(176): error C3646: 'setString': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(176): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(176): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(177): error C3646: 'setString': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(177): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(177): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(178): error C3646: 'getString': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(178): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(178): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(184): error C3646: 'isANumber': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(184): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(184): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(185): error C3646: 'isADouble': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(185): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(185): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(207): error C2061: syntax error: identifier 'LPSTR'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(208): error C2061: syntax error: identifier 'LPSTR'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(209): error C2061: syntax error: identifier 'LPSTR'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(211): error C3646: 'getVarname': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(211): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(211): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(212): error C3646: 'getVarvalue': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(212): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(212): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(214): error C3646: 'isNameMatching': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(214): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(214): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(241): error C3646: 'IsEmpty': unknown override specifier
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(258): note: see reference to class template instantiation 'wzstack<T>' being compiled
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(241): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(241): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(252): error C3646: 'IsIteratorEmpty': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(252): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(252): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(253): error C3646: 'GetIteratorSize': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(253): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(253): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(270): error C2143: syntax error: missing ';' before 'wzstack<T>::IsEmpty'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(270): warning C4346: 'IsEmpty': dependent name is not a type
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(270): note: prefix with 'typename' to indicate a type
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(273): warning C4346: 'wzstack<T>::IsEmpty': dependent name is not a type
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(273): note: prefix with 'typename' to indicate a type
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(273): error C2988: unrecognizable template declaration/definition
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(273): error C2059: syntax error: '<end Parse>'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(275): error C2065: 'T': undeclared identifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(275): error C2923: 'wzstack': 'T' is not a valid template type argument for parameter 'T'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(276): error C2143: syntax error: missing ';' before '{'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(276): error C2447: '{': missing function header (old-style formal list?)
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(318): error C2143: syntax error: missing ';' before 'wzstack<T>::IsIteratorEmpty'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(318): warning C4346: 'IsIteratorEmpty': dependent name is not a type
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(318): note: prefix with 'typename' to indicate a type
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(321): warning C4346: 'wzstack<T>::IsIteratorEmpty': dependent name is not a type
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(321): note: prefix with 'typename' to indicate a type
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(321): error C2988: unrecognizable template declaration/definition
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(321): error C2059: syntax error: '<end Parse>'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(323): error C2065: 'T': undeclared identifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(323): error C2923: 'wzstack': 'T' is not a valid template type argument for parameter 'T'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(324): error C2143: syntax error: missing ';' before '{'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(324): fatal error C1003: error count exceeds 100; stopping compilation
+  TestArstParser.cpp
+  stdafx.cpp
+  parser.cpp
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\parser.cpp(29): error C2511: 'void wzparser::setArgumentSeparator(char)': overloaded member function not found in 'wzparser'
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\parser.h(11): note: see declaration of 'wzparser'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\parser.cpp(30): error C2597: illegal reference to non-static member 'wzparser::m_cArgumentSeparator'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\parser.cpp(840): error C2664: 'void OutputDebugStringW(LPCWSTR)': cannot convert argument 1 from 'char [256]' to 'LPCWSTR'
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\parser.cpp(840): note: Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or function-style cast
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\parser.cpp(856): error C2664: 'void OutputDebugStringW(LPCWSTR)': cannot convert argument 1 from 'char [256]' to 'LPCWSTR'
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\parser.cpp(856): note: Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or function-style cast
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\parser.cpp(839): error C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(90): note: see declaration of 'strcat'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\parser.cpp(848): error C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: see declaration of 'sprintf'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\parser.cpp(853): error C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: see declaration of 'sprintf'
+  evalparser.cpp
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(47): error C3646: 'addChar': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(47): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(47): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(48): error C3646: 'addWord': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(48): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(48): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(49): error C3646: 'addLong': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(49): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(49): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(50): error C3646: 'addDouble': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(50): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(50): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(51): error C3646: 'addString': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(51): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(51): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(52): error C3646: 'addStringWithEOL': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(52): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(52): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(53): error C3646: 'addBuffer': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(53): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(53): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(54): error C3646: 'addBuffer': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(54): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(54): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(55): error C3646: 'addEOLIfRequired': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(55): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(55): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(88): error C3646: '_operator': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(88): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(93): error C3646: '_isfunction': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(93): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(121): error C3646: 'm_bIsAfunction': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(121): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(143): error C2061: syntax error: identifier 'BOOL'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(144): error C3646: 'getIsAFunction': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(144): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(144): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(146): error C3646: 'isHigherPriorityThan': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(146): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(146): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(147): error C3646: 'isParenthesis': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(147): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(147): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(170): error C3646: 'isEmpty': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(170): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(170): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(173): error C3646: 'setOrigString': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(173): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(173): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(174): error C3646: 'setOrigString': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(174): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(174): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(175): error C3646: 'setString': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(175): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(175): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(176): error C3646: 'setString': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(176): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(176): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(177): error C3646: 'setString': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(177): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(177): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(178): error C3646: 'getString': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(178): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(178): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(184): error C3646: 'isANumber': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(184): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(184): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(185): error C3646: 'isADouble': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(185): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(185): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(207): error C2061: syntax error: identifier 'LPSTR'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(208): error C2061: syntax error: identifier 'LPSTR'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(209): error C2061: syntax error: identifier 'LPSTR'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(211): error C3646: 'getVarname': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(211): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(211): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(212): error C3646: 'getVarvalue': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(212): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(212): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(214): error C3646: 'isNameMatching': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(214): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(214): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(241): error C3646: 'IsEmpty': unknown override specifier
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(258): note: see reference to class template instantiation 'wzstack<T>' being compiled
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(241): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(241): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(252): error C3646: 'IsIteratorEmpty': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(252): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(252): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(253): error C3646: 'GetIteratorSize': unknown override specifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(253): error C2059: syntax error: '('
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(253): error C2238: unexpected token(s) preceding ';'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(270): error C2143: syntax error: missing ';' before 'wzstack<T>::IsEmpty'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(270): warning C4346: 'IsEmpty': dependent name is not a type
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(270): note: prefix with 'typename' to indicate a type
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(273): warning C4346: 'wzstack<T>::IsEmpty': dependent name is not a type
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(273): note: prefix with 'typename' to indicate a type
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(273): error C2988: unrecognizable template declaration/definition
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(273): error C2059: syntax error: '<end Parse>'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(275): error C2065: 'T': undeclared identifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(275): error C2923: 'wzstack': 'T' is not a valid template type argument for parameter 'T'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(276): error C2143: syntax error: missing ';' before '{'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(276): error C2447: '{': missing function header (old-style formal list?)
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(318): error C2143: syntax error: missing ';' before 'wzstack<T>::IsIteratorEmpty'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(318): warning C4346: 'IsIteratorEmpty': dependent name is not a type
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(318): note: prefix with 'typename' to indicate a type
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(321): warning C4346: 'wzstack<T>::IsIteratorEmpty': dependent name is not a type
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(321): note: prefix with 'typename' to indicate a type
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(321): error C2988: unrecognizable template declaration/definition
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(321): error C2059: syntax error: '<end Parse>'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(323): error C2065: 'T': undeclared identifier
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(323): error C2923: 'wzstack': 'T' is not a valid template type argument for parameter 'T'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(324): error C2143: syntax error: missing ';' before '{'
+m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\arstdesign\testarstparser\testarstparser\util.h(324): fatal error C1003: error count exceeds 100; stopping compilation
+  Generating Code...

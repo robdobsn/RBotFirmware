@@ -1,0 +1,52 @@
+﻿  stdafx.cpp
+  fastmathparser.cpp
+c:\program files (x86)\microsoft visual studio 14.0\vc\include\xutility(2372): warning C4996: 'std::copy::_Unchecked_iterators::_Deprecate': Call to 'std::copy' with parameters that may be unsafe - this call relies on the caller to check that the passed values are correct. To disable this warning, use -D_SCL_SECURE_NO_WARNINGS. See documentation on how to use Visual C++ 'Checked Iterators'
+  c:\program files (x86)\microsoft visual studio 14.0\vc\include\xutility(2372): note: see declaration of 'std::copy::_Unchecked_iterators::_Deprecate'
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\fastmathparser\fastmathparser\exprtk.hpp(8405): note: see reference to function template instantiation '_OutIt *std::copy<const char*,char*>(_InIt,_InIt,_OutIt)' being compiled
+          with
+          [
+              _OutIt=char *,
+              _InIt=const char *
+          ]
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\fastmathparser\fastmathparser\exprtk.hpp(8381): note: while compiling class template member function 'double exprtk::details::assignment_string_range_node<T,exprtk::details::asn_assignment>::value(void) const'
+          with
+          [
+              T=double
+          ]
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\fastmathparser\fastmathparser\exprtk.hpp(33196): note: see reference to class template instantiation 'exprtk::details::assignment_string_range_node<T,exprtk::details::asn_assignment>' being compiled
+          with
+          [
+              T=double
+          ]
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\fastmathparser\fastmathparser\exprtk.hpp(26747): note: see reference to function template instantiation 'exprtk::details::expression_node<T> *exprtk::parser<T>::expression_generator<T>::synthesize_expression<exprtk::details::assignment_string_range_node<T,exprtk::details::asn_assignment>,2>(const exprtk::details::operator_type &,exprtk::details::expression_node<T> *(&)[2])' being compiled
+          with
+          [
+              T=double
+          ]
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\fastmathparser\fastmathparser\exprtk.hpp(26747): note: see reference to function template instantiation 'exprtk::details::expression_node<T> *exprtk::parser<T>::expression_generator<T>::synthesize_expression<exprtk::details::assignment_string_range_node<T,exprtk::details::asn_assignment>,2>(const exprtk::details::operator_type &,exprtk::details::expression_node<T> *(&)[2])' being compiled
+          with
+          [
+              T=double
+          ]
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\fastmathparser\fastmathparser\exprtk.hpp(26711): note: while compiling class template member function 'exprtk::details::expression_node<T> *exprtk::parser<T>::expression_generator<T>::synthesize_assignment_expression(const exprtk::details::operator_type &,exprtk::details::expression_node<T> *(&)[2])'
+          with
+          [
+              T=double
+          ]
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\fastmathparser\fastmathparser\exprtk.hpp(25395): note: see reference to function template instantiation 'exprtk::details::expression_node<T> *exprtk::parser<T>::expression_generator<T>::synthesize_assignment_expression(const exprtk::details::operator_type &,exprtk::details::expression_node<T> *(&)[2])' being compiled
+          with
+          [
+              T=double
+          ]
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\fastmathparser\fastmathparser\exprtk.hpp(33536): note: see reference to class template instantiation 'exprtk::parser<T>::expression_generator<T>' being compiled
+          with
+          [
+              T=double
+          ]
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\fastmathparser\fastmathparser\fastmathparser.cpp(47): note: see reference to class template instantiation 'exprtk::parser<T>' being compiled
+          with
+          [
+              T=double
+          ]
+  m:\robdev\projects\botscnc\rbotfirmware\tests\expreval\fastmathparser\fastmathparser\fastmathparser.cpp(59): note: see reference to function template instantiation 'void trig_function<double>(void)' being compiled
+M:\RobDev\Projects\BotsCNC\RBotFirmware\Tests\ExprEval\fastmathparser\fastmathparser\fastmathparser.cpp : fatal error C1128: number of sections exceeded object file format limit: compile with /bigobj

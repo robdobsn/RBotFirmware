@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+	<head>
+	<title>Sand Table</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript">
+		function iconGen(canvasID)
+		{
+
+		}
+		function bodyIsLoaded()
+		{
+		    window.stState =
+				{
+				    patEdit: false,
+				    seqEdit: false,
+					curPage: ''
+				}
+		    window.stState.patEdit = false;
+		    window.stState.seqEdit = false;
+			window.sandTableState = {
+                "name": "Sand Table",
+                "patterns":
+                {
+
+                },
+                "sequences":
+                {
+
+                },
+                "startup": ""
+			};
+			updateDisplay();
+		}
+        function callAjax(url, callback)
+        {
+            var xmlhttp = new XMLHttpRequest();
+            xmlhttp.onreadystatechange = function()
+            {
+                if (xmlhttp.readyState == 4 && xmlhttp.status == 200)
+                {
+                    callback(xmlhttp.responseText);
+                }
+            }
+
+            xmlhttp.open("GET", url, true);
+            xmlhttp.send();
+        }
+        function ajaxCallback()
+        {
+        }
+        function postJson(url, objToPost)
+        {
+            var xmlhttp = new XMLHttpRequest();
+            xmlhttp.open("POST", url);
+            xmlhttp.setRequestHeader("Content-Type", "application/json");
+            xmlhttp.send(JSON.stringify(objToPost));
+        }
+		function sandTableInfoCallback(jsonResp)
+		{
+			jsonData = JSON.parse(jsonResp);
+			window.sandTableState = jsonData;
+            genPageHeader();
+			genPageBody();
+		}
+		function sendSandTableInfo()
+		{
+            postJson("/postsettings", window.sandTableState);
+		}
+		function togglePatEditMode()
+		{
+		    window.stState.patEdit = !window.stState.patEdit;
+			updateDisplay();
+		}
+		function toggleSeqEditMode()
+		{
+		    window.stState.seqEdit = !window.stState.seqEdit;
+			updateDisplay();
+		}
+		function genPageHeader()
+		{
+			var sandTableState = window.sandTableState;
+			var headerDiv = document.getElementById("pageHeader");
+			var headStr = "<div class='page-header'>";
+			headStr += sandTableState.name;
+			headStr += '</div>\r\n';
+			headerDiv.innerHTML = headStr;
+		}
+		function genButton(url, clickFn, label)
+		{
+		    console.log("Gen BUTTON url " + url + " clickFn " + clickFn + " label " + label);
+		    var rtnStr = "<span class='body-group-button' onclick='" + clickFn + "'>" + label + "</span>";
+		    console.log("genButton -> " + rtnStr);
+		    return rtnStr;
+		}
+		function genActionButtons(editState, buttonInfo) {
+            var oStr = "";
+            oStr += "<div class='body-group-actions'>";
+            buttonInfo.buttons.forEach(function (butn) {
+                var actionStr = editState ? butn.actionOn : butn.actionOff;
+                var butLabel = (editState ? butn.onStr : butn.offStr);
+                oStr += "<div class='body-group-action'>";
+                oStr += "<span class='body-group-button' onclick='" + actionStr + "'>" + butLabel + "</span>";
+                oStr += "</div>";
+                oStr += "</div>"
+            });
+            return oStr;
+        }
+        function pageNav(itemNavPage, itemLabel)
+		{
+		    window.stState.curPage = itemNavPage;
+		    window.stState.curItem = itemLabel;
+		    updateDisplay();
+		}
+        function genItemButton(editState, itemLabel, itemApiName, itemNavPage)
+		{
+		    var oStr = "";
+            oStr += "<div class='body-list-item" + (editState ? " body-list-edit" : "") + "'>";
+            if (editState)
+            {
+                oStr += genButton(itemApiName, "pageNav(\"" + itemNavPage + "\",\"" + itemLabel + "\")", itemLabel);
+			}
+            else {
+                oStr += genButton(itemApiName, "callAjax(\"" + itemApiName + "\",ajaxCallback)", itemLabel);
+            }
+            oStr += "</div>";
+            return oStr;
+		}
+		function genBodyHeadingSection()
+		{
+			// Control section
+			var oStr = "<div class='body-group'>";
+			oStr += "<div class='body-group-header'>Control</div>";
+			oStr += "<div class='body-list'>";
+			oStr += "<div class='body-list-item'>" + genButton("/exec/pause", "ajaxCallback", "Pause") + "</div>";
+			oStr += "<div class='body-list-item'>" + genButton("/exec/resume", "ajaxCallback", "Resume") + "</div>";
+			oStr += "<div class='body-list-item'>" + genButton("/exec/restart", "ajaxCallback", "Restart") + "</div>";
+//			oStr += "<div class='body-list-item'>" + "<a href='javascript:void(0)' onclick='postJson(\"/postsettings\", window.sandTableState)'>POST</a>" + "</div>";
+			oStr += "</div>";
+			oStr += "</div>";
+			return oStr;
+		}
+		function genHomePageBody()
+		{
+			var sandTableState = window.sandTableState;
+			var pageBodyDiv = document.getElementById("pageBody");
+
+			// Body heading
+			var listStr = genBodyHeadingSection();
+
+			// Patterns section
+			listStr += "<div class='body-group'>";
+			listStr += "<div class='body-group-header'>Patterns</div>";
+			listStr += genActionButtons(window.stState.patEdit, {"buttons":[{"offStr":"Edit","onStr":"Cancel", "actionOff":"togglePatEditMode();", "actionOn":"togglePatEditMode();"}]});
+			listStr += "<div class='body-list'>";
+			Object.keys(sandTableState.patterns).forEach(function(key,index) {
+				listStr += genItemButton(window.stState.patEdit, key, "/pattern/"+key, 'patEdit');
+    		});
+            listStr += "</div>";
+            listStr += "</div>";
+
+			// Sequences section
+			listStr += "<div class='body-group'>";
+			listStr += "<div class='body-group-header'>Sequences</div>";
+			listStr += genActionButtons(window.stState.seqEdit, {"buttons":[{"offStr":"Edit","onStr":"Cancel", "actionOff":"toggleSeqEditMode();", "actionOn":"toggleSeqEditMode();"}]});
+			listStr += "<div class='body-list'>";
+			Object.keys(sandTableState.sequences).forEach(function(key,index) {
+				listStr += genItemButton(window.stState.seqEdit, key, "/sequence/"+key, 'seqEdit');
+    		});
+            listStr += "</div>";
+            listStr += "</div>";
+
+			pageBodyDiv.innerHTML = listStr;
+
+		}
+		function genPatEditBody() {
+            var sandTableState = window.sandTableState;
+            var pageBodyDiv = document.getElementById("pageBody");
+
+			// Body heading
+			var listStr = genBodyHeadingSection();
+
+			listStr += "<div class='body-group'>";
+			listStr += "<div class='body-group-header'>Edit Pattern</div>";
+			listStr += "<form class='body-form'>";
+			listStr += "<fieldset class='body-fieldset'>";
+			listStr += "<div class='body-form-line'>";
+			listStr += "<div class='body-form-label'>Name</div>";
+			listStr += "<textarea name='patname' rows='1' class='body-form-field'>asdasd</textarea>";
+            listStr += "</div>";
+			listStr += "<div class='body-form-line'>";
+			listStr += "<div class='body-form-label'>Setup</div>";
+			listStr += "<textarea name='patsetup' class='body-form-field' cols='50' rows='10'>asd</textarea>";
+           listStr += "</div>";
+            listStr += "</fieldset>";
+            listStr += "</form>";
+            listStr += "</div>";
+			pageBodyDiv.innerHTML = listStr;
+        }
+		function genPageBody()
+		{
+		    if (window.stState.curPage.trim() == 'patEdit')
+			{
+				genPatEditBody();
+			}
+			else
+			{
+			    genHomePageBody();
+			}
+		}
+		function updateDisplay()
+		{
+			callAjax("/getsettings", sandTableInfoCallback);
+		}
+    </script>
+    <style>
+	body {
+	  font-family: Helvetica;
+	  line-height: 1.4em;
+	  font-size:12pt;
+	  background-color: #000000;
+	  color: #c0c0c0;
+	}
+	.page-header{
+	  padding-top: 20px;
+	  padding-bottom: 20px;
+	  background-color: #000000;
+	  width: 100%;
+	  font-size: 2em;
+	  color: #f0f0f0;
+	  text-align: center;
+	}
+	.body-list{
+        padding-top: 25px;
+	}
+	.body-group{
+        background-color: #003080;
+        margin-top: 15px;
+	}
+	.body-group-header{
+        margin: 5px;
+        position: absolute;
+        padding-bottom:20px;
+	}
+	.body-group-actions{
+        margin: 5px;
+		float: right;
+	}
+	.body-group-button {
+	  color: #c0c0c0;
+		cursor:pointer;
+	}
+	.body-group-action{
+	}
+	.body-name{
+	  padding: 10px;
+	  background-color: #303030;
+	  width: 100%;
+	  font-size: 1.5em;
+	  color: #ffffff;
+	}
+	.body-form {
+		display: block;
+	}
+	.body-form-line{
+		padding:5px;
+	}
+	.body-form-label{
+		color:azure;
+	}
+	.body-form-field{
+		width: 100%;
+		background: #404040;
+		color: white;
+		border:none;
+	}
+	.body-fieldset{
+		border: none;
+		padding-top:30px;
+	}
+	.body-list-line{
+		display:block;
+		padding: 10px;
+	}
+	.body-list-item{
+		display: inline-block;
+	  padding: 10px;
+	  padding-left: 30px;
+	  /*width: 25%;*/
+	  font-size: 1.2em;
+	  color: #ffffff;
+	}
+	.body-list-item span {
+	  text-decoration: none;
+	  color: #94f3ff;
+		cursor:pointer;
+	}
+	.body-list-edit span {
+		color: #fff395;
+	}
+	.body-list-button {
+	  color: #94f3ff;
+		cursor:pointer;
+	}
+	.body-config {
+        padding: 20px;
+        margin-top: 30px;
+        width: 100%;
+	  font-size: 1.5em;
+	  color: #f0f0f0;
+	}
+	.body-advanced {
+		padding-top: 10px;
+		padding-bottom: 10px;
+		margin-top: 30px;
+  	  background-color: #202020;
+  	  width: 100%;
+  	  font-size: 1.2em;
+  	  color: #000000;
+  	  text-align: center;
+	}
+	.body-advanced a {
+	  text-decoration: none;
+	  color: #808080;
+	}
+	.body-name-edit {
+		font-size: 1em;
+	}
+	.body-num-edit {
+		font-size: 1em;
+	}
+	.body-name-edit {
+		font-size: 1em;
+	}
+    </style>
+</head>
+<body onload="bodyIsLoaded()">
+
+<div>
+	<div id="pageHeader"></div>
+	<div id="pageBody"></div>
+</div>
+
+</body>
+</html>
