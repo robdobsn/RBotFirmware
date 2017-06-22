@@ -23,7 +23,7 @@ resFileInfo = []
 lineNormalIndentChars = 4
 lineHexBytesLen = 16
 lineHexIndentChars = 4
-with open("../RbotFirmware/GenResources.h", "w") as outFile:
+with open("../src/GenResources.h", "w") as outFile:
     outFile.write("// Auto-Generated file containing res folder binary contents\n")
     outFile.write("#include \"RdWebServerResources.h\"\n\n")
     walkGen = os.walk("./res")

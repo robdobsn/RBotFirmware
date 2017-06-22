@@ -4,20 +4,65 @@
 	<title>Sand Table</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
     <script type="text/javascript">
+		var tVal, x, y, stop;
+		var logoWidth = 400, logoHeight = 400;
+		var logoCanvasWidth = 100, logoCanvasHeight = 100;
+		var logoCentreX = logoCanvasWidth / 2, logoCentreY = logoCanvasHeight / 2;
+	    var startRadius = 180;
+		var overRotationFactor=1.03;
+    	var segmentsPerRev = 200;
+    	var modulationFreqMult = 20;
+	    var endRadius = 10;
+	    var outstepPerRev = -13;
+	    var modulationDampingFactor = 0.6;
+    	var modulationAmp = 10;
+
 		function iconGen(canvasID)
 		{
+			function logoSetup() {
+                tVal = 0;
+                stop=false;
+            }
+			function logoLoop() {
+				var rRadians = tVal * 2 * Math.PI * overRotationFactor / segmentsPerRev;
+				var curModu = Math.sin(tVal * modulationFreqMult * 2 * Math.PI / segmentsPerRev);
+				var curRadius = startRadius + outstepPerRev * tVal / segmentsPerRev;
+				var radiusProp = (curRadius-Math.min(startRadius,endRadius))/Math.abs(startRadius-endRadius);
+				var modDampFact = (1 - radiusProp) * modulationDampingFactor;
+				var modAmpl = curRadius + curModu * modulationAmp * (1 - modDampFact);
+				x = modAmpl * Math.sin(rRadians) * logoCanvasWidth / logoWidth;
+				y = modAmpl * Math.cos(rRadians) * logoCanvasHeight / logoHeight;
+				tVal += 1;
+				stop = (curRadius > Math.max(startRadius, endRadius)) || (curRadius < Math.min(startRadius, endRadius));
+			}
+
+			var c = document.getElementById(canvasID);
+			var ctx = c.getContext("2d");
+			ctx.beginPath();
+			ctx.lineWidth = 2;
+			logoSetup();
+			var ctr = 0;
+			while(!stop)
+			{
+				logoLoop();
+				if (ctr == 0)
+					ctx.moveTo(logoCentreX+x, logoCentreY+y);
+				else
+					ctx.lineTo(logoCentreX+x, logoCentreY+y);
+				if (ctr > 10000)
+					break;
+				ctr++;
+			}
+			ctx.strokeStyle = '#e0e0e0';
+			ctx.stroke();
 
 		}
 		function bodyIsLoaded()
 		{
 		    window.stState =
 				{
-				    patEdit: false,
-				    seqEdit: false,
 					curPage: ''
-				}
-		    window.stState.patEdit = false;
-		    window.stState.seqEdit = false;
+				};
 			window.sandTableState = {
                 "name": "Sand Table",
                 "patterns":
@@ -41,7 +86,7 @@
                 {
                     callback(xmlhttp.responseText);
                 }
-            }
+            };
 
             xmlhttp.open("GET", url, true);
             xmlhttp.send();
@@ -62,79 +107,66 @@
 			window.sandTableState = jsonData;
             genPageHeader();
 			genPageBody();
+			iconGen("logoCanvas");
 		}
 		function sendSandTableInfo()
 		{
             postJson("/postsettings", window.sandTableState);
 		}
-		function togglePatEditMode()
+		function genButton(clickFn, keyVal, label, cssClass)
 		{
-		    window.stState.patEdit = !window.stState.patEdit;
-			updateDisplay();
+//		    console.log("Gen BUTTON url " + url + " clickFn " + clickFn + " label " + label);
+			var oStr = "";
+			clickFn = clickFn.replace("~key~", keyVal);
+			if (label == "Edit")
+			{
+				oStr += "<span class='" + cssClass + "' onclick='" + clickFn + "'>";
+				oStr += '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Capa_1" x="0px" y="0px" width="30px" height="30px" viewBox="0 0 530 530" xml:space="preserve">';
+				oStr += '<g><path d="M328.883,89.125l107.59,107.589l-272.34,272.34L56.604,361.465L328.883,89.125z M518.113,63.177l-47.981-47.981   c-18.543-18.543-48.653-18.543-67.259,0l-45.961,45.961l107.59,107.59l53.611-53.611   C532.495,100.753,532.495,77.559,518.113,63.177z M0.3,512.69c-1.958,8.812,5.998,16.708,14.811,14.565l119.891-29.069   L27.473,390.597L0.3,512.69z" style="fill: rgb(220, 222, 208);"></path></g>';
+				oStr += '</svg>';
+				oStr += "</span>";
+			}
+			else
+			{
+			    oStr += "<span class='" + cssClass + "' onclick='" + clickFn + "'>" + label + "</span>";
+			}
+
+//		    console.log("genButton -> " + rtnStr);
+		    return oStr;
 		}
-		function toggleSeqEditMode()
+		function genAjaxButton(url, key, label, cssClass)
 		{
-		    window.stState.seqEdit = !window.stState.seqEdit;
-			updateDisplay();
+		    return genButton("callAjax(\"" + url + "\",ajaxCallback)", key, label, cssClass);
 		}
-		function genPageHeader()
-		{
-			var sandTableState = window.sandTableState;
-			var headerDiv = document.getElementById("pageHeader");
-			var headStr = "<div class='page-header'>";
-			headStr += sandTableState.name;
-			headStr += '</div>\r\n';
-			headerDiv.innerHTML = headStr;
-		}
-		function genButton(url, clickFn, label)
-		{
-		    console.log("Gen BUTTON url " + url + " clickFn " + clickFn + " label " + label);
-		    var rtnStr = "<span class='body-group-button' onclick='" + clickFn + "'>" + label + "</span>";
-		    console.log("genButton -> " + rtnStr);
-		    return rtnStr;
-		}
-		function genActionButtons(editState, buttonInfo) {
-            var oStr = "";
-            oStr += "<div class='body-group-actions'>";
-            buttonInfo.buttons.forEach(function (butn) {
-                var actionStr = editState ? butn.actionOn : butn.actionOff;
-                var butLabel = (editState ? butn.onStr : butn.offStr);
-                oStr += "<div class='body-group-action'>";
-                oStr += "<span class='body-group-button' onclick='" + actionStr + "'>" + butLabel + "</span>";
-                oStr += "</div>";
-                oStr += "</div>"
-            });
-            return oStr;
-        }
         function pageNav(itemNavPage, itemLabel)
 		{
 		    window.stState.curPage = itemNavPage;
 		    window.stState.curItem = itemLabel;
 		    updateDisplay();
 		}
-        function genItemButton(editState, itemLabel, itemApiName, itemNavPage)
+		function genPageHeader()
 		{
-		    var oStr = "";
-            oStr += "<div class='body-list-item" + (editState ? " body-list-edit" : "") + "'>";
-            if (editState)
-            {
-                oStr += genButton(itemApiName, "pageNav(\"" + itemNavPage + "\",\"" + itemLabel + "\")", itemLabel);
-			}
-            else {
-                oStr += genButton(itemApiName, "callAjax(\"" + itemApiName + "\",ajaxCallback)", itemLabel);
-            }
-            oStr += "</div>";
-            return oStr;
+			var sandTableState = window.sandTableState;
+			var headerDiv = document.getElementById("pageHeader");
+			var headStr = "<div class='page-header backHead'>";
+			headStr += "<div class='page-header-logo'>";
+			headStr += '<canvas id="logoCanvas" class="page-logo backHead" width="' + logoCanvasWidth + '" height="' + logoCanvasHeight + '">Oops</canvas>';
+			headStr += '</div>';
+			headStr += "<div class='page-header-text'>";
+			headStr += sandTableState.name;
+			headStr += '</div>';
+			headStr += '</div>';
+			headerDiv.innerHTML = headStr;
 		}
 		function genBodyHeadingSection()
 		{
 			// Control section
-			var oStr = "<div class='body-group'>";
-			oStr += "<div class='body-group-header'>Control</div>";
-			oStr += "<div class='body-list'>";
-			oStr += "<div class='body-list-item'>" + genButton("/exec/pause", "ajaxCallback", "Pause") + "</div>";
-			oStr += "<div class='body-list-item'>" + genButton("/exec/resume", "ajaxCallback", "Resume") + "</div>";
-			oStr += "<div class='body-list-item'>" + genButton("/exec/restart", "ajaxCallback", "Restart") + "</div>";
+			var oStr = "<div class='body-group backGrad1'>";
+//			oStr += "<div class='body-group-header'>Control</div>";
+			oStr += "<div class='body-commands'>";
+			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/pause", "", "Pause", 'body-commands-button') + "</div>";
+			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/resume", "", "Resume", 'body-commands-button') + "</div>";
+			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/restart", "", "Restart", 'body-commands-button') + "</div>";
 //			oStr += "<div class='body-list-item'>" + "<a href='javascript:void(0)' onclick='postJson(\"/postsettings\", window.sandTableState)'>POST</a>" + "</div>";
 			oStr += "</div>";
 			oStr += "</div>";
@@ -149,23 +181,36 @@
 			var listStr = genBodyHeadingSection();
 
 			// Patterns section
-			listStr += "<div class='body-group'>";
+			listStr += "<div class='body-group backGrad2'>";
 			listStr += "<div class='body-group-header'>Patterns</div>";
-			listStr += genActionButtons(window.stState.patEdit, {"buttons":[{"offStr":"Edit","onStr":"Cancel", "actionOff":"togglePatEditMode();", "actionOn":"togglePatEditMode();"}]});
 			listStr += "<div class='body-list'>";
 			Object.keys(sandTableState.patterns).forEach(function(key,index) {
-				listStr += genItemButton(window.stState.patEdit, key, "/pattern/"+key, 'patEdit');
+				listStr += "<div class='body-list-line'>";
+          		listStr += "<div class='body-list-item'>";
+				listStr += genAjaxButton("/pattern/"+key, "", key, 'body-group-button');
+				listStr += "</div>";
+				listStr += "<div class='body-group-actions'>";
+				listStr += genButton("pageNav(\"patEdit\",\"~key~\")", key, "Edit", 'body-group-button');
+				listStr += "</div>";
+				listStr += "</div>";
     		});
             listStr += "</div>";
             listStr += "</div>";
 
 			// Sequences section
-			listStr += "<div class='body-group'>";
+			listStr += "<div class='body-group backGrad3'>";
 			listStr += "<div class='body-group-header'>Sequences</div>";
-			listStr += genActionButtons(window.stState.seqEdit, {"buttons":[{"offStr":"Edit","onStr":"Cancel", "actionOff":"toggleSeqEditMode();", "actionOn":"toggleSeqEditMode();"}]});
 			listStr += "<div class='body-list'>";
 			Object.keys(sandTableState.sequences).forEach(function(key,index) {
-				listStr += genItemButton(window.stState.seqEdit, key, "/sequence/"+key, 'seqEdit');
+				listStr += "<div class='body-list-line'>";
+          		listStr += "<div class='body-list-item'>";
+				listStr += genAjaxButton("/sequence/"+key, "", key, 'body-group-button');
+				listStr += "</div>";
+				listStr += "<div class='body-group-actions'>";
+				listStr += genButton("pageNav(\"seqEdit\",\"~key~\")", key, "Edit", 'body-group-button');
+				listStr += "</div>";
+//				listStr += genActionButtons(false, key, {"buttons":[{"offStr":"Edit","onStr":"Cancel", "actionOff":"toggleSeqEditMode();", "actionOn":"toggleSeqEditMode();"}]});
+				listStr += "</div>";
     		});
             listStr += "</div>";
             listStr += "</div>";
@@ -175,6 +220,10 @@
 		}
 		function genPatEditBody() {
             var sandTableState = window.sandTableState;
+            var patName = window.stState.curItem;
+            var patternInfo = { setup:"", loop:""};
+            if (patName in window.sandTableState.patterns)
+			    patternInfo = window.sandTableState.patterns[patName];
             var pageBodyDiv = document.getElementById("pageBody");
 
 			// Body heading
@@ -182,16 +231,25 @@
 
 			listStr += "<div class='body-group'>";
 			listStr += "<div class='body-group-header'>Edit Pattern</div>";
+			listStr += "<div class='body-group-actions'>";
+			listStr += genButton("pageNav(\"patDelete\",\"~key~\")", patName, "Cancel", 'body-group-button');
+			listStr += "</div>";
+//			listStr += genActionButtons(false, "", {"buttons":[{"toggle":false,"offStr":"Edit","actionOff":"pageNav(\"patEdit\",\"~key~\")"}]});
+
 			listStr += "<form class='body-form'>";
 			listStr += "<fieldset class='body-fieldset'>";
 			listStr += "<div class='body-form-line'>";
 			listStr += "<div class='body-form-label'>Name</div>";
-			listStr += "<textarea name='patname' rows='1' class='body-form-field'>asdasd</textarea>";
+			listStr += "<textarea name='patname' rows='1' class='body-form-field'>" + patName + "</textarea>";
             listStr += "</div>";
 			listStr += "<div class='body-form-line'>";
-			listStr += "<div class='body-form-label'>Setup</div>";
-			listStr += "<textarea name='patsetup' class='body-form-field' cols='50' rows='10'>asd</textarea>";
-           listStr += "</div>";
+			listStr += "<div class='body-form-label'>Setup expressions</div>";
+			listStr += "<textarea name='patsetup' class='body-form-field' cols='50' rows='10'>" + patternInfo.setup + "</textarea>";
+            listStr += "</div>";
+			listStr += "<div class='body-form-line'>";
+			listStr += "<div class='body-form-label'>Loop expressions</div>";
+			listStr += "<textarea name='patloop' class='body-form-field' cols='50' rows='10'>" + patternInfo.loop + "</textarea>";
+            listStr += "</div>";
             listStr += "</fieldset>";
             listStr += "</form>";
             listStr += "</div>";
@@ -215,40 +273,71 @@
     </script>
     <style>
 	body {
-	  font-family: Helvetica;
+	  font-family: Century Gothic, sans-serif;
 	  line-height: 1.4em;
-	  font-size:12pt;
-	  background-color: #000000;
+	  font-size: 14pt;
+	  background-color:  #E3CDA6;
 	  color: #c0c0c0;
+		margin: 0;
 	}
 	.page-header{
 	  padding-top: 20px;
 	  padding-bottom: 20px;
-	  background-color: #000000;
+	  background-color:  #E3CDA6;
 	  width: 100%;
-	  font-size: 2em;
+	  font-size: 1.5em;
 	  color: #f0f0f0;
 	  text-align: center;
 	}
-	.body-list{
-        padding-top: 25px;
+	.page-header-text {
+		margin-top:10px;
+		font-family:Copperplate, Copperplate Gothic Light, sans-serif;
+	}
+	.page-header-logo {
+
+	}
+	.page-logo{
+		border: none;
+	}
+	.body-commands{
+		width: 60%;
+		margin-left:auto;
+		margin-right:auto;
+		padding-top: 20px;
+		padding-bottom:20px;
+	  display: flex;
+	  justify-content:space-between;
+	  list-style-type: none;
+	}
+	.body-commands-item{
+	}
+	.body-commands-button{
+		font-size: 1.2em;
+		color: #fafcee;
 	}
 	.body-group{
-        background-color: #003080;
-        margin-top: 15px;
+        background: -webkit-linear-gradient(top, #b9a888 0%, #c9b693 10px, #E3CDA6 100%);
 	}
 	.body-group-header{
-        margin: 5px;
-        position: absolute;
-        padding-bottom:20px;
-	}
-	.body-group-actions{
-        margin: 5px;
-		float: right;
+		margin-left: 20px;
+		padding-top: 20px;
+		color: #fbf0e8;
+		text-transform: uppercase;
+		font-size: 1.0em;
 	}
 	.body-group-button {
-	  color: #c0c0c0;
+	  color: #fafcee;
 		cursor:pointer;
+	}
+	.body-group-button-icon {
+		/*position: relative;*/
+		/*left:-40px;*/
+		/*top:5px;*/
+		cursor:pointer;
+	}
+	.body-group-actions{
+        margin-right: 30px;
+		float: right;
 	}
 	.body-group-action{
 	}
@@ -270,17 +359,23 @@
 	}
 	.body-form-field{
 		width: 100%;
-		background: #404040;
+		background: #A89062;
 		color: white;
 		border:none;
 	}
 	.body-fieldset{
 		border: none;
-		padding-top:30px;
+	}
+	.body-list{
+        padding: 5px;
+		margin-left: auto;
+		margin-right: auto;
+		width: 100%;
 	}
 	.body-list-line{
 		display:block;
 		padding: 10px;
+		clear: both;
 	}
 	.body-list-item{
 		display: inline-block;
@@ -288,15 +383,15 @@
 	  padding-left: 30px;
 	  /*width: 25%;*/
 	  font-size: 1.2em;
-	  color: #ffffff;
+	  color: #fafcee;
 	}
 	.body-list-item span {
 	  text-decoration: none;
-	  color: #94f3ff;
+	  color: #fafcee;
 		cursor:pointer;
 	}
 	.body-list-edit span {
-		color: #fff395;
+		color: #fafcee;
 	}
 	.body-list-button {
 	  color: #94f3ff;
@@ -331,6 +426,24 @@
 	}
 	.body-name-edit {
 		font-size: 1em;
+	}
+	.backHead {
+//		background: #489080;
+//		background: #4EA3D3;
+		background: #407ea6;
+	}
+	.backGrad1 {
+//		background: -webkit-linear-gradient(top, #3e91bf 0%,#459ac7 10px,#479dca 20px,#4fa8d3 30px,#4c98cf 100%);
+		background: -webkit-linear-gradient(top, #4e9a8c 0%, #70ab9f 10px, #78BFC1 100%);
+
+	}
+	.backGrad2 {
+//		background: -webkit-linear-gradient(top, #31659d 0%,#3869a1 10px,#396aa1 20px,#4975aa 30px,#4673a6 100%);
+		background: -webkit-linear-gradient(top, #b49e73 0%, #C0A87A 10px, #C0A87A 100%);
+	}
+	.backGrad3 {
+//		background: -webkit-linear-gradient(top, #575094 0%, #5e5296 10px, #605396 20px, #53406f 30px, #53406f 100%);
+		background: -webkit-linear-gradient(top, #b9a888 0%, #c9b693 10px, #E3CDA6 100%);
 	}
     </style>
 </head>
