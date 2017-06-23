@@ -77,14 +77,19 @@
 			};
 			updateDisplay();
 		}
-        function callAjax(url, callback)
+        function callAjax(url, okCallback, failCallback)
         {
             var xmlhttp = new XMLHttpRequest();
             xmlhttp.onreadystatechange = function()
             {
-                if (xmlhttp.readyState == 4 && xmlhttp.status == 200)
-                {
-                    callback(xmlhttp.responseText);
+                if (xmlhttp.readyState == 4) {
+                    if (xmlhttp.status == 200) {
+                        okCallback(xmlhttp.responseText);
+                    }
+                    else {
+                        if ((failCallback !== undefined) && (typeof failCallback !== 'undefined'))
+                            failCallback(xmlhttp);
+                    }
                 }
             };
 
@@ -94,9 +99,22 @@
         function ajaxCallback()
         {
         }
-        function postJson(url, objToPost)
+        function postJson(url, objToPost, okCallback, failCallback)
         {
             var xmlhttp = new XMLHttpRequest();
+            xmlhttp.onreadystatechange = function()
+            {
+                if (xmlhttp.readyState == 4) {
+                    if (xmlhttp.status == 200) {
+                        if ((okCallback !== undefined) && (typeof okCallback !== 'undefined'))
+	                        okCallback(xmlhttp.responseText);
+                    }
+                    else {
+                        if ((failCallback !== undefined) && (typeof failCallback !== 'undefined'))
+                            failCallback(xmlhttp);
+                    }
+                }
+            };
             xmlhttp.open("POST", url);
             xmlhttp.setRequestHeader("Content-Type", "application/json");
             xmlhttp.send(JSON.stringify(objToPost));
@@ -111,25 +129,89 @@
 		}
 		function sendSandTableInfo()
 		{
-            postJson("/postsettings", window.sandTableState);
+            postJson("/postsettings", window.sandTableState, postSettingsOkCallback, postSettingsFailCallback);
+		}
+		function userAction(cmdStr, argStr)
+		{
+//		    console.log("UserAction "+ cmdStr + ", " + argStr);
+		    if (cmdStr === "patDelete")
+			{
+			    if (confirm('Are you sure you want to delete?'))
+			    {
+			        // Remove from JSON
+					if (argStr in window.sandTableState.patterns)
+					    delete window.sandTableState.patterns[argStr];
+					window.stState.curPage = "";
+					sendSandTableInfo()
+				}
+			}
+		    else if (cmdStr === "patSave") {
+		        // Get values from form
+				var patname = document.getElementById('patname').value.trim();
+				var patsetup = document.getElementById('patsetup').value;
+				var patloop = document.getElementById('patloop').value;
+		        // Check name is valid
+				if (patname.trim().length > 0) {
+				    if ((patname === argStr.trim()) || (!(patname in window.sandTableState.patterns))) {
+                        // Remove existing pattern in case name has changed
+                        if (argStr in window.sandTableState.patterns)
+                            delete window.sandTableState.patterns[argStr];
+                        // Save new information
+                        window.sandTableState.patterns[patname] = {setup: patsetup, loop: patloop};
+                        window.stState.curPage = "";
+                        sendSandTableInfo()
+                    }
+                }
+            }
+		    else if (cmdStr === "patCancel")
+			{
+				window.stState.curPage = "";
+				updateDisplay();
+			}
+		    else if (cmdStr === "patAdd")
+			{
+				window.stState.curPage = "patEdit";
+				window.stState.curItem = "";
+				updateDisplay();
+			}
+			else if (cmdStr == "patEdit")
+			{
+			    window.stState.curPage = "patEdit";
+			    window.stState.curItem = argStr;
+			    updateDisplay();
+			}
+		}
+		function postSettingsOkCallback()
+		{
+		    updateDisplay();
+		}
+		function postSettingsFailCallback()
+		{
+		    updateDisplay();
 		}
 		function genButton(clickFn, keyVal, label, cssClass)
 		{
 //		    console.log("Gen BUTTON url " + url + " clickFn " + clickFn + " label " + label);
 			var oStr = "";
 			clickFn = clickFn.replace("~key~", keyVal);
+			oStr += "<span class='" + cssClass + "' onclick='" + clickFn + "'>";
 			if (label == "Edit")
 			{
-				oStr += "<span class='" + cssClass + "' onclick='" + clickFn + "'>";
-				oStr += '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Capa_1" x="0px" y="0px" width="30px" height="30px" viewBox="0 0 530 530" xml:space="preserve">';
+				oStr += '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="30px" height="30px" viewBox="0 0 530 530">';
 				oStr += '<g><path d="M328.883,89.125l107.59,107.589l-272.34,272.34L56.604,361.465L328.883,89.125z M518.113,63.177l-47.981-47.981   c-18.543-18.543-48.653-18.543-67.259,0l-45.961,45.961l107.59,107.59l53.611-53.611   C532.495,100.753,532.495,77.559,518.113,63.177z M0.3,512.69c-1.958,8.812,5.998,16.708,14.811,14.565l119.891-29.069   L27.473,390.597L0.3,512.69z" style="fill: rgb(220, 222, 208);"></path></g>';
 				oStr += '</svg>';
-				oStr += "</span>";
 			}
+//			else if (label == "Delete")
+//			{
+//				oStr += '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="30px" height="30px" viewBox="0 0 414 414">';
+//				oStr += '<g><path d="m 107.34348,113.4774 200.6666,201.54286 M 107.34348,315.4584 308.88635,110.84858" style="fill:none;fill-rule:evenodd;stroke:#dcded0;stroke-width:59.9;stroke-linecap:round;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none"/></g>';
+//				oStr += '</svg>';
+//			}
 			else
 			{
-			    oStr += "<span class='" + cssClass + "' onclick='" + clickFn + "'>" + label + "</span>";
+			    oStr += label;
 			}
+			oStr += "</span>";
 
 //		    console.log("genButton -> " + rtnStr);
 		    return oStr;
@@ -137,12 +219,6 @@
 		function genAjaxButton(url, key, label, cssClass)
 		{
 		    return genButton("callAjax(\"" + url + "\",ajaxCallback)", key, label, cssClass);
-		}
-        function pageNav(itemNavPage, itemLabel)
-		{
-		    window.stState.curPage = itemNavPage;
-		    window.stState.curItem = itemLabel;
-		    updateDisplay();
 		}
 		function genPageHeader()
 		{
@@ -172,17 +248,15 @@
 			oStr += "</div>";
 			return oStr;
 		}
-		function genHomePageBody()
+		function genPatternsBody()
 		{
-			var sandTableState = window.sandTableState;
-			var pageBodyDiv = document.getElementById("pageBody");
-
-			// Body heading
-			var listStr = genBodyHeadingSection();
-
 			// Patterns section
-			listStr += "<div class='body-group backGrad2'>";
-			listStr += "<div class='body-group-header'>Patterns</div>";
+			var listStr = "<div class='body-group backGrad2'>";
+			listStr += "<div class='body-group-header'>Patterns";
+			listStr += "<div class='body-group-actions'>";
+			listStr += genButton("userAction(\"patAdd\",\"\")", "", "Add", 'body-group-button');
+			listStr += "</div>";
+			listStr += "</div>";
 			listStr += "<div class='body-list'>";
 			Object.keys(sandTableState.patterns).forEach(function(key,index) {
 				listStr += "<div class='body-list-line'>";
@@ -190,15 +264,17 @@
 				listStr += genAjaxButton("/pattern/"+key, "", key, 'body-group-button');
 				listStr += "</div>";
 				listStr += "<div class='body-group-actions'>";
-				listStr += genButton("pageNav(\"patEdit\",\"~key~\")", key, "Edit", 'body-group-button');
+				listStr += genButton("userAction(\"patEdit\",\"~key~\")", key, "Edit", 'body-group-button');
 				listStr += "</div>";
 				listStr += "</div>";
     		});
             listStr += "</div>";
             listStr += "</div>";
-
+		    return listStr;
+		}
+		function genSequencesBody() {
 			// Sequences section
-			listStr += "<div class='body-group backGrad3'>";
+			var listStr = "<div class='body-group backGrad3'>";
 			listStr += "<div class='body-group-header'>Sequences</div>";
 			listStr += "<div class='body-list'>";
 			Object.keys(sandTableState.sequences).forEach(function(key,index) {
@@ -207,13 +283,23 @@
 				listStr += genAjaxButton("/sequence/"+key, "", key, 'body-group-button');
 				listStr += "</div>";
 				listStr += "<div class='body-group-actions'>";
-				listStr += genButton("pageNav(\"seqEdit\",\"~key~\")", key, "Edit", 'body-group-button');
+				listStr += genButton("userAction(\"seqEdit\",\"~key~\")", key, "Edit", 'body-group-button');
 				listStr += "</div>";
-//				listStr += genActionButtons(false, key, {"buttons":[{"offStr":"Edit","onStr":"Cancel", "actionOff":"toggleSeqEditMode();", "actionOn":"toggleSeqEditMode();"}]});
 				listStr += "</div>";
     		});
             listStr += "</div>";
             listStr += "</div>";
+            return listStr;
+        }
+		function genHomePageBody()
+		{
+			var sandTableState = window.sandTableState;
+			var pageBodyDiv = document.getElementById("pageBody");
+
+			// Body heading
+			var listStr = genBodyHeadingSection();
+			listStr += genPatternsBody();
+			listStr += genSequencesBody();
 
 			pageBodyDiv.innerHTML = listStr;
 
@@ -230,9 +316,16 @@
 			var listStr = genBodyHeadingSection();
 
 			listStr += "<div class='body-group'>";
-			listStr += "<div class='body-group-header'>Edit Pattern</div>";
+			listStr += "<div class='body-group-header'>Edit Pattern";
 			listStr += "<div class='body-group-actions'>";
-			listStr += genButton("pageNav(\"patDelete\",\"~key~\")", patName, "Cancel", 'body-group-button');
+			listStr += genButton("userAction(\"patDelete\",\"~key~\")", patName, "Delete", 'body-group-button');
+			listStr += "</div>";
+			listStr += "<div class='body-group-actions'>";
+			listStr += genButton("userAction(\"patSave\",\"~key~\")", patName, "Save", 'body-group-button');
+			listStr += "</div>";
+			listStr += "<div class='body-group-actions'>";
+			listStr += genButton("userAction(\"patCancel\",\"~key~\")", patName, "Cancel", 'body-group-button');
+			listStr += "</div>";
 			listStr += "</div>";
 //			listStr += genActionButtons(false, "", {"buttons":[{"toggle":false,"offStr":"Edit","actionOff":"pageNav(\"patEdit\",\"~key~\")"}]});
 
@@ -240,15 +333,15 @@
 			listStr += "<fieldset class='body-fieldset'>";
 			listStr += "<div class='body-form-line'>";
 			listStr += "<div class='body-form-label'>Name</div>";
-			listStr += "<textarea name='patname' rows='1' class='body-form-field'>" + patName + "</textarea>";
+			listStr += "<textarea id='patname' rows='1' class='body-form-field'>" + patName + "</textarea>";
             listStr += "</div>";
 			listStr += "<div class='body-form-line'>";
 			listStr += "<div class='body-form-label'>Setup expressions</div>";
-			listStr += "<textarea name='patsetup' class='body-form-field' cols='50' rows='10'>" + patternInfo.setup + "</textarea>";
+			listStr += "<textarea id='patsetup' class='body-form-field' cols='50' rows='10'>" + patternInfo.setup + "</textarea>";
             listStr += "</div>";
 			listStr += "<div class='body-form-line'>";
 			listStr += "<div class='body-form-label'>Loop expressions</div>";
-			listStr += "<textarea name='patloop' class='body-form-field' cols='50' rows='10'>" + patternInfo.loop + "</textarea>";
+			listStr += "<textarea id='patloop' class='body-form-field' cols='50' rows='10'>" + patternInfo.loop + "</textarea>";
             listStr += "</div>";
             listStr += "</fieldset>";
             listStr += "</form>";
