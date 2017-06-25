@@ -111,7 +111,9 @@ void restAPI_PostSettings(int method, const char *cmdStr, const char *argStr, co
 {
     Log.trace("RestAPI PostSettings method %d contentLen %d payloadLen %d", method, contentLen, payloadLen);
     if (msgBuffer)
+        Log.trace("RestAPI PostSettings msgBuffer len %d", strlen(msgBuffer));
     if (pPayload)
+        Log.trace("RestAPI PostSettings pPayload len %d", strlen((const char*)pPayload));
     // Store the settings in EEPROM
     configEEPROM.setConfigData((const char*)pPayload);
     configEEPROM.writeToEEPROM();
