@@ -13,14 +13,26 @@ RdWebClient::RdWebClient()
     _resourceSendIdx       = 0;
     _resourceSendBlkCount  = 0;
     _resourceSendMillis    = 0;
+    _pHttpReqPayload       = NULL;
+    _httpReqPayloadLen     = 0;
+    _curHttpPayloadRxPos   = 0;
 }
 
+RdWebClient::~RdWebClient()
+{
+    cleanUp();
+}
+
+void RdWebClient::cleanUp()
+{
+    delete _pHttpReqPayload;
+}
 
 void RdWebClient::setState(WebClientState newState)
 {
     _webClientState        = newState;
     _webClientStateEntryMs = millis();
-    Log.trace("WebClientState: %s", connStateStr());
+    Log.trace("WebClient %d State: %s", _clientIdx, connStateStr());
 }
 
 
@@ -59,6 +71,7 @@ void RdWebClient::service(RdWebServer *pWebServer)
             // Now connected
             setState(WEB_CLIENT_ACCEPTED);
             _httpReqStr = "";
+            _httpReqPayloadLen = 0;
             // Info
             IPAddress ip    = _TCPClient.remoteIP();
             String    ipStr = ip;
@@ -100,18 +113,58 @@ void RdWebClient::service(RdWebServer *pWebServer)
                uint8_t *tmpBuf = new uint8_t[numToRead + 1];
                int     numRead = _TCPClient.read(tmpBuf, numToRead);
                tmpBuf[numToRead] = '\0';
-               _httpReqStr.concat((char *)tmpBuf);
+
+               // Handle either by contactenating to the _httpReqStr or to the _pHttpReqPayload
+               if (_httpReqPayloadLen == 0)
+               {
+                   if ((_httpReqStr.length() + strlen((const char*)tmpBuf) < HTTPD_MAX_REQ_LENGTH))
+                        _httpReqStr.concat((char *)tmpBuf);
+               }
+               else
+               {
+                   for (int i = 0; i < numRead; i++)
+                   {
+                       if (_curHttpPayloadRxPos >= _httpReqPayloadLen)
+                            break;
+                       _pHttpReqPayload[_curHttpPayloadRxPos++] = tmpBuf[i];
+                   }
+                   // Ensure null terminated
+                   _pHttpReqPayload[_curHttpPayloadRxPos] = 0;
+               }
                delete [] tmpBuf;
 
-               // Check for max length or blank line received
-               if ((_httpReqStr.length() >= HTTPD_MAX_REQ_LENGTH) ||
-                   (_httpReqStr.indexOf("\r\n\r\n") >= 0))
+               // Check if header complete
+               bool headerComplete = _httpReqStr.indexOf("\r\n\r\n") >= 0;
+
+               if (headerComplete && (_httpReqPayloadLen == 0))
+               {
+                  _httpReqPayloadLen = getContentLengthFromHeader(_httpReqStr);
+                   _curHttpPayloadRxPos = 0;
+                   // We have to ignore payloads that are too big for our memory
+                   if (_httpReqPayloadLen > HTTP_MAX_PAYLOAD_LENGTH)
+                   {
+                       _httpReqPayloadLen = 0;
+                   }
+                   else
+                   {
+                       delete [] _pHttpReqPayload;
+                       // Add space for null terminator
+                       _pHttpReqPayload = new unsigned char[_httpReqPayloadLen+1];
+                   }
+               }
+
+               // Check for completion
+               if (headerComplete && (_httpReqPayloadLen == _curHttpPayloadRxPos))
                {
                    RdWebServerResourceDescr* pResToRespondWith = NULL;
                    Log.trace("Web client received %d", _httpReqStr.length());
                    bool handledOk = false;
-                   _pResourceToSend = handleReceivedHttp(_httpReqStr.c_str(), _httpReqStr.length(),
-                                        handledOk, pWebServer);
+                   _pResourceToSend = handleReceivedHttp(handledOk, pWebServer);
+                    // clean the received resources
+                    _httpReqPayloadLen = 0;
+                    delete _pHttpReqPayload;
+                    _httpReqStr = "";
+                    // Get ready to send the response (in sections as needed)
                     _resourceSendIdx = 0;
                     _resourceSendBlkCount = 0;
                     _resourceSendMillis   = millis();
@@ -197,36 +250,33 @@ void RdWebClient::service(RdWebServer *pWebServer)
 
 //////////////////////////////////////
 // Handle an HTTP request
-RdWebServerResourceDescr* RdWebClient::handleReceivedHttp(const char *httpReq, int httpReqLen,
-                 bool& handledOk, RdWebServer *pWebServer)
+RdWebServerResourceDescr* RdWebClient::handleReceivedHttp(bool& handledOk, RdWebServer *pWebServer)
 {
     handledOk = false;
     RdWebServerResourceDescr* pResourceToRespondWith = NULL;
 
-    // Get payload information
-    int           payloadLen = -1;
-    unsigned char *pPayload  = getPayloadDataFromMsg(httpReq, httpReqLen, payloadLen);
+    // Request string
+    const char* pHttpReq = _httpReqStr.c_str();
+    int httpReqLen = _httpReqStr.length();
 
     // Get HTTP method
     int httpMethod = METHOD_OTHER;
-
-    if (strncmp(httpReq, "GET ", 4) == 0)
+    if (strncmp(pHttpReq, "GET ", 4) == 0)
     {
         httpMethod = METHOD_GET;
     }
-    else if (strncmp(httpReq, "POST", 4) == 0)
+    else if (strncmp(pHttpReq, "POST", 4) == 0)
     {
         httpMethod = METHOD_POST;
     }
-    else if (strncmp(httpReq, "OPTIONS", 7) == 0)
+    else if (strncmp(pHttpReq, "OPTIONS", 7) == 0)
     {
         httpMethod = METHOD_OPTIONS;
     }
 
     // See if there is a valid HTTP command
-    int    contentLen = -1;
     String endpointStr, argStr;
-    if (extractEndpointArgs(httpReq + 3, endpointStr, argStr, contentLen))
+    if (extractEndpointArgs(pHttpReq + 3, endpointStr, argStr))
     {
         // Received cmd and arguments
         Log.trace("EndPtStr %s", endpointStr.c_str());
@@ -241,9 +291,16 @@ RdWebServerResourceDescr* RdWebClient::handleReceivedHttp(const char *httpReq, i
             {
                 String retStr;
                 (pEndpoint->_callback)(httpMethod, endpointStr.c_str(), argStr.c_str(),
-                            httpReq, httpReqLen, contentLen, pPayload, payloadLen, 0, retStr);
+                        pHttpReq, httpReqLen, _httpReqPayloadLen, _pHttpReqPayload, _httpReqPayloadLen, 0, retStr);
+                Log.trace("Got endpoint response len %d", retStr.length());
+                /*delay(50);*/
                 formHTTPResponse(_httpRespStr, "200 OK", "application/json", retStr.c_str(), -1);
+                Log.trace("form http response %d", _httpRespStr.length());
+                /*delay(50);*/
                 _TCPClient.write((uint8_t *)_httpRespStr.c_str(), _httpRespStr.length());
+                Log.trace("write to tcp client %d len %d", _clientIdx, _httpRespStr.length());
+                delay(50);
+                _TCPClient.flush();
                 handledOk = true;
             }
         }
@@ -264,10 +321,10 @@ RdWebServerResourceDescr* RdWebClient::handleReceivedHttp(const char *httpReq, i
                         // Form header
                         formHTTPResponse(_httpRespStr, "200 OK", pRes->_pMimeType, "", pRes->_dataLen);
                         _TCPClient.write((uint8_t *)_httpRespStr.c_str(), _httpRespStr.length());
-                        const char *pBuff   = _httpRespStr.c_str();
+                        /*const char *pBuff   = _httpRespStr.c_str();
                         const int  bufffLen = strlen(pBuff);
                         Log.trace("Header %d = %02x %02x %02x ... %02x %02x %02x", _httpRespStr.length(),
-                                  pBuff[0], pBuff[1], pBuff[2], pBuff[bufffLen - 3], pBuff[bufffLen - 2], pBuff[bufffLen - 1]);
+                                  pBuff[0], pBuff[1], pBuff[2], pBuff[bufffLen - 3], pBuff[bufffLen - 2], pBuff[bufffLen - 1]);*/
                         _TCPClient.flush();
                         // Respond with static resource
                         pResourceToRespondWith = pRes;
@@ -302,23 +359,10 @@ RdWebServerResourceDescr* RdWebClient::handleReceivedHttp(const char *httpReq, i
 
 //////////////////////////////////////
 // Extract arguments from rest api string
-bool RdWebClient::extractEndpointArgs(const char *buf, String& endpointStr, String& argStr, int& contentLen)
+bool RdWebClient::extractEndpointArgs(const char *buf, String& endpointStr, String& argStr)
 {
-    contentLen = -1;
     if (buf == NULL)
-    {
         return false;
-    }
-    // Check for Content-length header
-    const char *contentLenText = "Content-Length:";
-    char       *pContLen       = strstr(buf, contentLenText);
-    if (pContLen)
-    {
-        if (*(pContLen + strlen(contentLenText)) != '\0')
-        {
-            contentLen = atoi(pContLen + strlen(contentLenText));
-        }
-    }
 
     // Check for first slash
     char *pSlash1 = strchr(buf, '/');
@@ -354,21 +398,7 @@ bool RdWebClient::extractEndpointArgs(const char *buf, String& endpointStr, Stri
     return true;
 }
 
-
-unsigned char *RdWebClient::getPayloadDataFromMsg(const char *msgBuf, int msgLen, int& payloadLen)
-{
-    payloadLen = -1;
-    char *ptr = strstr(msgBuf, "\r\n\r\n");
-    if (ptr)
-    {
-        payloadLen = msgLen - (ptr + 4 - msgBuf);
-        return (unsigned char *)(ptr + 4);
-    }
-    return NULL;
-}
-
-
-int RdWebClient::getContentLengthFromMsg(const char *msgBuf)
+int RdWebClient::getContentLengthFromHeader(const char *msgBuf)
 {
     char *ptr = strstr(msgBuf, "Content-Length:");
 
@@ -407,6 +437,9 @@ RdWebServer::RdWebServer()
     _webServerState        = WEB_SERVER_STOPPED;
     _webServerStateEntryMs = 0;
     _numWebServerResources = 0;
+    // Configure each client
+    for (int clientIdx = 0; clientIdx < MAX_WEB_CLIENTS; clientIdx++)
+        _webClients[clientIdx].setClientIdx(clientIdx);
 }
 
 

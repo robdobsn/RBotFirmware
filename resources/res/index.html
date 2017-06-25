@@ -64,6 +64,7 @@
 					curPage: ''
 				};
 			window.sandTableState = {
+			    "maxCfgLen": 2000,
                 "name": "Sand Table",
                 "patterns":
                 {
@@ -75,6 +76,8 @@
                 },
                 "startup": ""
 			};
+			// Make a copy so that if the max length is exceeded we can fall back
+			window.prevSandTableState = window.sandTableState;
 			updateDisplay();
 		}
         function callAjax(url, okCallback, failCallback)
@@ -99,7 +102,7 @@
         function ajaxCallback()
         {
         }
-        function postJson(url, objToPost, okCallback, failCallback)
+        function postJson(url, jsonStrToPos, okCallback, failCallback)
         {
             var xmlhttp = new XMLHttpRequest();
             xmlhttp.onreadystatechange = function()
@@ -117,11 +120,13 @@
             };
             xmlhttp.open("POST", url);
             xmlhttp.setRequestHeader("Content-Type", "application/json");
-            xmlhttp.send(JSON.stringify(objToPost));
+            xmlhttp.send(jsonStrToPos);
         }
 		function sandTableInfoCallback(jsonResp)
 		{
 			jsonData = JSON.parse(jsonResp);
+			// Make a copy so that if the max length is exceeded we can fall back
+			window.prevSandTableState = JSON.parse(JSON.stringify(window.sandTableState));
 			window.sandTableState = jsonData;
             genPageHeader();
 			genPageBody();
@@ -129,7 +134,14 @@
 		}
 		function sendSandTableInfo()
 		{
-            postJson("/postsettings", window.sandTableState, postSettingsOkCallback, postSettingsFailCallback);
+		    jsonStr = JSON.stringify(window.sandTableState);
+		    if (jsonStr.length > window.sandTableState.maxCfgLen)
+			{
+			    // Send back the previous - unchanged - state as this is too long
+				alert("The robot memory is full, please simplify or remove other patterns before adding new ones")
+			    jsonStr = JSON.stringify(window.prevSandTableState)
+			}
+            postJson("/postsettings", jsonStr, postSettingsOkCallback, postSettingsFailCallback);
 		}
 		function userAction(cmdStr, argStr)
 		{

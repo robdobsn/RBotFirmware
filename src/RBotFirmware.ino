@@ -35,8 +35,10 @@ CommandInterpreter _commandInterpreter(&_workflowManager, &_robotController);
 CommsSerial _commsSerial(0);
 ConfigEEPROM configEEPROM;
 
+// Note that the value here for maxLen must be bigger than the value returned for restAPI_GetSettings()
+// This is to ensure the web-app doesn't return a string that is too long
 static const char* EEPROM_CONFIG_LOCATION_STR =
-    "{\"base\": 0, \"maxLen\": 1000}";
+    "{\"base\": 0, \"maxLen\": 2010}";
 
 // Mugbot on PiHat 1.1
 // linear axis 1/8 microstepping,
@@ -81,7 +83,7 @@ static const char* ROBOT_CONFIG_STR_SANDTABLESCARA =
     " \"endStop0\": { \"sensePin\": \"A7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
     "}";
 
-static const char* ROBOT_SEQUENCE_COMMANDS =
+static const char* ROBOT_DEFAULT_SEQUENCE_COMMANDS =
     "{"
     " \"testSequence\":"
     "  {\"commands\":\"G28;testPattern\"},"
@@ -89,7 +91,7 @@ static const char* ROBOT_SEQUENCE_COMMANDS =
     "  {\"commands\":\"G28;G28\"}"
     "}";
 
-static const char* ROBOT_PATTERN_COMMANDS =
+static const char* ROBOT_DEFAULT_PATTERN_COMMANDS =
     "{"
     " \"pattern1\":"
     "  {"
@@ -109,9 +111,15 @@ void restAPI_PostSettings(int method, const char *cmdStr, const char *argStr, co
 {
     Log.trace("RestAPI PostSettings method %d contentLen %d payloadLen %d", method, contentLen, payloadLen);
     if (msgBuffer)
-        Log.trace("RestAPI PostSettings msgBuffer", msgBuffer);
     if (pPayload)
-        Log.trace("RestAPI PostSettings pPayload", pPayload);
+    // Store the settings in EEPROM
+    configEEPROM.setConfigData((const char*)pPayload);
+    configEEPROM.writeToEEPROM();
+    // Apply the config data
+    String patternsStr = ConfigManager::getString("/patterns", "{}", configEEPROM.getConfigData());
+    _commandInterpreter.setPatterns(patternsStr);
+    String sequencesStr = ConfigManager::getString("/sequences", "{}", configEEPROM.getConfigData());
+    _commandInterpreter.setSequences(sequencesStr);
     // Result
     retStr = "{\"ok\"}";
 }
@@ -126,7 +134,7 @@ void restAPI_GetSettings(int method, const char *cmdStr, const char *argStr, con
     const char* sequences = _commandInterpreter.getSequences();
     Log.trace("RestAPI GetSettings patterns %s", patterns);
     Log.trace("RestAPI GetSettings sequences %s", sequences);
-    retStr = "{\"name\":\"Sand Table\",\"patterns\":";
+    retStr = "{\"maxCfgLen\":2000, \"name\":\"Sand Table\",\"patterns\":";
     retStr += patterns;
     retStr += ", \"sequences\":";
     retStr += sequences;
@@ -148,7 +156,7 @@ void setup()
     #endif
 
     // Add API endpoints
-    restAPIEndpoints.addEndpoint("putsettings", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_PostSettings);
+    restAPIEndpoints.addEndpoint("postsettings", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_PostSettings);
     restAPIEndpoints.addEndpoint("getsettings", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_GetSettings);
 
     // Construct web server
@@ -169,8 +177,23 @@ void setup()
     _workflowManager.init(WORKFLOW_CONFIG_STR);
 
     // Configure the command interpreter
-    _commandInterpreter.setSequences(ROBOT_SEQUENCE_COMMANDS);
-    _commandInterpreter.setPatterns(ROBOT_PATTERN_COMMANDS);
+    bool configLoaded = false;
+    const char* pConfig = configEEPROM.getConfigData();
+    if (*pConfig == '{' || *pConfig == '[')
+    {
+        Log.info("Getting configuration from EEPROM");
+        String patternsStr = ConfigManager::getString("/patterns", "{}", configEEPROM.getConfigData());
+        _commandInterpreter.setPatterns(patternsStr);
+        String sequencesStr = ConfigManager::getString("/sequences", "{}", configEEPROM.getConfigData());
+        _commandInterpreter.setSequences(sequencesStr);
+        configLoaded = true;
+    }
+    if (!configLoaded)
+    {
+        Log.info("Setting default configuration");
+        _commandInterpreter.setSequences(ROBOT_DEFAULT_SEQUENCE_COMMANDS);
+        _commandInterpreter.setPatterns(ROBOT_DEFAULT_PATTERN_COMMANDS);
+    }
 
     // Check for cmdsAtStart
     String cmdsAtStart = ConfigManager::getString("cmdsAtStart", "", ROBOT_CONFIG_STR);

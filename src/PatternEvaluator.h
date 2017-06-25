@@ -145,8 +145,8 @@ public:
         PointND pt;
         getPoint(pt);
         String cmdStr = String::format("G0 X%0.2f Y%0.2f", pt._pt[0], pt._pt[1]);
+        Log.trace("PatternEvaluator ->cmdInterp %s", cmdStr.c_str());
         pCommandInterpreter->process(cmdStr.c_str());
-        Log.trace("CommandInterpreter process %s", cmdStr.c_str());
 
         // Check if we reached a limit
         if (getStopVar())

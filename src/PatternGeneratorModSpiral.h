@@ -56,8 +56,8 @@ public:
         double xy[2];
         getPoint(_tVal, xy);
         String cmdStr = String::format("G0 X%0.2f Y%0.2f", xy[0], xy[1]);
+        Log.trace("PatternGeneratorModSpiral ->cmdInterp %s", cmdStr.c_str());
         pCommandInterpreter->process(cmdStr.c_str());
-        Log.trace("CommandInterpreter process %s", cmdStr.c_str());
         _tVal += _tInc;
 
         // Check if we reached a limit

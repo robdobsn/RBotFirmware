@@ -90,7 +90,7 @@ public:
             pData[chIdx] = ch;
         }
         pData[dataStrLen + 1] = 0;
-        Log.info("Read config str: %s", pData);
+        Log.info("Read config string from EEPROM length: %d", strlen(pData));
 
         // Store in config string
         setConfigData(pData);
@@ -105,7 +105,7 @@ public:
     {
         const char* pConfigData = getConfigData();
 
-        Log.trace("Writing config str: %s", pConfigData);
+        Log.trace("Writing config str to EEPROM len %d ...", strlen(pConfigData));
 
         // Get length of string
         int dataStrLen = 0;
@@ -126,6 +126,8 @@ public:
 
         // Terminate string
         EEPROM.write(_eepromBaseLocation + dataStrLen, 0);
+
+        Log.trace("Writing config to EEPROM Complete");
 
         return true;
     }

@@ -75,8 +75,8 @@ public:
             return;
 
         // Process the next command
+        Log.trace("CommandSequencer ->cmdInterp cmdStr %s cmdIdx %d numToProc %d", _commandList.c_str(), _curCmdIdx, _numCmdsToProcess);
         pCommandInterpreter->process(_commandList.c_str(), _curCmdIdx++);
-        Log.trace("CommandSequencer processed cmdStr %s cmdIdx %d numToProc %d", _commandList.c_str(), _curCmdIdx, _numCmdsToProcess);
     }
 
 private:

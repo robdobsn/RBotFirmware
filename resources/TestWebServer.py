@@ -4,6 +4,7 @@ from klein import run, route
 import json
 
 stSettings = {
+    "maxCfgLen": 2000,
     "name": "Sand Table",
     "patterns":
         {

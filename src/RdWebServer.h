@@ -11,8 +11,12 @@ class RdWebServer;
 class RdWebClient
 {
 private:
-// Max length of an http request
-static const int HTTPD_MAX_REQ_LENGTH = 2048;
+    // Max length of an http request
+    static const int HTTPD_MAX_REQ_LENGTH = 2048;
+
+    // Max payload of a message
+    static const int HTTP_MAX_PAYLOAD_LENGTH = 2048;
+
     // Each call to service() process max this number of chars received from a TCP connection
     static const int MAX_CHS_IN_SERVICE_LOOP = 500;
 
@@ -37,7 +41,12 @@ static const int HTTPD_MAX_REQ_LENGTH = 2048;
 
 public:
     RdWebClient();
+    ~RdWebClient();
 
+    void setClientIdx(int clientIdx)
+    {
+        _clientIdx = clientIdx;
+    }
     void service(RdWebServer *pWebServer);
 
     enum WebClientState
@@ -53,8 +62,7 @@ public:
     }
 
     // Process HTTP Request
-    RdWebServerResourceDescr* handleReceivedHttp(const char *httpReq, int httpReqLen,
-                             bool& handledOk, RdWebServer *pWebServer);
+    RdWebServerResourceDescr* handleReceivedHttp(bool& handledOk, RdWebServer *pWebServer);
 private:
     // Current client state
     WebClientState _webClientState;
@@ -62,6 +70,13 @@ private:
 
     // HTTP Request
     String _httpReqStr;
+
+    // HTTP Request payload
+    unsigned char* _pHttpReqPayload;
+    int _httpReqPayloadLen;
+
+    // HTTP payload while being received
+    int _curHttpPayloadRxPos;
 
     // HTTP response
     String _httpRespStr;
@@ -72,13 +87,18 @@ private:
     int _resourceSendBlkCount;
     unsigned long _resourceSendMillis;
 
+    // Index of client - for debug
+    int _clientIdx;
+
 private:
+    // cleanUp
+    void cleanUp();
+
     // Helpers
-    static unsigned char *getPayloadDataFromMsg(const char *msgBuf, int msgLen, int& payloadLen);
-    static int getContentLengthFromMsg(const char *msgBuf);
+    static int getContentLengthFromHeader(const char *msgBuf);
 
     // Extract endpoint arguments
-    static bool extractEndpointArgs(const char *buf, String& endpointStr, String& argStr, int& contentLen);
+    static bool extractEndpointArgs(const char *buf, String& endpointStr, String& argStr);
 
     // Utility
     static void formStringFromCharBuf(String& outStr, char *pStr, int len);
@@ -155,7 +175,7 @@ public:
 
 private:
     // Clients
-    static const int MAX_WEB_CLIENTS = 5;
+    static const int MAX_WEB_CLIENTS = 1;
 
 private:
     // Port
