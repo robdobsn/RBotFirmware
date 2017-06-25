@@ -290,8 +290,10 @@ RdWebServerResourceDescr* RdWebClient::handleReceivedHttp(bool& handledOk, RdWeb
             if (pEndpoint->_endpointType == RestAPIEndpointDef::ENDPOINT_CALLBACK)
             {
                 String retStr;
-                (pEndpoint->_callback)(httpMethod, endpointStr.c_str(), argStr.c_str(),
-                        pHttpReq, httpReqLen, _httpReqPayloadLen, _pHttpReqPayload, _httpReqPayloadLen, 0, retStr);
+                RestAPIEndpointMsg apiMsg(httpMethod, endpointStr.c_str(), argStr.c_str(), pHttpReq);
+                apiMsg._pMsgContent = _pHttpReqPayload;
+                apiMsg._msgContentLen = _httpReqPayloadLen;
+                (pEndpoint->_callback)(apiMsg, retStr);
                 Log.trace("Got endpoint response len %d", retStr.length());
                 /*delay(50);*/
                 formHTTPResponse(_httpRespStr, "200 OK", "application/json", retStr.c_str(), -1);

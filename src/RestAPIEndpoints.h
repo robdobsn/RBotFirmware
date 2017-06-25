@@ -3,9 +3,28 @@
 
 #pragma once
 
+// Information on received API request
+typedef struct RestAPIEndpointMsg
+{
+    int _method;
+    const char* _pEndpointStr;
+    const char* _pArgStr;
+    const char* _pMsgHeader;
+    unsigned char* _pMsgContent;
+    int _msgContentLen;
+    RestAPIEndpointMsg(int method, const char* pEndpointStr, const char* pArgStr, const char* pMsgHeader)
+    {
+        _method = method;
+        _pEndpointStr = pEndpointStr;
+        _pArgStr = pArgStr;
+        _pMsgHeader = pMsgHeader;
+        _pMsgContent = NULL;
+        _msgContentLen = 0;
+    }
+};
+
 // Callback function for any endpoint
-typedef void (*RestAPIEndpointCallbackType)(int method, const char *endpointStr, const char *argStr, const char *msgBuffer, int msgLen,
-                                              int contentLen, const unsigned char *pPayload, int payloadLen, int splitPayloadPos, String& retStr);
+typedef void (*RestAPIEndpointCallbackType)(RestAPIEndpointMsg& restAPIEndpointMsg, String& retStr);
 
 // Definition of an endpoint
 class RestAPIEndpointDef
@@ -141,7 +160,8 @@ public:
             }
             if (requestEndpoint.equalsIgnoreCase(pEndpointStr))
             {
-                callback(0, NULL, argStart, NULL, 0, 0, NULL, 0, 0, retStr);
+                RestAPIEndpointMsg endpointMsg(0, NULL, argStart, NULL);
+                callback(endpointMsg, retStr);
             }
         }
     }

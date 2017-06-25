@@ -106,16 +106,13 @@ static const char* WORKFLOW_CONFIG_STR =
     "{\"CommandQueue\": { \"cmdQueueMaxLen\":50 } }";
 
 // Post settings information via API
-void restAPI_PostSettings(int method, const char *cmdStr, const char *argStr, const char *msgBuffer, int msgLen,
-                   int contentLen, const unsigned char *pPayload, int payloadLen, int splitPayloadPos, String& retStr)
+void restAPI_PostSettings(RestAPIEndpointMsg& apiMsg, String& retStr)
 {
-    Log.trace("RestAPI PostSettings method %d contentLen %d payloadLen %d", method, contentLen, payloadLen);
-    if (msgBuffer)
-        Log.trace("RestAPI PostSettings msgBuffer len %d", strlen(msgBuffer));
-    if (pPayload)
-        Log.trace("RestAPI PostSettings pPayload len %d", strlen((const char*)pPayload));
+    Log.trace("RestAPI PostSettings method %d contentLen %d", apiMsg._method, apiMsg._msgContentLen);
+    if (apiMsg._pMsgHeader)
+        Log.trace("RestAPI PostSettings header len %d", strlen(apiMsg._pMsgHeader));
     // Store the settings in EEPROM
-    configEEPROM.setConfigData((const char*)pPayload);
+    configEEPROM.setConfigData((const char*)apiMsg._pMsgContent);
     configEEPROM.writeToEEPROM();
     // Apply the config data
     String patternsStr = ConfigManager::getString("/patterns", "{}", configEEPROM.getConfigData());
@@ -127,10 +124,9 @@ void restAPI_PostSettings(int method, const char *cmdStr, const char *argStr, co
 }
 
 // Get settings information via API
-void restAPI_GetSettings(int method, const char *cmdStr, const char *argStr, const char *msgBuffer, int msgLen,
-                   int contentLen, const unsigned char *pPayload, int payloadLen, int splitPayloadPos, String& retStr)
+void restAPI_GetSettings(RestAPIEndpointMsg& apiMsg, String& retStr)
 {
-    Log.trace("RestAPI GetSettings method %d contentLen %d payloadLen %d", method, contentLen, payloadLen);
+    Log.trace("RestAPI GetSettings method %d contentLen %d", apiMsg._method, apiMsg._msgContentLen);
     // Get settings from each sub-element
     const char* patterns = _commandInterpreter.getPatterns();
     const char* sequences = _commandInterpreter.getSequences();
