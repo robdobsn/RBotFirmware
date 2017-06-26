@@ -106,4 +106,11 @@ public:
         _pRobot->home(args);
     }
 
+    bool wasActiveInLastNSeconds(int nSeconds)
+    {
+        if (!_pRobot)
+            return false;
+        return _pRobot->wasActiveInLastNSeconds(nSeconds);
+    }
+
 };

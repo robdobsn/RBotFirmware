@@ -34,6 +34,12 @@ WorkflowManager _workflowManager;
 CommandInterpreter _commandInterpreter(&_workflowManager, &_robotController);
 CommsSerial _commsSerial(0);
 ConfigEEPROM configEEPROM;
+bool eepromNeedsWriting = false;
+
+// Time to wait before making a pending write to EEPROM - which takes up-to several seconds and
+// blocks motion and web activity
+static const unsigned long ROBOT_IDLE_BEFORE_WRITE_EEPROM_SECS = 60;
+static const unsigned long WEB_IDLE_BEFORE_WRITE_EEPROM_SECS = 30;
 
 // Note that the value here for maxLen must be bigger than the value returned for restAPI_GetSettings()
 // This is to ensure the web-app doesn't return a string that is too long
@@ -113,7 +119,8 @@ void restAPI_PostSettings(RestAPIEndpointMsg& apiMsg, String& retStr)
         Log.trace("RestAPI PostSettings header len %d", strlen(apiMsg._pMsgHeader));
     // Store the settings in EEPROM
     configEEPROM.setConfigData((const char*)apiMsg._pMsgContent);
-    configEEPROM.writeToEEPROM();
+    // Set flag to indicate EEPROM needs to be written
+    eepromNeedsWriting = true;
     // Apply the config data
     String patternsStr = ConfigManager::getString("/patterns", "{}", configEEPROM.getConfigData());
     _commandInterpreter.setPatterns(patternsStr);
@@ -262,7 +269,6 @@ void debugLoopTimer()
     }
 }
 
-
 void loop()
 {
     debugLoopTimer();
@@ -280,6 +286,21 @@ void loop()
 
     // Service the robot controller
     _robotController.service();
+
+    // Check if eeprom contents need to be written - which is a time consuming process
+    if (eepromNeedsWriting)
+    {
+        // Check for robot idle, web server idle and no commands pending
+        bool robotActive = _robotController.wasActiveInLastNSeconds(ROBOT_IDLE_BEFORE_WRITE_EEPROM_SECS);
+        bool webActive = ((pWebServer) && (pWebServer->wasActiveInLastNSeconds(WEB_IDLE_BEFORE_WRITE_EEPROM_SECS)));
+        if (!(robotActive || webActive))
+        {
+            Log.info("Writing to EEPROM - could take a few seconds ...");
+            configEEPROM.writeToEEPROM();
+            Log.info("Write to EEPROM done");
+            eepromNeedsWriting = false;
+        }
+    }
 
     // Service the web server
     if (pWebServer)

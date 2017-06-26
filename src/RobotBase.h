@@ -48,4 +48,10 @@ public:
     virtual void home(RobotCommandArgs& args)
     {
     }
+
+    virtual bool wasActiveInLastNSeconds(int nSeconds)
+    {
+        return false;
+    }
+
 };

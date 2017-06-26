@@ -439,6 +439,7 @@ RdWebServer::RdWebServer()
     _webServerState        = WEB_SERVER_STOPPED;
     _webServerStateEntryMs = 0;
     _numWebServerResources = 0;
+    _webServerActiveLastUnixTime = 0;
     // Configure each client
     for (int clientIdx = 0; clientIdx < MAX_WEB_CLIENTS; clientIdx++)
         _webClients[clientIdx].setClientIdx(clientIdx);
@@ -559,6 +560,9 @@ void RdWebServer::service()
         for (int clientIdx = 0; clientIdx < MAX_WEB_CLIENTS; clientIdx++)
         {
             _webClients[clientIdx].service(this);
+
+            if (_webClients[clientIdx].clientIsActive())
+                _webServerActiveLastUnixTime = Time.now();
         }
         break;
     }

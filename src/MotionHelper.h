@@ -39,6 +39,7 @@ private:
     double _stepDisableSecs;
     bool _motorsAreEnabled;
     unsigned long _motorEnLastMillis;
+    unsigned long _motorEnLastUnixTime;
     // End stops
     EndStop* _endStops[MAX_AXES][MAX_ENDSTOPS_PER_AXIS];
     // Callbacks for coordinate conversion etc
@@ -332,6 +333,8 @@ public:
         _ptToActuatorFn = NULL;
         _actuatorToPtFn = NULL;
         _correctStepOverflowFn = NULL;
+        _motorEnLastMillis = 0;
+        _motorEnLastUnixTime = 0;
         configMotionPipeline();
 
         // // TESTCODE
@@ -389,6 +392,7 @@ public:
             }
             _motorsAreEnabled = true;
             _motorEnLastMillis = millis();
+            _motorEnLastUnixTime = Time.now();
         }
         else
         {
@@ -617,29 +621,18 @@ public:
 
     void service(bool processPipeline)
     {
-        /// NOTE:
-        /// Perhaps need to only disable motors after timeout from when motors stopped moving?
-        /// How to stop motors on emergency
-        /// How to convert coordinates
-        /// How to go home
-
-        // Check for motor enable timeout
-        if (_motorsAreEnabled && Utils::isTimeout(millis(), _motorEnLastMillis, (unsigned long)(_stepDisableSecs * 1000)))
-        {
-            enableMotors(false, true);
-        }
-
         // Check if we should process the movement pipeline
         if (processPipeline)
+        {
             pipelineService();
+            // Check for motor enable timeout
+            if (_motorsAreEnabled && Utils::isTimeout(millis(), _motorEnLastMillis, (unsigned long)(_stepDisableSecs * 1000)))
+                enableMotors(false, true);
+        }
+    }
 
-        // Avoid any overflows in stepper positions
-
-
-        //
-        // // Run the steppers
-        // _pRotationStepper->run();
-        // _pXaxis2Stepper->run();
-
+    unsigned long getLastActiveUnixTime()
+    {
+        return _motorEnLastUnixTime;
     }
 };

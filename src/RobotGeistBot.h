@@ -11,7 +11,7 @@
 
 class RobotGeistBot : public RobotBase
 {
-public:
+private:
     static const int NUM_ROBOT_AXES = 2;
     // Defaults
     static constexpr int _homingRotateFastStepTimeUs = 1000;
@@ -226,7 +226,6 @@ public:
     void home(RobotCommandArgs& args)
     {
         // GeistBot can only home X & Y axes together so ignore params
-        // Info
         Log.info("%s home x%d, y%d, z%d", _robotTypeName.c_str(), args.valid.X(), args.valid.Y(), args.valid.Z());
 
         // Set homing state
@@ -248,6 +247,12 @@ public:
         _motionHelper.moveTo(args);
     }
 
+    bool lastTimeActiveMillis(unsigned long& lastMillis)
+    {
+
+    }
+
+private:
     void homingSetNewState(HOMING_STATE newState)
     {
         // Debug
@@ -490,6 +495,7 @@ public:
 
     }
 
+public:
     void service()
     {
         // Service homing activity
@@ -499,4 +505,10 @@ public:
         _motionHelper.service(!homingActive);
     }
 
+    bool wasActiveInLastNSeconds(int nSeconds)
+    {
+        if (_homingState != HOMING_STATE_IDLE)
+            return true;
+        return (Time.now() < _motionHelper.getLastActiveUnixTime() + nSeconds);
+    }
 };

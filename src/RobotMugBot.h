@@ -260,4 +260,10 @@ public:
         _motionHelper.service(!homingActive);
     }
 
+    bool wasActiveInLastNSeconds(int nSeconds)
+    {
+        if (_homingState != HOMING_STATE_IDLE)
+            return true;
+        return (Time.now() < _motionHelper.getLastActiveUnixTime() + nSeconds);
+    }
 };

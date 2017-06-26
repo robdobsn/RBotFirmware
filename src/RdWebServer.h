@@ -49,6 +49,11 @@ public:
     }
     void service(RdWebServer *pWebServer);
 
+    bool clientIsActive()
+    {
+        return _webClientState != WEB_CLIENT_NONE;
+    }
+
     enum WebClientState
     {
         WEB_CLIENT_NONE, WEB_CLIENT_ACCEPTED, WEB_CLIENT_SEND_RESOURCE_WAIT, WEB_CLIENT_SEND_RESOURCE
@@ -209,5 +214,13 @@ private:
     // Utility
     void setState(WebServerState newState);
 
+    // Last time web server was active
+    unsigned long _webServerActiveLastUnixTime;
 
+public:
+    // Check if web server was active in last n seconds
+    bool wasActiveInLastNSeconds(int nSeconds)
+    {
+        return (Time.now() < _webServerActiveLastUnixTime + nSeconds);
+    }
 };
