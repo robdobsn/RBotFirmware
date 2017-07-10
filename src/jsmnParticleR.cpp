@@ -3,6 +3,7 @@
 // Rob D 2016
 
 #include "jsmnParticleR.h"
+#include "Utils.h"
 
 /**
  * Allocates a fresh unused token from the token pull.
@@ -54,7 +55,8 @@ static int JSMNR_parse_primitive(JSMNR_parser *parser, const char *js,
 				goto found;
 		}
 		if (js[parser->pos] < 32 || js[parser->pos] >= 127) {
-			parser->pos = start;
+            Log.trace("JSMNR_ERROR_INVAL ch bounds %d pos %d", js[parser->pos], parser->pos);
+            parser->pos = start;
 			return JSMNR_ERROR_INVAL;
 		}
 	}
@@ -130,6 +132,7 @@ static int JSMNR_parse_string(JSMNR_parser *parser, const char *js,
 						if(!((js[parser->pos] >= 48 && js[parser->pos] <= 57) || // 0-9
 									(js[parser->pos] >= 65 && js[parser->pos] <= 70) || // A-F
 									(js[parser->pos] >= 97 && js[parser->pos] <= 102))) { // a-f
+                            Log.trace("JSMNR_ERROR_INVAL hex bounds %d pos %d", js[parser->pos], parser->pos);
 							parser->pos = start;
 							return JSMNR_ERROR_INVAL;
 						}
@@ -139,6 +142,7 @@ static int JSMNR_parse_string(JSMNR_parser *parser, const char *js,
 					break;
 				// Unexpected symbol
 				default:
+                    Log.trace("JSMNR_ERROR_INVAL Unexpected %d pos %d", js[parser->pos], parser->pos);
 					parser->pos = start;
 					return JSMNR_ERROR_INVAL;
 			}
@@ -165,7 +169,8 @@ int JSMNR_parse(JSMNR_parser *parser, const char *js, size_t len,
 
 		c = js[parser->pos];
 		switch (c) {
-			case '{': case '[':
+			case '{':
+            case '[':
 				count++;
 				if (tokens == NULL) {
 					break;
@@ -183,7 +188,8 @@ int JSMNR_parse(JSMNR_parser *parser, const char *js, size_t len,
 				token->start = parser->pos;
 				parser->toksuper = parser->toknext - 1;
 				break;
-			case '}': case ']':
+			case '}':
+            case ']':
 				if (tokens == NULL)
 					break;
 				type = (c == '}' ? JSMNR_OBJECT : JSMNR_ARRAY);
@@ -214,6 +220,7 @@ int JSMNR_parse(JSMNR_parser *parser, const char *js, size_t len,
 					token = &tokens[i];
 					if (token->start != -1 && token->end == -1) {
 						if (token->type != type) {
+                            Log.trace("JSMNR_ERROR_INVAL %d type %d %d", token->start, token->type, type);
 							return JSMNR_ERROR_INVAL;
 						}
 						parser->toksuper = -1;
@@ -222,7 +229,12 @@ int JSMNR_parse(JSMNR_parser *parser, const char *js, size_t len,
 					}
 				}
 				/* Error if unmatched closing bracket */
-				if (i == -1) return JSMNR_ERROR_INVAL;
+				if (i == -1)
+                {
+                    Log.trace("JSMNR_ERROR_INVAL unmatchedbrace pos %d ch %d toknext %d type %d", parser->pos, js[parser->pos], parser->toknext, type);
+                    Utils::logLongStr("JSMN: parse input", js);
+                    return JSMNR_ERROR_INVAL;
+                }
 				for (; i >= 0; i--) {
 					token = &tokens[i];
 					if (token->start != -1 && token->end == -1) {
