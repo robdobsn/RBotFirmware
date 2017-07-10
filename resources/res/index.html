@@ -141,56 +141,110 @@
 				alert("The robot memory is full, please simplify or remove other patterns before adding new ones")
 			    jsonStr = JSON.stringify(window.prevSandTableState)
 			}
+		    console.log("POSTING " + jsonStr);
             postJson("/postsettings", jsonStr, postSettingsOkCallback, postSettingsFailCallback);
 		}
-		function userAction(cmdStr, argStr)
+		function userAction(itemTypeStr, cmdStr, argStr, curState)
 		{
-//		    console.log("UserAction "+ cmdStr + ", " + argStr);
-		    if (cmdStr === "patDelete")
+		    objStateSection = window.sandTableState.patterns;
+		    if (itemTypeStr === "seq")
+		        objStateSection = window.sandTableState.sequences;
+//		    console.log("UserAction type " + itemTypeStr + " cmd " + cmdStr + " arg " + argStr);
+		    if (cmdStr === "delete")
 			{
 			    if (confirm('Are you sure you want to delete?'))
 			    {
 			        // Remove from JSON
-					if (argStr in window.sandTableState.patterns)
-					    delete window.sandTableState.patterns[argStr];
+					if (argStr in objStateSection)
+					    delete objStateSection[argStr];
 					window.stState.curPage = "";
-					sendSandTableInfo()
+					sendSandTableInfo();
+					updateDisplay();
 				}
 			}
-		    else if (cmdStr === "patSave") {
+		    else if (cmdStr === "save") {
 		        // Get values from form
-				var patname = document.getElementById('patname').value.trim();
-				var patsetup = document.getElementById('patsetup').value;
-				var patloop = document.getElementById('patloop').value;
-		        // Check name is valid
-				if (patname.trim().length > 0) {
-				    if ((patname === argStr.trim()) || (!(patname in window.sandTableState.patterns))) {
-                        // Remove existing pattern in case name has changed
-                        if (argStr in window.sandTableState.patterns)
-                            delete window.sandTableState.patterns[argStr];
-                        // Save new information
-                        window.sandTableState.patterns[patname] = {setup: patsetup, loop: patloop};
-                        window.stState.curPage = "";
-                        sendSandTableInfo()
+                if (itemTypeStr === "pat") {
+                    var patname = document.getElementById('patname').value.trim();
+                    patname = patname.replace('"','');
+                    patname = patname.replace('\\','');
+                    var patsetup = document.getElementById('patsetup').value;
+                    var patloop = document.getElementById('patloop').value;
+                    // Check name is valid
+                    if (patname.trim().length > 0) {
+                        if ((patname === argStr.trim()) || (!(patname in window.sandTableState.patterns))) {
+                            // Remove existing item in case name has changed
+                            if (argStr in window.sandTableState.patterns)
+                                delete window.sandTableState.patterns[argStr];
+                            // Save new information
+                            window.sandTableState.patterns[patname] = {setup: patsetup, loop: patloop};
+                            window.stState.curPage = "";
+                            sendSandTableInfo();
+                            updateDisplay();
+                        }
+                    }
+                }
+                else {
+                    var seqname = document.getElementById('seqname').value.trim();
+                    seqname = seqname.replace('"','');
+                    seqname = seqname.replace('\\','');
+                    var seqcommands = document.getElementById('seqcommands').value;
+                    // Check name is valid
+                    if (seqname.trim().length > 0) {
+                        if ((seqname === argStr.trim()) || (!(seqname in window.sandTableState.sequences))) {
+                            // Remove existing item in case name has changed
+                            if (argStr in window.sandTableState.sequences)
+                                delete window.sandTableState.sequences[argStr];
+                            // Save new information
+                            window.sandTableState.sequences[seqname] = {commands: seqcommands};
+                            window.stState.curPage = "";
+                            sendSandTableInfo();
+                            updateDisplay();
+                        }
                     }
                 }
             }
-		    else if (cmdStr === "patCancel")
+		    else if (cmdStr === "cancel")
 			{
 				window.stState.curPage = "";
 				updateDisplay();
 			}
-		    else if (cmdStr === "patAdd")
+		    else if (cmdStr === "add")
 			{
-				window.stState.curPage = "patEdit";
+			    if (itemTypeStr === "pat")
+    				window.stState.curPage = "patEdit";
+			    else
+			        window.stState.curPage = "seqEdit";
 				window.stState.curItem = "";
 				updateDisplay();
 			}
-			else if (cmdStr == "patEdit")
+			else if (cmdStr == "edit")
 			{
-			    window.stState.curPage = "patEdit";
+			    if (itemTypeStr === "pat")
+    				window.stState.curPage = "patEdit";
+			    else
+			        window.stState.curPage = "seqEdit";
 			    window.stState.curItem = argStr;
 			    updateDisplay();
+			}
+			else if (cmdStr === "runAtStart")
+			{
+				argStr = argStr.replace('"','');
+				argStr = argStr.replace('\\','');
+			    var curRunAtStartVal = 0;
+			    if (argStr in window.sandTableState.sequences)
+			        curRunAtStartVal = window.sandTableState.sequences[argStr].runAtStart;
+			    for (seq in window.sandTableState.sequences)
+			        window.sandTableState.sequences[seq].runAtStart = 0;
+			    if (argStr in window.sandTableState.sequences)
+			        window.sandTableState.sequences[argStr].runAtStart = curRunAtStartVal ? 0 : 1;
+			    console.log("runAtStart arg" + argStr);
+			    if (curRunAtStartVal === 0)
+				    window.sandTableState["startup"] = argStr;
+			    else
+			        window.sandTableState["startup"] = "";
+				sendSandTableInfo();
+				updateDisplay();
 			}
 		}
 		function postSettingsOkCallback()
@@ -201,7 +255,7 @@
 		{
 		    updateDisplay();
 		}
-		function genButton(clickFn, keyVal, label, cssClass)
+		function genButton(clickFn, keyVal, label, cssClass, curState)
 		{
 //		    console.log("Gen BUTTON url " + url + " clickFn " + clickFn + " label " + label);
 			var oStr = "";
@@ -209,8 +263,15 @@
 			oStr += "<span class='" + cssClass + "' onclick='" + clickFn + "'>";
 			if (label == "Edit")
 			{
-				oStr += '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="30px" height="30px" viewBox="0 0 530 530">';
-				oStr += '<g><path d="M328.883,89.125l107.59,107.589l-272.34,272.34L56.604,361.465L328.883,89.125z M518.113,63.177l-47.981-47.981   c-18.543-18.543-48.653-18.543-67.259,0l-45.961,45.961l107.59,107.59l53.611-53.611   C532.495,100.753,532.495,77.559,518.113,63.177z M0.3,512.69c-1.958,8.812,5.998,16.708,14.811,14.565l119.891-29.069   L27.473,390.597L0.3,512.69z" style="fill: rgb(220, 222, 208);"></path></g>';
+				oStr += '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="25px" height="25px" viewBox="0 0 530 530">';
+				oStr += '<g><path d="M328.883,89.125l107.59,107.589l-272.34,272.34L56.604,361.465L328.883,89.125z M518.113,63.177l-47.981-47.981   c-18.543-18.543-48.653-18.543-67.259,0l-45.961,45.961l107.59,107.59l53.611-53.611   C532.495,100.753,532.495,77.559,518.113,63.177z M0.3,512.69c-1.958,8.812,5.998,16.708,14.811,14.565l119.891-29.069 L27.473,390.597L0.3,512.69z" style="fill: rgb(220, 222, 218);"></path></g>';
+				oStr += '</svg>';
+			}
+			else if (label == "Add")
+			{
+				oStr += '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="25px" height="25px" viewBox="170 60 200 150">';
+				oStr += '<g><path style="fill:none;stroke:#e0e0e0;stroke-width:22;stroke-linecap:round;"'
+				oStr += 'd="m 250,50 0,150 m 75,-75 -150,0" />'
 				oStr += '</svg>';
 			}
 //			else if (label == "Delete")
@@ -219,6 +280,13 @@
 //				oStr += '<g><path d="m 107.34348,113.4774 200.6666,201.54286 M 107.34348,315.4584 308.88635,110.84858" style="fill:none;fill-rule:evenodd;stroke:#dcded0;stroke-width:59.9;stroke-linecap:round;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none"/></g>';
 //				oStr += '</svg>';
 //			}
+			else if (label === "RunAtStart")
+			{
+				oStr += '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="25px" height="25px" viewBox="100 50 120 150">';
+				oStr += '<g><path d="m 200,200 c -4.35878,-1.14794 -5.49015,-3.7954 -8.2485,-19.30195 -2.19682,-12.34983 -2.66103,-13.64007 -9.28184,-25.7981 -3.83316,-7.03896 -7.18705,-12.58042 -7.45311,-12.31436 -0.26606,0.26605 -2.15305,7.1502 -4.19333,15.2981 l -3.70958,14.81436 -20.7132,0.27036 -20.7132,0.27037 -2.47491,-2.47491 c -4.35871,-4.35871 -2.78064,-9.77311 3.35866,-11.52363 1.83347,-0.52278 8.80395,-0.87661 15.48997,-0.78629 12.1092,0.16358 12.15924,0.15467 12.89213,-2.29584 0.40466,-1.35303 1.67163,-10.88581 2.81549,-21.18394 l 2.07975,-18.72388 8.11439,-13.11213 c 6.12254,-9.89348 7.79116,-13.3119 6.79762,-13.92595 -1.06027,-0.65528 -17.26314,-4.01416 -19.36388,-4.01416 -0.30487,0 -2.64213,3.83018 -5.19393,8.51152 -2.5518,4.68133 -5.51736,8.98126 -6.59014,9.5554 -2.82117,1.50984 -5.76682,0.2119 -6.5442,-2.88357 -0.53306,-2.12261 0.66803,-5.26676 5.74768,-15.04598 3.53185,-6.79944 6.9994,-12.59097 7.70565,-12.87007 2.27529,-0.89915 31.55607,4.80241 35.55298,6.92288 5.16148,2.7383 6.30561,1.46922 4.21825,-4.67895 -2.03972,-6.00785 -1.21221,-10.69349 2.66925,-15.11423 5.82929,-6.6392 15.76006,-6.59533 21.63475,0.0956 7.32702,8.34502 3.71469,20.54186 -6.99172,23.60714 -7.83845,2.24417 -8.53147,3.69756 -3.41948,7.17125 1.89647,1.28869 7.06225,6.86646 11.47951,12.39506 8.0213,10.03937 8.03902,10.05362 14.10508,11.34092 9.99138,2.12032 13.92644,7.00804 8.50304,10.56158 -2.27585,1.4912 -3.09767,1.47917 -10.75,-0.15729 l -8.28576,-1.77192 -9.08037,-9.49703 -9.08038,-9.49702 -6.12185,11.12076 -6.12184,11.12076 7.4305,17.24009 c 6.86365,15.92488 7.67298,18.5563 10.60883,34.49313 2.95722,16.05285 3.06756,17.42208 1.58612,19.68305 -1.93692,2.95611 -4.19231,3.62242 -8.45843,2.4989 z" ';
+				oStr += 'style="fill: ' + (curState ? '#78BFC1' : '#e0e0e0') + ';"></path></g>';
+				oStr += '</svg>';
+			}
 			else
 			{
 			    oStr += label;
@@ -230,7 +298,7 @@
 		}
 		function genAjaxButton(url, key, label, cssClass)
 		{
-		    return genButton("callAjax(\"" + url + "\",ajaxCallback)", key, label, cssClass);
+		    return genButton("callAjax(\"" + url + "\",ajaxCallback)", key, label, cssClass, false);
 		}
 		function genPageHeader()
 		{
@@ -266,17 +334,17 @@
 			var listStr = "<div class='body-group backGrad2'>";
 			listStr += "<div class='body-group-header'>Patterns";
 			listStr += "<div class='body-group-actions'>";
-			listStr += genButton("userAction(\"patAdd\",\"\")", "", "Add", 'body-group-button');
+			listStr += genButton("userAction(\"pat\",\"add\",\"\")", "", "Add", 'body-group-button', false);
 			listStr += "</div>";
 			listStr += "</div>";
 			listStr += "<div class='body-list'>";
-			Object.keys(sandTableState.patterns).forEach(function(key,index) {
+			Object.keys(window.sandTableState.patterns).forEach(function(key,index) {
 				listStr += "<div class='body-list-line'>";
           		listStr += "<div class='body-list-item'>";
 				listStr += genAjaxButton("/pattern/"+key, "", key, 'body-group-button');
 				listStr += "</div>";
-				listStr += "<div class='body-group-actions'>";
-				listStr += genButton("userAction(\"patEdit\",\"~key~\")", key, "Edit", 'body-group-button');
+				listStr += "<div class='body-list-actions'>";
+				listStr += genButton("userAction(\"pat\",\"edit\",\"~key~\")", key, "Edit", 'body-group-button', false);
 				listStr += "</div>";
 				listStr += "</div>";
     		});
@@ -287,15 +355,21 @@
 		function genSequencesBody() {
 			// Sequences section
 			var listStr = "<div class='body-group backGrad3'>";
-			listStr += "<div class='body-group-header'>Sequences</div>";
+			listStr += "<div class='body-group-header'>Sequences";
+			listStr += "<div class='body-group-actions'>";
+			listStr += genButton("userAction(\"seq\",\"add\",\"\")", "", "Add", 'body-group-button', false);
+			listStr += "</div>";
+			listStr += "</div>";
 			listStr += "<div class='body-list'>";
-			Object.keys(sandTableState.sequences).forEach(function(key,index) {
+			Object.keys(window.sandTableState.sequences).forEach(function(key,index) {
 				listStr += "<div class='body-list-line'>";
           		listStr += "<div class='body-list-item'>";
 				listStr += genAjaxButton("/sequence/"+key, "", key, 'body-group-button');
 				listStr += "</div>";
-				listStr += "<div class='body-group-actions'>";
-				listStr += genButton("userAction(\"seqEdit\",\"~key~\")", key, "Edit", 'body-group-button');
+				listStr += "<div class='body-list-actions'>";
+				var UAStr = "userAction(\"seq\",\"runAtStart\",\"~key~\"," + ((sandTableState.sequences[key].runAtStart) ? 0 : 1) + ")";
+				listStr += genButton(UAStr, key, "RunAtStart", 'body-group-button button-spacing', sandTableState.sequences[key].runAtStart);
+				listStr += genButton("userAction(\"seq\",\"edit\",\"~key~\")", key, "Edit", 'body-group-button', false);
 				listStr += "</div>";
 				listStr += "</div>";
     		});
@@ -316,6 +390,24 @@
 			pageBodyDiv.innerHTML = listStr;
 
 		}
+
+		function genEditPageActions(itemTypeStr, argStr)
+        {
+			var listStr = "<div class='body-group'>";
+			listStr += "<div class='body-group-header'>";
+			listStr += "<div class='body-group-actions'>";
+			listStr += genButton("userAction(\"" + itemTypeStr + "\",\"delete\",\"~key~\")", argStr, "Delete", 'body-group-button', false);
+			listStr += "</div>";
+			listStr += "<div class='body-group-actions'>";
+			listStr += genButton("userAction(\"" + itemTypeStr + "\",\"save\",\"~key~\")", argStr, "Save", 'body-group-button', false);
+			listStr += "</div>";
+			listStr += "<div class='body-group-actions'>";
+			listStr += genButton("userAction(\"" + itemTypeStr + "\",\"cancel\",\"~key~\")", argStr, "Cancel", 'body-group-button', false);
+			listStr += "</div>";
+			listStr += "</div>";
+			return listStr;
+        }
+
 		function genPatEditBody() {
             var sandTableState = window.sandTableState;
             var patName = window.stState.curItem;
@@ -327,20 +419,10 @@
 			// Body heading
 			var listStr = genBodyHeadingSection();
 
-			listStr += "<div class='body-group'>";
-			listStr += "<div class='body-group-header'>Edit Pattern";
-			listStr += "<div class='body-group-actions'>";
-			listStr += genButton("userAction(\"patDelete\",\"~key~\")", patName, "Delete", 'body-group-button');
-			listStr += "</div>";
-			listStr += "<div class='body-group-actions'>";
-			listStr += genButton("userAction(\"patSave\",\"~key~\")", patName, "Save", 'body-group-button');
-			listStr += "</div>";
-			listStr += "<div class='body-group-actions'>";
-			listStr += genButton("userAction(\"patCancel\",\"~key~\")", patName, "Cancel", 'body-group-button');
-			listStr += "</div>";
-			listStr += "</div>";
-//			listStr += genActionButtons(false, "", {"buttons":[{"toggle":false,"offStr":"Edit","actionOff":"pageNav(\"patEdit\",\"~key~\")"}]});
+            // Action buttons
+            listStr += genEditPageActions("pat", patName);
 
+            // Fields
 			listStr += "<form class='body-form'>";
 			listStr += "<fieldset class='body-fieldset'>";
 			listStr += "<div class='body-form-line'>";
@@ -360,16 +442,46 @@
             listStr += "</div>";
 			pageBodyDiv.innerHTML = listStr;
         }
+
+  		function genSeqEditBody() {
+            var sandTableState = window.sandTableState;
+            var seqName = window.stState.curItem;
+            var sequenceInfo = { commands: "" };
+            if (seqName in window.sandTableState.sequences)
+			    sequenceInfo = window.sandTableState.sequences[seqName];
+            var pageBodyDiv = document.getElementById("pageBody");
+
+			// Body heading
+			var listStr = genBodyHeadingSection();
+
+            // Action buttons
+            listStr += genEditPageActions("seq", seqName);
+
+            // Fields
+			listStr += "<form class='body-form'>";
+			listStr += "<fieldset class='body-fieldset'>";
+			listStr += "<div class='body-form-line'>";
+			listStr += "<div class='body-form-label'>Name</div>";
+			listStr += "<textarea id='seqname' rows='1' class='body-form-field'>" + seqName + "</textarea>";
+            listStr += "</div>";
+			listStr += "<div class='body-form-line'>";
+			listStr += "<div class='body-form-label'>Commands or Patterns</div>";
+			listStr += "<textarea id='seqcommands' class='body-form-field' cols='50' rows='10'>" + sequenceInfo.commands + "</textarea>";
+            listStr += "</div>";
+            listStr += "</fieldset>";
+            listStr += "</form>";
+            listStr += "</div>";
+			pageBodyDiv.innerHTML = listStr;
+        }
+
 		function genPageBody()
 		{
 		    if (window.stState.curPage.trim() == 'patEdit')
-			{
 				genPatEditBody();
-			}
+			else if (window.stState.curPage.trim() == 'seqEdit')
+				genSeqEditBody();
 			else
-			{
 			    genHomePageBody();
-			}
 		}
 		function updateDisplay()
 		{
@@ -405,7 +517,7 @@
 		border: none;
 	}
 	.body-commands{
-		width: 60%;
+		width: 80%;
 		margin-left:auto;
 		margin-right:auto;
 		padding-top: 20px;
@@ -426,7 +538,7 @@
 	.body-group-header{
 		margin-left: 20px;
 		padding-top: 20px;
-		color: #fbf0e8;
+		color: #64523c;
 		text-transform: uppercase;
 		font-size: 1.0em;
 	}
@@ -441,7 +553,7 @@
 		cursor:pointer;
 	}
 	.body-group-actions{
-        margin-right: 30px;
+        margin-right: 20px;
 		float: right;
 	}
 	.body-group-action{
@@ -455,6 +567,7 @@
 	}
 	.body-form {
 		display: block;
+        clear: both;
 	}
 	.body-form-line{
 		padding:5px;
@@ -485,10 +598,15 @@
 	.body-list-item{
 		display: inline-block;
 	  padding: 10px;
-	  padding-left: 30px;
+	  padding-left: 20px;
 	  /*width: 25%;*/
 	  font-size: 1.2em;
 	  color: #fafcee;
+	}
+	.body-list-actions{
+        margin-right: 20px;
+		float: right;
+		padding-top: 10px;
 	}
 	.body-list-item span {
 	  text-decoration: none;
@@ -531,6 +649,9 @@
 	}
 	.body-name-edit {
 		font-size: 1em;
+	}
+	.button-spacing {
+		padding-right: 15px;
 	}
 	.backHead {
 //		background: #489080;
