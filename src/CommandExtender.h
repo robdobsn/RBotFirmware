@@ -63,7 +63,7 @@ public:
         {
             // See if pattern name is at the start of the string
             pPatternPos = strcasestr(pCmdStart, _patternGenerators[i]->getPatternName());
-            Log.trace("Pat %s %s %ld %ld", pCmdStart, _patternGenerators[i]->getPatternName(), pPatternPos, pCmdStart);
+//            Log.trace("Pat %s %s %ld %ld", pCmdStart, _patternGenerators[i]->getPatternName(), pPatternPos, pCmdStart);
             if ((pPatternPos == pCmdStart) && (strlen(pCmdStart) == strlen(_patternGenerators[i]->getPatternName())))
             {
                 patternGenIdx = i;
