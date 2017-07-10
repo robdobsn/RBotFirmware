@@ -180,7 +180,7 @@ public:
 
 private:
     // Clients
-    static const int MAX_WEB_CLIENTS = 1;
+    static const int MAX_WEB_CLIENTS = 3;
 
 private:
     // Port
