@@ -8,6 +8,7 @@
 #pragma once
 
 #include "jsmnParticleR.h"
+#include "Utils.h"
 
 class ConfigManager
 {
@@ -59,7 +60,11 @@ public:
         int numTokens = 0;
         jsmnrtok_t* pTokens = parseJson(pSourceStr, numTokens);
         if (pTokens == NULL)
+        {
+            // Parse failed
+            Utils::logLongStr("Failed to parse JSON", pSourceStr);
             return defaultValue;
+        }
 
         // Find token
         int startTokenIdx, endTokenIdx;
@@ -79,7 +84,7 @@ public:
         {
             char* pStr = safeStringDup(pSourceStr + pTokens[startTokenIdx].start,
                         pTokens[startTokenIdx].end - pTokens[startTokenIdx].start,
-                        true);
+                        false);
             outStr = pStr;
             delete[] pStr;
             objSize = outStr.length();
@@ -247,7 +252,7 @@ public:
         // Check for null source string
         if (jsonStr == NULL)
         {
-            Log.error("Source JSON is NULL");
+            Log.error("ConfigMgr: Source JSON is NULL");
             return NULL;
         }
 
@@ -258,7 +263,8 @@ public:
                     NULL, maxTokens);
         if (tokenCountRslt < 0)
         {
-            Log.error("Failed to parse JSON: %d", tokenCountRslt);
+            Log.trace("ConfigMgr: parseJson result %d maxTokens %d jsonLen %d", tokenCountRslt, maxTokens, strlen(jsonStr));
+            Utils::logLongStr("ConfigMgr: jsonStr", jsonStr);
             return NULL;
         }
 
@@ -273,12 +279,27 @@ public:
                     pTokens, tokenCountRslt);
         if (tokenCountRslt < 0)
         {
-            Log.error("Failed to parse JSON: %d", tokenCountRslt);
+            Log.info("parseJson result: %d", tokenCountRslt);
+            Log.trace("jsonStr %s numTok %d maxTok %d", jsonStr, numTokens, maxTokens);
             delete[] pTokens;
             return NULL;
         }
         numTokens = tokenCountRslt;
         return pTokens;
+    }
+
+    static void escapeString(String& strToEsc)
+    {
+        // Replace characters which are invalid in JSON
+        strToEsc.replace("\\", "\\\\");
+        strToEsc.replace("\"", "\\\"");
+    }
+
+    static void unescapeString(String& strToUnEsc)
+    {
+        // Replace characters which are invalid in JSON
+        strToUnEsc.replace("\\\"", "\"");
+        strToUnEsc.replace("\\\\", "\\");
     }
 
 private:
@@ -413,7 +434,7 @@ private:
                 *sqBracketPos = 0;
             }
 
-            Log.trace("findKeyInJson srchKey %s arrayIdx %ld", srchKey, reqdArrayIdx);
+            // Log.trace("findKeyInJson srchKey %s arrayIdx %ld", srchKey, reqdArrayIdx);
 
             // Iterate over tokens to find key of the right type
             // If we are already looking at the node level then search for requested type
@@ -523,6 +544,8 @@ public:
 	static size_t safeStringLen(const char* pSrc,
 		bool skipJSONWhitespace = false, size_t maxx = LONG_MAX)
 	{
+        if (maxx == 0)
+            return 0;
 		const char* pS = pSrc;
 		int stringLen = 0;
 		bool insideDoubleQuotes = false;
@@ -563,8 +586,10 @@ public:
 			else if ((ch == '\"') && !insideSingleQuotes)
 				insideDoubleQuotes = !insideDoubleQuotes;
 			else if (!insideDoubleQuotes && !insideSingleQuotes &&
-				skipJSONWhitespace && isspace(ch))
+				skipJSONWhitespace && (isspace(ch) || (ch > 0 && ch < 32) || (ch >= 127)))
+            {
 				continue;
+            }
 			*pD++ = ch;
 			stringLen++;
 			if (stringLen >= maxx)
@@ -580,6 +605,9 @@ public:
 	{
 		size_t toAlloc = safeStringLen(pSrc, skipJSONWhitespace, maxx);
 		char* pDest = new char[toAlloc + 1];
+        pDest[toAlloc] = 0;
+        if (toAlloc == 0)
+            return pDest;
 		char* pD = pDest;
 		const char* pS = pSrc;
 		size_t srcStrlen = strlen(pS);
@@ -604,6 +632,7 @@ public:
 				break;
 			}
 		}
+//        Log.trace("safeStringDup <%s> %d %d %d %d %d %d %d <%s>", pSrc, maxx, toAlloc, srcStrlen, stringLen, insideDoubleQuotes, insideSingleQuotes, skipJSONWhitespace, pDest);
 		return pDest;
 	}
 
@@ -701,7 +730,7 @@ public:
 			NULL, 1000);
 		if (tokenCountRslt < 0)
 		{
-			Log.error("Failed to parse JSON: %d", tokenCountRslt);
+			Log.info("JSON parse result: %d", tokenCountRslt);
 			return false;
 		}
 		jsmnrtok_t* pTokens = new jsmnrtok_t[tokenCountRslt];
@@ -710,7 +739,7 @@ public:
 			pTokens, tokenCountRslt);
 		if (tokenCountRslt < 0)
 		{
-			Log.error("Failed to parse JSON: %d", tokenCountRslt);
+			Log.info("JSON parse result: %d", tokenCountRslt);
 			delete pTokens;
 			return false;
 		}
