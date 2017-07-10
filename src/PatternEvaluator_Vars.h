@@ -111,7 +111,7 @@ public:
         if (!_pTeVars)
         {
             _numTeVars = 0;
-            Log.error("PatternEvaluator failed to add variable");
+            Log.error("PatternVars failed to add variable");
             return -1;
         }
         // Add the variable name
@@ -125,12 +125,12 @@ public:
         _pTeVarFlags[newVarIdx] = flags;
 
 		// Show vars
-		Log.trace("NumVars = %d", _numTeVars);
-		for (int i = 0; i < _numTeVars; i++)
-		{
-			Log.trace("Var %d %s = %f flags %04x context %ld", i, _pTeVars[i].name,
-                    *((double*)(_pTeVars[i].address)), _pTeVarFlags[i], _pTeVars[i].context);
-		}
+//		Log.trace("PatternVars NumVars = %d", _numTeVars);
+		// for (int i = 0; i < _numTeVars; i++)
+		// {
+		// 	Log.trace("PatternVars Var %d %s = %f flags %04x context %ld", i, _pTeVars[i].name,
+        //             *((double*)(_pTeVars[i].address)), _pTeVarFlags[i], _pTeVars[i].context);
+		// }
         return newVarIdx;
     }
 
@@ -155,7 +155,7 @@ public:
 				// Create the variable using this value
                 unsigned int flags = TEVARS_FREE_VALUE_ADDR_REQD;
 				varIdx = addVariable(varName.c_str(), pVal, flags);
-				Log.trace("AddVar %s, expr %s, val %f, flags %02x, err %d, numVars %d",
+				Log.trace("PatternVars AddVar %s, expr %s, val %f, flags %02x, err %d, numVars %d",
 					varName.c_str(), expr.c_str(), *pVal, flags, err, _numTeVars);
 			}
 
@@ -174,11 +174,15 @@ public:
 		return _numTeVars;
 	}
 
-	double getVal(char* varName, bool caseInsensitive = false)
+	double getVal(char* varName, bool& isValid, bool caseInsensitive = false)
 	{
+        isValid = true;
 		int varIdx = getVariableIdx(varName, caseInsensitive);
 		if (varIdx == -1)
+        {
+            isValid = false;
 			return 0;
+        }
 		return *((double*)(_pTeVars[varIdx].address));
 	}
 
