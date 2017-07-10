@@ -20,8 +20,12 @@ public:
     static const int MAX_ENDSTOPS_PER_AXIS = 2;
     static constexpr double stepDisableSecs_default = 60.0;
     static constexpr double blockDistanceMM_default = 1.0;
+    static constexpr double distToTravelMM_ignoreBelow = 0.01;
 
 private:
+    // Pause
+    bool _isPaused;
+    bool _wasPaused;
     // Robot dimensions
     double _xMaxMM;
     double _yMaxMM;
@@ -153,7 +157,7 @@ private:
         _axisParams[axisIdx]._stepsFromHome = 0;
     }
 
-    void pipelineService()
+    void pipelineService(bool hasBeenPaused)
     {
         // Check if any axis is moving
         bool anyAxisMoving = false;
@@ -174,19 +178,26 @@ private:
                  // Correct for any overflows in stepper values (may occur with rotational robots)
                  _correctStepOverflowFn(_axisParams, _numRobotAxes);
 
+                // Check if a real distance
+                double distToTravelMM = motionElem.delta();
+                bool valid = true;
+                if (distToTravelMM < distToTravelMM_ignoreBelow)
+                    valid = false;
+
                 // Get absolute step position to move to
                 PointND actuatorCoords;
-                bool valid = _ptToActuatorFn(motionElem, actuatorCoords, _axisParams, _numRobotAxes);
+                if (valid)
+                    valid = _ptToActuatorFn(motionElem, actuatorCoords, _axisParams, _numRobotAxes);
 
                 // Activate motion if valid - otherwise ignore
                 if (valid)
                 {
+                    // Get steps from home for each axis
                     for (int i = 0; i < MAX_AXES; i++)
                         _axisParams[i]._targetStepsFromHome = actuatorCoords.getVal(i);
 
                     // Balance the time for each direction
                     double speedTargetMMps = _axisParams[0]._maxSpeed;
-                    double distToTravelMM = motionElem.delta();
                     double timeToTargetS = distToTravelMM / speedTargetMMps;
                     long stepsAxis[MAX_AXES];
                     double timePerStepAxisNs[MAX_AXES];
@@ -260,7 +271,7 @@ private:
             }
 
             // Check if time to move
-            if (Utils::isTimeout(micros(), _axisParams[i]._lastStepMicros, _axisParams[i]._betweenStepsNs / 1000))
+            if (hasBeenPaused || (Utils::isTimeout(micros(), _axisParams[i]._lastStepMicros, _axisParams[i]._betweenStepsNs / 1000)))
             {
                 step(i, _axisParams[i]._targetStepsFromHome > _axisParams[i]._stepsFromHome);
                 // Log.trace("Step %d %d", i, _axisParams[i]._targetStepsFromHome > _axisParams[i]._stepsFromHome);
@@ -298,6 +309,18 @@ public:
         return _motionPipeline.canAccept();
     }
 
+    // Pause (or un-pause) all motion
+    void pause(bool pauseIt)
+    {
+        _isPaused = pauseIt;
+    }
+
+    // Check if paused
+    bool isPaused()
+    {
+        return _isPaused;
+    }
+
 public:
     void configMotionPipeline()
     {
@@ -311,6 +334,8 @@ public:
     MotionHelper()
     {
         // Init
+        _isPaused = false;
+        _wasPaused = false;
         _xMaxMM = 0;
         _yMaxMM = 0;
         _maxMotionDistanceMM = 0;
@@ -624,7 +649,15 @@ public:
         // Check if we should process the movement pipeline
         if (processPipeline)
         {
-            pipelineService();
+            if (_isPaused)
+            {
+                _wasPaused = true;
+            }
+            else
+            {
+                pipelineService(_wasPaused);
+                _wasPaused = false;
+            }
             // Check for motor enable timeout
             if (_motorsAreEnabled && Utils::isTimeout(millis(), _motorEnLastMillis, (unsigned long)(_stepDisableSecs * 1000)))
                 enableMotors(false, true);
