@@ -251,11 +251,11 @@ private:
 
         // Check valid
         bool checkDiff = finalAngle > current ? finalAngle - current : current - finalAngle;
-        bool checkDest = wrapDegrees(finalAngle) == wrapTarget;
-        Log.trace("calcMinAngleDiff %s %s tgt %0.2f cur %0.2f mindiff %0.2f (%02.f) final %0.2f",
+        bool checkDest = isApprox(wrapDegrees(finalAngle), wrapTarget, 0.01);
+        Log.trace("calcMinAngleDiff %s %s tgt %0.2f cur %0.2f mindiff %0.2f (%02.f) final %0.2f, wrapFinal %0.2f, wrapTarget %0.2f",
                     checkDiff ? "OK" : "DIFF_WRONG *********",
                     checkDest ? "OK" : "DEST_WRONG *********",
-                    target, current, minDiff, diff, finalAngle);
+                    target, current, minDiff, diff, finalAngle, wrapDegrees(finalAngle), wrapTarget);
         return minDiff;
     }
 
@@ -528,7 +528,7 @@ public:
     {
         // Debug
         if (_homingStepsDone != 0)
-            Log.trace("Changing state to %d ... HomingSteps %d", newState, _homingStepsDone);
+            Log.trace("RobotSandTableScara homingState %d ... HomingSteps %d", newState, _homingStepsDone);
 
         // Reset homing vars
         int prevHomingSteps = _homingStepsDone;
@@ -730,12 +730,24 @@ public:
 
     }
 
+    // Pause (or un-pause) all motion
+    void pause(bool pauseIt)
+    {
+        _motionHelper.pause(pauseIt);
+    }
+
+    // Check if paused
+    bool isPaused()
+    {
+        return _motionHelper.isPaused();
+    }
+
     void service()
     {
         // Service homing activity
         bool homingActive = homingService();
 
-        // Service the motion controller
+        // Service the motion helper
         _motionHelper.service(!homingActive);
     }
 

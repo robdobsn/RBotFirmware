@@ -21,6 +21,17 @@ public:
     {
     }
 
+    // Pause (or un-pause) all motion
+    virtual void pause(bool pauseIt)
+    {
+    }
+
+    // Check if paused
+    virtual bool isPaused()
+    {
+        return false;
+    }
+
     virtual bool init(const char* robotConfigStr)
     {
         return false;

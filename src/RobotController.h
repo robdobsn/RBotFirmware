@@ -66,6 +66,26 @@ public:
         }
     }
 
+    // Pause (or un-pause) all motion
+    void pause(bool pauseIt)
+    {
+        if (pauseIt)
+            Log.info("RobotController: pausing");
+        else
+            Log.info("RobotController: resuming");
+        if (!_pRobot)
+            return;
+        _pRobot->pause(pauseIt);
+    }
+
+    // Check if paused
+    bool isPaused()
+    {
+        if (!_pRobot)
+            return false;
+        return _pRobot->isPaused();
+    }
+
     // Service (called frequently)
     void service()
     {

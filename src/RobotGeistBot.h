@@ -496,6 +496,18 @@ private:
     }
 
 public:
+    // Pause (or un-pause) all motion
+    void pause(bool pauseIt)
+    {
+        _motionHelper.pause(pauseIt);
+    }
+
+    // Check if paused
+    bool isPaused()
+    {
+        return _motionHelper.isPaused();
+    }
+
     void service()
     {
         // Service homing activity
