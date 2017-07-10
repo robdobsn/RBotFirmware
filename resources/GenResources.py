@@ -3,10 +3,10 @@ import logging as log
 import os, os.path
 import shutil
 import subprocess
-MINIFY_HTML = True
 
 # NOTE that if MINIFY_HTML is True then the Node package html-minifier needs to be installed globally
 # npm install html-minifier -g
+MINIFY_HTML = False
 
 log.basicConfig(level=log.DEBUG)
 
