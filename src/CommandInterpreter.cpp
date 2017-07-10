@@ -16,7 +16,7 @@ CommandInterpreter::CommandInterpreter(WorkflowManager* pWorkflowManager, RobotC
 
 void CommandInterpreter::setSequences(const char* configStr)
 {
-    Log.trace("setSequences %s", configStr);
+    Log.trace("CmdInterp setSequences %s", configStr);
 
     // Simply pass the whole config to the extender at present
     _pCommandExtender->setSequences(configStr);
@@ -29,7 +29,7 @@ const char* CommandInterpreter::getSequences()
 
 void CommandInterpreter::setPatterns(const char* configStr)
 {
-    Log.trace("setPatterns %s", configStr);
+    Log.trace("CmdInterp setPatterns %s", configStr);
 
     // Simply pass the whole config to the extender at present
     _pCommandExtender->setPatterns(configStr);
@@ -56,7 +56,17 @@ bool CommandInterpreter::queueIsEmpty()
 
 bool CommandInterpreter::processSingle(const char* pCmdStr)
 {
-    // RWAD TODO check if this is an immediate command
+    // Check if this is an immediate command
+    if (stricmp(pCmdStr, "pause") == 0)
+    {
+        if (_pRobotController)
+            _pRobotController->pause(true);
+    }
+    else if (stricmp(pCmdStr, "resume") == 0)
+    {
+        if (_pRobotController)
+            _pRobotController->pause(false);
+    }
 
     // Send the line to the workflow manager
     bool rslt = false;
@@ -65,7 +75,7 @@ bool CommandInterpreter::processSingle(const char* pCmdStr)
         if (strlen(pCmdStr) != 0)
             rslt = _pWorkflowManager->add(pCmdStr);
     }
-    Log.trace("processSingle rslt %s", rslt ? "OK" : "Fail");
+    Log.trace("CmdInterp procSingle rslt %s", rslt ? "OK" : "Fail");
 
     return rslt;
 }
@@ -75,12 +85,11 @@ bool CommandInterpreter::process(const char* pCmdStr, int cmdIdx)
     // Handle the case of a single string
     if (strstr(pCmdStr, ";") == NULL)
     {
-        Log.trace("cmdProc onecmd %s", pCmdStr);
         return processSingle(pCmdStr);
     }
 
     // Handle multiple commands (semicolon delimited)
-    Log.trace("cmdProc multicmd %s", pCmdStr);
+    /*Log.trace("CmdInterp process %s", pCmdStr);*/
     const int MAX_TEMP_CMD_STR_LEN = 1000;
     const char* pCurStr = pCmdStr;
     const char* pCurStrEnd = pCmdStr;
@@ -106,7 +115,7 @@ bool CommandInterpreter::process(const char* pCmdStr, int cmdIdx)
             // process
             if (cmdIdx == -1 || cmdIdx == curCmdIdx)
             {
-                Log.trace("cmdProc single %d %s", stLen, pCurCmd);
+                /*Log.trace("cmdProc single %d %s", stLen, pCurCmd);*/
                 processSingle(pCurCmd);
             }
             delete [] pCurCmd;
@@ -131,7 +140,7 @@ void CommandInterpreter::service()
         bool rslt = _pWorkflowManager->get(cmdElem);
         if (rslt)
         {
-            Log.info("WorkflowGet rlst=%d (waiting %d), %s", rslt,
+            Log.info("CmdInterp getWorkflow rlst=%d (waiting %d), %s", rslt,
                             _pWorkflowManager->numWaiting(),
                             cmdElem.getString().c_str());
 
