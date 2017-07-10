@@ -90,21 +90,16 @@ static const char* ROBOT_CONFIG_STR_SANDTABLESCARA =
     "}";
 
 static const char* ROBOT_DEFAULT_SEQUENCE_COMMANDS =
-    "{"
-    " \"testSequence\":"
-    "  {\"commands\":\"G28;testPattern\"},"
-    " \"testSequence2\":"
-    "  {\"commands\":\"G28;G28\"}"
-    "}";
+    "{}";
 
 static const char* ROBOT_DEFAULT_PATTERN_COMMANDS =
-    "{"
-    " \"pattern1\":"
+    "{}";
+    /*" \"pattern1\":"
     "  {"
     "  \"setup\":\"angle=0;diam=10\","
     "  \"loop\":\"x=diam*sin(angle*3);y=diam*cos(angle*3);diam=diam+0.5;angle=angle+0.0314;stop=angle>6.28\""
     "  }"
-    "}";
+    "}";*/
 
 static const char* ROBOT_CONFIG_STR = ROBOT_CONFIG_STR_SANDTABLESCARA;
 
@@ -137,13 +132,45 @@ void restAPI_GetSettings(RestAPIEndpointMsg& apiMsg, String& retStr)
     // Get settings from each sub-element
     const char* patterns = _commandInterpreter.getPatterns();
     const char* sequences = _commandInterpreter.getSequences();
+    String runAtStart = ConfigManager::getString("startup", "", configEEPROM.getConfigData());
     Log.trace("RestAPI GetSettings patterns %s", patterns);
     Log.trace("RestAPI GetSettings sequences %s", sequences);
+    Log.trace("RestAPI GetSettings startup %s", runAtStart.c_str());
     retStr = "{\"maxCfgLen\":2000, \"name\":\"Sand Table\",\"patterns\":";
     retStr += patterns;
     retStr += ", \"sequences\":";
     retStr += sequences;
-    retStr += ", \"startup\":\"\"}";
+    retStr += ", \"startup\":\"";
+    ConfigManager::escapeString(runAtStart);
+    retStr += runAtStart.c_str();
+    retStr += "\"}";
+}
+
+// Exec command via API
+void restAPI_Exec(RestAPIEndpointMsg& apiMsg, String& retStr)
+{
+    Log.trace("RestAPI Exec method %d contentLen %d", apiMsg._method, apiMsg._msgContentLen);
+    _commandInterpreter.process(apiMsg._pArgStr);
+    // Result
+    retStr = "{\"ok\"}";
+}
+
+// Start Pattern via API
+void restAPI_Pattern(RestAPIEndpointMsg& apiMsg, String& retStr)
+{
+    Log.trace("RestAPI Pattern method %d contentLen %d", apiMsg._method, apiMsg._msgContentLen);
+    _commandInterpreter.process(apiMsg._pArgStr);
+    // Result
+    retStr = "{\"ok\"}";
+}
+
+// Start sequence via API
+void restAPI_Sequence(RestAPIEndpointMsg& apiMsg, String& retStr)
+{
+    Log.trace("RestAPI Sequence method %d contentLen %d", apiMsg._method, apiMsg._msgContentLen);
+    _commandInterpreter.process(apiMsg._pArgStr);
+    // Result
+    retStr = "{\"ok\"}";
 }
 
 void setup()
@@ -154,7 +181,10 @@ void setup()
     Log.info("System version: %s", (const char*)System.version());
 
     // Initialise the config manager
+    delay(5000);
     configEEPROM.setConfigLocation(EEPROM_CONFIG_LOCATION_STR);
+    const char* pStr = configEEPROM.getConfigData();
+    Utils::logLongStr("Main: ConfigStr", pStr, true);
 
     #ifdef RUN_TEST_CONFIG
     TestConfigManager::runTests();
@@ -163,6 +193,9 @@ void setup()
     // Add API endpoints
     restAPIEndpoints.addEndpoint("postsettings", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_PostSettings);
     restAPIEndpoints.addEndpoint("getsettings", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_GetSettings);
+    restAPIEndpoints.addEndpoint("exec", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Exec);
+    restAPIEndpoints.addEndpoint("pattern", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Pattern);
+    restAPIEndpoints.addEndpoint("sequence", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Sequence);
 
     // Construct web server
     pWebServer = new RdWebServer();
@@ -186,23 +219,34 @@ void setup()
     const char* pConfig = configEEPROM.getConfigData();
     if (*pConfig == '{' || *pConfig == '[')
     {
-        Log.info("Getting configuration from EEPROM");
+        Log.info("Main setting config");
         String patternsStr = ConfigManager::getString("/patterns", "{}", configEEPROM.getConfigData());
         _commandInterpreter.setPatterns(patternsStr);
+        Log.info("Main patterns %s", patternsStr.c_str());
         String sequencesStr = ConfigManager::getString("/sequences", "{}", configEEPROM.getConfigData());
         _commandInterpreter.setSequences(sequencesStr);
+        Log.info("Main sequences %s", sequencesStr.c_str());
         configLoaded = true;
     }
     if (!configLoaded)
     {
-        Log.info("Setting default configuration");
+        Log.info("Main setting default configuration");
         _commandInterpreter.setSequences(ROBOT_DEFAULT_SEQUENCE_COMMANDS);
         _commandInterpreter.setPatterns(ROBOT_DEFAULT_PATTERN_COMMANDS);
     }
 
-    // Check for cmdsAtStart
+    // Check for cmdsAtStart in the robot config
     String cmdsAtStart = ConfigManager::getString("cmdsAtStart", "", ROBOT_CONFIG_STR);
-    _commandInterpreter.process(cmdsAtStart);
+    Log.info("Main cmdsAtStart <%s>", cmdsAtStart.c_str());
+    if (cmdsAtStart.length() > 0)
+        _commandInterpreter.process(cmdsAtStart);
+
+    // Check for startup commands in the EEPROM config
+    String runAtStart = ConfigManager::getString("startup", "", configEEPROM.getConfigData());
+    ConfigManager::unescapeString(runAtStart);
+    Log.info("Main startup commands <%s>", runAtStart.c_str());
+    if (runAtStart.length() > 0)
+        _commandInterpreter.process(runAtStart);
 }
 
 long initialMemory = System.freeMemory();
@@ -295,9 +339,9 @@ void loop()
         bool webActive = ((pWebServer) && (pWebServer->wasActiveInLastNSeconds(WEB_IDLE_BEFORE_WRITE_EEPROM_SECS)));
         if (!(robotActive || webActive))
         {
-            Log.info("Writing to EEPROM - could take a few seconds ...");
+            Log.info("Main writing to EEPROM - could take a few seconds ...");
             configEEPROM.writeToEEPROM();
-            Log.info("Write to EEPROM done");
+            Log.info("Main write to EEPROM done");
             eepromNeedsWriting = false;
         }
     }
