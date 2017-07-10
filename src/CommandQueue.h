@@ -52,6 +52,7 @@ public:
         // Check if queue is full
         if (_cmdElemQueue.size() >= _cmdQueueMaxLen)
         {
+//            Log.info("Command Queue FULL size %d max %d", _cmdElemQueue.size(), _cmdQueueMaxLen);
             return false;
         }
 
