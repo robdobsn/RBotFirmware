@@ -16,8 +16,8 @@ stSettings = {
         },
     "sequences":
         {
-            "testSequence": { "commands" : "G28; testPattern"},
-            "testSequence2": { "commands" : "G28;G28"}
+            "testSequence": { "commands" : "G28; testPattern", "runAtStart":0},
+            "testSequence2": { "commands" : "G28;G28", "runAtStart":1}
         },
     "startup": ""
 }
