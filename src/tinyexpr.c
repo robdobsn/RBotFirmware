@@ -265,7 +265,7 @@ void next_token(state *s) {
 				case ')': s->type = TOK_CLOSE; break;
 				case ',': s->type = TOK_SEP; break;
 				case ' ': case '\t': break;
-				case '\n': case '\r': s->type = TOK_END; break;
+				case '\n': case '\r': case '\\': s->type = TOK_END; break;
 				case ';': s->type = TOK_END; break;
 				default: s->type = TOK_ERROR; break;
 				}
