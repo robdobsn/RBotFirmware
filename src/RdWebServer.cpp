@@ -32,7 +32,8 @@ void RdWebClient::setState(WebClientState newState)
 {
     _webClientState        = newState;
     _webClientStateEntryMs = millis();
-    Log.trace("WebClient %d State: %s", _clientIdx, connStateStr());
+    if (newState != WEB_CLIENT_SEND_RESOURCE && newState != WEB_CLIENT_SEND_RESOURCE_WAIT)
+        Log.trace("WebClient %d State: %s", _clientIdx, connStateStr());
 }
 
 
@@ -75,7 +76,7 @@ void RdWebClient::service(RdWebServer *pWebServer)
             // Info
             IPAddress ip    = _TCPClient.remoteIP();
             String    ipStr = ip;
-            Log.info("Web client IP %s", ipStr.c_str());
+            Log.info("WebClient IP %s", ipStr.c_str());
         }
         break;
 
@@ -84,7 +85,7 @@ void RdWebClient::service(RdWebServer *pWebServer)
            // Check if client is still connected
            if (!_TCPClient.connected())
            {
-               Log.trace("Web client disconnected");
+               Log.trace("WebClient disconnected");
                _TCPClient.stop();
                setState(WEB_CLIENT_NONE);
                break;
@@ -157,7 +158,7 @@ void RdWebClient::service(RdWebServer *pWebServer)
                if (headerComplete && (_httpReqPayloadLen == _curHttpPayloadRxPos))
                {
                    RdWebServerResourceDescr* pResToRespondWith = NULL;
-                   Log.trace("Web client received %d", _httpReqStr.length());
+                   Log.trace("WebClient received %d", _httpReqStr.length());
                    bool handledOk = false;
                    _pResourceToSend = handleReceivedHttp(handledOk, pWebServer);
                     // clean the received resources
@@ -172,7 +173,7 @@ void RdWebClient::service(RdWebServer *pWebServer)
                     setState(WEB_CLIENT_SEND_RESOURCE_WAIT);
                    if (!handledOk)
                    {
-                       Log.info("Web client couldn't handle request");
+                       Log.info("WebClient couldn't handle request");
                    }
                }
                else
@@ -184,7 +185,7 @@ void RdWebClient::service(RdWebServer *pWebServer)
            // Check for having been in this state for too long
            if (Utils::isTimeout(millis(), _webClientStateEntryMs, MAX_MS_IN_CLIENT_STATE_WITHOUT_DATA))
            {
-               Log.info("Web client no-data timeout");
+               Log.info("WebClient no-data timeout");
                _TCPClient.stop();
                setState(WEB_CLIENT_NONE);
            }
@@ -212,7 +213,7 @@ void RdWebClient::service(RdWebServer *pWebServer)
                // Close connection and finish
                _TCPClient.stop();
                setState(WEB_CLIENT_NONE);
-               Log.info("Response complete");
+               Log.info("WebClient resp complete");
                break;
            }
            // Send data in chunks based on limited buffer sizes in TCP stack
@@ -221,7 +222,7 @@ void RdWebClient::service(RdWebServer *pWebServer)
                // Completed - close client
                _TCPClient.stop();
                setState(WEB_CLIENT_NONE);
-               Log.info("Sent %s, %d bytes total, %d blocks",
+               Log.info("WebClient Sent %s, %d bytes total, %d blocks",
                         _pResourceToSend->_pResId, _pResourceToSend->_dataLen, _resourceSendBlkCount);
                break;
            }
@@ -233,8 +234,8 @@ void RdWebClient::service(RdWebServer *pWebServer)
                toSendBytes = HTTPD_MAX_RESP_CHUNK_SIZE;
 
            // Send next chunk
-           Log.trace("Writing %d bytes (%d) = %02x %02x %02x %02x ... %02x %02x %02x", toSendBytes, _resourceSendIdx,
-                     pMem[0], pMem[1], pMem[2], pMem[3], pMem[toSendBytes - 3], pMem[toSendBytes - 2], pMem[toSendBytes - 1]);
+           /*Log.trace("WebClient Writing %d bytes (%d) = %02x %02x %02x %02x ... %02x %02x %02x", toSendBytes, _resourceSendIdx,
+                     pMem[0], pMem[1], pMem[2], pMem[3], pMem[toSendBytes - 3], pMem[toSendBytes - 2], pMem[toSendBytes - 1]);*/
 
            _TCPClient.write(pMem, toSendBytes);
            _TCPClient.flush();
@@ -279,14 +280,13 @@ RdWebServerResourceDescr* RdWebClient::handleReceivedHttp(bool& handledOk, RdWeb
     if (extractEndpointArgs(pHttpReq + 3, endpointStr, argStr))
     {
         // Received cmd and arguments
-        Log.trace("EndPtStr %s", endpointStr.c_str());
-        Log.trace("ArgStr %s", argStr.c_str());
+        Log.trace("WebClient handleHTTP EndPtStr %s ArgStr %s", endpointStr.c_str(), argStr.c_str());
 
         // Handle REST API commands
         RestAPIEndpointDef *pEndpoint = pWebServer->getEndpoint(endpointStr);
         if (pEndpoint)
         {
-            Log.trace("FoundEndpoint <%s> Type %d", endpointStr.c_str(), pEndpoint->_endpointType);
+            Log.trace("WebClient FoundEndpoint <%s> Type %d", endpointStr.c_str(), pEndpoint->_endpointType);
             if (pEndpoint->_endpointType == RestAPIEndpointDef::ENDPOINT_CALLBACK)
             {
                 String retStr;
@@ -294,13 +294,13 @@ RdWebServerResourceDescr* RdWebClient::handleReceivedHttp(bool& handledOk, RdWeb
                 apiMsg._pMsgContent = _pHttpReqPayload;
                 apiMsg._msgContentLen = _httpReqPayloadLen;
                 (pEndpoint->_callback)(apiMsg, retStr);
-                Log.trace("Got endpoint response len %d", retStr.length());
+                Log.trace("WebClient api response len %d", retStr.length());
                 /*delay(50);*/
                 formHTTPResponse(_httpRespStr, "200 OK", "application/json", retStr.c_str(), -1);
-                Log.trace("form http response %d", _httpRespStr.length());
+                Log.trace("WebClient http response len %d", _httpRespStr.length());
                 /*delay(50);*/
                 _TCPClient.write((uint8_t *)_httpRespStr.c_str(), _httpRespStr.length());
-                Log.trace("write to tcp client %d len %d", _clientIdx, _httpRespStr.length());
+                Log.trace("WebClient write to tcp clientIdx %d len %d", _clientIdx, _httpRespStr.length());
                 delay(50);
                 _TCPClient.flush();
                 handledOk = true;
@@ -318,7 +318,7 @@ RdWebServerResourceDescr* RdWebClient::handleReceivedHttp(bool& handledOk, RdWeb
                 {
                     if (pRes->_pData != NULL)
                     {
-                        Log.trace("Sending resource %s, %d bytes, %s",
+                        Log.trace("WebClient sending resource %s, %d bytes, %s",
                                   pRes->_pResId, pRes->_dataLen, pRes->_pMimeType);
                         // Form header
                         formHTTPResponse(_httpRespStr, "200 OK", pRes->_pMimeType, "", pRes->_dataLen);
@@ -340,18 +340,18 @@ RdWebServerResourceDescr* RdWebClient::handleReceivedHttp(bool& handledOk, RdWeb
         // If not handled ok
         if (!handledOk)
         {
-            Log.info("Endpoint %s not found or invalid", endpointStr.c_str());
+            Log.info("WebClient Endpoint %s not found or invalid", endpointStr.c_str());
         }
     }
     else
     {
-        Log.info("Cannot find command or args");
+        Log.info("WebClient Cannot find command or args");
     }
 
     // Handle situations where the command wasn't handled ok
     if (!handledOk)
     {
-        Log.info("Returning 404 Not found");
+        Log.info("WebClient Returning 404 Not found");
         formHTTPResponse(_httpRespStr, "404 Not Found", "text/plain", "404 Not Found", -1);
         _TCPClient.write((uint8_t *)_httpRespStr.c_str(), _httpRespStr.length());
     }
@@ -397,6 +397,9 @@ bool RdWebClient::extractEndpointArgs(const char *buf, String& endpointStr, Stri
         }
         argStr.concat(*pSlash1++);
     }
+    // Convert escaped characters
+    RestAPIEndpoints::unencodeHTTPChars(endpointStr);
+    RestAPIEndpoints::unencodeHTTPChars(argStr);
     return true;
 }
 
@@ -548,7 +551,7 @@ void RdWebServer::service()
             start(_TCPPort);
             if (_pTCPServer)
             {
-                Log.info("Web Server TCPServer Begin");
+                Log.info("WebServer TCPServer Begin");
                 _pTCPServer->begin();
                 setState(WEB_SERVER_BEGUN);
             }
