@@ -28,7 +28,7 @@ RdWebServer* pWebServer = NULL;
 SYSTEM_MODE(AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 
-SerialLogHandler logHandler(LOG_LEVEL_TRACE);
+SerialLogHandler logHandler(LOG_LEVEL_INFO);
 RobotController _robotController;
 WorkflowManager _workflowManager;
 CommandInterpreter _commandInterpreter(&_workflowManager, &_robotController);
