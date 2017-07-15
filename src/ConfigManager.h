@@ -293,6 +293,7 @@ public:
         // Replace characters which are invalid in JSON
         strToEsc.replace("\\", "\\\\");
         strToEsc.replace("\"", "\\\"");
+        strToEsc.replace("\n", "\\n");
     }
 
     static void unescapeString(String& strToUnEsc)
@@ -300,6 +301,7 @@ public:
         // Replace characters which are invalid in JSON
         strToUnEsc.replace("\\\"", "\"");
         strToUnEsc.replace("\\\\", "\\");
+        strToUnEsc.replace("\\n", "\n");
     }
 
 private:

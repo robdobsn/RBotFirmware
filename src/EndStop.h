@@ -22,7 +22,7 @@ public:
         String inputTypeStr = ConfigManager::getString("inputType", "", endStopJSON);
         long pinId = ConfigPinMap::getPinFromName(pinName.c_str());
         int inputType = ConfigPinMap::getInputType(inputTypeStr.c_str());
-        Log.info("Axis%dEndStop%d (sense %d, level %d, type %d)", axisIdx, endStopIdx, pinId,
+        Log.info("Axis%dEndStop%d (sense %ld, level %ld, type %d)", axisIdx, endStopIdx, pinId,
                 activeLevel, inputType);
         setConfig(pinId, activeLevel, inputType);
     }

@@ -128,7 +128,7 @@ public:
         bool showDebug = false;
         if (axisParams[0]._stepsFromHome > rotationSteps || axisParams[0]._stepsFromHome <= -rotationSteps)
         {
-            Log.trace("CORRECTING ax0 %d ax1 %d", axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome);
+            Log.trace("CORRECTING ax0 %ld ax1 %ld", axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome);
             showDebug = true;
         }
         // Bring steps from home values back within a single rotation
@@ -143,7 +143,7 @@ public:
             axisParams[1]._stepsFromHome += rotationSteps;
         }
         if (showDebug)
-            Log.trace("CORRECTED ax0 %d ax1 %d", axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome);
+            Log.trace("CORRECTED ax0 %ld ax1 %ld", axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome);
     }
 
 private:
@@ -217,7 +217,7 @@ public:
         _homingRotCentreDegs = ConfigManager::getDouble("homingRotCentreDegs", homingRotCentreDegs_default, robotConfigStr);
 
         // Info
-        Log.info("%s maxHome %ds linOff %0.3fd ctrOff %0.3fmm rotCtr %0.3fd",
+        Log.info("%s maxHome %lds linOff %0.3fd ctrOff %0.3fmm rotCtr %0.3fd",
                     _robotTypeName.c_str(), _maxHomingSecs, _homingLinOffsetDegs, _homingCentreOffsetMM, _homingRotCentreDegs);
 
         return true;
@@ -249,7 +249,7 @@ public:
 
     bool lastTimeActiveMillis(unsigned long& lastMillis)
     {
-
+	return 0;
     }
 
 private:
@@ -267,7 +267,6 @@ private:
         _homingSeekAxis1Endstop0 = HSEEK_NONE;
         _homingAxis0Step = HSTEP_NONE;
         _homingAxis1Step = HSTEP_NONE;
-        HOMING_STATE prevState = _homingState;
         _homingState = newState;
 
         // Handle the specfics of the new homing state
@@ -517,10 +516,10 @@ public:
         _motionHelper.service(!homingActive);
     }
 
-    bool wasActiveInLastNSeconds(int nSeconds)
+    bool wasActiveInLastNSeconds(unsigned int nSeconds)
     {
         if (_homingState != HOMING_STATE_IDLE)
             return true;
-        return (Time.now() < _motionHelper.getLastActiveUnixTime() + nSeconds);
+        return ((unsigned long)Time.now() < _motionHelper.getLastActiveUnixTime() + nSeconds);
     }
 };

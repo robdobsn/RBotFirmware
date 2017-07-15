@@ -37,9 +37,9 @@ public:
     // PULLUP, PULLDOWN to INPUT_PULLUP, etc
     static int getInputType(const char* inputTypeStr)
     {
-        if (stricmp(inputTypeStr, "INPUT_PULLUP") == 0)
+        if (strcasecmp(inputTypeStr, "INPUT_PULLUP") == 0)
             return INPUT_PULLUP;
-        if (stricmp(inputTypeStr, "INPUT_PULLDOWN") == 0)
+        if (strcasecmp(inputTypeStr, "INPUT_PULLDOWN") == 0)
             return INPUT_PULLDOWN;
         return INPUT;
     }

@@ -4,7 +4,7 @@
 #pragma once
 
 // Information on received API request
-typedef struct RestAPIEndpointMsg
+struct RestAPIEndpointMsg
 {
     int _method;
     const char* _pEndpointStr;

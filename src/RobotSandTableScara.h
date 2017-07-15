@@ -13,7 +13,7 @@ class RobotSandTableScara : public RobotBase
 {
 public:
     static const int NUM_ROBOT_AXES = 2;
-    typedef enum ROTATION_TYPE {
+    enum ROTATION_TYPE {
         ROTATION_NORMAL,
         ROTATION_OUT_OF_BOUNDS,
         ROTATION_IS_NEAR_CENTRE,
@@ -493,7 +493,7 @@ public:
         _maxHomingSecs = ConfigManager::getLong("maxHomingSecs", maxHomingSecs_default, robotConfigStr);
 
         // Info
-        Log.info("%s maxHome %ds",
+        Log.info("%s maxHome %lds",
                 _robotTypeName.c_str(), _maxHomingSecs);
 
         return true;
@@ -539,7 +539,6 @@ public:
         _homingSeekAxis1Endstop0 = HSEEK_NONE;
         _homingAxis0Step = HSTEP_NONE;
         _homingAxis1Step = HSTEP_NONE;
-        HOMING_STATE prevState = _homingState;
         _homingState = newState;
 
         // Handle the specfics of the new homing state
@@ -751,11 +750,11 @@ public:
         _motionHelper.service(!homingActive);
     }
 
-    bool wasActiveInLastNSeconds(int nSeconds)
+    bool wasActiveInLastNSeconds(unsigned int nSeconds)
     {
         if (_homingState != HOMING_STATE_IDLE)
             return true;
-        return (Time.now() < _motionHelper.getLastActiveUnixTime() + nSeconds);
+        return ((unsigned long)Time.now() < _motionHelper.getLastActiveUnixTime() + nSeconds);
     }
 
 };

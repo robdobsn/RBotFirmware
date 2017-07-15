@@ -70,6 +70,7 @@ public:
                     break;
             }
         }
+	return true;
     }
 
     // Interpret GCode G commands

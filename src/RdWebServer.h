@@ -222,8 +222,8 @@ private:
 
 public:
     // Check if web server was active in last n seconds
-    bool wasActiveInLastNSeconds(int nSeconds)
+    bool wasActiveInLastNSeconds(unsigned int nSeconds)
     {
-        return (Time.now() < _webServerActiveLastUnixTime + nSeconds);
+        return ((unsigned long)Time.now() < _webServerActiveLastUnixTime + nSeconds);
     }
 };

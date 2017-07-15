@@ -35,7 +35,7 @@ public:
         else
             Log.trace(headerMsg);
         const int linLen = 80;
-        for (int i = 0; i < strlen(toLog); i+=linLen)
+        for (unsigned int i = 0; i < strlen(toLog); i+=linLen)
         {
             char pBuf[linLen+1];
             strncpy(pBuf, toLog+i, linLen);

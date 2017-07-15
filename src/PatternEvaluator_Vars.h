@@ -53,7 +53,7 @@ public:
     {
         for (int i = 0; i < _numTeVars; i++)
         {
-            if ((caseInsensitive && stricmp(name, _pTeVars[i].name) == 0) ||
+            if ((caseInsensitive && strcasecmp(name, _pTeVars[i].name) == 0) ||
 				(!caseInsensitive && strcmp(name, _pTeVars[i].name) == 0))
             {
                 return i;
@@ -79,8 +79,6 @@ public:
     int addVariable(const char* name, const double* pVal, unsigned int flags)
     {
         // Check empty
-        te_variable* new_pTeVars = NULL;
-        unsigned int* new_pTeVarFlags = NULL;
         int newVarIdx = 0;
         if (_numTeVars == 0)
         {
@@ -174,7 +172,7 @@ public:
 		return _numTeVars;
 	}
 
-	double getVal(char* varName, bool& isValid, bool caseInsensitive = false)
+	double getVal(const char* varName, bool& isValid, bool caseInsensitive = false)
 	{
         isValid = true;
 		int varIdx = getVariableIdx(varName, caseInsensitive);

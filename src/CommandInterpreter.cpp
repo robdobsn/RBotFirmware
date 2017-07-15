@@ -83,13 +83,13 @@ bool CommandInterpreter::processSingle(const char* pCmdStr)
 {
     bool rslt = false;
     // Check if this is an immediate command
-    if (stricmp(pCmdStr, "pause") == 0)
+    if (strcasecmp(pCmdStr, "pause") == 0)
     {
         if (_pRobotController)
             _pRobotController->pause(true);
         rslt = true;
     }
-    else if (stricmp(pCmdStr, "resume") == 0)
+    else if (strcasecmp(pCmdStr, "resume") == 0)
     {
         if (_pRobotController)
             _pRobotController->pause(false);
@@ -164,6 +164,7 @@ bool CommandInterpreter::process(const char* pCmdStr, int cmdIdx)
         }
         pCurStrEnd++;
     }
+    return true;
 }
 
 void CommandInterpreter::service()

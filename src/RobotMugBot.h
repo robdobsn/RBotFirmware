@@ -125,7 +125,7 @@ public:
         _maxHomingSecs = ConfigManager::getLong("maxHomingSecs", maxHomingSecs_default, robotConfigStr);
 
         // Info
-        Log.info("%s maxHome %ds", _robotTypeName.c_str(), _maxHomingSecs);
+        Log.info("%s maxHome %lds", _robotTypeName.c_str(), _maxHomingSecs);
 
         return true;
     }
@@ -166,7 +166,6 @@ public:
         _homingApplyStepLimit = false;
         _homingSeekAxis1Endstop0 = HSEEK_NONE;
         _homingAxis1Step = HSTEP_NONE;
-        HOMING_STATE prevState = _homingState;
         _homingState = newState;
 
         // Handle the specfics of the new homing state
@@ -272,10 +271,10 @@ public:
         _motionHelper.service(!homingActive);
     }
 
-    bool wasActiveInLastNSeconds(int nSeconds)
+    bool wasActiveInLastNSeconds(unsigned int nSeconds)
     {
         if (_homingState != HOMING_STATE_IDLE)
             return true;
-        return (Time.now() < _motionHelper.getLastActiveUnixTime() + nSeconds);
+        return ((unsigned long)Time.now() < _motionHelper.getLastActiveUnixTime() + nSeconds);
     }
 };

@@ -17,7 +17,7 @@ public:
     {
     }
 
-    ~RobotBase()
+    virtual ~RobotBase()
     {
     }
 
@@ -60,7 +60,7 @@ public:
     {
     }
 
-    virtual bool wasActiveInLastNSeconds(int nSeconds)
+    virtual bool wasActiveInLastNSeconds(unsigned int nSeconds)
     {
         return false;
     }

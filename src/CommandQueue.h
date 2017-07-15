@@ -12,8 +12,8 @@ class CommandQueue
 {
 private:
     std::queue<CommandElem> _cmdElemQueue;
-    int _cmdQueueMaxLen;
-    static const int _cmdQueueMaxLenDefault = 50;
+    unsigned int _cmdQueueMaxLen;
+    static const unsigned int _cmdQueueMaxLenDefault = 50;
 
 public:
     CommandQueue()

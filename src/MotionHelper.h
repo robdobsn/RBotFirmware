@@ -84,6 +84,7 @@ private:
         // Enable pin - initially disable
         pinMode(_stepEnablePin, OUTPUT);
         digitalWrite(_stepEnablePin, !_stepEnableActiveLevel);
+        return true;
     }
 
     bool configureAxis(const char* robotConfigJSON, int axisIdx)
@@ -117,7 +118,7 @@ private:
             String dirnPinName = ConfigManager::getString("dirnPin", "-1", axisJSON);
             long stepPin = ConfigPinMap::getPinFromName(stepPinName.c_str());
             long dirnPin = ConfigPinMap::getPinFromName(dirnPinName.c_str());
-            Log.info("Axis%d (step pin %d, dirn pin %d)", axisIdx, stepPin, dirnPin);
+            Log.info("Axis%d (step pin %ld, dirn pin %ld)", axisIdx, stepPin, dirnPin);
             if ((stepPin != -1 && dirnPin != -1))
                 _stepperMotors[axisIdx] = new StepperMotor(StepperMotor::MOTOR_TYPE_DRIVER, stepPin, dirnPin);
         }
@@ -126,7 +127,7 @@ private:
             // Create a servo motor for the axis
             String servoPinName = ConfigManager::getString("servoPin", "-1", axisJSON);
             long servoPin = ConfigPinMap::getPinFromName(servoPinName.c_str());
-            Log.info("Axis%d (servo pin %d)", axisIdx, servoPin);
+            Log.info("Axis%d (servo pin %ld)", axisIdx, servoPin);
             if ((servoPin != -1))
             {
                 _servoMotors[axisIdx] = new Servo();
@@ -155,6 +156,7 @@ private:
 
         // Other data
         _axisParams[axisIdx]._stepsFromHome = 0;
+        return true;
     }
 
     void pipelineService(bool hasBeenPaused)

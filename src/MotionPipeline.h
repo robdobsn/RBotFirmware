@@ -10,13 +10,13 @@ class MotionPipeline
 {
 private:
     std::queue<MotionPipelineElem> _pipeline;
-    static const int _pipelineMaxLenDefault = 300;
-    int _pipelineMaxLen = _pipelineMaxLenDefault;
-    int _maxBlocksInAMove = 1;
+    static const unsigned int _pipelineMaxLenDefault = 300;
+    unsigned int _pipelineMaxLen = _pipelineMaxLenDefault;
+    unsigned int _maxBlocksInAMove = 1;
 
 public:
     // Get slots available
-    int slotsEmpty()
+    unsigned int slotsEmpty()
     {
         return _pipelineMaxLen - _pipeline.size();
     }

@@ -64,6 +64,7 @@ public:
         {
             Log.info("Cannot determine robotType %s", robotType.c_str());
         }
+        return true;
     }
 
     // Pause (or un-pause) all motion

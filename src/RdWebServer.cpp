@@ -157,7 +157,6 @@ void RdWebClient::service(RdWebServer *pWebServer)
                // Check for completion
                if (headerComplete && (_httpReqPayloadLen == _curHttpPayloadRxPos))
                {
-                   RdWebServerResourceDescr* pResToRespondWith = NULL;
                    Log.trace("WebClient received %d", _httpReqStr.length());
                    bool handledOk = false;
                    _pResourceToSend = handleReceivedHttp(handledOk, pWebServer);
@@ -258,7 +257,6 @@ RdWebServerResourceDescr* RdWebClient::handleReceivedHttp(bool& handledOk, RdWeb
 
     // Request string
     const char* pHttpReq = _httpReqStr.c_str();
-    int httpReqLen = _httpReqStr.length();
 
     // Get HTTP method
     int httpMethod = METHOD_OTHER;
@@ -537,7 +535,7 @@ TCPClient RdWebServer::available()
     {
         return _pTCPServer->available();
     }
-    return NULL;
+    return -1;
 }
 
 
