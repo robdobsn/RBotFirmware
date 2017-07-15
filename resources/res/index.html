@@ -141,6 +141,7 @@
 				alert("The robot memory is full, please simplify or remove other patterns before adding new ones")
 			    jsonStr = JSON.stringify(window.prevSandTableState)
 			}
+			jsonStr = jsonStr.replace("\n", "\\n")
 		    console.log("POSTING " + jsonStr);
             postJson("/postsettings", jsonStr, postSettingsOkCallback, postSettingsFailCallback);
 		}
@@ -249,10 +250,12 @@
 		}
 		function postSettingsOkCallback()
 		{
+		    console.log("Posted settings ok");
 		    updateDisplay();
 		}
 		function postSettingsFailCallback()
 		{
+		    console.log("Post settings FAILED");
 		    updateDisplay();
 		}
 		function genButton(clickFn, keyVal, label, cssClass, curState)

@@ -54,24 +54,60 @@ bool CommandInterpreter::queueIsEmpty()
     return false;
 }
 
+bool CommandInterpreter::setWifi(const char* pCmdStr)
+{
+    // Get args
+    const char* pArgsPos = strstr(pCmdStr, " ");
+    if (pArgsPos == 0)
+        return false;
+    // SSID
+    const char* pSSIDPos = pArgsPos + 1;
+    pArgsPos = strstr(pSSIDPos, " ");
+    if (pArgsPos == 0)
+        return false;
+    int stLen = pArgsPos - pSSIDPos;
+    char* pSsidStr = new char[stLen + 1];
+    for (int i = 0; i < stLen; i++)
+        pSsidStr[i] = pSSIDPos[i];
+    pSsidStr[stLen] = 0;
+    // password
+    const char* pPword = pArgsPos + 1;
+    // Set WiFi info
+    WiFi.setCredentials(pSsidStr, pPword);
+    Log.info("CmdInterp: WiFi SSID %s pwLen %d", pSsidStr, strlen(pPword));
+    delete [] pSsidStr;
+    return true;
+}
+
 bool CommandInterpreter::processSingle(const char* pCmdStr)
 {
+    bool rslt = false;
     // Check if this is an immediate command
     if (stricmp(pCmdStr, "pause") == 0)
     {
         if (_pRobotController)
             _pRobotController->pause(true);
+        rslt = true;
     }
     else if (stricmp(pCmdStr, "resume") == 0)
     {
         if (_pRobotController)
             _pRobotController->pause(false);
+        rslt = true;
     }
-
-    // Send the line to the workflow manager
-    bool rslt = false;
-    if (_pWorkflowManager)
+    else if (strstr(pCmdStr, "setwifi") == pCmdStr)
     {
+        rslt = setWifi(pCmdStr);
+    }
+    else if (strstr(pCmdStr, "clearwifi") == pCmdStr)
+    {
+        WiFi.clearCredentials();
+        Log.info("CmdInterp: WiFi Credentials Cleared");
+        rslt = true;
+    }
+    else if (_pWorkflowManager)
+    {
+        // Send the line to the workflow manager
         if (strlen(pCmdStr) != 0)
             rslt = _pWorkflowManager->add(pCmdStr);
     }

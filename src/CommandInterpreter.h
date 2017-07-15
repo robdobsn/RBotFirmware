@@ -13,6 +13,7 @@ private:
     WorkflowManager* _pWorkflowManager;
     RobotController* _pRobotController;
     CommandExtender* _pCommandExtender;
+    bool setWifi(const char* pCmdStr);
 
 public:
     CommandInterpreter(WorkflowManager* pWorkflowManager, RobotController* pRobotController);

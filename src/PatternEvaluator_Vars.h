@@ -22,7 +22,7 @@ public:
 		{
 			delete[] _pTeVars[i].name;
 			if (_pTeVarFlags[i] & TEVARS_FREE_VALUE_ADDR_REQD)
-				delete _pTeVars[i].address;
+				delete ((double*)_pTeVars[i].address);
 		}
 		// Clean array of variables
 		delete[] _pTeVars;

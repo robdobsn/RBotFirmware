@@ -1,5 +1,5 @@
 // RBotFirmware
-// Rob Dobson 2016
+// Rob Dobson 2016-2017
 
 #include "ConfigEEPROM.h"
 #include "RobotController.h"
@@ -198,6 +198,7 @@ void setup()
     restAPIEndpoints.addEndpoint("sequence", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Sequence);
 
     // Construct web server
+    Log.info("Main: Constructing Web Server");
     pWebServer = new RdWebServer();
 
     // Configure web server
@@ -207,6 +208,7 @@ void setup()
         pWebServer->addStaticResources(genResources, genResourcesCount);
         pWebServer->addRestAPIEndpoints(&restAPIEndpoints);
         // Start the web server
+        Log.info("Main: Starting Web Server");
         pWebServer->start(webServerPort);
     }
 
@@ -315,21 +317,32 @@ void debugLoopTimer()
 
 void loop()
 {
-    debugLoopTimer();
 
     #ifdef RUN_TEST_WORKFLOW
     // TEST add to command queue
     __testWorkflowGCode.testLoop(_workflowManager, _robotController);
     #endif
 
-    // Service CommsSerial
-    _commsSerial.service(_commandInterpreter);
+    // See if in listening mode - if so don't steal characters
+    if (!WiFi.listening())
+    {
+        debugLoopTimer();
 
-    // Service the command interpreter (which pumps the workflow queue)
-    _commandInterpreter.service();
+        // Service CommsSerial
+        _commsSerial.service(_commandInterpreter);
 
-    // Service the robot controller
-    _robotController.service();
+        // Service the command interpreter (which pumps the workflow queue)
+        _commandInterpreter.service();
+
+        // Service the web server
+        if (pWebServer)
+        {
+            pWebServer->service();
+        }
+        // Service the robot controller
+        _robotController.service();
+
+    }
 
     // Check if eeprom contents need to be written - which is a time consuming process
     if (eepromNeedsWriting)
@@ -345,11 +358,4 @@ void loop()
             eepromNeedsWriting = false;
         }
     }
-
-    // Service the web server
-    if (pWebServer)
-    {
-        pWebServer->service();
-    }
-
 }

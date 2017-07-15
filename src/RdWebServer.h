@@ -217,6 +217,9 @@ private:
     // Last time web server was active
     unsigned long _webServerActiveLastUnixTime;
 
+    // Restart
+    void restart(int port);
+
 public:
     // Check if web server was active in last n seconds
     bool wasActiveInLastNSeconds(int nSeconds)

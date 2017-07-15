@@ -499,7 +499,13 @@ void RdWebServer::setState(WebServerState newState)
 
 void RdWebServer::start(int port)
 {
-    Log.trace("WebServerStart");
+    Log.info("WebServer: Start");
+    setState(WEB_SERVER_WAIT_CONN);
+}
+
+void RdWebServer::restart(int port)
+{
+    Log.info("WebServer: Restart");
     // Check if already started
     if (_pTCPServer)
     {
@@ -511,9 +517,9 @@ void RdWebServer::start(int port)
     setState(WEB_SERVER_WAIT_CONN);
 }
 
-
 void RdWebServer::stop()
 {
+    Log.info("WebServer: Stop");
     if (_pTCPServer)
     {
         _pTCPServer->stop();
@@ -548,7 +554,7 @@ void RdWebServer::service()
     case WEB_SERVER_WAIT_CONN:
         if (WiFi.ready())
         {
-            start(_TCPPort);
+            restart(_TCPPort);
             if (_pTCPServer)
             {
                 Log.info("WebServer TCPServer Begin");

@@ -220,7 +220,7 @@ int JSMNR_parse(JSMNR_parser *parser, const char *js, size_t len,
 					token = &tokens[i];
 					if (token->start != -1 && token->end == -1) {
 						if (token->type != type) {
-                            Log.trace("JSMNR_ERROR_INVAL %d type %d %d", token->start, token->type, type);
+                            Log.info("JSMNR_ERROR_INVAL %d type %d %d", token->start, token->type, type);
 							return JSMNR_ERROR_INVAL;
 						}
 						parser->toksuper = -1;
@@ -231,8 +231,8 @@ int JSMNR_parse(JSMNR_parser *parser, const char *js, size_t len,
 				/* Error if unmatched closing bracket */
 				if (i == -1)
                 {
-                    Log.trace("JSMNR_ERROR_INVAL unmatchedbrace pos %d ch %d toknext %d type %d", parser->pos, js[parser->pos], parser->toknext, type);
-                    Utils::logLongStr("JSMN: parse input", js);
+                    Log.info("JSMNR_ERROR_INVAL unmatchedbrace pos %d ch %d toknext %d type %d", parser->pos, js[parser->pos], parser->toknext, type);
+                    Utils::logLongStr("JSMN: parse input", js, true);
                     return JSMNR_ERROR_INVAL;
                 }
 				for (; i >= 0; i--) {
