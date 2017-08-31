@@ -1,7 +1,6 @@
 // RBotFirmware
 // Rob Dobson 2016-2017
 
-#include "application.h"
 #include "ConfigEEPROM.h"
 #include "RobotController.h"
 #include "WorkflowManager.h"
@@ -29,7 +28,7 @@ RdWebServer* pWebServer = NULL;
 SYSTEM_MODE(AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 
-SerialLogHandler logHandler(LOG_LEVEL_TRACE);
+SerialLogHandler logHandler(LOG_LEVEL_INFO);
 RobotController _robotController;
 WorkflowManager _workflowManager;
 CommandInterpreter _commandInterpreter(&_workflowManager, &_robotController);
@@ -51,30 +50,30 @@ static const char* EEPROM_CONFIG_LOCATION_STR =
 // Mugbot on PiHat 1.1
 // linear axis 1/8 microstepping,
 // rotary axis 1/16 microstepping
-//static const char* ROBOT_CONFIG_STR_MUGBOT_PIHAT_1_1 =
-//    "{\"robotType\": \"MugBot\", \"xMaxMM\":150, \"yMaxMM\":120, "
-//    " \"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":60.0,"
-//    " \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":5.0, \"acceleration\":2.0,"
-//    " \"stepsPerRotation\":3200, \"unitsPerRotation\":360, \"minVal\":0, \"maxVal\":240}, "
-//    " \"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
-//    " \"stepsPerRotation\":1600, \"unitsPerRotation\":2.0, \"minVal\":0, \"maxVal\":78, "
-//    " \"endStop0\": { \"sensePin\": \"D7\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"}},"
-//    " \"axis2\": { \"servoPin\": \"D0\", \"isServoAxis\": 1, \"homeOffsetVal\": 120, \"homeOffsetSteps\": 1666,"
-//    " \"minVal\":0, \"maxVal\":180, \"stepsPerRotation\":2000, \"unitsPerRotation\":360 },"
-//    "}";
+static const char* ROBOT_CONFIG_STR_MUGBOT_PIHAT_1_1 =
+    "{\"robotType\": \"MugBot\", \"xMaxMM\":150, \"yMaxMM\":120, "
+    " \"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":60.0,"
+    " \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":5.0, \"acceleration\":2.0,"
+    " \"stepsPerRotation\":3200, \"unitsPerRotation\":360, \"minVal\":0, \"maxVal\":240}, "
+    " \"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
+    " \"stepsPerRotation\":1600, \"unitsPerRotation\":2.0, \"minVal\":0, \"maxVal\":78, "
+    " \"endStop0\": { \"sensePin\": \"D7\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"}},"
+    " \"axis2\": { \"servoPin\": \"D0\", \"isServoAxis\": 1, \"homeOffsetVal\": 120, \"homeOffsetSteps\": 1666,"
+    " \"minVal\":0, \"maxVal\":180, \"stepsPerRotation\":2000, \"unitsPerRotation\":360 },"
+    "}";
 
-//static const char* ROBOT_CONFIG_STR_GEISTBOT =
-//    "{\"robotType\": \"GeistBot\", \"xMaxMM\":400, \"yMaxMM\":400, "
-//    " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
-//    " \"maxHomingSecs\":120, \"homingLinOffsetDegs\":70, \"homingCentreOffsetMM\":4,"
-//    " \"homingRotCentreDegs\":3.7, \"cmdsAtStart\":\"G28;ModSpiral\", "
-//    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
-//    " \"stepsPerRotation\":12000, \"unitsPerRotation\":360, \"isDominantAxis\":1,"
-//    " \"endStop0\": { \"sensePin\": \"A6\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"}},"
-//    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
-//    " \"stepsPerRotation\":12000, \"unitsPerRotation\":44.8, \"minVal\":0, \"maxVal\":195, "
-//    " \"endStop0\": { \"sensePin\": \"A7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
-//    "}";
+static const char* ROBOT_CONFIG_STR_GEISTBOT =
+    "{\"robotType\": \"GeistBot\", \"xMaxMM\":400, \"yMaxMM\":400, "
+    " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
+    " \"maxHomingSecs\":120, \"homingLinOffsetDegs\":70, \"homingCentreOffsetMM\":4,"
+    " \"homingRotCentreDegs\":3.7, \"cmdsAtStart\":\"G28;ModSpiral\", "
+    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
+    " \"stepsPerRotation\":12000, \"unitsPerRotation\":360, \"isDominantAxis\":1,"
+    " \"endStop0\": { \"sensePin\": \"A6\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"}},"
+    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
+    " \"stepsPerRotation\":12000, \"unitsPerRotation\":44.8, \"minVal\":0, \"maxVal\":195, "
+    " \"endStop0\": { \"sensePin\": \"A7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
+    "}";
 
 static const char* ROBOT_CONFIG_STR_SANDTABLESCARA =
     "{\"robotType\": \"SandTableScara\", \"xMaxMM\":200, \"yMaxMM\":200, "
@@ -132,23 +131,18 @@ void restAPI_GetSettings(RestAPIEndpointMsg& apiMsg, String& retStr)
 {
     Log.trace("RestAPI GetSettings method %d contentLen %d", apiMsg._method, apiMsg._msgContentLen);
     // Get settings from each sub-element
-    String patterns = _commandInterpreter.getPatterns();
-    patterns.replace("\n", "\\n");
-    String sequences = _commandInterpreter.getSequences();
-    sequences.replace("\n", "\\n");
+    const char* patterns = _commandInterpreter.getPatterns();
+    const char* sequences = _commandInterpreter.getSequences();
     String runAtStart = ConfigManager::getString("startup", "", configEEPROM.getConfigData());
-    ConfigManager::escapeString(runAtStart);
-    String patterns = "{\"Spiral\":{\"setup\":\"X=0\\nY=0\\nangle = 0\",\"loop\":\"X=100*sin(angle)\\nY=100*cos(angle)\\nangle = angle + 0.1\\nSTOP = angle > 10\"}}";
-    String sequences = "{}";
-    String runAtStart = "";
-    Log.trace("RestAPI GetSettings patterns %s", patterns.c_str());
-    Log.trace("RestAPI GetSettings sequences %s", sequences.c_str());
+    Log.trace("RestAPI GetSettings patterns %s", patterns);
+    Log.trace("RestAPI GetSettings sequences %s", sequences);
     Log.trace("RestAPI GetSettings startup %s", runAtStart.c_str());
     retStr = "{\"maxCfgLen\":2000, \"name\":\"Sand Table\",\"patterns\":";
     retStr += patterns;
     retStr += ", \"sequences\":";
     retStr += sequences;
     retStr += ", \"startup\":\"";
+    ConfigManager::escapeString(runAtStart);
     retStr += runAtStart.c_str();
     retStr += "\"}";
 }
@@ -258,8 +252,8 @@ void setup()
         _commandInterpreter.process(runAtStart);
 }
 
-unsigned long initialMemory = System.freeMemory();
-unsigned long lowestMemory = System.freeMemory();
+long initialMemory = System.freeMemory();
+long lowestMemory = System.freeMemory();
 
 // Local IP Addr as string
 char _localIPStr[20];
@@ -306,7 +300,7 @@ void debugLoopTimer()
             lowestMemory = System.freeMemory();
         if (loopTimeAvgWinLen > 0)
         {
-            Log.info("Avg loop time %0.3fus (val %lu) initMem %ld mem %ld lowMem %ld wkFlowItems %d canAccept %d IP %s",
+            Log.info("Avg loop time %0.3fus (val %lu) initMem %d mem %d lowMem %d wkFlowItems %d canAccept %d IP %s",
             1.0 * loopWindowSumMicros / loopTimeAvgWinLen,
             lastLoopStartMicros, initialMemory,
             System.freeMemory(), lowestMemory,

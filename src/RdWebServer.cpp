@@ -498,6 +498,7 @@ void RdWebServer::setState(WebServerState newState)
 void RdWebServer::start(int port)
 {
     Log.info("WebServer: Start");
+    _TCPPort = port;
     setState(WEB_SERVER_WAIT_CONN);
 }
 
