@@ -6,15 +6,14 @@
 #include "WorkflowManager.h"
 #include "CommsSerial.h"
 
-// API Endpoints
-#include "RestAPIEndpoints.h"
-RestAPIEndpoints restAPIEndpoints;
-
 // Web server
 #include "RdWebServer.h"
 const int webServerPort = 80;
 RdWebServer* pWebServer = NULL;
 #include "GenResources.h"
+
+// API Endpoints
+RestAPIEndpoints restAPIEndpoints;
 
 //define RUN_TESTS_CONFIG
 //#define RUN_TEST_WORKFLOW
@@ -192,11 +191,11 @@ void setup()
     #endif
 
     // Add API endpoints
-    restAPIEndpoints.addEndpoint("postsettings", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_PostSettings);
-    restAPIEndpoints.addEndpoint("getsettings", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_GetSettings);
-    restAPIEndpoints.addEndpoint("exec", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Exec);
-    restAPIEndpoints.addEndpoint("pattern", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Pattern);
-    restAPIEndpoints.addEndpoint("sequence", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Sequence);
+    restAPIEndpoints.addEndpoint("postsettings", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_PostSettings, "");
+    restAPIEndpoints.addEndpoint("getsettings", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_GetSettings, "");
+    restAPIEndpoints.addEndpoint("exec", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Exec, "");
+    restAPIEndpoints.addEndpoint("pattern", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Pattern, "");
+    restAPIEndpoints.addEndpoint("sequence", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Sequence, "");
 
     // Construct web server
     Log.info("Main: Constructing Web Server");
