@@ -95,6 +95,16 @@ bool CommandInterpreter::processSingle(const char* pCmdStr)
             _pRobotController->pause(false);
         rslt = true;
     }
+    else if (strcasecmp(pCmdStr, "stop") == 0)
+    {
+        if (_pRobotController)
+            _pRobotController->stop();
+        if (_pWorkflowManager)
+            _pWorkflowManager->clear();
+        if (_pCommandExtender)
+            _pCommandExtender->stop();
+        rslt = true;
+    }
     else if (strstr(pCmdStr, "setwifi") == pCmdStr)
     {
         rslt = setWifi(pCmdStr);
@@ -177,7 +187,7 @@ void CommandInterpreter::service()
         bool rslt = _pWorkflowManager->get(cmdElem);
         if (rslt)
         {
-            Log.info("CmdInterp getWorkflow rlst=%d (waiting %d), %s", rslt,
+            Log.trace("CmdInterp getWorkflow rlst=%d (waiting %d), %s", rslt,
                             _pWorkflowManager->numWaiting(),
                             cmdElem.getString().c_str());
 

@@ -323,6 +323,13 @@ public:
         return _isPaused;
     }
 
+    // Stop
+    void stop()
+    {
+        _motionPipeline.clear();
+        _isPaused = false;
+    }
+
 public:
     void configMotionPipeline()
     {

@@ -80,6 +80,12 @@ public:
         pCommandInterpreter->process(_commandList.c_str(), _curCmdIdx++);
     }
 
+    void stop()
+    {
+        _commandList = "";
+        _numCmdsToProcess = 0;
+        _curCmdIdx = 0;
+    }
 private:
     // Full configuration JSON
     String _jsonConfigStr;

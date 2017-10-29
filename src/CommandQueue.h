@@ -46,6 +46,14 @@ public:
         return (_cmdElemQueue.size() == 0);
     }
 
+    // Clear the queue
+    void clear()
+    {
+        // Using technique from here https://stackoverflow.com/questions/709146/how-do-i-clear-the-stdqueue-efficiently
+        std::queue<CommandElem> emptyQ;
+        std::swap( _cmdElemQueue, emptyQ );
+    }
+
     // Add to queue
     bool add(const char* pCmdStr)
     {

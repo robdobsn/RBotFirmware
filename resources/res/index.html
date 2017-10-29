@@ -325,7 +325,8 @@
 			oStr += "<div class='body-commands'>";
 			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/pause", "", "Pause", 'body-commands-button') + "</div>";
 			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/resume", "", "Resume", 'body-commands-button') + "</div>";
-			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/restart", "", "Restart", 'body-commands-button') + "</div>";
+			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/stop", "", "Stop", 'body-commands-button') + "</div>";
+            oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/g28", "", "Home", 'body-commands-button') + "</div>";
 //			oStr += "<div class='body-list-item'>" + "<a href='javascript:void(0)' onclick='postJson(\"/postsettings\", window.sandTableState)'>POST</a>" + "</div>";
 			oStr += "</div>";
 			oStr += "</div>";
@@ -534,6 +535,7 @@
 	.body-commands-button{
 		font-size: 1.2em;
 		color: #fafcee;
+        cursor: pointer;
 	}
 	.body-group{
         background: -webkit-linear-gradient(top, #b9a888 0%, #c9b693 10px, #E3CDA6 100%);

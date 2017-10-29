@@ -21,6 +21,7 @@ public:
         return _patternName.c_str();
     }
     virtual void start() = 0;
+    virtual void stop() = 0;
     virtual void setParameters(const char* drawParams) = 0;
     virtual void service(CommandInterpreter* pCommandInterpreter) = 0;
 };

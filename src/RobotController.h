@@ -79,6 +79,15 @@ public:
         _pRobot->pause(pauseIt);
     }
 
+    // Stop
+    void stop()
+    {
+        Log.info("RobotController: stop");
+        if (!_pRobot)
+            return;
+        _pRobot->stop();
+    }
+
     // Check if paused
     bool isPaused()
     {

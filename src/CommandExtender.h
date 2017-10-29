@@ -39,6 +39,16 @@ public:
         return _patternEvaluator.getConfig();
     }
 
+    void stop()
+    {
+        for (int i = 0; i < _numPatternGenerators; i++)
+        {
+            _patternGenerators[i]->stop();
+        }
+        _patternEvaluator.stop();
+        _commandSequencer.stop();
+    }
+
     void service()
     {
         // Service pattern generators

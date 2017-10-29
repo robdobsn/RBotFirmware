@@ -32,6 +32,11 @@ public:
         return false;
     }
 
+    // Stop
+    virtual void stop()
+    {
+    }
+
     virtual bool init(const char* robotConfigStr)
     {
         return false;

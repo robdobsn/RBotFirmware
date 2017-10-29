@@ -14,9 +14,21 @@ private:
     // Max length of config data
     int _configMaxDataLen;
 
+    // Write state
+    bool _isWriting;
+    int _curWriteOffset;
+    int _numBytesToWrite;
+    String _stringToWrite;
+
 public:
     ConfigEEPROM()
     {
+        _eepromBaseLocation = 0;
+        _configMaxDataLen = 1000;
+        _isWriting = false;
+        _curWriteOffset = 0;
+        _numBytesToWrite = 0;
+        _stringToWrite = "";
     }
 
     ~ConfigEEPROM()
@@ -105,7 +117,11 @@ public:
     {
         const char* pConfigData = getConfigData();
 
-        Log.trace("Writing config str to EEPROM len %d ...", strlen(pConfigData));
+        Log.info("Start writing config str to EEPROM len %d ...", strlen(pConfigData));
+
+        // Remember data to write (in case it changes in the background)
+        _stringToWrite = pConfigData;
+        _curWriteOffset = 0;
 
         // Get length of string
         int dataStrLen = 0;
@@ -118,17 +134,38 @@ public:
             dataStrLen = _configMaxDataLen - 1;
         }
 
-        // Write the current value of the string to EEPROM
-        for (int chIdx = 0; chIdx < dataStrLen; chIdx++)
-        {
-            EEPROM.write(_eepromBaseLocation + chIdx, pConfigData[chIdx]);
-        }
-
-        // Terminate string
-        EEPROM.write(_eepromBaseLocation + dataStrLen, 0);
-
-        Log.trace("Writing config to EEPROM Complete");
+        // Length of string
+        _numBytesToWrite = dataStrLen;
+        _isWriting = true;
 
         return true;
+    }
+
+    // Service the writing process
+    void service()
+    {
+        // Only if writing
+        if (!_isWriting)
+            return;
+        // Write next char
+        if (_curWriteOffset < _numBytesToWrite)
+        {
+            EEPROM.write(_eepromBaseLocation + _curWriteOffset, _stringToWrite.charAt(_curWriteOffset));
+            // Log.trace("Writing %c", _stringToWrite.charAt(_curWriteOffset));
+        }
+        else
+        {
+            EEPROM.write(_eepromBaseLocation + _curWriteOffset, 0);
+            // Log.trace("Writing 0 terminator");
+        }
+        // Bump
+        _curWriteOffset += 1;
+        if (_curWriteOffset > _numBytesToWrite)
+        {
+            // Clean up
+            _isWriting = false;
+            _stringToWrite = "";
+            Log.info("Writing config to EEPROM Complete");
+        }
     }
 };

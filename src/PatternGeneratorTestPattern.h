@@ -29,6 +29,11 @@ public:
         _tVal = 0;
     }
 
+    virtual void stop()
+    {
+        _isRunning = false;
+    }
+
     virtual void service(CommandInterpreter* pCommandInterpreter)
     {
         // Check running

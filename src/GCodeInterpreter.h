@@ -93,7 +93,7 @@ public:
         RobotCommandArgs cmdArgs;
         rslt = getGcodeCmdArgs(pArgsStr, cmdArgs);
 
-        Log.info("GCodeInterpreter Cmd G%d %s", cmdNum, pArgsStr);
+        Log.trace("GCodeInterpreter Cmd G%d %s", cmdNum, pArgsStr);
 
         // Switch on number
         switch(cmdNum)

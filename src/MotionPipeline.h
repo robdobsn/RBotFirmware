@@ -103,10 +103,17 @@ public:
         return true;
     }
 
-
     // Get number of items in queue
     int count()
     {
         return _pipeline.size();
+    }
+
+    // Clear the pipeline
+    void clear()
+    {
+        // Using technique from here https://stackoverflow.com/questions/709146/how-do-i-clear-the-stdqueue-efficiently
+        std::queue<MotionPipelineElem> emptyQ;
+        std::swap( _pipeline, emptyQ );
     }
 };

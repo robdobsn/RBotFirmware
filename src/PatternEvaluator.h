@@ -147,6 +147,11 @@ public:
         evalExpressions(true, false);
     }
 
+    void stop()
+    {
+        _isRunning = false;
+    }
+
     void service(CommandInterpreter* pCommandInterpreter)
     {
         // Check running

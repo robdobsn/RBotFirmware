@@ -68,4 +68,10 @@ public:
         return _cmdQueue.size();
     }
 
+    // Clear the queue
+    void clear()
+    {
+        _cmdQueue.clear();
+    }
+
 };

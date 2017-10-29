@@ -507,6 +507,12 @@ public:
         return _motionHelper.isPaused();
     }
 
+    // Stop
+    void stop()
+    {
+        _motionHelper.stop();
+    }
+
     void service()
     {
         // Service homing activity

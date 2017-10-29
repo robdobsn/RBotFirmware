@@ -5,6 +5,7 @@
 #include "RobotController.h"
 #include "WorkflowManager.h"
 #include "CommsSerial.h"
+#include "ParticleCloud.h"
 
 // Web server
 #include "RdWebServer.h"
@@ -27,19 +28,34 @@ RestAPIEndpoints restAPIEndpoints;
 SYSTEM_MODE(AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 
+// Application info
+static const char* APPLICATION_NAME = "RBotFirmware";
 SerialLogHandler logHandler(LOG_LEVEL_INFO);
+
+// Robot controller
 RobotController _robotController;
+
+// workflow manager
 WorkflowManager _workflowManager;
+
+// Command interpreter
 CommandInterpreter _commandInterpreter(&_workflowManager, &_robotController);
+
+// Serial comms
 CommsSerial _commsSerial(0);
+
+// Configuration
 ConfigEEPROM configEEPROM;
 bool eepromNeedsWriting = false;
 
+// Particle Cloud
+ParticleCloud* pParticleCloud = NULL;
+
 // Time to wait before making a pending write to EEPROM - which takes up-to several seconds and
 // blocks motion and web activity
-static const unsigned long ROBOT_IDLE_BEFORE_WRITE_EEPROM_SECS = 60;
-static const unsigned long WEB_IDLE_BEFORE_WRITE_EEPROM_SECS = 30;
-//#define WRITE_TO_EEPROM_ENABLED 1
+static const unsigned long ROBOT_IDLE_BEFORE_WRITE_EEPROM_SECS = 0;
+static const unsigned long WEB_IDLE_BEFORE_WRITE_EEPROM_SECS = 0;
+#define WRITE_TO_EEPROM_ENABLED 1
 
 // Note that the value here for maxLen must be bigger than the value returned for restAPI_GetSettings()
 // This is to ensure the web-app doesn't return a string that is too long
@@ -173,11 +189,20 @@ void restAPI_Sequence(RestAPIEndpointMsg& apiMsg, String& retStr)
     retStr = "{\"ok\"}";
 }
 
+// Exec via particle function
+char* particleAPI_Exec(char* cmdStr)
+{
+    Log.trace("ParticleAPI Exec method %s", cmdStr);
+    _commandInterpreter.process(cmdStr);
+    // Result
+    return "{\"ok\"}";
+}
+
 void setup()
 {
     Serial.begin(115200);
     delay(5000);
-    Log.info("RBotFirmware (built %s %s)", __DATE__, __TIME__);
+    Log.info("%s (built %s %s)", APPLICATION_NAME, __DATE__, __TIME__);
     Log.info("System version: %s", (const char*)System.version());
 
     // Initialise the config manager
@@ -211,6 +236,11 @@ void setup()
         Log.info("Main: Starting Web Server");
         pWebServer->start(webServerPort);
     }
+
+    // Particle Cloud
+    pParticleCloud = new ParticleCloud(APPLICATION_NAME, particleAPI_Exec,
+                            particleAPI_ReportHealth, particleAPI_ReportHealthHash);
+    pParticleCloud->RegisterVariables();
 
     // Init robot controller and workflow manager
     _robotController.init(ROBOT_CONFIG_STR);
@@ -263,6 +293,32 @@ char *localIPStr()
     sprintf(_localIPStr, "%d.%d.%d.%d", ipA[0], ipA[1], ipA[2], ipA[3]);
     return _localIPStr;
 }
+
+// String to hold status
+String particleAPI_statusStr;
+
+// Get status
+char* particleAPI_ReportHealth(const char* pIdStr,
+                const char* initialContentJsonElementList)
+{
+    particleAPI_statusStr = String::format("IP Addr %s, Low RAM %d, Workflow %d, Ready %d",
+                localIPStr(), lowestMemory,
+                _workflowManager.numWaiting(),
+                _commandInterpreter.canAcceptCommand());
+    return (char*) particleAPI_statusStr.c_str();
+}
+
+unsigned long particleAPI_ReportHealthHash()
+{
+    particleAPI_ReportHealth(NULL, NULL);
+    unsigned long hashVal = 0;
+    for (int i = 0; i < particleAPI_statusStr.length(); i++)
+    {
+        hashVal += particleAPI_statusStr.charAt(i);
+    }
+    return hashVal;
+}
+
 // Timing of the loop - used to determine if blocking/slow processes are delaying the loop iteration
 const int loopTimeAvgWinLen = 50;
 int loopTimeAvgWin[loopTimeAvgWinLen];
@@ -344,6 +400,13 @@ void loop()
 
     }
 
+    // Service the particle cloud
+    if (pParticleCloud)
+        pParticleCloud->Service();
+
+    // Service the eprom write
+    configEEPROM.service();
+
     // Check if eeprom contents need to be written - which is a time consuming process
     #ifdef WRITE_TO_EEPROM_ENABLED
     if (eepromNeedsWriting)
@@ -351,11 +414,9 @@ void loop()
         // Check for robot idle, web server idle and no commands pending
         bool robotActive = _robotController.wasActiveInLastNSeconds(ROBOT_IDLE_BEFORE_WRITE_EEPROM_SECS);
         bool webActive = ((pWebServer) && (pWebServer->wasActiveInLastNSeconds(WEB_IDLE_BEFORE_WRITE_EEPROM_SECS)));
-        if (!(robotActive || webActive))
+        if ((!robotActive && !webActive) || (ROBOT_IDLE_BEFORE_WRITE_EEPROM_SECS == 0 && WEB_IDLE_BEFORE_WRITE_EEPROM_SECS == 0))
         {
-            Log.info("Main writing to EEPROM - could take a few seconds ...");
             configEEPROM.writeToEEPROM();
-            Log.info("Main write to EEPROM done");
             eepromNeedsWriting = false;
         }
     }
