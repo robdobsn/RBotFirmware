@@ -128,12 +128,20 @@ public:
         _pRobot->moveTo(args);
     }
 
+    // Set motion parameters
+    void setMotionParams(RobotCommandArgs& args)
+    {
+        if (!_pRobot)
+            return;
+        _pRobot->setMotionParams(args);
+    }
+
     // Get status
     void getCurStatus(RobotCommandArgs& args)
     {
         if (!_pRobot)
             return;
-        _pRobot->getCurStatus(args);        
+        _pRobot->getCurStatus(args);
     }
 
     // Home

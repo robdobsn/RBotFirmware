@@ -13,7 +13,7 @@ function bodyIsLoaded()
 		MAX_POST_CHUNK_SIZE: 1000,
 		UPLOAD_RETRY_TIME_MS: 1000,
 		MAX_UPLOAD_RETRIES: 180,
-		axisNames: ["x","y","z"]
+		axisNames: ["X","Y","Z"]
 	};
 	// Handle the file send box listener
 	var inputFileUpload = document.getElementById("input_file_upload");
@@ -102,8 +102,10 @@ function moveClick(axis, dist)
         callAjax("/exec/G28 " + axisNames[axis].toUpperCase());
     }
 	else {
-		moveStr = "M120\nG91\nG1\nM121";
+		// Set relative positioning and restore to absolute afterwards
+        callAjax("/exec/G91");
         callAjax("/exec/G0 " + axisNames[axis].toUpperCase() + dist.toString());
+        callAjax("/exec/G90");
     }
 }
 

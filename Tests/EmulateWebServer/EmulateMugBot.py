@@ -8,12 +8,12 @@ import re
 
 gCodeMaxQueueLen = 5
 gCodeQueue = queue.Queue(gCodeMaxQueueLen)
-machineStatus = {"pos": {"x": 0, "y": 0, "z": 0}}
+machineStatus = {"pos": {"X": 0, "Y": 0, "Z": 0}}
 moveRate = 10
 moving = False
 moveTo = {}
 moveStep = 0
-axes = ["x", "y", "z"]
+axes = ["X", "Y", "Z"]
 
 stSettings = {
     "maxCfgLen": 2000,

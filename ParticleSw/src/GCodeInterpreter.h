@@ -98,8 +98,8 @@ public:
         // Switch on number
         switch(cmdNum)
         {
-            case 0: // Move absolute
-            case 1: // Move absolute
+            case 0: // Move rapid
+            case 1: // Move
                 if (takeAction)
                 {
                     cmdArgs.moveRapid = (cmdNum == 0);
@@ -110,6 +110,20 @@ public:
                 if (takeAction)
                 {
                     pRobotController->home(cmdArgs);
+                }
+                return true;
+            case 90: // Move absolute
+                if (takeAction)
+                {
+                    cmdArgs.moveType = RobotMoveTypeArg_Absolute;
+                    pRobotController->setMotionParams(cmdArgs);
+                }
+                return true;
+            case 91: // Movements relative
+                if (takeAction)
+                {
+                    cmdArgs.moveType = RobotMoveTypeArg_Relative;
+                    pRobotController->setMotionParams(cmdArgs);
                 }
                 return true;
         }

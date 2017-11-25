@@ -31,7 +31,7 @@ public:
     RobotEndstopArg endstopEnum;
     bool moveClockwise;
     bool moveRapid;
-    RobotMoveTypeArg moveRelative;
+    RobotMoveTypeArg moveType;
 
 public:
     RobotCommandArgs()
@@ -44,7 +44,7 @@ public:
         extrudeVal = feedrateVal = 0.0;
         endstopEnum = RobotEndstopArg_None;
         moveClockwise = moveRapid = false;
-        moveRelative = RobotMoveTypeArg_None;
+        moveType = RobotMoveTypeArg_None;
     }
     void copy(RobotCommandArgs& copyFrom)
     {
@@ -58,7 +58,7 @@ public:
         endstopEnum = copyFrom.endstopEnum;
         moveClockwise = copyFrom.moveClockwise;
         moveRapid = copyFrom.moveRapid;
-        moveRelative = copyFrom.moveRelative;
+        moveType = copyFrom.moveType;
     }
     void setAxisValue(int axisIdx, double value, bool isValid)
     {
@@ -73,8 +73,12 @@ public:
     {
         String jsonStr;
         jsonStr = "{\"pos\":" + pt.toJSON();
-        jsonStr += ", \"mvTyp\":" +
-            (moveRelative == RobotMoveTypeArg_Relative ? "rel" : "abs") + "}";
+        jsonStr += ", \"mvTyp\":";
+        if (moveType == RobotMoveTypeArg_Relative)
+            jsonStr += "\"rel\"";
+        else
+            jsonStr += "\"abs\"";
+        jsonStr += "}";
         return jsonStr;
     }
 };

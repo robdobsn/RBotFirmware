@@ -670,8 +670,8 @@ public:
     void setMotionParams(RobotCommandArgs& args)
     {
         // Check for relative movement specified and set accordingly
-        if (args.moveRelative != RobotMoveTypeArg_None)
-            _moveRelative = (args.moveRelative == RobotMoveTypeArg_Relative);
+        if (args.moveType != RobotMoveTypeArg_None)
+            _moveRelative = (args.moveType == RobotMoveTypeArg_Relative);
     }
 
     void getCurStatus(RobotCommandArgs& args)
@@ -684,7 +684,7 @@ public:
         PointNDValid validity(true, true, true);
         args.valid = validity;
         // Absolute/Relative movement
-        args.moveRelative = _moveRelative ? RobotMoveTypeArg_Relative : RobotMoveTypeArg_Absolute;
+        args.moveType = _moveRelative ? RobotMoveTypeArg_Relative : RobotMoveTypeArg_Absolute;
     }
 
     void service(bool processPipeline)

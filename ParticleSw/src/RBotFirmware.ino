@@ -193,7 +193,7 @@ void restAPI_Sequence(RestAPIEndpointMsg& apiMsg, String& retStr)
 void restAPI_Status(RestAPIEndpointMsg& apiMsg, String& retStr)
 {
     RobotCommandArgs cmdArgs;
-    _robotController.getStatus(cmdArgs);
+    _robotController.getCurStatus(cmdArgs);
     retStr = cmdArgs.toJSON();
 }
 
