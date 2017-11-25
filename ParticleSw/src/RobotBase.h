@@ -60,6 +60,14 @@ public:
     {
     }
 
+    virtual void setMotionParams(RobotCommandArgs& args)
+    {
+    }
+
+    virtual void getCurStatus(RobotCommandArgs& args)
+    {
+    }
+
     // Homing commands
     virtual void home(RobotCommandArgs& args)
     {

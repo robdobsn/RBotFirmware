@@ -45,7 +45,7 @@
 			while(!stop)
 			{
 				logoLoop();
-				if (ctr == 0)
+				if (ctr === 0)
 					ctx.moveTo(logoCentreX+x, logoCentreY+y);
 				else
 					ctx.lineTo(logoCentreX+x, logoCentreY+y);
@@ -85,8 +85,8 @@
             var xmlhttp = new XMLHttpRequest();
             xmlhttp.onreadystatechange = function()
             {
-                if (xmlhttp.readyState == 4) {
-                    if (xmlhttp.status == 200) {
+                if (xmlhttp.readyState === 4) {
+                    if (xmlhttp.status === 200) {
                         okCallback(xmlhttp.responseText);
                     }
                     else {
@@ -107,8 +107,8 @@
             var xmlhttp = new XMLHttpRequest();
             xmlhttp.onreadystatechange = function()
             {
-                if (xmlhttp.readyState == 4) {
-                    if (xmlhttp.status == 200) {
+                if (xmlhttp.readyState === 4) {
+                    if (xmlhttp.status === 200) {
                         if ((okCallback !== undefined) && (typeof okCallback !== 'undefined'))
 	                        okCallback(xmlhttp.responseText);
                     }
@@ -219,7 +219,7 @@
 				window.stState.curItem = "";
 				updateDisplay();
 			}
-			else if (cmdStr == "edit")
+			else if (cmdStr === "edit")
 			{
 			    if (itemTypeStr === "pat")
     				window.stState.curPage = "patEdit";
@@ -235,7 +235,7 @@
 			    var curRunAtStartVal = 0;
 			    if (argStr in window.sandTableState.sequences)
 			        curRunAtStartVal = window.sandTableState.sequences[argStr].runAtStart;
-			    for (seq in window.sandTableState.sequences)
+			    for (var seq in window.sandTableState.sequences)
 			        window.sandTableState.sequences[seq].runAtStart = 0;
 			    if (argStr in window.sandTableState.sequences)
 			        window.sandTableState.sequences[argStr].runAtStart = curRunAtStartVal ? 0 : 1;
@@ -264,17 +264,17 @@
 			var oStr = "";
 			clickFn = clickFn.replace("~key~", keyVal);
 			oStr += "<span class='" + cssClass + "' onclick='" + clickFn + "'>";
-			if (label == "Edit")
+			if (label === "Edit")
 			{
 				oStr += '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="25px" height="25px" viewBox="0 0 530 530">';
 				oStr += '<g><path d="M328.883,89.125l107.59,107.589l-272.34,272.34L56.604,361.465L328.883,89.125z M518.113,63.177l-47.981-47.981   c-18.543-18.543-48.653-18.543-67.259,0l-45.961,45.961l107.59,107.59l53.611-53.611   C532.495,100.753,532.495,77.559,518.113,63.177z M0.3,512.69c-1.958,8.812,5.998,16.708,14.811,14.565l119.891-29.069 L27.473,390.597L0.3,512.69z" style="fill: rgb(220, 222, 218);"></path></g>';
 				oStr += '</svg>';
 			}
-			else if (label == "Add")
+			else if (label === "Add")
 			{
 				oStr += '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="25px" height="25px" viewBox="170 60 200 150">';
 				oStr += '<g><path style="fill:none;stroke:#e0e0e0;stroke-width:22;stroke-linecap:round;"'
-				oStr += 'd="m 250,50 0,150 m 75,-75 -150,0" />'
+				oStr += 'd="m 250,50 0,150 m 75,-75 -150,0" />';
 				oStr += '</svg>';
 			}
 //			else if (label == "Delete")
@@ -480,9 +480,9 @@
 
 		function genPageBody()
 		{
-		    if (window.stState.curPage.trim() == 'patEdit')
+		    if (window.stState.curPage.trim() === 'patEdit')
 				genPatEditBody();
-			else if (window.stState.curPage.trim() == 'seqEdit')
+			else if (window.stState.curPage.trim() === 'seqEdit')
 				genSeqEditBody();
 			else
 			    genHomePageBody();

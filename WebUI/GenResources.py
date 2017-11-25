@@ -3,6 +3,10 @@ import logging as log
 import os, os.path
 import shutil
 import subprocess
+import argparse
+
+# Path to the src folder which is to contain the GenResources.h file
+GEN_RESOURCES_H_FOLDER = "../ParticleSW/src"
 
 # NOTE that if MINIFY_HTML is True then the Node package html-minifier needs to be installed globally
 # npm install html-minifier -g
@@ -68,14 +72,21 @@ def writeFileContentsAsHex(filePath, outFile):
         print("Removing", inFileName)
         os.remove(inFileName)
 
+# Get command line argument to determine which UI to generate
+parser = argparse.ArgumentParser(description='Generate RdWebServer UI')
+parser.add_argument('--UI', type=str, default="SandTable", help='CNC or SandTable')
+args = parser.parse_args()
+uiFolder = "./" + args.UI + "UI"
+print("Generating UI from " + uiFolder)
+
 resFileInfo = []
 lineNormalIndentChars = 4
 lineHexBytesLen = 16
 lineHexIndentChars = 4
-with open("../src/GenResources.h", "w") as outFile:
+with open(os.path.join(GEN_RESOURCES_H_FOLDER, "GenResources.h"), "w") as outFile:
     outFile.write("// Auto-Generated file containing res folder binary contents\n")
     outFile.write("#include \"RdWebServerResources.h\"\n\n")
-    walkGen = os.walk("./res")
+    walkGen = os.walk(uiFolder)
     for root,folders,fileNames in walkGen:
         for fileName in fileNames:
             filePath = os.path.join(root, fileName)
@@ -83,6 +94,8 @@ with open("../src/GenResources.h", "w") as outFile:
             fileExtSplit = os.path.splitext(fileName)
             fileExt = fileExtSplit[1]
             fileOnly = os.path.split(fileExtSplit[0])[1]
+            fileOnly = fileOnly.replace("-", "_")
+            fileOnly = fileOnly.replace(".", "_")
             cIdent = "reso_" + fileOnly + "_" + fileExt[1:]
             print(cIdent, fileName)
             # Write variable def
@@ -90,7 +103,7 @@ with open("../src/GenResources.h", "w") as outFile:
             # Write file contents as hex
             writeFileContentsAsHex(filePath, outFile)
             outFile.write("\n" + " " * lineHexIndentChars + "};\n\n")
-            # Form the file info to be added to resources
+            # Form the file info to be added to webUI
             fileInfoRec = {
                 "fileName": fileName,
                 "filePath": filePath,
@@ -107,8 +120,22 @@ with open("../src/GenResources.h", "w") as outFile:
         mimeType = "text/plain"
         if fileInf["fileExt"] == ".ico":
             mimeType = "image/ico"
+        elif fileInf["fileExt"] == ".gif":
+            mimeType = "image/gif"
+        elif fileInf["fileExt"] == ".png":
+            mimeType = "image/png"
+        elif fileInf["fileExt"] == ".jpg" or fileInf["fileExt"] == ".jpeg":
+            mimeType = "image/jpg"
+        elif fileInf["fileExt"] == ".bmp":
+            mimeType = "image/bmp"
         elif fileInf["fileExt"] == ".html":
             mimeType = "text/html"
+        elif fileInf["fileExt"] == ".css":
+            mimeType = "text/css"
+        elif fileInf["fileExt"] == ".js":
+            mimeType = "text/javascript"
+        elif fileInf["fileExt"] == ".xml":
+            mimeType = "application/xml"
         if not isFirstLine:
             outFile.write(",\n")
         isFirstLine = False

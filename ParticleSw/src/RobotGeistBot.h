@@ -247,6 +247,16 @@ public:
         _motionHelper.moveTo(args);
     }
 
+    void setMotionParams(RobotCommandArgs& args)
+    {
+        _motionHelper.setMotionParams(args);
+    }
+
+    void getCurStatus(RobotCommandArgs& args)
+    {
+        _motionHelper.getCurStatus(args);
+    }
+
     bool lastTimeActiveMillis(unsigned long& lastMillis)
     {
 	return 0;

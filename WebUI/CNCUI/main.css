@@ -1,0 +1,184 @@
+
+body{
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+#container {
+    display: flex;
+    flex-wrap: wrap;
+
+}
+
+.uiBlock {
+    margin: 5px;
+    align-items: baseline;
+    align-content: flex-start;
+    justify-content: center;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.icon-connect {
+    color: white;
+    fill: white;
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+}
+.icon-action {
+    color: #808080;
+    fill: #808080;
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+}
+
+.btn {
+    display: inline-block;
+    padding: 6px 12px;
+    margin-bottom: 0;
+    font-size: 14px;
+    font-weight: normal;
+    line-height: 1.42857143;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    touch-action: manipulation;
+    cursor: pointer;
+    user-select: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    text-decoration: none;
+}
+
+.btn.disabled {
+    cursor: not-allowed;
+    opacity: .65;
+}
+
+.form-control {
+    padding: 6px 12px;
+    font-size: 14px;
+    line-height: 1.42857143;
+    color: #555;
+    background-color: #fff;
+    background-image: none;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+    vertical-align: middle;
+}
+
+.btn-action {
+    color: white;
+    background-color: #5bc0de;
+    border-color: #3ea0bd;
+}
+
+.btn-default {
+    color: #333;
+    text-shadow: 0 1px 0 #fff;
+    background-image: -webkit-linear-gradient(top, #fff 0%, #e0e0e0 100%);
+    background-image: -o-linear-gradient(top, #fff 0%, #e0e0e0 100%);
+    background-image: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#e0e0e0));
+    background-image: linear-gradient(to bottom, #fff 0%, #e0e0e0 100%);
+    background-repeat: repeat-x;
+    border-color: #dbdbdb;
+    border-color: #ccc;
+}
+
+.btn-primary {
+    color: white;
+    background-image: linear-gradient(to bottom,#337ab7 0,#265a88 100%);
+    background-repeat: repeat-x;
+    border-color: #245580;
+}
+
+.btn-default.disabled {
+    background-color: #e0e0e0;
+    background-image: none;
+}
+
+.uiPanel {
+    display: block;
+    min-height: 1px;
+    background-color: #fff;
+    border: 1px solid #bce8f1;
+    border-radius: 4px;
+}
+
+.uiPanelHead {
+    background-image: linear-gradient(to bottom, #d9edf7 0%, #c4e3f3 100%);
+    background-repeat: repeat-x;
+    color: #31708f;
+    background-color: #d9edf7;
+    border-color: #bce8f1;
+    padding: 10px 10px 10px 10px;
+    border-bottom: 1px solid transparent;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+}
+.uiTable {
+    border: 0;
+    width: 100%;
+    max-width: 100%;
+    border-spacing: 0;
+    border-collapse: collapse;
+    background-color: transparent;
+    text-align: center;
+    vertical-align: middle !important;
+}
+
+.uiTableGrid > tbody > tr > th, .uiTableGrid > tbody > tr > td {
+    border: 1px solid #ddd;
+    min-width: 60px;
+    padding:5px;
+}
+.th-statusGrid {
+    width: 100px;
+}
+
+.uiTableButtons {
+    margin-top: 10px;
+}
+.uiTableButtons > tbody > tr {
+    padding-botton: 10px;
+}
+.uiTableButtons > tbody > tr > th, .uiTableButtons > tbody > tr > td {
+    border: none;
+    padding-left: 6px;
+    padding-right: 6px;
+}
+
+.btn-group {
+    padding-bottom: 9px;
+        position: relative;
+    display: inline-block;
+    vertical-align: middle;
+    width: auto;
+}
+.btn-group-justified {
+    display: table;
+    width: 350px;
+    table-layout: fixed;
+    border-collapse: separate;
+}
+.btn-group > .btn:first-child:not(:last-child):not(.dropdown-toggle) {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.btn-group > .btn:first-child {
+    margin-left: 0;
+}
+.btn-group-justified>.btn, .btn-group-justified>.btn-group {
+    display: table-cell;
+    float: none;
+    width: 1%;
+}
+.txt-status {
+
+}

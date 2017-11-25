@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<!-- RBotFirmware CNC Control
+        by Rob Dobson (c) 2017
+        MIT license
+-->
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="description" content="WebUI for RBotFirmware CNC">
+    <meta name="author" content="Rob Dobson">
+
+    <title id="title">RBot</title>
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="favicon.ico">
+    <!-- CSS -->
+    <link href="main.css" rel="stylesheet">
+</head>
+
+<body onload="bodyIsLoaded(event)">
+    <!-- Master layout -->
+    <div id="container">
+        <!--<div class="uiBlock">-->
+        <!--<button type="button" class="btn btn-action">-->
+        <!--<svg class="icon-connect">-->
+        <!--<use xlink:href = "#icon-log-in"></use>-->
+        <!--</svg>-->
+        <!--<span>Connect</span>-->
+        <!--</button>-->
+        <!--</div>-->
+        <div class="uiBlock">
+            <div class="uiForm">
+                <input type="text" name="gcode" class="form-control" placeholder="G-Code ..." id="gcodeSendBox">
+                <button type="submit" class="btn btn-default" title="Send G-Code" onclick="sendGcodeFromInput(event)">
+                    <svg class="icon-action">
+                        <use xlink:href="#icon-send"></use>
+                    </svg>
+                    <span>Send</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="uiBlock">
+            <div class="uiForm">
+                <button id="btnUpload" class="btn btn-default" title="Upload a G-Code file" onclick="buttonUploadClick(event)" >
+                    <svg class="icon-action">
+                        <use xlink:href="#icon-upload"></use>
+                    </svg>
+                    <span>Upload</span>
+                </button>
+                <span id="txtUploadStatus" class="txt-status"></span>
+                <button id="btnUploadCancel" class="btn btn-default disabled" title="Cancel upload" onclick="buttonUploadCancel(event)" >
+                    <svg class="icon-action">
+                        <use xlink:href="#icon-cancel"></use>
+                    </svg>
+                    <span>Cancel</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="uiBlock">
+            <div class="uiPanel">
+                <div class="uiPanelHead">
+                    <span>Status</span>
+                </div>
+                <table class="uiTable uiTableGrid">
+                    <tbody>
+                    <tr>
+                        <th rowspan="2" class="th-status">Position</th>
+                        <th id="th_x">X</th>
+                        <th id="th_y">Y</th>
+                        <th id="th_z" style="border-right: 1px;">Z</th>
+                    </tr>
+                    <tr>
+                        <td id="td_x">n/a</td>
+                        <td id="td_y">n/a</td>
+                        <td id="td_z" style="border-right: 1px;">n/a</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="uiBlock">
+            <div class="uiPanel">
+                <div class="uiPanelHead">
+                    <span>Movement</span>
+                </div>
+                <div class="uiTable uiTableButtons tableMovement">
+                    <tr>
+                        <td class="home-buttons visible-lg">
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-primary" title="Home X axis (G28 X)" onclick="moveClick(0,0)">
+                                    <span>Home X</span>
+                                </button>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-justified" role="group">
+                                <a class="btn btn-default" onclick="moveClick(0,-100)">
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-left-chevron"></use>
+                                    </svg>
+                                    <span>X-100</span>
+                                </a>
+                                <a class="btn btn-default" onclick="moveClick(0,-10)">
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-left-chevron"></use>
+                                    </svg>
+                                    <span>X-10</span>
+                                </a>
+                                <a class="btn btn-default" onclick="moveClick(0,-1)">
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-left-chevron"></use>
+                                    </svg>
+                                    <span>X-1</span>
+                                </a>
+                                <a class="btn btn-default" onclick="moveClick(0,-0.1)">
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-left-chevron"></use>
+                                    </svg>
+                                    <span>X-0.1</span>
+                                </a>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-justified" role="group">
+                                <a class="btn btn-default" onclick="moveClick(0,0.1)">
+                                    <span>X+0.1</span>
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-right-chevron"></use>
+                                    </svg>
+                                </a>
+                                <a class="btn btn-default" onclick="moveClick(0,1)">
+                                    <span>X+1</span>
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-right-chevron"></use>
+                                    </svg>
+                                </a>
+                                <a class="btn btn-default" onclick="moveClick(0,10)">
+                                    <span>X+10</span>
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-right-chevron"></use>
+                                    </svg>
+                                </a>
+                                <a class="btn btn-default" onclick="moveClick(0,100)">
+                                    <span>X+100</span>
+
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-right-chevron"></use>
+                                    </svg>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="home-buttons visible-lg">
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-primary" title="Home Y axis (G28 Y)" onclick="moveClick(1,0)">
+                                    <span>Home Y</span>
+                                </button>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-justified" role="group">
+                                <a class="btn btn-default" onclick="moveClick(1,-100)">
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-left-chevron"></use>
+                                    </svg>
+                                    <span>Y-100</span>
+                                </a>
+                                <a class="btn btn-default" onclick="moveClick(1,-10)">
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-left-chevron"></use>
+                                    </svg>
+                                    <span>Y-10</span>
+                                </a>
+                                <a class="btn btn-default" onclick="moveClick(1,-1)">
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-left-chevron"></use>
+                                    </svg>
+                                    <span>Y-1</span>
+                                </a>
+                                <a class="btn btn-default" onclick="moveClick(1,-0.1)">
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-left-chevron"></use>
+                                    </svg>
+                                    <span>Y-0.1</span>
+                                </a>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-justified" role="group">
+                                <a class="btn btn-default" onclick="moveClick(1,0.1)">
+                                    <span>Y+0.1</span>
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-right-chevron"></use>
+                                    </svg>
+                                </a>
+                                <a class="btn btn-default" onclick="moveClick(1,1)">
+                                    <span>Y+1</span>
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-right-chevron"></use>
+                                    </svg>
+                                </a>
+                                <a class="btn btn-default" onclick="moveClick(1,10)">
+                                    <span>Y+10</span>
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-right-chevron"></use>
+                                    </svg>
+                                </a>
+                                <a class="btn btn-default" onclick="moveClick(1,100)">
+                                    <span>Y+100</span>
+
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-right-chevron"></use>
+                                    </svg>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="home-buttons visible-lg">
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-primary" title="Home Z axis (G28 Z)" onclick="moveClick(2,0)">
+                                    <span>Home Z</span>
+                                </button>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-justified" role="group">
+                                <a class="btn btn-default" onclick="moveClick(2,-100)">
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-left-chevron"></use>
+                                    </svg>
+                                    <span>Z-100</span>
+                                </a>
+                                <a class="btn btn-default" onclick="moveClick(2,-10)">
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-left-chevron"></use>
+                                    </svg>
+                                    <span>Z-10</span>
+                                </a>
+                                <a class="btn btn-default" onclick="moveClick(2,-1)">
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-left-chevron"></use>
+                                    </svg>
+                                    <span>Z-1</span>
+                                </a>
+                                <a class="btn btn-default" onclick="moveClick(2,-0.1)">
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-left-chevron"></use>
+                                    </svg>
+                                    <span>Z-0.1</span>
+                                </a>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-justified" role="group">
+                                <a class="btn btn-default" onclick="moveClick(2,0.1)">
+                                    <span>Z+0.1</span>
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-right-chevron"></use>
+                                    </svg>
+                                </a>
+                                <a class="btn btn-default" onclick="moveClick(2,1)">
+                                    <span>Z+1</span>
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-right-chevron"></use>
+                                    </svg>
+                                </a>
+                                <a class="btn btn-default" onclick="moveClick(2,10)">
+                                    <span>Z+10</span>
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-right-chevron"></use>
+                                    </svg>
+                                </a>
+                                <a class="btn btn-default" onclick="moveClick(2,100)">
+                                    <span>Z+100</span>
+
+                                    <svg class="icon-action">
+                                        <use xlink:href="#icon-right-chevron"></use>
+                                    </svg>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- SVG icons -->
+    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+		 xml:space="preserve">
+        <symbol id="icon-log-in" viewBox="0 0 1200 1200">
+            <g>
+                <path d="M550 1100h400q165 0 257.5 -92.5t92.5 -257.5v-400q0 -165 -92.5 -257.5t-257.5 -92.5h-400q-21 0 -35.5 14.5t-14.5 35.5v100q0 21 14.5 35.5t35.5 14.5h450q41 0 70.5 29.5t29.5 70.5v500q0 41 -29.5 70.5t-70.5 29.5h-450q-21 0 -35.5 14.5t-14.5 35.5v100 q0 21 14.5 35.5t35.5 14.5zM338 867l324 -284q16 -14 16 -33t-16 -33l-324 -284q-16 -14 -27 -9t-11 26v150h-250q-21 0 -35.5 14.5t-14.5 35.5v200q0 21 14.5 35.5t35.5 14.5h250v150q0 21 11 26t27 -9z"></path>
+            </g>
+        </symbol >
+        <symbol id="icon-send" viewBox="0 0 1200 1200" >
+            <g>
+                <path d="M1200 103l-483 276l-314 -399v423h-399l1196 796v-1096zM483 424v-230l683 953z" transform="scale(1,-1) translate(0,-1200)"></path>
+            </g>
+        </symbol >
+        <symbol id="icon-left-chevron" viewBox="0 0 1200 1200">
+            <g>
+                <path d="M885 900l-352 -353l352 -353l-197 -198l-552 552l552 550z"></path>
+            </g>
+        </symbol >
+        <symbol id="icon-right-chevron" viewBox="0 0 1200 1200">
+            <g>
+                <path d="M1064 547l-551 -551l-198 198l353 353l-353 353l198 198z"></path>
+            </g>
+        </symbol >
+        <symbol id="icon-upload" viewBox="0 0 1200 1200">
+            <g>
+                <path d="M502 1089q110 0 201 -59.5t135 -156.5q43 15 89 15q121 0 206 -86.5t86 -206.5q0 -99 -60 -181t-150 -110l-378 360q-13 16 -31.5 16t-31.5 -16l-381 -365h-9q-79 0 -135.5 57.5t-56.5 136.5q0 69 43 122.5t108 67.5q-2 19 -2 38q0 100 49 184.5t133.5 134t184.5 49.5z M632 467l223 -228q13 -16 8 -27.5t-26 -11.5h-137v-275q0 -10 -7.5 -17.5t-17.5 -7.5h-150q-10 0 -17.5 7.5t-7.5 17.5v275h-137q-21 0 -26 11.5t8 27.5q199 204 223 228q19 19 31.5 19t32.5 -19z"
+                 transform="scale(1,-1) translate(0,-1100)"></path>
+            </g>
+        </symbol >
+    </svg>
+
+    <!-- Modal dialogs -->
+    <input type="file" id="input_file_upload" class="hidden" multiple>
+    <div class="modal fade" id="modal_upload" data-backdrop="static">
+        <div class="modal-dialog modal-md">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close hidden" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title"><!-- see JS --></h4>
+                </div>
+                <div class="modal-body">
+                    <p>Please wait while the following files are being uploaded:</p>
+                    <table id="table_upload_files">
+                        <thead>
+                            <tr>
+                                <th>Filename</th>
+                                <th>Size</th>
+                                <th>Progress</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- see JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" id="btn_cancel_upload"><span class="glyphicon glyphicon-remove"></span> Cancel Upload(s)</button>
+                    <button type="button" class="btn btn-success hidden" data-dismiss="modal"><span class="glyphicon glyphicon-ok"></span> Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Placed at the end so pages load faster -->
+    <script src="main.js"></script>
+</body>
+</html>

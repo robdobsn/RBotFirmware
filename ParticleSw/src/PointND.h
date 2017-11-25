@@ -153,6 +153,20 @@ public:
     {
         Log.trace("%s X %0.2f Y %0.2f Z %0.2f", prefixStr, _pt[0], _pt[1], _pt[2]);
     }
+    String toJSON()
+    {
+        String jsonStr;
+        if (MAX_AXES >= 2)
+        {
+            jsonStr = "\"X\":" + String::format("%0.5f", _pt[0]) +
+                ",\"Y\":" + String::format("%0.5f", _pt[1]);
+        }
+        if (MAX_AXES >= 3)
+        {
+            jsonStr += ",\"Z\":" + String::format("%0.5f", _pt[2]);
+        }
+        return "{" + jsonStr + "}";
+    }
 };
 
 class PointNDValid
@@ -167,6 +181,11 @@ public:
             _valid[i] = false;
     }
     PointNDValid(const PointNDValid& valid)
+    {
+        for (int i = 0; i < MAX_AXES; i++)
+            _valid[i] = valid._valid[i];
+    }
+    void operator=(const PointNDValid& valid)
     {
         for (int i = 0; i < MAX_AXES; i++)
             _valid[i] = valid._valid[i];

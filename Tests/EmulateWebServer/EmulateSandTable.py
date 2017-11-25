@@ -24,7 +24,7 @@ stSettings = {
 
 @route('/', branch=False)
 def static(request):
-    return File("./res")
+    return File("../../WebUI/SandTableUI")
 
 @route('/getsettings', branch=False)
 def getsettings(request):
@@ -39,7 +39,7 @@ def postsettings(request):
     return succeed(None)
 
 @route('/exec/<string:argToExec>', branch=False)
-def exec(request, argToExec):
+def execute(request, argToExec):
     print("Execute ", argToExec)
     return succeed(None)
 

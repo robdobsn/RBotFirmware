@@ -128,6 +128,14 @@ public:
         _pRobot->moveTo(args);
     }
 
+    // Get status
+    void getCurStatus(RobotCommandArgs& args)
+    {
+        if (!_pRobot)
+            return;
+        _pRobot->getCurStatus(args);        
+    }
+
     // Home
     void home(RobotCommandArgs& args)
     {

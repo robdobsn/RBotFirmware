@@ -524,6 +524,16 @@ public:
         _motionHelper.moveTo(args);
     }
 
+    void setMotionParams(RobotCommandArgs& args)
+    {
+        _motionHelper.setMotionParams(args);
+    }
+
+    void getCurStatus(RobotCommandArgs& args)
+    {
+        _motionHelper.getCurStatus(args);
+    }
+
     void homingSetNewState(HOMING_STATE newState)
     {
         // Debug

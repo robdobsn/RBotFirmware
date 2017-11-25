@@ -56,6 +56,8 @@ private:
     MotionPipeline _motionPipeline;
     // Block distance
     double _blockDistanceMM;
+    // Relative motion
+    bool _moveRelative;
 
     // Debug
     unsigned long _debugLastPosDispMs;
@@ -369,6 +371,7 @@ public:
         _correctStepOverflowFn = NULL;
         _motorEnLastMillis = 0;
         _motorEnLastUnixTime = 0;
+        _moveRelative = false;
         configMotionPipeline();
 
         // // TESTCODE
@@ -582,6 +585,9 @@ public:
     {
         Log.trace("MotionHelper moveTo x %0.2f y %0.2f", args.pt._pt[0], args.pt._pt[1]);
 
+        // Handle any motion parameters (such as relative movement, feedrate, etc)
+        setMotionParams(args);
+
         // Get the starting position - this is either the destination of the
         // last block in the pipeline or the current target location of the
         // robot (whether currently moving or idle)
@@ -607,14 +613,22 @@ public:
                     startPos._pt[0], startPos._pt[1]);
         }
 
-        // Fill in the destPos for axes for which values not specified
-        // and don't use those values for computing distance to travel
+        // Handle reltative motion and fill in the destPos for axes for
+        // which values not specified
+        // Don't use servo values for computing distance to travel
         PointND destPos = args.pt;
         bool includeDist[MAX_AXES];
         for (int i = 0; i < MAX_AXES; i++)
         {
             if (!args.valid.isValid(i))
+            {
                 destPos.setVal(i, startPos.getVal(i));
+            }
+            else
+            {
+                if (_moveRelative)
+                    destPos.setVal(i, startPos.getVal(i) + args.pt.getVal(i));
+            }
             includeDist[i] = !_axisParams[i]._isServoAxis;
         }
 
@@ -651,6 +665,26 @@ public:
                 break;
         }
 
+    }
+
+    void setMotionParams(RobotCommandArgs& args)
+    {
+        // Check for relative movement specified and set accordingly
+        if (args.moveRelative != RobotMoveTypeArg_None)
+            _moveRelative = (args.moveRelative == RobotMoveTypeArg_Relative);
+    }
+
+    void getCurStatus(RobotCommandArgs& args)
+    {
+        // Get current position
+        PointND axisPosns;
+        for (int i = 0; i < MAX_AXES; i++)
+            axisPosns._pt[i] = _axisParams[i]._stepsFromHome;
+        _actuatorToPtFn(axisPosns, args.pt, _axisParams, _numRobotAxes);
+        PointNDValid validity(true, true, true);
+        args.valid = validity;
+        // Absolute/Relative movement
+        args.moveRelative = _moveRelative ? RobotMoveTypeArg_Relative : RobotMoveTypeArg_Absolute;
     }
 
     void service(bool processPipeline)

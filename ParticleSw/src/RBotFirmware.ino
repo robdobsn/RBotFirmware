@@ -53,8 +53,8 @@ ParticleCloud* pParticleCloud = NULL;
 
 // Time to wait before making a pending write to EEPROM - which takes up-to several seconds and
 // blocks motion and web activity
-static const unsigned long ROBOT_IDLE_BEFORE_WRITE_EEPROM_SECS = 0;
-static const unsigned long WEB_IDLE_BEFORE_WRITE_EEPROM_SECS = 0;
+static const unsigned long ROBOT_IDLE_BEFORE_WRITE_EEPROM_SECS = 5;
+static const unsigned long WEB_IDLE_BEFORE_WRITE_EEPROM_SECS = 5;
 #define WRITE_TO_EEPROM_ENABLED 1
 
 // Note that the value here for maxLen must be bigger than the value returned for restAPI_GetSettings()
@@ -189,6 +189,14 @@ void restAPI_Sequence(RestAPIEndpointMsg& apiMsg, String& retStr)
     retStr = "{\"ok\"}";
 }
 
+// Get machine status
+void restAPI_Status(RestAPIEndpointMsg& apiMsg, String& retStr)
+{
+    RobotCommandArgs cmdArgs;
+    _robotController.getStatus(cmdArgs);
+    retStr = cmdArgs.toJSON();
+}
+
 // Exec via particle function
 char* particleAPI_Exec(char* cmdStr)
 {
@@ -221,6 +229,7 @@ void setup()
     restAPIEndpoints.addEndpoint("exec", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Exec, "");
     restAPIEndpoints.addEndpoint("pattern", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Pattern, "");
     restAPIEndpoints.addEndpoint("sequence", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Sequence, "");
+    restAPIEndpoints.addEndpoint("status", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Status, "");
 
     // Construct web server
     Log.info("Main: Constructing Web Server");
@@ -404,7 +413,7 @@ void loop()
     if (pParticleCloud)
         pParticleCloud->Service();
 
-    // Service the eprom write
+    // Service the EEPROM write
     configEEPROM.service();
 
     // Check if eeprom contents need to be written - which is a time consuming process
