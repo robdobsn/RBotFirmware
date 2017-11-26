@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "ConfigManager.h"
+#include "RdJson.h"
 
 class AxisParams
 {
@@ -70,16 +70,16 @@ public:
     void setFromJSON(const char* axisJSON)
     {
         // Stepper motor
-        _maxSpeed = ConfigManager::getDouble("maxSpeed", AxisParams::maxSpeed_default, axisJSON);
-        _acceleration = ConfigManager::getDouble("acceleration", AxisParams::acceleration_default, axisJSON);
-        _minNsBetweenSteps = ConfigManager::getDouble("minNsBetweenSteps", AxisParams::minNsBetweenSteps_default, axisJSON);
-        _stepsPerRotation = ConfigManager::getDouble("stepsPerRotation", AxisParams::stepsPerRotation_default, axisJSON);
-        _unitsPerRotation = ConfigManager::getDouble("unitsPerRotation", AxisParams::unitsPerRotation_default, axisJSON);
-        _minVal = ConfigManager::getDouble("minVal", 0, _minValValid, axisJSON);
-        _maxVal = ConfigManager::getDouble("maxVal", 0, _maxValValid, axisJSON);
-        _isDominantAxis = ConfigManager::getLong("isDominantAxis", 0, axisJSON) != 0;
-        _isServoAxis = ConfigManager::getLong("isServoAxis", 0, axisJSON) != 0;
-        _homeOffsetVal = ConfigManager::getDouble("homeOffsetVal", 0, axisJSON);
-        _homeOffsetSteps = ConfigManager::getLong("homeOffsetSteps", 0, axisJSON);
+        _maxSpeed = RdJson::getDouble("maxSpeed", AxisParams::maxSpeed_default, axisJSON);
+        _acceleration = RdJson::getDouble("acceleration", AxisParams::acceleration_default, axisJSON);
+        _minNsBetweenSteps = RdJson::getDouble("minNsBetweenSteps", AxisParams::minNsBetweenSteps_default, axisJSON);
+        _stepsPerRotation = RdJson::getDouble("stepsPerRotation", AxisParams::stepsPerRotation_default, axisJSON);
+        _unitsPerRotation = RdJson::getDouble("unitsPerRotation", AxisParams::unitsPerRotation_default, axisJSON);
+        _minVal = RdJson::getDouble("minVal", 0, _minValValid, axisJSON);
+        _maxVal = RdJson::getDouble("maxVal", 0, _maxValValid, axisJSON);
+        _isDominantAxis = RdJson::getLong("isDominantAxis", 0, axisJSON) != 0;
+        _isServoAxis = RdJson::getLong("isServoAxis", 0, axisJSON) != 0;
+        _homeOffsetVal = RdJson::getDouble("homeOffsetVal", 0, axisJSON);
+        _homeOffsetSteps = RdJson::getLong("homeOffsetSteps", 0, axisJSON);
     }
 };

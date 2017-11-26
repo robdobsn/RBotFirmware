@@ -72,14 +72,14 @@ private:
     bool configure(const char* robotConfigJSON)
     {
         // Get motor enable info
-        String stepEnablePinName = ConfigManager::getString("stepEnablePin", "-1", robotConfigJSON);
-        _stepEnableActiveLevel = ConfigManager::getLong("stepEnableActiveLevel", 1, robotConfigJSON);
+        String stepEnablePinName = RdJson::getString("stepEnablePin", "-1", robotConfigJSON);
+        _stepEnableActiveLevel = RdJson::getLong("stepEnableActiveLevel", 1, robotConfigJSON);
         _stepEnablePin = ConfigPinMap::getPinFromName(stepEnablePinName.c_str());
-        _stepDisableSecs = ConfigManager::getDouble("stepDisableSecs", stepDisableSecs_default, robotConfigJSON);
-        _xMaxMM = ConfigManager::getDouble("xMaxMM", 0, robotConfigJSON);
-        _yMaxMM = ConfigManager::getDouble("yMaxMM", 0, robotConfigJSON);
+        _stepDisableSecs = RdJson::getDouble("stepDisableSecs", stepDisableSecs_default, robotConfigJSON);
+        _xMaxMM = RdJson::getDouble("xMaxMM", 0, robotConfigJSON);
+        _yMaxMM = RdJson::getDouble("yMaxMM", 0, robotConfigJSON);
         _maxMotionDistanceMM = sqrt(_xMaxMM * _xMaxMM + _yMaxMM * _yMaxMM);
-        _blockDistanceMM = ConfigManager::getDouble("blockDistanceMM", blockDistanceMM_default, robotConfigJSON);
+        _blockDistanceMM = RdJson::getDouble("blockDistanceMM", blockDistanceMM_default, robotConfigJSON);
         Log.info("MotorEnable (pin %d, actLvl %d, disableAfter %0.2fs)", _stepEnablePin, _stepEnableActiveLevel, _stepDisableSecs);
         configMotionPipeline();
 
@@ -96,7 +96,7 @@ private:
 
         // Get params
         String axisIdStr = "axis" + String(axisIdx);
-        String axisJSON = ConfigManager::getString(axisIdStr, "{}", robotConfigJSON);
+        String axisJSON = RdJson::getString(axisIdStr, "{}", robotConfigJSON);
         if (axisJSON.length() == 0 || axisJSON.equals("{}"))
             return false;
 
@@ -113,11 +113,11 @@ private:
 
         // Check the kind of motor to use
         bool isValid = false;
-        String stepPinName = ConfigManager::getString("stepPin", "-1", axisJSON, isValid);
+        String stepPinName = RdJson::getString("stepPin", "-1", axisJSON, isValid);
         if (isValid)
         {
             // Create the stepper motor for the axis
-            String dirnPinName = ConfigManager::getString("dirnPin", "-1", axisJSON);
+            String dirnPinName = RdJson::getString("dirnPin", "-1", axisJSON);
             long stepPin = ConfigPinMap::getPinFromName(stepPinName.c_str());
             long dirnPin = ConfigPinMap::getPinFromName(dirnPinName.c_str());
             Log.info("Axis%d (step pin %ld, dirn pin %ld)", axisIdx, stepPin, dirnPin);
@@ -127,7 +127,7 @@ private:
         else
         {
             // Create a servo motor for the axis
-            String servoPinName = ConfigManager::getString("servoPin", "-1", axisJSON);
+            String servoPinName = RdJson::getString("servoPin", "-1", axisJSON);
             long servoPin = ConfigPinMap::getPinFromName(servoPinName.c_str());
             Log.info("Axis%d (servo pin %ld)", axisIdx, servoPin);
             if ((servoPin != -1))
@@ -144,7 +144,7 @@ private:
         {
             // Get the config for endstop if present
             String endStopIdStr = "endStop" + String(endStopIdx);
-            String endStopJSON = ConfigManager::getString(endStopIdStr, "{}", axisJSON);
+            String endStopJSON = RdJson::getString(endStopIdStr, "{}", axisJSON);
             if (endStopJSON.length() == 0 || endStopJSON.equals("{}"))
                 continue;
 

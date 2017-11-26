@@ -6,6 +6,7 @@
 #include "WorkflowManager.h"
 #include "CommsSerial.h"
 #include "ParticleCloud.h"
+#include "DebugLoopTimer.h"
 
 // Web server
 #include "RdWebServer.h"
@@ -44,9 +45,24 @@ CommandInterpreter _commandInterpreter(&_workflowManager, &_robotController);
 // Serial comms
 CommsSerial _commsSerial(0);
 
+// Note that the value here for maxLen must be bigger than the value returned for restAPI_GetSettings()
+// This is to ensure the web-app doesn't return a string that is too long
+static const int EEPROM_CONFIG_BASE = 0;
+static const int EEPROM_CONFIG_MAXLEN = 2010;
+
 // Configuration
-ConfigEEPROM configEEPROM;
-bool eepromNeedsWriting = false;
+ConfigManager configManager;
+ConfigEEPROM configPersistence(EEPROM_CONFIG_BASE, EEPROM_CONFIG_MAXLEN);
+
+// Debug loop timer and callback function
+void debugLoopInfoCallback(String& infoStr)
+{
+  String ipAddr = WiFi.localIP();
+  infoStr = String::format(" IP %s MEM %d Q %d R %d", ipAddr.c_str(),
+        System.freeMemory(), _workflowManager.numWaiting(),
+        _commandInterpreter.canAcceptCommand());
+}
+DebugLoopTimer debugLoopTimer(10000, debugLoopInfoCallback);
 
 // Particle Cloud
 ParticleCloud* pParticleCloud = NULL;
@@ -55,12 +71,9 @@ ParticleCloud* pParticleCloud = NULL;
 // blocks motion and web activity
 static const unsigned long ROBOT_IDLE_BEFORE_WRITE_EEPROM_SECS = 5;
 static const unsigned long WEB_IDLE_BEFORE_WRITE_EEPROM_SECS = 5;
+static const unsigned long MAX_MS_CONFIG_DIRTY = 10000;
+unsigned long configDirtyStartMs = 0;
 #define WRITE_TO_EEPROM_ENABLED 1
-
-// Note that the value here for maxLen must be bigger than the value returned for restAPI_GetSettings()
-// This is to ensure the web-app doesn't return a string that is too long
-static const char* EEPROM_CONFIG_LOCATION_STR =
-    "{\"base\": 0, \"maxLen\": 2010}";
 
 // Mugbot on PiHat 1.1
 // linear axis 1/8 microstepping,
@@ -128,14 +141,14 @@ void restAPI_PostSettings(RestAPIEndpointMsg& apiMsg, String& retStr)
     Log.trace("RestAPI PostSettings method %d contentLen %d", apiMsg._method, apiMsg._msgContentLen);
     if (apiMsg._pMsgHeader)
         Log.trace("RestAPI PostSettings header len %d", strlen(apiMsg._pMsgHeader));
-    // Store the settings in EEPROM
-    configEEPROM.setConfigData((const char*)apiMsg._pMsgContent);
+    // Store the settings
+    configManager.setConfigData((const char*)apiMsg._pMsgContent);
     // Set flag to indicate EEPROM needs to be written
-    eepromNeedsWriting = true;
+    configPersistence.setDirty();
     // Apply the config data
-    String patternsStr = ConfigManager::getString("/patterns", "{}", configEEPROM.getConfigData());
+    String patternsStr = RdJson::getString("/patterns", "{}", configManager.getConfigData());
     _commandInterpreter.setPatterns(patternsStr);
-    String sequencesStr = ConfigManager::getString("/sequences", "{}", configEEPROM.getConfigData());
+    String sequencesStr = RdJson::getString("/sequences", "{}", configManager.getConfigData());
     _commandInterpreter.setSequences(sequencesStr);
     // Result
     retStr = "{\"ok\"}";
@@ -148,7 +161,7 @@ void restAPI_GetSettings(RestAPIEndpointMsg& apiMsg, String& retStr)
     // Get settings from each sub-element
     const char* patterns = _commandInterpreter.getPatterns();
     const char* sequences = _commandInterpreter.getSequences();
-    String runAtStart = ConfigManager::getString("startup", "", configEEPROM.getConfigData());
+    String runAtStart = RdJson::getString("startup", "", configManager.getConfigData());
     Log.trace("RestAPI GetSettings patterns %s", patterns);
     Log.trace("RestAPI GetSettings sequences %s", sequences);
     Log.trace("RestAPI GetSettings startup %s", runAtStart.c_str());
@@ -157,7 +170,7 @@ void restAPI_GetSettings(RestAPIEndpointMsg& apiMsg, String& retStr)
     retStr += ", \"sequences\":";
     retStr += sequences;
     retStr += ", \"startup\":\"";
-    ConfigManager::escapeString(runAtStart);
+    RdJson::escapeString(runAtStart);
     retStr += runAtStart.c_str();
     retStr += "\"}";
 }
@@ -215,9 +228,9 @@ void setup()
 
     // Initialise the config manager
     delay(5000);
-    configEEPROM.setConfigLocation(EEPROM_CONFIG_LOCATION_STR);
-    const char* pStr = configEEPROM.getConfigData();
-    Utils::logLongStr("Main: ConfigStr", pStr, true);
+    const char* pConfig = configPersistence.read().c_str();
+    Utils::logLongStr("Main: ConfigStr", pConfig, true);
+    configManager.setConfigData(pConfig);
 
     #ifdef RUN_TEST_CONFIG
     TestConfigManager::runTests();
@@ -257,14 +270,13 @@ void setup()
 
     // Configure the command interpreter
     bool configLoaded = false;
-    const char* pConfig = configEEPROM.getConfigData();
     if (*pConfig == '{' || *pConfig == '[')
     {
         Log.info("Main setting config");
-        String patternsStr = ConfigManager::getString("/patterns", "{}", configEEPROM.getConfigData());
+        String patternsStr = RdJson::getString("/patterns", "{}", configManager.getConfigData());
         _commandInterpreter.setPatterns(patternsStr);
         Log.info("Main patterns %s", patternsStr.c_str());
-        String sequencesStr = ConfigManager::getString("/sequences", "{}", configEEPROM.getConfigData());
+        String sequencesStr = RdJson::getString("/sequences", "{}", configManager.getConfigData());
         _commandInterpreter.setSequences(sequencesStr);
         Log.info("Main sequences %s", sequencesStr.c_str());
         configLoaded = true;
@@ -277,17 +289,26 @@ void setup()
     }
 
     // Check for cmdsAtStart in the robot config
-    String cmdsAtStart = ConfigManager::getString("cmdsAtStart", "", ROBOT_CONFIG_STR);
+    String cmdsAtStart = RdJson::getString("cmdsAtStart", "", ROBOT_CONFIG_STR);
     Log.info("Main cmdsAtStart <%s>", cmdsAtStart.c_str());
     if (cmdsAtStart.length() > 0)
         _commandInterpreter.process(cmdsAtStart);
 
     // Check for startup commands in the EEPROM config
-    String runAtStart = ConfigManager::getString("startup", "", configEEPROM.getConfigData());
-    ConfigManager::unescapeString(runAtStart);
+    String runAtStart = RdJson::getString("startup", "", configManager.getConfigData());
+    RdJson::unescapeString(runAtStart);
     Log.info("Main startup commands <%s>", runAtStart.c_str());
     if (runAtStart.length() > 0)
         _commandInterpreter.process(runAtStart);
+
+    // Add debug blocks
+    debugLoopTimer.blockAdd(0, "Serial");
+    debugLoopTimer.blockAdd(1, "Cmd");
+    debugLoopTimer.blockAdd(2, "Web");
+    debugLoopTimer.blockAdd(3, "Robot");
+    debugLoopTimer.blockAdd(4, "Cloud");
+    debugLoopTimer.blockAdd(5, "EEPROM");
+    debugLoopTimer.blockAdd(6, "Dirty");
 }
 
 long initialMemory = System.freeMemory();
@@ -328,58 +349,6 @@ unsigned long particleAPI_ReportHealthHash()
     return hashVal;
 }
 
-// Timing of the loop - used to determine if blocking/slow processes are delaying the loop iteration
-const int loopTimeAvgWinLen = 50;
-int loopTimeAvgWin[loopTimeAvgWinLen];
-int loopTimeAvgWinHead = 0;
-int loopTimeAvgWinCount = 0;
-unsigned long loopWindowSumMicros = 0;
-unsigned long lastLoopStartMicros = 0;
-unsigned long lastDebugLoopMillis = 0;
-void debugLoopTimer()
-{
-    // Monitor how long it takes to go around loop
-    if (lastLoopStartMicros != 0)
-    {
-        unsigned long loopTime = micros() - lastLoopStartMicros;
-        if (loopTime > 0)
-        {
-            if (loopTimeAvgWinCount == loopTimeAvgWinLen)
-            {
-                int oldVal = loopTimeAvgWin[loopTimeAvgWinHead];
-                loopWindowSumMicros -= oldVal;
-            }
-            loopTimeAvgWin[loopTimeAvgWinHead++] = loopTime;
-            if (loopTimeAvgWinHead >= loopTimeAvgWinLen)
-            loopTimeAvgWinHead = 0;
-            if (loopTimeAvgWinCount < loopTimeAvgWinLen)
-            loopTimeAvgWinCount++;
-            loopWindowSumMicros += loopTime;
-        }
-    }
-    lastLoopStartMicros = micros();
-    if (millis() > lastDebugLoopMillis + 10000)
-    {
-        if (lowestMemory > System.freeMemory())
-            lowestMemory = System.freeMemory();
-        if (loopTimeAvgWinLen > 0)
-        {
-            Log.info("Avg loop time %0.3fus (val %lu) initMem %d mem %d lowMem %d wkFlowItems %d canAccept %d IP %s",
-            1.0 * loopWindowSumMicros / loopTimeAvgWinLen,
-            lastLoopStartMicros, initialMemory,
-            System.freeMemory(), lowestMemory,
-            _workflowManager.numWaiting(),
-            _commandInterpreter.canAcceptCommand(),
-            localIPStr());
-        }
-        else
-        {
-            Log.info("No avg loop time yet");
-        }
-        lastDebugLoopMillis = millis();
-    }
-}
-
 void loop()
 {
 
@@ -388,46 +357,75 @@ void loop()
     __testWorkflowGCode.testLoop(_workflowManager, _robotController);
     #endif
 
+    // Debug loop Timing
+    debugLoopTimer.Service();
+
     // See if in listening mode - if so don't steal characters
     if (!WiFi.listening())
     {
-        debugLoopTimer();
-
         // Service CommsSerial
+        debugLoopTimer.blockStart(0);
         _commsSerial.service(_commandInterpreter);
+        debugLoopTimer.blockEnd(0);
 
         // Service the command interpreter (which pumps the workflow queue)
+        debugLoopTimer.blockStart(1);
         _commandInterpreter.service();
+        debugLoopTimer.blockEnd(1);
 
         // Service the web server
         if (pWebServer)
         {
+            debugLoopTimer.blockStart(2);
             pWebServer->service();
+            debugLoopTimer.blockEnd(2);
         }
         // Service the robot controller
+        debugLoopTimer.blockStart(3);
         _robotController.service();
+        debugLoopTimer.blockEnd(3);
 
     }
 
     // Service the particle cloud
+    debugLoopTimer.blockStart(4);
     if (pParticleCloud)
         pParticleCloud->Service();
+    debugLoopTimer.blockEnd(4);
 
     // Service the EEPROM write
-    configEEPROM.service();
+    debugLoopTimer.blockStart(5);
+    configPersistence.service();
+    debugLoopTimer.blockEnd(5);
 
     // Check if eeprom contents need to be written - which is a time consuming process
     #ifdef WRITE_TO_EEPROM_ENABLED
-    if (eepromNeedsWriting)
+    // Handle writing of EEPROM
+    debugLoopTimer.blockStart(6);
+    if (configPersistence.isDirty())
     {
-        // Check for robot idle, web server idle and no commands pending
+        // This code attempts to ensure that the config never goes very long without being written
+        bool configMustWrite = false;
+        if (configDirtyStartMs == 0)
+        {
+            configDirtyStartMs = millis();
+        }
+        else
+        {
+            if (Utils::isTimeout(millis(), configDirtyStartMs, MAX_MS_CONFIG_DIRTY))
+            {
+                Log.info("RBotFirmware: ConfigMustWrite");
+                configMustWrite = true;
+                configDirtyStartMs = 0;
+            }
+        }
+        // Check for web server idle and attempt to write when it is idle
         bool robotActive = _robotController.wasActiveInLastNSeconds(ROBOT_IDLE_BEFORE_WRITE_EEPROM_SECS);
         bool webActive = ((pWebServer) && (pWebServer->wasActiveInLastNSeconds(WEB_IDLE_BEFORE_WRITE_EEPROM_SECS)));
-        if ((!robotActive && !webActive) || (ROBOT_IDLE_BEFORE_WRITE_EEPROM_SECS == 0 && WEB_IDLE_BEFORE_WRITE_EEPROM_SECS == 0))
-        {
-            configEEPROM.writeToEEPROM();
-            eepromNeedsWriting = false;
-        }
+        if ((configMustWrite || (!robotActive && !webActive) || (ROBOT_IDLE_BEFORE_WRITE_EEPROM_SECS == 0 && WEB_IDLE_BEFORE_WRITE_EEPROM_SECS == 0)))
+            configPersistence.write(configManager.getConfigData());
+
     }
+    debugLoopTimer.blockEnd(6);
     #endif
 }

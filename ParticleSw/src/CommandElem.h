@@ -3,8 +3,7 @@
 
 #pragma once
 
-#include "ConfigManager.h"
-#include "CommandElem.h"
+#include "RdJson.h"
 #include "RobotController.h"
 
 class CommandElem

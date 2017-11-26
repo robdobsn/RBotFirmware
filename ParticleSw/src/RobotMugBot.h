@@ -122,7 +122,7 @@ public:
         _motionHelper.setAxisParams(robotConfigStr);
 
         // Get params specific to GeistBot
-        _maxHomingSecs = ConfigManager::getLong("maxHomingSecs", maxHomingSecs_default, robotConfigStr);
+        _maxHomingSecs = RdJson::getLong("maxHomingSecs", maxHomingSecs_default, robotConfigStr);
 
         // Info
         Log.info("%s maxHome %lds", _robotTypeName.c_str(), _maxHomingSecs);

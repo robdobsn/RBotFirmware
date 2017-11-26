@@ -490,7 +490,7 @@ public:
         _motionHelper.setAxisParams(robotConfigStr);
 
         // Get params specific to this robot
-        _maxHomingSecs = ConfigManager::getLong("maxHomingSecs", maxHomingSecs_default, robotConfigStr);
+        _maxHomingSecs = RdJson::getLong("maxHomingSecs", maxHomingSecs_default, robotConfigStr);
 
         // Info
         Log.info("%s maxHome %lds",

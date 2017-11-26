@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "ConfigManager.h"
+#include "RdJson.h"
 #include "ConfigPinMap.h"
 
 class EndStop
@@ -17,9 +17,9 @@ public:
     EndStop(int axisIdx, int endStopIdx, const char* endStopJSON)
     {
         // Get end stop
-        String pinName = ConfigManager::getString("sensePin", "-1", endStopJSON);
-        long activeLevel = ConfigManager::getLong("activeLevel", 1, endStopJSON);
-        String inputTypeStr = ConfigManager::getString("inputType", "", endStopJSON);
+        String pinName = RdJson::getString("sensePin", "-1", endStopJSON);
+        long activeLevel = RdJson::getLong("activeLevel", 1, endStopJSON);
+        String inputTypeStr = RdJson::getString("inputType", "", endStopJSON);
         long pinId = ConfigPinMap::getPinFromName(pinName.c_str());
         int inputType = ConfigPinMap::getInputType(inputTypeStr.c_str());
         Log.info("Axis%dEndStop%d (sense %ld, level %ld, type %d)", axisIdx, endStopIdx, pinId,

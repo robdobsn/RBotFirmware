@@ -199,7 +199,7 @@ public:
     {
         // Find the pattern matching the command
         bool isValid = false;
-        String patternJson = ConfigManager::getString(cmdStr, "{}", _jsonConfigStr, isValid);
+        String patternJson = RdJson::getString(cmdStr, "{}", _jsonConfigStr, isValid);
         Log.trace("PatternEval::procCmd cmdStr %s seqStr %s", cmdStr, patternJson.c_str());
         if (isValid)
         {
@@ -208,8 +208,8 @@ public:
 
             // Get pattern details
             _curPattern = cmdStr;
-            String setupExprs = ConfigManager::getString("setup", "", patternJson);
-            String loopExprs = ConfigManager::getString("loop", "", patternJson);
+            String setupExprs = RdJson::getString("setup", "", patternJson);
+            String loopExprs = RdJson::getString("loop", "", patternJson);
             Log.trace("PatternEval patternName %s setup %s",
                             _curPattern.c_str(), setupExprs.c_str());
             Log.trace("PatternEval patternName %s loop %s",

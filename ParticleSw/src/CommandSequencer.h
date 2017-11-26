@@ -29,12 +29,12 @@ public:
     {
         // Find the command info
         bool isValid = false;
-        String seqStr = ConfigManager::getString(cmdStr, "{}", _jsonConfigStr, isValid);
+        String seqStr = RdJson::getString(cmdStr, "{}", _jsonConfigStr, isValid);
         // Log.trace("CommandSequencer cmdStr %s seqStr %s", cmdStr, seqStr.c_str());
         if (isValid)
         {
             _numCmdsToProcess = 0;
-            String cmdList = ConfigManager::getString("commands", "", seqStr.c_str(), isValid);
+            String cmdList = RdJson::getString("commands", "", seqStr.c_str(), isValid);
             Log.trace("CommandSequencer cmdStr %s isValid %d seqStr %s cmdList %s", cmdStr, isValid, seqStr.c_str(), cmdList.c_str());
             if (isValid)
             {

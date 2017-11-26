@@ -211,10 +211,10 @@ public:
         _motionHelper.setAxisParams(robotConfigStr);
 
         // Get params specific to this robot
-        _maxHomingSecs = ConfigManager::getLong("maxHomingSecs", maxHomingSecs_default, robotConfigStr);
-        _homingLinOffsetDegs = ConfigManager::getDouble("homingLinOffsetDegs", homingLinOffsetDegs_default, robotConfigStr);
-        _homingCentreOffsetMM = ConfigManager::getDouble("homingCentreOffsetMM", homingCentreOffsetMM_default, robotConfigStr);
-        _homingRotCentreDegs = ConfigManager::getDouble("homingRotCentreDegs", homingRotCentreDegs_default, robotConfigStr);
+        _maxHomingSecs = RdJson::getLong("maxHomingSecs", maxHomingSecs_default, robotConfigStr);
+        _homingLinOffsetDegs = RdJson::getDouble("homingLinOffsetDegs", homingLinOffsetDegs_default, robotConfigStr);
+        _homingCentreOffsetMM = RdJson::getDouble("homingCentreOffsetMM", homingCentreOffsetMM_default, robotConfigStr);
+        _homingRotCentreDegs = RdJson::getDouble("homingRotCentreDegs", homingRotCentreDegs_default, robotConfigStr);
 
         // Info
         Log.info("%s maxHome %lds linOff %0.3fd ctrOff %0.3fmm rotCtr %0.3fd",

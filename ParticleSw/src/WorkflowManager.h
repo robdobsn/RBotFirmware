@@ -24,7 +24,7 @@ public:
     void init(const char* configStr)
     {
         Log.info("Constructing WorkflowManager from %s", configStr);
-        String cmdQueueCfg = ConfigManager::getString("CommandQueue", "NONE", configStr);
+        String cmdQueueCfg = RdJson::getString("CommandQueue", "NONE", configStr);
 
         _cmdQueue.init(cmdQueueCfg);
     }

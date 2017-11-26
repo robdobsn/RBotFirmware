@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "ConfigManager.h"
+#include "RdJson.h"
 #include "RobotCommandArgs.h"
 
 // Robot types
@@ -35,7 +35,7 @@ public:
         _pRobot = NULL;
 
         // Get the robot type from the config
-        String robotType = ConfigManager::getString("robotType", "NONE", configStr);
+        String robotType = RdJson::getString("robotType", "NONE", configStr);
         if (robotType.equalsIgnoreCase("MugBot"))
         {
             Log.info("Constructing %s", robotType.c_str());

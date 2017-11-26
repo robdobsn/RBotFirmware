@@ -29,7 +29,7 @@ public:
     void init(const char* configStr)
     {
 //        Log.info("Configuring CommandQueue from %s", configStr);
-        _cmdQueueMaxLen = (int) ConfigManager::getLong("cmdQueueMaxLen",
+        _cmdQueueMaxLen = (int) RdJson::getLong("cmdQueueMaxLen",
                                             _cmdQueueMaxLenDefault, configStr);
 //        Log.info("CmdQueueMaxLen %d", _cmdQueueMaxLen);
     }

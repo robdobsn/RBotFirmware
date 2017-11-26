@@ -1,11 +1,9 @@
 // RBotFirmware
-// Rob Dobson 2016
+// Rob Dobson 2016-2017
 
 #pragma once
 
-#include "ConfigManager.h"
-
-class ConfigEEPROM : public ConfigManager
+class ConfigEEPROM
 {
 private:
     // Base location to store dataStr in EEPROM
@@ -20,64 +18,44 @@ private:
     int _numBytesToWrite;
     String _stringToWrite;
 
+    // Dirty flag - when set indicates a write is needed
+    bool _dirtyFlag;
+
 public:
-    ConfigEEPROM()
+    ConfigEEPROM(int configBase, int configMaxLen)
     {
-        _eepromBaseLocation = 0;
-        _configMaxDataLen = 1000;
+        _eepromBaseLocation = configBase;
+        _configMaxDataLen = configMaxLen;
         _isWriting = false;
         _curWriteOffset = 0;
         _numBytesToWrite = 0;
         _stringToWrite = "";
+        _dirtyFlag = false;
     }
 
     ~ConfigEEPROM()
     {
     }
 
-    // Initialise
-    bool setConfigLocation(const char* configStr)
+    bool isDirty()
     {
-        // configStr defines the location of config
-        bool isValid = false;
-        long configPos = ConfigManager::getLong("base", 0, isValid, configStr);
-        if (!isValid)
-        {
-            Log.error("configLocation base not found");
-    		return false;
-        }
+        return _dirtyFlag;
+    }
 
-        long configMaxLen = ConfigManager::getLong("maxLen", 500, isValid, configStr);
-        if (!isValid)
-        {
-            Log.error("configLocation maxLen not found");
-    		return false;
-        }
-
-        // Config base in EEPROM
-        _eepromBaseLocation = configPos;
-
-        // Config max len
-        _configMaxDataLen = configMaxLen;
-
-        // Debug
-        Log.info("configEEPROM base %d, maxLen %d", _eepromBaseLocation, _configMaxDataLen);
-
-        // Read the config JSON str from EEPROM
-        readFromEEPROM();
-
-        return true;
+    void setDirty()
+    {
+        _dirtyFlag = true;
+        Log.info("setDirty");
     }
 
     // Read a configuration string from EEPROM
-    void readFromEEPROM()
+    String read()
     {
         // Check EEPROM has been initialised - if not just start with a null string
         if (EEPROM.read(_eepromBaseLocation) == 0xff)
         {
-            setConfigData("");
-            Log.info("EEPROM uninitialised, _pDataStrJSON empty");
-            return;
+            Log.info("ConfigEEPROM::read uninitialised");
+            return "";
         }
 
         // Find out how long the string is - don't allow > _configMaxDataLen
@@ -93,51 +71,39 @@ public:
         }
 
         // Get string from EEPROM
-        char* pData = new char[dataStrLen + 1];
+        String dataStr;
+        dataStr.reserve(dataStrLen);
 
         // Fill string from EEPROM location
         for (int chIdx = 0; chIdx < dataStrLen; chIdx++)
         {
             char ch = EEPROM.read(_eepromBaseLocation + chIdx);
-            pData[chIdx] = ch;
+            dataStr.concat(ch);
         }
-        pData[dataStrLen + 1] = 0;
-        Log.info("Read config string from EEPROM length: %d", strlen(pData));
-
-        // Store in config string
-        setConfigData(pData);
-
-        // Tidy up
-        delete [] pData;
+        Log.info("ConfigEEPROM::read %d chars", dataStrLen);
+        _dirtyFlag = false;
+        return dataStr;
     }
 
 
     // Write configuration string to EEPROM
-    bool writeToEEPROM()
+    bool write(const char* pDataStr)
     {
-        const char* pConfigData = getConfigData();
+        Log.info("ConfigEEPROM:write writing %d bytes", strlen(pDataStr));
 
-        Log.info("Start writing config str to EEPROM len %d ...", strlen(pConfigData));
-
-        // Remember data to write (in case it changes in the background)
-        _stringToWrite = pConfigData;
+        // Copy data to write (in case it changes in the background)
+        _stringToWrite = pDataStr;
         _curWriteOffset = 0;
+        _dirtyFlag = false;
 
         // Get length of string
-        int dataStrLen = 0;
-        if (pConfigData != NULL)
-        {
-            dataStrLen = strlen(pConfigData);
-        }
+        int dataStrLen = _stringToWrite.length();
         if (dataStrLen >= _configMaxDataLen)
-        {
             dataStrLen = _configMaxDataLen - 1;
-        }
 
-        // Length of string
+        // Record details to write
         _numBytesToWrite = dataStrLen;
         _isWriting = true;
-
         return true;
     }
 
@@ -165,7 +131,7 @@ public:
             // Clean up
             _isWriting = false;
             _stringToWrite = "";
-            Log.info("Writing config to EEPROM Complete");
+            Log.info("ConfigEEPROM:service Write Complete");
         }
     }
 };
