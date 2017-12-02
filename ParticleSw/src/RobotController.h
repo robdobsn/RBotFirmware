@@ -9,6 +9,7 @@
 // Robot types
 #include "RobotMugBot.h"
 #include "RobotGeistBot.h"
+#include "RobotHockeyBot.h"
 #include "RobotSandTableScara.h"
 
 class RobotController
@@ -56,6 +57,14 @@ public:
         {
             Log.info("Constructing %s", robotType.c_str());
             _pRobot = new RobotSandTableScara(robotType.c_str());
+            if (!_pRobot)
+                return false;
+            _pRobot->init(configStr);
+        }
+        else if (robotType.equalsIgnoreCase("HockeyBot"))
+        {
+            Log.info("Constructing %s", robotType.c_str());
+            _pRobot = new RobotHockeyBot(robotType.c_str());
             if (!_pRobot)
                 return false;
             _pRobot->init(configStr);

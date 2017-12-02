@@ -31,7 +31,7 @@ SYSTEM_THREAD(ENABLED);
 
 // Application info
 static const char* APPLICATION_NAME = "RBotFirmware";
-SerialLogHandler logHandler(LOG_LEVEL_INFO);
+SerialLogHandler logHandler(LOG_LEVEL_TRACE);
 
 // Robot controller
 RobotController _robotController;
@@ -104,7 +104,7 @@ static const char* ROBOT_CONFIG_STR_GEISTBOT =
     "}";
 
 static const char* ROBOT_CONFIG_STR_SANDTABLESCARA =
-    "{\"robotType\": \"SandTableScara\", \"xMaxMM\":200, \"yMaxMM\":200, "
+    "{\"robotType\": \"SandTableScara\", \"xMaxMM\":190, \"yMaxMM\":190, "
     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
     " \"blockDistanceMM\":1.0, \"homingAxis1OffsetDegs\":20.0,"
     " \"maxHomingSecs\":120, \"cmdsAtStart\":\"G28\","
@@ -116,6 +116,16 @@ static const char* ROBOT_CONFIG_STR_SANDTABLESCARA =
     " \"minNsBetweenSteps\":1000000,"
     " \"stepsPerRotation\":9600, \"unitsPerRotation\":628.318, \"homeOffsetSteps\": 0,"
     " \"endStop0\": { \"sensePin\": \"A7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
+    "}";
+
+static const char* ROBOT_CONFIG_STR_AIRHOCKEY =
+    "{\"robotType\": \"HockeyBot\", \"xMaxMM\":350, \"yMaxMM\":400, "
+    " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
+    " \"cmdsAtStart\":\"\", "
+    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":5000.0, \"acceleration\":5000.0,"
+    " \"stepsPerRotation\":3200, \"unitsPerRotation\":62, \"minNsBetweenSteps\":1000},"
+    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":5000.0, \"acceleration\":5000.0,"
+    " \"stepsPerRotation\":3200, \"unitsPerRotation\":62, \"minNsBetweenSteps\":1000}"
     "}";
 
 static const char* ROBOT_DEFAULT_SEQUENCE_COMMANDS =
@@ -130,7 +140,7 @@ static const char* ROBOT_DEFAULT_PATTERN_COMMANDS =
     "  }"
     "}";*/
 
-static const char* ROBOT_CONFIG_STR = ROBOT_CONFIG_STR_SANDTABLESCARA;
+static const char* ROBOT_CONFIG_STR = ROBOT_CONFIG_STR_AIRHOCKEY;
 
 static const char* WORKFLOW_CONFIG_STR =
     "{\"CommandQueue\": { \"cmdQueueMaxLen\":50 } }";

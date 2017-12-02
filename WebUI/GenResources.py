@@ -5,6 +5,13 @@ import shutil
 import subprocess
 import argparse
 
+# Title of program
+GEN_RESOURCES_TITLE = "RdWebServer"
+
+# UI Variants
+defaultUI = "SandTable"
+GEN_HELP_TEXT = '--UI [CNC | SandTable]'
+
 # Path to the src folder which is to contain the GenResources.h file
 GEN_RESOURCES_H_FOLDER = "../ParticleSW/src"
 
@@ -14,21 +21,27 @@ MINIFY_HTML = False
 
 log.basicConfig(level=log.DEBUG)
 
-# f = open("res/favicon.ico")
-# for s in f:
-#     for c in s:
-#         print("{0}   {0:02x}".format(ord(c)))
-# f.close()
-#
-# # Create output file
-# with outFile = open("GenResources.h", create)
-#
-# writeLine(outFile, "// Auto-Generated file containing res folder binary contents")
-# writeLine(outFile, "#include \"RdWebServerResources.h\"")
-# writeLine(outFile, "")
-#
-# for each file in "./res":
-#
+def getMimeTypeFromFileExt(fileExt):
+    mimeType = "text/plain"
+    if fileInf["fileExt"] == ".ico":
+        mimeType = "image/ico"
+    elif fileInf["fileExt"] == ".gif":
+        mimeType = "image/gif"
+    elif fileInf["fileExt"] == ".png":
+        mimeType = "image/png"
+    elif fileInf["fileExt"] == ".jpg" or fileInf["fileExt"] == ".jpeg":
+        mimeType = "image/jpg"
+    elif fileInf["fileExt"] == ".bmp":
+        mimeType = "image/bmp"
+    elif fileInf["fileExt"] == ".html":
+        mimeType = "text/html"
+    elif fileInf["fileExt"] == ".css":
+        mimeType = "text/css"
+    elif fileInf["fileExt"] == ".js":
+        mimeType = "text/javascript"
+    elif fileInf["fileExt"] == ".xml":
+        mimeType = "application/xml"
+    return mimeType
 
 def writeFileContentsAsHex(filePath, outFile):
     filename, file_extension = os.path.splitext(filePath)
@@ -73,8 +86,8 @@ def writeFileContentsAsHex(filePath, outFile):
         os.remove(inFileName)
 
 # Get command line argument to determine which UI to generate
-parser = argparse.ArgumentParser(description='Generate RdWebServer UI')
-parser.add_argument('--UI', type=str, default="SandTable", help='CNC or SandTable')
+parser = argparse.ArgumentParser(description='Generate ' + GEN_RESOURCES_TITLE + 'UI')
+parser.add_argument('--UI', type=str, default=DEFAULT_UI, help=GEN_HELP_TEXT)
 args = parser.parse_args()
 uiFolder = "./" + args.UI + "UI"
 print("Generating UI from " + uiFolder)
@@ -117,25 +130,7 @@ with open(os.path.join(GEN_RESOURCES_H_FOLDER, "GenResources.h"), "w") as outFil
     outFile.write("// Resource descriptions\n")
     outFile.write("static RdWebServerResourceDescr genResources[] = {\n")
     for fileInf in resFileInfo:
-        mimeType = "text/plain"
-        if fileInf["fileExt"] == ".ico":
-            mimeType = "image/ico"
-        elif fileInf["fileExt"] == ".gif":
-            mimeType = "image/gif"
-        elif fileInf["fileExt"] == ".png":
-            mimeType = "image/png"
-        elif fileInf["fileExt"] == ".jpg" or fileInf["fileExt"] == ".jpeg":
-            mimeType = "image/jpg"
-        elif fileInf["fileExt"] == ".bmp":
-            mimeType = "image/bmp"
-        elif fileInf["fileExt"] == ".html":
-            mimeType = "text/html"
-        elif fileInf["fileExt"] == ".css":
-            mimeType = "text/css"
-        elif fileInf["fileExt"] == ".js":
-            mimeType = "text/javascript"
-        elif fileInf["fileExt"] == ".xml":
-            mimeType = "application/xml"
+        mimeType = getMimeTypeFromFileExt(fileInf["fileExt"])
         if not isFirstLine:
             outFile.write(",\n")
         isFirstLine = False
