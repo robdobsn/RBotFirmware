@@ -137,7 +137,7 @@ void loop() {
    if (ringBufferPosn.canPut())
    {
        axisAStepUs[ringBufferPosn._putPos] = 100000;
-       axisAStepNum[ringBufferPosn._putPos] = 5;
+       axisAStepNum[ringBufferPosn._putPos] = 20;
        ringBufferPosn.hasPut();
        Serial.printlnf("Put 10000 %d %d", ringBufferPosn._putPos, ringBufferPosn._getPos);
    }
