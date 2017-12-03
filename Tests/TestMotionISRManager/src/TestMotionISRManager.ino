@@ -3,8 +3,6 @@
 SYSTEM_MODE(AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 
-int testLed = D7;
-
 IntervalTimer myTimer;
 
 class RingBufferPosn
@@ -52,46 +50,65 @@ public:
     }
 };
 
-const int MAX_STEP_GROUPS = 100;
+const int MAX_STEP_GROUPS = 20;
 
 RingBufferPosn ringBufferPosn(MAX_STEP_GROUPS);
 
-typedef struct ISRAxisMotionVars
+class ISRAxisMotionVars
 {
+public:
     unsigned long stepUs[MAX_STEP_GROUPS];
     unsigned long stepNum[MAX_STEP_GROUPS];
     unsigned long stepDirn[MAX_STEP_GROUPS];
     unsigned long usAccum;
     unsigned long stepCount;
-    bool isDone;
+    bool _isActive;
+    int _stepPin;
+    bool _stepPinValue;
+    int _dirnPin;
+    bool _dirnPinValue;
     // Debug
     bool dbgLastStepUsValid;
     unsigned long dbgLastStepUs;
     unsigned long dbgMaxStepUs;
     unsigned long dbgMinStepUs;
+
+    ISRAxisMotionVars()
+    {
+        usAccum = 0;
+        stepCount = 0;
+        _isActive = false;
+        _stepPin = -1;
+        _stepPinValue = false;
+        _dirnPin = -1;
+        _dirnPinValue = false;
+        clearDbg();
+    }
+
+    void clearDbg()
+    {
+        dbgLastStepUsValid = false;
+        dbgMaxStepUs = 0;
+        dbgMinStepUs = 10000000;
+    }
+
+    void setPins(int stepPin, int dirnPin)
+    {
+        _stepPin = stepPin;
+        _dirnPin = dirnPin;
+        digitalWrite(_stepPin, false);
+        _stepPinValue = false;
+        digitalWrite(_dirnPin, false);
+        _dirnPinValue = false;
+    }
 };
 
 static const int ISR_MAX_AXES = 3;
-volatile ISRAxisMotionVars axisVars[ISR_MAX_AXES];
-
-//unsigned long axisAStepUs[MAX_STEP_GROUPS];
-//unsigned long axisAStepNum[MAX_STEP_GROUPS];
-
-//volatile unsigned long axisAUsAccum = 0;
-//volatile unsigned long axisAStepCount = 0;
-
-volatile unsigned long isrCount = 0;
-volatile unsigned long lastUs = micros();
-
-// volatile unsigned long lastStepUsValid = false;
-// volatile unsigned long lastStepUs = 0;
-// volatile unsigned long maxStepUs = 0;
-// volatile unsigned long minStepUs = 1000000;
-
-volatile bool testLedVal = false;
+ISRAxisMotionVars axisVars[ISR_MAX_AXES];
 
 void myisr(void)
 {
+    static unsigned long lastUs = micros();
     // Get current uS elapsed
     unsigned long curUs = micros();
     unsigned long elapsed = curUs - lastUs;
@@ -102,44 +119,54 @@ void myisr(void)
         return;
 
     bool allAxesDone = true;
-    // Get pointer to this axis
-    volatile ISRAxisMotionVars* pAxisVars = &(axisVars[0]);
-    if (!pAxisVars->isDone)
+    // Go through axes
+    for (int axisIdx = 0; axisIdx < ISR_MAX_AXES; axisIdx++)
     {
-        allAxesDone = false;
-        pAxisVars->usAccum += elapsed;
-        unsigned long stepUs = pAxisVars->stepUs[ringBufferPosn._getPos];
-        if (pAxisVars->usAccum > stepUs)
+        // Get pointer to this axis
+        volatile ISRAxisMotionVars* pAxisVars = &(axisVars[axisIdx]);
+        if (!pAxisVars->_isActive)
         {
-            if (pAxisVars->usAccum > stepUs + stepUs)
-                pAxisVars->usAccum = 0;
-            else
-                pAxisVars->usAccum -= stepUs;
-            // Step
-            testLedVal = !testLedVal;
-            digitalWrite(testLed, testLedVal);
-            pAxisVars->stepCount++;
-            if (pAxisVars->stepCount >= pAxisVars->stepNum[ringBufferPosn._getPos])
+            allAxesDone = false;
+            pAxisVars->usAccum += elapsed;
+            unsigned long stepUs = pAxisVars->stepUs[ringBufferPosn._getPos];
+            if (pAxisVars->usAccum > stepUs)
             {
-                pAxisVars->isDone = true;
-                pAxisVars->stepCount = 0;
-                pAxisVars->usAccum = 0;
-                pAxisVars->dbgLastStepUsValid = false;
-            }
-            else
-            {
-                // Check timing
-                if (pAxisVars->dbgLastStepUsValid)
+                if (pAxisVars->usAccum > stepUs + stepUs)
+                    pAxisVars->usAccum = 0;
+                else
+                    pAxisVars->usAccum -= stepUs;
+                // Direction
+                if (pAxisVars->_dirnPinValue != pAxisVars->stepDirn[ringBufferPosn._getPos])
                 {
-                    unsigned long betweenStepsUs = curUs - pAxisVars->dbgLastStepUs;
-                    if (pAxisVars->dbgMaxStepUs < betweenStepsUs)
-                        pAxisVars->dbgMaxStepUs = betweenStepsUs;
-                    if (pAxisVars->dbgMinStepUs > betweenStepsUs)
-                        pAxisVars->dbgMinStepUs = betweenStepsUs;
+                    pAxisVars->_dirnPinValue = pAxisVars->stepDirn[ringBufferPosn._getPos];
+                    digitalWrite(pAxisVars->_dirnPin, pAxisVars->_dirnPinValue);
                 }
-                // Record last time
-                pAxisVars->dbgLastStepUs = curUs;
-                pAxisVars->dbgLastStepUsValid = true;
+                // Step
+                pAxisVars->_stepPinValue = !pAxisVars->_stepPinValue;
+                digitalWrite(pAxisVars->_stepPin, pAxisVars->_stepPinValue);
+                pAxisVars->stepCount++;
+                if (pAxisVars->stepCount >= pAxisVars->stepNum[ringBufferPosn._getPos])
+                {
+                    pAxisVars->_isActive = true;
+                    pAxisVars->stepCount = 0;
+                    pAxisVars->usAccum = 0;
+                    pAxisVars->dbgLastStepUsValid = false;
+                }
+                else
+                {
+                    // Check timing
+                    if (pAxisVars->dbgLastStepUsValid)
+                    {
+                        unsigned long betweenStepsUs = curUs - pAxisVars->dbgLastStepUs;
+                        if (pAxisVars->dbgMaxStepUs < betweenStepsUs)
+                            pAxisVars->dbgMaxStepUs = betweenStepsUs;
+                        if (pAxisVars->dbgMinStepUs > betweenStepsUs)
+                            pAxisVars->dbgMinStepUs = betweenStepsUs;
+                    }
+                    // Record last time
+                    pAxisVars->dbgLastStepUs = curUs;
+                    pAxisVars->dbgLastStepUsValid = true;
+                }
             }
         }
     }
@@ -150,9 +177,19 @@ void myisr(void)
 
 void setup() {
    Serial.begin(115200);
-   myTimer.begin(myisr, 100, uSec);
+   delay(2000);
+   myTimer.begin(myisr, 10, uSec);
    Serial.println("TestMotionISRManager starting");
-   pinMode(testLed, OUTPUT);
+   pinMode(A2, OUTPUT);
+   digitalWrite(A2, 0);
+   pinMode(D2, OUTPUT);
+   pinMode(D3, OUTPUT);
+   pinMode(D4, OUTPUT);
+   pinMode(D5, OUTPUT);
+   axisVars[0].setPins(D2, D3);
+   axisVars[1].setPins(D4, D5);
+   delay(2000);
+   digitalWrite(A2, 1);
 }
 
 void addSteps(int axisIdx, int stepNum, bool stepDirection, unsigned long uSBetweenSteps)
@@ -162,7 +199,7 @@ void addSteps(int axisIdx, int stepNum, bool stepDirection, unsigned long uSBetw
     axisVars[axisIdx].stepDirn[ringBufferPosn._putPos] = stepDirection;
     axisVars[axisIdx].usAccum = 0;
     axisVars[axisIdx].stepCount = 0;
-    axisVars[axisIdx].isDone = (stepNum == 0);
+    axisVars[axisIdx]._isActive = (stepNum == 0);
     axisVars[axisIdx].dbgLastStepUsValid = false;
     axisVars[axisIdx].dbgMinStepUs = 10000000;
     axisVars[axisIdx].dbgMaxStepUs = 0;
@@ -182,12 +219,21 @@ void loop() {
         axisVars[i].dbgMaxStepUs = 0;
     }
 
+    // for (int i = 0; i < 1000; i++)
+    // {
+    //     digitalWrite(D2, 0);
+    //     digitalWrite(D4, 0);
+    //     delay(1);
+    //     digitalWrite(D2, 1);
+    //     digitalWrite(D4, 1);
+    //     delay(1);
+    // }
     // Add to ring buffer
     if (ringBufferPosn.canPut())
     {
-       addSteps(0, 6, 0, 500000);
-       addSteps(1, 12, 0, 250000);
-       addSteps(2, 30, 0, 100000);
+       addSteps(0, 30000, 0, 100);
+       addSteps(1, 60000, 0, 50);
+    //    addSteps(2, 30, 0, 100000);
        ringBufferPosn.hasPut();
        Serial.printlnf("Put 10000 %d %d", ringBufferPosn._putPos, ringBufferPosn._getPos);
     }
