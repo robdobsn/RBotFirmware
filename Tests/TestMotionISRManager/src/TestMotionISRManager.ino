@@ -60,8 +60,10 @@ typedef struct ISRAxisMotionVars
 {
     unsigned long stepUs[MAX_STEP_GROUPS];
     unsigned long stepNum[MAX_STEP_GROUPS];
+    unsigned long stepDirn[MAX_STEP_GROUPS];
     unsigned long usAccum;
     unsigned long stepCount;
+    bool isDone;
     // Debug
     bool lastStepUsValid;
     unsigned long lastStepUs;
@@ -145,6 +147,16 @@ void setup() {
    pinMode(testLed, OUTPUT);
 }
 
+void addSteps(int axisIdx, int stepNum, bool stepDirection, unsigned long uSBetweenSteps)
+{
+    axisVars[axisIdx].stepUs[ringBufferPosn._putPos] = uSBetweenSteps;
+    axisVars[axisIdx].stepNum[ringBufferPosn._putPos] = stepNum;
+    axisVars[axisIdx].stepDirn[ringBufferPosn._putPos] = stepDirection;
+    axisVars[axisIdx].usAccum = 0;
+    axisVars[axisIdx].stepCount = 0;
+    axisVars[axisIdx].isDone = (stepNum == 0);
+}
+
 void loop() {
    delay(10000);
    Serial.printlnf("%lu %lu %d %d", minStepUs, maxStepUs, ringBufferPosn._putPos, ringBufferPosn._getPos);
@@ -154,12 +166,9 @@ void loop() {
    // Add to ring buffer
    if (ringBufferPosn.canPut())
    {
-       axisVars[0].stepUs[ringBufferPosn._putPos] = 500000;
-       axisVars[0].stepNum[ringBufferPosn._putPos] = 6;
-       axisVars[1].stepUs[ringBufferPosn._putPos] = 250000;
-       axisVars[1].stepNum[ringBufferPosn._putPos] = 12;
-       axisVars[2].stepUs[ringBufferPosn._putPos] = 100000;
-       axisVars[2].stepNum[ringBufferPosn._putPos] = 30;
+       addSteps(0, 6, 0, 500000);
+       addSteps(1, 12, 0, 250000);
+       addSteps(2, 30, 0, 100000);
        ringBufferPosn.hasPut();
        Serial.printlnf("Put 10000 %d %d", ringBufferPosn._putPos, ringBufferPosn._getPos);
    }
