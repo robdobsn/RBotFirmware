@@ -65,10 +65,10 @@ typedef struct ISRAxisMotionVars
     unsigned long stepCount;
     bool isDone;
     // Debug
-    bool lastStepUsValid;
-    unsigned long lastStepUs;
-    unsigned long maxStepUs;
-    unsigned long minStepUs;
+    bool dbgLastStepUsValid;
+    unsigned long dbgLastStepUs;
+    unsigned long dbgMaxStepUs;
+    unsigned long dbgMinStepUs;
 };
 
 static const int ISR_MAX_AXES = 3;
@@ -83,10 +83,10 @@ volatile ISRAxisMotionVars axisVars[ISR_MAX_AXES];
 volatile unsigned long isrCount = 0;
 volatile unsigned long lastUs = micros();
 
-volatile unsigned long lastStepUsValid = false;
-volatile unsigned long lastStepUs = 0;
-volatile unsigned long maxStepUs = 0;
-volatile unsigned long minStepUs = 1000000;
+// volatile unsigned long lastStepUsValid = false;
+// volatile unsigned long lastStepUs = 0;
+// volatile unsigned long maxStepUs = 0;
+// volatile unsigned long minStepUs = 1000000;
 
 volatile bool testLedVal = false;
 
@@ -100,43 +100,51 @@ void myisr(void)
     // Check if queue is empty
     if (!ringBufferPosn.canGet())
         return;
+
+    bool allAxesDone = true;
     // Get pointer to this axis
     volatile ISRAxisMotionVars* pAxisVars = &(axisVars[0]);
-    pAxisVars->usAccum += elapsed;
-    unsigned long stepUs = pAxisVars->stepUs[ringBufferPosn._getPos];
-    if (pAxisVars->usAccum > stepUs)
+    if (!pAxisVars->isDone)
     {
-        if (pAxisVars->usAccum > stepUs + stepUs)
-            pAxisVars->usAccum = 0;
-        else
-            pAxisVars->usAccum -= stepUs;
-        // Step
-        testLedVal = !testLedVal;
-        digitalWrite(testLed, testLedVal);
-        pAxisVars->stepCount++;
-        if (pAxisVars->stepCount >= pAxisVars->stepNum[ringBufferPosn._getPos])
+        allAxesDone = false;
+        pAxisVars->usAccum += elapsed;
+        unsigned long stepUs = pAxisVars->stepUs[ringBufferPosn._getPos];
+        if (pAxisVars->usAccum > stepUs)
         {
-            pAxisVars->stepCount = 0;
-            ringBufferPosn.hasGot();
-            pAxisVars->usAccum = 0;
-            lastStepUsValid = false;
-        }
-        else
-        {
-            // Check timing
-            if (lastStepUsValid)
+            if (pAxisVars->usAccum > stepUs + stepUs)
+                pAxisVars->usAccum = 0;
+            else
+                pAxisVars->usAccum -= stepUs;
+            // Step
+            testLedVal = !testLedVal;
+            digitalWrite(testLed, testLedVal);
+            pAxisVars->stepCount++;
+            if (pAxisVars->stepCount >= pAxisVars->stepNum[ringBufferPosn._getPos])
             {
-                unsigned long betweenStepsUs = curUs - lastStepUs;
-                if (maxStepUs < betweenStepsUs)
-                    maxStepUs = betweenStepsUs;
-                if (minStepUs > betweenStepsUs)
-                    minStepUs = betweenStepsUs;
+                pAxisVars->isDone = true;
+                pAxisVars->stepCount = 0;
+                pAxisVars->usAccum = 0;
+                pAxisVars->dbgLastStepUsValid = false;
             }
-            // Record last time
-            lastStepUs = curUs;
-            lastStepUsValid = true;
+            else
+            {
+                // Check timing
+                if (pAxisVars->dbgLastStepUsValid)
+                {
+                    unsigned long betweenStepsUs = curUs - pAxisVars->dbgLastStepUs;
+                    if (pAxisVars->dbgMaxStepUs < betweenStepsUs)
+                        pAxisVars->dbgMaxStepUs = betweenStepsUs;
+                    if (pAxisVars->dbgMinStepUs > betweenStepsUs)
+                        pAxisVars->dbgMinStepUs = betweenStepsUs;
+                }
+                // Record last time
+                pAxisVars->dbgLastStepUs = curUs;
+                pAxisVars->dbgLastStepUsValid = true;
+            }
         }
     }
+    if (allAxesDone)
+        ringBufferPosn.hasGot();
     lastUs = curUs;
 }
 
@@ -155,25 +163,36 @@ void addSteps(int axisIdx, int stepNum, bool stepDirection, unsigned long uSBetw
     axisVars[axisIdx].usAccum = 0;
     axisVars[axisIdx].stepCount = 0;
     axisVars[axisIdx].isDone = (stepNum == 0);
+    axisVars[axisIdx].dbgLastStepUsValid = false;
+    axisVars[axisIdx].dbgMinStepUs = 10000000;
+    axisVars[axisIdx].dbgMaxStepUs = 0;
 }
 
 void loop() {
-   delay(10000);
-   Serial.printlnf("%lu %lu %d %d", minStepUs, maxStepUs, ringBufferPosn._putPos, ringBufferPosn._getPos);
-   minStepUs = 100000000;
-   maxStepUs = 0;
+    delay(10000);
+    Serial.printlnf("%lu,%lu %lu,%lu %lu,%lu %d %d",
+                axisVars[0].dbgMinStepUs, axisVars[0].dbgMaxStepUs,
+                axisVars[1].dbgMinStepUs, axisVars[1].dbgMaxStepUs,
+                axisVars[2].dbgMinStepUs, axisVars[2].dbgMaxStepUs,
+                ringBufferPosn._putPos, ringBufferPosn._getPos);
 
-   // Add to ring buffer
-   if (ringBufferPosn.canPut())
-   {
+    for (int i = 0; i < ISR_MAX_AXES; i++)
+    {
+        axisVars[i].dbgMinStepUs = 10000000;
+        axisVars[i].dbgMaxStepUs = 0;
+    }
+
+    // Add to ring buffer
+    if (ringBufferPosn.canPut())
+    {
        addSteps(0, 6, 0, 500000);
        addSteps(1, 12, 0, 250000);
        addSteps(2, 30, 0, 100000);
        ringBufferPosn.hasPut();
        Serial.printlnf("Put 10000 %d %d", ringBufferPosn._putPos, ringBufferPosn._getPos);
-   }
-   else
-   {
+    }
+    else
+    {
        Serial.println("Can't put");
-   }
+    }
 }
