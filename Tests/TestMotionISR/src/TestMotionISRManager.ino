@@ -8,7 +8,7 @@ MotionISRManager motionISRManager;
 void setup() {
     Serial.begin(115200);
     delay(2000);
-    Serial.println("TestMotionISR starting2");
+    Serial.println("TestMotionISR starting 4");
     pinMode(A2, OUTPUT);  // stepper enable
     pinMode(D2, OUTPUT);
     pinMode(D3, OUTPUT);
@@ -21,27 +21,35 @@ void setup() {
     motionISRManager.start();
 }
 
-bool addSomeSteps()
+bool addSomeSteps(int i)
 {
     if (motionISRManager.canAdd())
     {
-        motionISRManager.addAxisSteps(0, 3200, 0, 1000);
-        motionISRManager.addAxisSteps(1, 6400, 0, 500);
+        motionISRManager.addAxisSteps(0, 80, i > 3, 500 * ((i%4)+1));
+        motionISRManager.addAxisSteps(1, 80, i > 3, 500 * ((i%4)+1));
         motionISRManager.addComplete();
         return true;
     }
     return false;
 }
 
+int nextAdd = 0;
 void loop() {
 
-    delay(10000);
+    delay(50);
 
     motionISRManager.showDebug();
 
-    bool addOk = addSomeSteps();
+    bool addOk = addSomeSteps(nextAdd);
     if (addOk)
-       Serial.printlnf("Put steps putPos, getPos %d,%d", __isrRingBufferPosn._putPos, __isrRingBufferPosn._getPos);
+    {
+       Serial.printlnf("Done put: getPos, putPos %d,%d", __isrRingBufferPosn._getPos, __isrRingBufferPosn._putPos);
+       nextAdd++;
+       if (nextAdd > 7)
+        nextAdd = 0;
+   }
     else
-       Serial.println("Can't add to queue");
+    {
+       Serial.printlnf("Can't add to queue: getPos, putPos %d,%d", __isrRingBufferPosn._getPos, __isrRingBufferPosn._putPos);
+   }
 }
