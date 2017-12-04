@@ -1,18 +1,21 @@
+// RBotFirmware
+// Rob Dobson 2017
+
+#pragma once
+
 #include "SparkIntervalTimer.h"
 
-SYSTEM_MODE(AUTOMATIC);
-SYSTEM_THREAD(ENABLED);
+static const int ISR_MAX_AXES = 3;
+static const int ISR_MAX_STEP_GROUPS = 20;
 
-IntervalTimer myTimer;
-
-class RingBufferPosn
+class MotionRingBufferPosn
 {
 public:
     volatile unsigned int _putPos;
     volatile unsigned int _getPos;
     unsigned int _bufLen;
 
-    RingBufferPosn(int maxLen)
+    MotionRingBufferPosn(int maxLen)
     {
         _bufLen = maxLen;
     }
@@ -50,16 +53,12 @@ public:
     }
 };
 
-const int MAX_STEP_GROUPS = 20;
-
-RingBufferPosn ringBufferPosn(MAX_STEP_GROUPS);
-
 class ISRAxisMotionVars
 {
 public:
-    uint32_t _stepUs[MAX_STEP_GROUPS];
-    uint32_t _stepNum[MAX_STEP_GROUPS];
-    uint32_t _stepDirn[MAX_STEP_GROUPS];
+    uint32_t _stepUs[ISR_MAX_STEP_GROUPS];
+    uint32_t _stepNum[ISR_MAX_STEP_GROUPS];
+    uint32_t _stepDirn[ISR_MAX_STEP_GROUPS];
     uint32_t _usAccum;
     uint32_t _stepCount;
     bool _isActive;
@@ -110,11 +109,21 @@ public:
     }
 };
 
-static const int ISR_MAX_AXES = 3;
-ISRAxisMotionVars axisVars[ISR_MAX_AXES];
+// Interval timer
+IntervalTimer __isrMotionTimer;
+bool __isrIsActive = false;
 
-void motionManagerISR(void)
+// Ring buffer to handle queue
+MotionRingBufferPosn __isrRingBufferPosn(ISR_MAX_STEP_GROUPS);
+
+// Axis variables
+ISRAxisMotionVars __isrAxisVars[ISR_MAX_AXES];
+
+void __isrStepperMotion(void)
 {
+    // Check active
+    if (!__isrIsActive)
+        return;
     static uint32_t lastUs = micros();
     // Get current uS elapsed
     uint32_t curUs = micros();
@@ -122,7 +131,7 @@ void motionManagerISR(void)
     if (lastUs > curUs)
         elapsed = 0xffffffff-lastUs+curUs;
     // Check if queue is empty
-    if (!ringBufferPosn.canGet())
+    if (!__isrRingBufferPosn.canGet())
         return;
 
     bool allAxesDone = true;
@@ -130,12 +139,12 @@ void motionManagerISR(void)
     for (int axisIdx = 0; axisIdx < ISR_MAX_AXES; axisIdx++)
     {
         // Get pointer to this axis
-        volatile ISRAxisMotionVars* pAxisVars = &(axisVars[axisIdx]);
+        volatile ISRAxisMotionVars* pAxisVars = &(__isrAxisVars[axisIdx]);
         if (!pAxisVars->_isActive)
         {
             allAxesDone = false;
             pAxisVars->_usAccum += elapsed;
-            uint32_t stepUs = pAxisVars->_stepUs[ringBufferPosn._getPos];
+            uint32_t stepUs = pAxisVars->_stepUs[__isrRingBufferPosn._getPos];
             if (pAxisVars->_usAccum > stepUs)
             {
                 if (pAxisVars->_usAccum > stepUs + stepUs)
@@ -143,7 +152,7 @@ void motionManagerISR(void)
                 else
                     pAxisVars->_usAccum -= stepUs;
                 // Direction
-                bool stepDirn = pAxisVars->_stepDirn[ringBufferPosn._getPos];
+                bool stepDirn = pAxisVars->_stepDirn[__isrRingBufferPosn._getPos];
                 if (pAxisVars->_dirnPinValue != stepDirn)
                 {
                     pAxisVars->_dirnPinValue = stepDirn;
@@ -154,7 +163,7 @@ void motionManagerISR(void)
                 digitalWrite(pAxisVars->_stepPin, pAxisVars->_stepPinValue);
                 pAxisVars->_stepCount++;
                 pAxisVars->_dbgStepsFromLastZero += (stepDirn ? 1 : -1);
-                if (pAxisVars->_stepCount >= pAxisVars->_stepNum[ringBufferPosn._getPos])
+                if (pAxisVars->_stepCount >= pAxisVars->_stepNum[__isrRingBufferPosn._getPos])
                 {
                     pAxisVars->_isActive = true;
                     pAxisVars->_stepCount = 0;
@@ -180,62 +189,69 @@ void motionManagerISR(void)
         }
     }
     if (allAxesDone)
-        ringBufferPosn.hasGot();
+        __isrRingBufferPosn.hasGot();
     lastUs = curUs;
 }
 
-void setup() {
-   Serial.begin(115200);
-   delay(2000);
-   myTimer.begin(motionManagerISR, 10, uSec);
-   Serial.println("TestMotionISRManager starting");
-   pinMode(A2, OUTPUT);
-   digitalWrite(A2, 0);
-   pinMode(D2, OUTPUT);
-   pinMode(D3, OUTPUT);
-   pinMode(D4, OUTPUT);
-   pinMode(D5, OUTPUT);
-   axisVars[0].setPins(D2, D3);
-   axisVars[1].setPins(D4, D5);
-   delay(2000);
-   digitalWrite(A2, 1);
-}
-
-void addSteps(int axisIdx, int stepNum, bool stepDirection, uint32_t uSBetweenSteps)
+class MotionISRManager
 {
-    axisVars[axisIdx]._stepUs[ringBufferPosn._putPos] = uSBetweenSteps;
-    axisVars[axisIdx]._stepNum[ringBufferPosn._putPos] = stepNum;
-    axisVars[axisIdx]._stepDirn[ringBufferPosn._putPos] = stepDirection;
-    axisVars[axisIdx]._usAccum = 0;
-    axisVars[axisIdx]._stepCount = 0;
-    axisVars[axisIdx]._isActive = (stepNum == 0);
-    axisVars[axisIdx]._dbgLastStepUsValid = false;
-    axisVars[axisIdx]._dbgMinStepUs = 10000000;
-    axisVars[axisIdx]._dbgMaxStepUs = 0;
-}
-
-void loop() {
-    delay(10000);
-    Serial.printlnf("%lu,%lu,%ld  %lu,%lu,%ld  %lu,%lu,%ld  %d %d",
-                axisVars[0]._dbgMinStepUs, axisVars[0]._dbgMaxStepUs, axisVars[0]._dbgStepsFromLastZero,
-                axisVars[1]._dbgMinStepUs, axisVars[1]._dbgMaxStepUs, axisVars[1]._dbgStepsFromLastZero,
-                axisVars[2]._dbgMinStepUs, axisVars[2]._dbgMaxStepUs, axisVars[2]._dbgStepsFromLastZero,
-                ringBufferPosn._putPos, ringBufferPosn._getPos);
-
-    for (int i = 0; i < ISR_MAX_AXES; i++)
-        axisVars[i].dbgResetMinMax();
-
-    // Add to ring buffer
-    if (ringBufferPosn.canPut())
+public:
+    MotionISRManager()
     {
-       addSteps(0, 30000, 0, 100);
-       addSteps(1, 60000, 0, 50);
-    //    addSteps(2, 30, 0, 100000);
-       ringBufferPosn.hasPut();
-       Serial.printlnf("Put 10000 %d %d", ringBufferPosn._putPos, ringBufferPosn._getPos);
+        for (int i = 0; i < ISR_MAX_AXES; i++)
+            __isrAxisVars[i]._isActive = false;
+        __isrIsActive = false;
     }
-    else
+
+    void start()
     {
-       Serial.println("Can't put");
+        __isrMotionTimer.begin(__isrStepperMotion, 10, uSec);
+        __isrIsActive = true;
     }
-}
+
+    void stop()
+    {
+        __isrMotionTimer.end();
+    }
+
+    void pauseResume(bool pause)
+    {
+        __isrIsActive == !pause;
+    }
+
+    bool setAxis(int axisIdx, int pinStep, int pinDirn)
+    {
+        if (axisIdx < 0 || axisIdx >= ISR_MAX_AXES)
+            return false;
+        __isrAxisVars[axisIdx].setPins(pinStep, pinDirn);
+    }
+
+    bool addSteps(int axisIdx, int stepNum, bool stepDirection, uint32_t uSBetweenSteps)
+    {
+        __isrAxisVars[axisIdx]._stepUs[__isrRingBufferPosn._putPos] = uSBetweenSteps;
+        __isrAxisVars[axisIdx]._stepNum[__isrRingBufferPosn._putPos] = stepNum;
+        __isrAxisVars[axisIdx]._stepDirn[__isrRingBufferPosn._putPos] = stepDirection;
+        __isrAxisVars[axisIdx]._usAccum = 0;
+        __isrAxisVars[axisIdx]._stepCount = 0;
+        __isrAxisVars[axisIdx]._isActive = (stepNum == 0);
+        __isrAxisVars[axisIdx]._dbgLastStepUsValid = false;
+        __isrAxisVars[axisIdx]._dbgMinStepUs = 10000000;
+        __isrAxisVars[axisIdx]._dbgMaxStepUs = 0;
+    }
+
+    void showDebug()
+    {
+        Serial.printlnf("%lu,%lu,%ld  %lu,%lu,%ld  %lu,%lu,%ld  %d %d",
+                    __isrAxisVars[0]._dbgMinStepUs, __isrAxisVars[0]._dbgMaxStepUs, __isrAxisVars[0]._dbgStepsFromLastZero,
+                    __isrAxisVars[1]._dbgMinStepUs, __isrAxisVars[1]._dbgMaxStepUs, __isrAxisVars[1]._dbgStepsFromLastZero,
+                    __isrAxisVars[2]._dbgMinStepUs, __isrAxisVars[2]._dbgMaxStepUs, __isrAxisVars[2]._dbgStepsFromLastZero,
+                    __isrRingBufferPosn._putPos, __isrRingBufferPosn._getPos);
+
+        for (int i = 0; i < ISR_MAX_AXES; i++)
+            __isrAxisVars[i].dbgResetMinMax();
+        // Serial.printlnf("DBG %lu %lu %d %d", __isrTestMinStepUs, __isrTestMaxStepUs,
+        //             __isrRingBufferPosn._putPos, __isrRingBufferPosn._getPos);
+        // __isrTestMinStepUs = 1000000;
+        // __isrTestMaxStepUs = 0;
+    }
+};
