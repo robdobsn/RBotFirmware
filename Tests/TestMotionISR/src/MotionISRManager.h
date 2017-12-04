@@ -137,7 +137,7 @@ public:
 
 // Interval timer
 IntervalTimer __isrMotionTimer;
-bool __isrIsActive = false;
+bool __isrIsEnabled = false;
 #ifdef DEBUG_TIME_ISR_OVERALL
 uint32_t __isrDbgTickMin = 100000000;
 uint32_t __isrDbgTickMax = 0;
@@ -155,8 +155,8 @@ void __isrStepperMotion(void)
 #ifdef DEBUG_TIME_ISR_OVERALL
     uint32_t startTicks = System.ticks();
 #endif
-    // Check active
-    if (!__isrIsActive)
+    // Check enabled
+    if (!__isrIsEnabled)
         return;
     static uint32_t lastUs = micros();
     // Get current uS elapsed
@@ -277,13 +277,13 @@ public:
     {
         for (int i = 0; i < ISR_MAX_AXES; i++)
             __isrAxisVars[i]._isActive = false;
-        __isrIsActive = false;
+        __isrIsEnabled = false;
     }
 
     void start()
     {
         __isrMotionTimer.begin(__isrStepperMotion, 20, uSec);
-        __isrIsActive = true;
+        __isrIsEnabled = true;
     }
 
     void stop()
@@ -293,7 +293,7 @@ public:
 
     void pauseResume(bool pause)
     {
-        __isrIsActive == !pause;
+        __isrIsEnabled == !pause;
     }
 
     bool setAxis(int axisIdx, int pinStep, int pinDirn)
@@ -303,7 +303,12 @@ public:
         __isrAxisVars[axisIdx].setPins(pinStep, pinDirn);
     }
 
-    bool addSteps(int axisIdx, int stepNum, bool stepDirection, uint32_t uSBetweenSteps)
+    bool canAdd()
+    {
+        return __isrRingBufferPosn.canPut();
+    }
+
+    bool addAxisSteps(int axisIdx, int stepNum, bool stepDirection, uint32_t uSBetweenSteps)
     {
         __isrAxisVars[axisIdx]._stepUs[__isrRingBufferPosn._putPos] = uSBetweenSteps;
         __isrAxisVars[axisIdx]._stepNum[__isrRingBufferPosn._putPos] = stepNum;
@@ -319,6 +324,10 @@ public:
 #endif
     }
 
+    void addComplete()
+    {
+        __isrRingBufferPosn.hasPut();
+    }
     void showDebug()
     {
         Serial.println("-----------------------------");

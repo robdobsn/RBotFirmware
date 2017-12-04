@@ -21,22 +21,27 @@ void setup() {
     motionISRManager.start();
 }
 
+bool addSomeSteps()
+{
+    if (motionISRManager.canAdd())
+    {
+        motionISRManager.addAxisSteps(0, 3200, 0, 1000);
+        motionISRManager.addAxisSteps(1, 6400, 0, 500);
+        motionISRManager.addComplete();
+        return true;
+    }
+    return false;
+}
+
 void loop() {
 
     delay(10000);
 
     motionISRManager.showDebug();
 
-    // Add to ring buffer
-    if (__isrRingBufferPosn.canPut())
-    {
-       motionISRManager.addSteps(0, 30000, 0, 100);
-       motionISRManager.addSteps(1, 60000, 0, 50);
-       __isrRingBufferPosn.hasPut();
-       Serial.printlnf("Put 10000 %d %d", __isrRingBufferPosn._putPos, __isrRingBufferPosn._getPos);
-    }
+    bool addOk = addSomeSteps();
+    if (addOk)
+       Serial.printlnf("Put steps putPos, getPos %d,%d", __isrRingBufferPosn._putPos, __isrRingBufferPosn._getPos);
     else
-    {
-       Serial.println("Can't put");
-    }
+       Serial.println("Can't add to queue");
 }
