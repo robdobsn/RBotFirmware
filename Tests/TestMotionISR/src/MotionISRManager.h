@@ -1,13 +1,17 @@
 // RBotFirmware
 // Rob Dobson 2017
+// Handles Interrupt Service Routine for stepper motors
 
 #pragma once
 
 #include "SparkIntervalTimer.h"
 
+// Max axes and number of pipeline steps that can be accommodated
 static const int ISR_MAX_AXES = 3;
-static const int ISR_MAX_STEP_GROUPS = 20;
+static const int ISR_MAX_STEP_GROUPS = 50;
 
+// Generic interrupt-safe ring buffer pointer class
+// Each pointer is only updated by one source (ISR or main thread)
 class MotionRingBufferPosn
 {
 public:
@@ -53,6 +57,7 @@ public:
     }
 };
 
+// Class to handle motion variables for an axis
 class ISRAxisMotionVars
 {
 public:
@@ -112,6 +117,8 @@ public:
 // Interval timer
 IntervalTimer __isrMotionTimer;
 bool __isrIsActive = false;
+uint32_t __isrDbgTickMin = 100000000;
+uint32_t __isrDbgTickMax = 0;
 
 // Ring buffer to handle queue
 MotionRingBufferPosn __isrRingBufferPosn(ISR_MAX_STEP_GROUPS);
@@ -119,8 +126,10 @@ MotionRingBufferPosn __isrRingBufferPosn(ISR_MAX_STEP_GROUPS);
 // Axis variables
 ISRAxisMotionVars __isrAxisVars[ISR_MAX_AXES];
 
+// The actual interrupt service routine
 void __isrStepperMotion(void)
 {
+    uint32_t startTicks = System.ticks();
     // Check active
     if (!__isrIsActive)
         return;
@@ -176,6 +185,8 @@ void __isrStepperMotion(void)
                     if (pAxisVars->_dbgLastStepUsValid)
                     {
                         uint32_t betweenStepsUs = curUs - pAxisVars->_dbgLastStepUs;
+                        if (pAxisVars->_dbgLastStepUs > curUs)
+                            betweenStepsUs = 0xffffffff - pAxisVars->_dbgLastStepUs + curUs;
                         if (pAxisVars->_dbgMaxStepUs < betweenStepsUs)
                             pAxisVars->_dbgMaxStepUs = betweenStepsUs;
                         if (pAxisVars->_dbgMinStepUs > betweenStepsUs)
@@ -191,8 +202,17 @@ void __isrStepperMotion(void)
     if (allAxesDone)
         __isrRingBufferPosn.hasGot();
     lastUs = curUs;
+    uint32_t endTicks = System.ticks();
+    uint32_t elapsedTicks = endTicks - startTicks;
+    if (startTicks > endTicks)
+        elapsedTicks = 0xffffffff - startTicks + endTicks;
+    if (__isrDbgTickMin > elapsedTicks)
+        __isrDbgTickMin = elapsedTicks;
+    if (__isrDbgTickMax < elapsedTicks)
+        __isrDbgTickMax = elapsedTicks;
 }
 
+// Wrapper class to handle access to the pipeline and ISR parameters
 class MotionISRManager
 {
 public:
@@ -241,12 +261,16 @@ public:
 
     void showDebug()
     {
-        Serial.printlnf("%lu,%lu,%ld  %lu,%lu,%ld  %lu,%lu,%ld  %d %d",
+        Serial.printlnf("%luuS,%luuS,%ld  %luuS,%luuS,%ld  %luuS,%luuS,%ld  %0.2fuS, %0.2fuS  %d %d",
                     __isrAxisVars[0]._dbgMinStepUs, __isrAxisVars[0]._dbgMaxStepUs, __isrAxisVars[0]._dbgStepsFromLastZero,
                     __isrAxisVars[1]._dbgMinStepUs, __isrAxisVars[1]._dbgMaxStepUs, __isrAxisVars[1]._dbgStepsFromLastZero,
                     __isrAxisVars[2]._dbgMinStepUs, __isrAxisVars[2]._dbgMaxStepUs, __isrAxisVars[2]._dbgStepsFromLastZero,
+                    ((double)__isrDbgTickMin)/System.ticksPerMicrosecond(), 
+                    ((double)__isrDbgTickMax)/System.ticksPerMicrosecond(),
                     __isrRingBufferPosn._putPos, __isrRingBufferPosn._getPos);
 
+        __isrDbgTickMin = 10000000;
+        __isrDbgTickMax = 0;
         for (int i = 0; i < ISR_MAX_AXES; i++)
             __isrAxisVars[i].dbgResetMinMax();
         // Serial.printlnf("DBG %lu %lu %d %d", __isrTestMinStepUs, __isrTestMaxStepUs,
