@@ -103,9 +103,7 @@ function moveClick(axis, dist)
     }
 	else {
 		// Set relative positioning and restore to absolute afterwards
-        callAjax("/exec/G91");
-        callAjax("/exec/G0 " + axisNames[axis].toUpperCase() + dist.toString());
-        callAjax("/exec/G90");
+		uploadSendFile("G91\nG0 " + axisNames[axis].toUpperCase() + dist.toString() + "\nG90");
     }
 }
 
@@ -114,8 +112,6 @@ function fileUploadChange(e) {
     	startUpload(this.files[0]);
 		var inputFileUpload = document.getElementById("input_file_upload");
 		inputFileUpload.value = ""
-        // For POST uploads we need file blobs
-        // startUpload($(this).data("type"), this.files, false);
     }
 }
 
@@ -160,88 +156,38 @@ function startUpload(fileToUpload) {
 		console.log("Upload still in progress");
         return;
     }
-
 	// Check if the file is within bounds
 	if (fileToUpload.size > window.RBotUIVars.MAX_FILE_SIZE) {
         alert("File is too large");
         return;
     }
-
 	// Setup a new upload
 	window.RBotUIVars.uploadFile = fileToUpload;
 	window.RBotUIVars.uploadFileStartTime = new Date();
 	window.RBotUIVars.uploadLines = [];
 	window.RBotUIVars.uploadCurLine = 0;
 	window.RBotUIVars.uploadRetryCount = 0;
-
 	// Set status
 	setUploadState(true);
-
 	// Show status
 	showUploadStatus("Uploading " + window.RBotUIVars.uploadFile.name);
-
 	// Read the file and start sending
 	uploadReadFile().then(uploadSendFile, uploadReadFailed);
+}
 
-	// // Initialize some values
-	// stopUpdates();
-	// isUploading = true;
-	// uploadType = type;
-	// uploadTotalBytes = fileToUpload.size;
-    //
-	// // Prepare some upload values
-	// uploadFileName = fileToUpload.name;
-	// uploadFileSize = fileToUpload.size;
-	// uploadStartTime = new Date();
-	// uploadPosition = 0;
+function uploadSendFile(dataToSend) {
+	// Split file into lines
+	window.RBotUIVars.uploadLines = dataToSend.toString().split("\n");
+	window.RBotUIVars.uploadCurLine = 0;
+	window.RBotUIVars.uploadRetryCount = 0;
+	uploadSendNextChunk();
+	// console.log("Success");
 
-	// // Update the GUI
-	// uploadRows[0].find(".progress-bar > span").text(T("Starting"));
-	// uploadRows[0].find(".glyphicon").removeClass("glyphicon-asterisk").addClass("glyphicon-cloud-upload");
+}
 
-	// // Begin another POST file upload
-	// uploadRequest = $.ajax(ajaxPrefix + "rr_upload?name=" + encodeURIComponent(targetPath) + "&time=" + encodeURIComponent(timeToStr(new Date(file.lastModified))), {
-	// 	data: file,
-	// 	dataType: "json",
-	// 	processData: false,
-	// 	contentType: false,
-	// 	timeout: 0,
-	// 	type: "POST",
-	// 	global: false,
-	// 	error: function(jqXHR, textStatus, errorThrown) {
-	// 		finishCurrentUpload(false);
-	// 	},
-	// 	success: function(data) {
-	// 		if (isUploading) {
-	// 			finishCurrentUpload(data.err == 0);
-	// 		}
-	// 	},
-	// 	xhr: function() {
-	// 		var xhr = new window.XMLHttpRequest();
-	// 		xhr.upload.addEventListener("progress", function(event) {
-	// 			if (isUploading && event.lengthComputable) {
-	// 				// Calculate current upload speed (Date is based on milliseconds)
-	// 				uploadSpeed = event.loaded / (((new Date()) - uploadStartTime) / 1000);
-    //
-	// 				// Update global progress
-	// 				uploadedTotalBytes += (event.loaded - uploadPosition);
-	// 				uploadPosition = event.loaded;
-    //
-	// 				var uploadTitle = T("Uploading File(s), {0}% Complete", ((uploadedTotalBytes / uploadTotalBytes) * 100).toFixed(0));
-	// 				if (uploadSpeed > 0) {
-	// 					uploadTitle += " (" + formatUploadSpeed(uploadSpeed) + ")";
-	// 				}
-	// 				$("#modal_upload h4").text(uploadTitle);
-    //
-	// 				// Update progress bar
-	// 				var progress = ((event.loaded / event.total) * 100).toFixed(0);
-	// 				uploadRows[0].find(".progress-bar").css("width", progress + "%");
-	// 				uploadRows[0].find(".progress-bar > span").text(progress + " %");
-	// 			}
-	// 		}, false);
-	// 		return xhr;
-	// 	}
-	// });
+function uploadReadFailed(err) {
+	setUploadState(false);
+	showUploadStatus("Failed to upload file" + err)
 }
 
 function isGCode(inData)
@@ -294,26 +240,6 @@ function sendLineOfGCode(gCodeLine) {
 		xmlhttp.send();
 	});
 }
-//
-// function uploadReadFile2() {
-// 	return new Promise(function(resolve, reject) {
-// 		var reader = FileReader();
-// 		reader.onloadend = function(evt) {
-// 			if (evt.target.readyState === FileReader.DONE) { // DONE === 2
-// 				console.log("Read file " + evt.target.name);
-// 				window.RBotUIVars.uploadChunk = evt.target.result;
-// 				window.RBotUIVars.uploadChunkPos = 0;
-// 				window.RBotUIVars.uploadChunkLen = evt.target.result.length;
-// 				resolve();
-// 			}
-// 		};
-// 		reader.onerror = function(err) {
-// 			reject(err);
-// 		};
-// 		reader.readAsText(window.RBotUIVars.uploadFile);
-// 	});
-// }
-
 function uploadSendNextChunk()
 {
 	// Send a line
@@ -362,80 +288,4 @@ function uploadRetry(xmlHttpReq)
 
 }
 
-function uploadSendFile(dataToSend) {
-	// Split file into lines
-	window.RBotUIVars.uploadLines = dataToSend.toString().split("\n");
-	window.RBotUIVars.uploadCurLine = 0;
-	window.RBotUIVars.uploadRetryCount = 0;
-	uploadSendNextChunk();
-	// console.log("Success");
 
-}
-
-function uploadReadFailed(err) {
-	setUploadState(false);
-	showUploadStatus("Failed to upload file" + err)
-}
-
-// function getChunkFromFile(file, opt_startPos, opt_maxLen, callbackOnComplete) {
-//     var start = parseInt(opt_startPos) || 0;
-//     var blobLen = parseInt(opt_maxLen) || file.size - start;
-//     var reader = new FileReader();
-//     reader.onloadend = function(evt) {
-//         if (evt.target.readyState === FileReader.DONE) { // DONE === 2
-// 			console.log("got " + evt.target.result);
-// 			window.RBotUIVars.uploadChunk = evt.target.result;
-// 			window.RBotUIVars.uploadChunkPos = 0;
-// 			window.RBotUIVars.uploadChunkLen = evt.target.result.length;
-// 			callbackOnComplete();
-//         }
-//     };
-//     var blob = file.slice(start, start+blobLen);
-// 	reader.readAsBinaryString(blob);
-// }
-
-	// // Read a chunk from the file
-	// getChunkFromFile(window.RBotUIVars.uploadFile,
-   	// 		window.RBotUIVars.uploadFilePos, window.RBotUIVars.MAX_POST_CHUNK_SIZE);
-    //
-
-// function uploadGetLineFromFile(callbackWhenDone)
-// {
-// 	window.RBotUIVars.uploadLine = "";
-// 	while (window.RBotUIVars.uploadChunkPos < window.RBotUIVars.uploadChunkLen)
-// 	{
-//
-// 	}
-// }
-
-// function uploadGetChunkAndSend() {
-// 	// Get line from the file
-// 	uploadGetLineFromFile()
-// }
-//
-   //
-   // var reader = new FileReader();
-   //  // Closure to capture the file information.
-   //  reader.onload = function(theFile) {
-   //  	console.log(theFile.target.result);
-   //      return theFile;
-   //    };
-   //
-   //    // Read in the image file as a data URL.
-   //    reader.readAsText(window.RBotUIVars.uploadFile);
-
-	// 	var http = new XMLHttpRequest();
-// var url = "get_data.php";
-// var params = "lorem=ipsum&name=binny";
-// http.open("POST", url, true);
-//
-// //Send the proper header information along with the request
-// http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-//
-// http.onreadystatechange = function() {//Call a function when the state changes.
-//     if(http.readyState == 4 && http.status == 200) {
-//         alert(http.responseText);
-//     }
-// }
-// http.send(params);
-// }

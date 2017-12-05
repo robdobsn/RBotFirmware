@@ -6,13 +6,13 @@
 
 #include "SparkIntervalTimer.h"
 
-#define DEBUG_TIME_ISR_OVERALL 1
-#define DEBUG_STEPS_FROM_ZERO 1
+// #define DEBUG_TIME_ISR_OVERALL 1
 // #define DEBUG_TIME_ISR_JITTER 1
 
 // Max axes and number of pipeline steps that can be accommodated
 static const int ISR_MAX_AXES = 3;
 static const int ISR_MAX_STEP_GROUPS = 50;
+static const uint16_t ISR_TIMER_PERIOD_US = 50;
 
 // Generic interrupt-safe ring buffer pointer class
 // Each pointer is only updated by one source (ISR or main thread)
@@ -28,11 +28,15 @@ public:
         _bufLen = maxLen;
     }
 
+    void clear()
+    {
+        _getPos = _putPos = 0;
+    }
     bool canPut()
     {
         if (_putPos == _getPos)
             return true;
-        int gp = _getPos;
+        unsigned int gp = _getPos;
         if (_putPos > gp)
         {
             if ((_putPos != _bufLen-1) || (gp != 0))
@@ -93,9 +97,7 @@ public:
     uint32_t _dbgMaxStepUs;
     uint32_t _dbgMinStepUs;
 #endif
-#ifdef DEBUG_STEPS_FROM_ZERO
-    volatile long _dbgStepsFromLastZero;
-#endif
+    volatile long _stepsFromLastZero;
 
     ISRAxisMotionVars()
     {
@@ -106,9 +108,7 @@ public:
         _stepPinValue = false;
         _dirnPin = -1;
         _dirnPinValue = false;
-#ifdef DEBUG_TIME_ISR_JITTER
-        _dbgStepsFromLastZero = 0;
-#endif
+        _stepsFromLastZero = 0;
         dbgResetMinMax();
     }
 
@@ -121,11 +121,9 @@ public:
 #endif
     }
 
-    void dbgResetZero()
+    void resetZero()
     {
-#ifdef DEBUG_STEPS_FROM_ZERO
-        _dbgStepsFromLastZero = 0;
-#endif
+        _stepsFromLastZero = 0;
     }
 
     void setPins(int stepPin, int dirnPin)
@@ -140,23 +138,23 @@ public:
 };
 
 // Interval timer
-IntervalTimer __isrMotionTimer;
-bool __isrIsEnabled = false;
+static IntervalTimer __isrMotionTimer;
+static bool __isrIsEnabled = false;
 #ifdef DEBUG_TIME_ISR_OVERALL
-uint32_t __isrDbgTickMin = 100000000;
-uint32_t __isrDbgTickMax = 0;
+static uint32_t __isrDbgTickMin = 100000000;
+static uint32_t __isrDbgTickMax = 0;
 #endif
 
 // Ring buffer to handle queue
-MotionRingBufferPosn __isrRingBufferPosn(ISR_MAX_STEP_GROUPS);
+static MotionRingBufferPosn __isrRingBufferPosn(ISR_MAX_STEP_GROUPS);
 // True if this is the start of a new block
-bool __isrStartOfNewBlock = true;
+static bool __isrStartOfNewBlock = true;
 
 // Axis variables
-ISRAxisMotionVars __isrAxisVars[ISR_MAX_AXES];
+static ISRAxisMotionVars __isrAxisVars[ISR_MAX_AXES];
 
 // The actual interrupt service routine
-void __isrStepperMotion(void)
+static void __isrStepperMotion(void)
 {
 #ifdef DEBUG_TIME_ISR_OVERALL
     uint32_t startTicks = System.ticks();
@@ -240,10 +238,8 @@ void __isrStepperMotion(void)
                 pAxisVars->_stepPinValue = 1;
                 // Count the steps and position from last zero
                 pAxisVars->_stepCount++;
-#ifdef DEBUG_STEPS_FROM_ZERO
-                pAxisVars->_dbgStepsFromLastZero +=
+                pAxisVars->_stepsFromLastZero +=
                     (pAxisVars->_stepDirn[qPos] ? 1 : -1);
-#endif
                 // Check if we have completed the pipeline block
                 if (pAxisVars->_stepCount >=
                             pAxisVars->_stepNum[qPos])
@@ -310,9 +306,17 @@ public:
         __isrIsEnabled = false;
     }
 
+    void clear()
+    {
+        __isrIsEnabled = false;
+        for (int i = 0; i < ISR_MAX_AXES; i++)
+            __isrAxisVars[i]._isActive = false;
+        __isrRingBufferPosn.clear();
+    }
+
     void start()
     {
-        __isrMotionTimer.begin(__isrStepperMotion, 20, uSec);
+        __isrMotionTimer.begin(__isrStepperMotion, ISR_TIMER_PERIOD_US, uSec);
         __isrIsEnabled = true;
     }
 
@@ -323,7 +327,7 @@ public:
 
     void pauseResume(bool pause)
     {
-        __isrIsEnabled == !pause;
+        __isrIsEnabled = !pause;
     }
 
     bool setAxis(int axisIdx, int pinStep, int pinDirn)
@@ -331,6 +335,26 @@ public:
         if (axisIdx < 0 || axisIdx >= ISR_MAX_AXES)
             return false;
         __isrAxisVars[axisIdx].setPins(pinStep, pinDirn);
+        return true;
+    }
+
+    void resetZero(int axisIdx)
+    {
+        if (axisIdx < 0 || axisIdx >= ISR_MAX_AXES)
+            return;
+        __isrAxisVars[axisIdx]._stepsFromLastZero = 0;
+    }
+
+    long getStepsFromZero(int axisIdx)
+    {
+        if (axisIdx < 0 || axisIdx >= ISR_MAX_AXES)
+            return 0;
+        return __isrAxisVars[axisIdx]._stepsFromLastZero;
+    }
+
+    bool isMoving()
+    {
+        return __isrRingBufferPosn.canGet();
     }
 
     bool canAdd()
@@ -338,7 +362,7 @@ public:
         return __isrRingBufferPosn.canPut();
     }
 
-    bool addAxisSteps(int axisIdx, int stepNum, bool stepDirection, uint32_t uSBetweenSteps)
+    void addAxisSteps(int axisIdx, int stepNum, bool stepDirection, uint32_t uSBetweenSteps)
     {
         __isrAxisVars[axisIdx]._stepUs[__isrRingBufferPosn._putPos] = uSBetweenSteps;
         __isrAxisVars[axisIdx]._stepNum[__isrRingBufferPosn._putPos] = stepNum;
@@ -354,12 +378,10 @@ public:
         Serial.println("-----------------------------");
         Serial.printlnf("Ring buffer getPos, putPos %d, %d",
                     __isrRingBufferPosn._getPos, __isrRingBufferPosn._putPos);
-#ifdef DEBUG_STEPS_FROM_ZERO
         Serial.printlnf("Steps from last zero X,Y,Z %ld,%ld,%ld",
-                    __isrAxisVars[0]._dbgStepsFromLastZero,
-                    __isrAxisVars[1]._dbgStepsFromLastZero,
-                    __isrAxisVars[2]._dbgStepsFromLastZero);
-#endif
+                    __isrAxisVars[0]._stepsFromLastZero,
+                    __isrAxisVars[1]._stepsFromLastZero,
+                    __isrAxisVars[2]._stepsFromLastZero);
 #ifdef DEBUG_TIME_ISR_OVERALL
         Serial.printlnf("Min/Max ISR exec time %0.2fuS, %0.2fuS",
                     ((double)__isrDbgTickMin)/System.ticksPerMicrosecond(),
@@ -375,10 +397,5 @@ public:
         for (int i = 0; i < ISR_MAX_AXES; i++)
             __isrAxisVars[i].dbgResetMinMax();
 #endif
-
-        // Serial.printlnf("DBG %lu %lu %d %d", __isrTestMinStepUs, __isrTestMaxStepUs,
-        //             __isrRingBufferPosn._putPos, __isrRingBufferPosn._getPos);
-        // __isrTestMinStepUs = 1000000;
-        // __isrTestMaxStepUs = 0;
     }
 };

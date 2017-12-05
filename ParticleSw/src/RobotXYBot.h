@@ -1,5 +1,5 @@
 // RBotFirmware
-// Rob Dobson 2016
+// Rob Dobson 2017
 
 #pragma once
 
@@ -9,57 +9,52 @@
 #include "MotionHelper.h"
 #include "math.h"
 
-class RobotHockeyBot : public RobotBase
+class RobotXYBot : public RobotBase
 {
 public:
 
     static bool ptToActuator(MotionPipelineElem& motionElem, PointND& actuatorCoords, AxisParams axisParams[], int numAxes)
     {
-        // Simple scaling from one domain to another
         bool isValid = true;
-        double aStepper = (motionElem._pt2MM.getVal(0) + motionElem._pt2MM.getVal(1)) * axisParams[0].stepsPerUnit();
-        actuatorCoords.setVal(0, aStepper);
-        double bStepper = (motionElem._pt2MM.getVal(0) - motionElem._pt2MM.getVal(1)) * axisParams[1].stepsPerUnit();
-        actuatorCoords.setVal(1, bStepper);
-
+        for (int i = 0; i < MAX_AXES; i++)
+        {
+            // Axis val from home point
+            double axisValFromHome = motionElem._pt2MM.getVal(i) - axisParams[i]._homeOffsetVal;
+            // Convert to steps and add offset to home in steps
+            actuatorCoords.setVal(i, axisValFromHome * axisParams[i].stepsPerUnit()
+                            + axisParams[i]._homeOffsetSteps);
 
             // Check machine bounds
-            // bool thisAxisValid = true;
-            // if (axisParams[i]._minValValid && motionElem._pt2MM.getVal(i) < axisParams[i]._minVal)
-            //     thisAxisValid = false;
-            // if (axisParams[i]._maxValValid && motionElem._pt2MM.getVal(i) > axisParams[i]._maxVal)
-            //     thisAxisValid = false;
-        bool axis0Valid = true;
-        bool axis1Valid = true;
-        Log.trace("ptToActuator X (%s) %f -> %f Y (%s) %f -> %f",
-            axis0Valid ? "OK" : "INVALID",
-            motionElem._pt2MM.getVal(0), actuatorCoords._pt[0],
-            axis1Valid ? "OK" : "INVALID",
-            motionElem._pt2MM.getVal(1), actuatorCoords._pt[1]);
-            // isValid &= thisAxisValid;
-        // }
+            bool thisAxisValid = true;
+            if (axisParams[i]._minValValid && motionElem._pt2MM.getVal(i) < axisParams[i]._minVal)
+                thisAxisValid = false;
+            if (axisParams[i]._maxValValid && motionElem._pt2MM.getVal(i) > axisParams[i]._maxVal)
+                thisAxisValid = false;
+            Log.trace("ptToActuator (%s) %f -> %f (homeOffVal %f, homeOffSteps %ld)", thisAxisValid ? "OK" : "INVALID",
+                motionElem._pt2MM.getVal(i), actuatorCoords._pt[i], axisParams[i]._homeOffsetVal, axisParams[i]._homeOffsetSteps);
+            isValid &= thisAxisValid;
+        }
         return isValid;
     }
 
     static void actuatorToPt(PointND& actuatorCoords, PointND& pt, AxisParams axisParams[], int numAxes)
     {
-        double x = (actuatorCoords.getVal(0) + actuatorCoords.getVal(1)) / 2 / axisParams[0].stepsPerUnit();
-        double y = (actuatorCoords.getVal(0) - actuatorCoords.getVal(1)) / 2 / axisParams[1].stepsPerUnit();
-
-            // if (axisParams[i]._minValValid && ptVal < axisParams[i]._minVal)
-            //     ptVal = axisParams[i]._minVal;
-            // if (axisParams[i]._maxValValid && ptVal > axisParams[i]._maxVal)
-            //     ptVal = axisParams[i]._maxVal;
-        pt.setVal(0, x);
-        pt.setVal(1, y);
-
-        Log.trace("actuatorToPt 0 %f -> %f (perunit %f) 1 %f -> %f (perunit %f)",
-                actuatorCoords.getVal(0), x, axisParams[0].stepsPerUnit(),
-                actuatorCoords.getVal(1), y, axisParams[1].stepsPerUnit());
+        for (int i = 0; i < MAX_AXES; i++)
+        {
+            double ptVal = actuatorCoords.getVal(i) - axisParams[i]._homeOffsetSteps;
+            ptVal = ptVal / axisParams[i].stepsPerUnit() + axisParams[i]._homeOffsetVal;
+            if (axisParams[i]._minValValid && ptVal < axisParams[i]._minVal)
+                ptVal = axisParams[i]._minVal;
+            if (axisParams[i]._maxValValid && ptVal > axisParams[i]._maxVal)
+                ptVal = axisParams[i]._maxVal;
+            pt.setVal(i, ptVal);
+            Log.trace("actuatorToPt %d %f -> %f (perunit %f)", i, actuatorCoords.getVal(i), ptVal, axisParams[i].stepsPerUnit());
+        }
     }
 
     static void correctStepOverflow(AxisParams axisParams[], int numAxes)
     {
+        // Not necessary for a non-continuous rotation bot
     }
 
 private:
@@ -67,7 +62,7 @@ private:
     MotionHelper& _motionHelper;
 
 public:
-    RobotHockeyBot(const char* pRobotTypeName, MotionHelper& motionHelper) :
+    RobotXYBot(const char* pRobotTypeName, MotionHelper& motionHelper) :
         RobotBase(pRobotTypeName), _motionHelper(motionHelper)
     {
         _motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);

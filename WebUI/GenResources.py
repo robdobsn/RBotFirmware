@@ -9,15 +9,15 @@ import argparse
 GEN_RESOURCES_TITLE = "RdWebServer"
 
 # UI Variants
-defaultUI = "SandTable"
+DEFAULT_UI = "SandTable"
 GEN_HELP_TEXT = '--UI [CNC | SandTable]'
 
 # Path to the src folder which is to contain the GenResources.h file
 GEN_RESOURCES_H_FOLDER = "../ParticleSW/src"
 
-# NOTE that if MINIFY_HTML is True then the Node package html-minifier needs to be installed globally
+# NOTE that if --compress is True then the Node package html-minifier and minify need to be installed globally
 # npm install html-minifier -g
-MINIFY_HTML = False
+# npm install -g minifier
 
 log.basicConfig(level=log.DEBUG)
 
@@ -43,19 +43,21 @@ def getMimeTypeFromFileExt(fileExt):
         mimeType = "application/xml"
     return mimeType
 
-def writeFileContentsAsHex(filePath, outFile):
+def writeFileContentsAsHex(filePath, outFile, compress):
     filename, file_extension = os.path.splitext(filePath)
     # print("File", filePath, "name", filename, "ext", file_extension)
     inFileName = filePath
-    if MINIFY_HTML and file_extension.upper()[:4] == ".HTM":
+    removeReqd = False
+    if compress and file_extension.upper()[:4] == ".HTM":
+        removeReqd = True
         print("Minifying")
         inFileName = filename + ".tmp"
         # Copy file
         print("Copying", filePath, "to", inFileName)
         shutil.copyfile(filePath, inFileName)
-        # Try to minify using npm html-minifier
+        # Try to minify using html-minifier
         print("Running minifier on", filePath)
-        rslt = subprocess.run(["html-minifier", filePath, "--minify-js", "--minify-css"], shell=True, stdout=subprocess.PIPE)
+        rslt = subprocess.run(["html-minifier", filePath, "--minify-js", "--minify-css", "--remove-comments"], shell=True, stdout=subprocess.PIPE)
         if (rslt.returncode == 0):
             # print(rslt)
             with open(inFileName, "wb") as text_file:
@@ -63,6 +65,18 @@ def writeFileContentsAsHex(filePath, outFile):
             print("Input HTML was",os.stat(filePath).st_size,"bytes, minified file is",os.stat(inFileName).st_size, "bytes")
         else:
             print("MINIFY FAILED returncode", rslt.returncode)
+    elif compress and (file_extension.upper()[:3] == ".JS" or file_extension.upper()[:4] == ".CSS"):
+        removeReqd = True
+        print("Uglifying JS/CSS")
+        print("Running minifier on", filePath)
+        inFileName = os.path.splitext(filePath)[0] + ".min" + os.path.splitext(filePath)[1]
+        rslt = subprocess.run(["minify", filePath], shell=True)
+        if (rslt.returncode == 0):
+            # print(rslt)
+            print("Input was", os.stat(filePath).st_size, "bytes, minified file is",
+                  os.stat(inFileName).st_size, "bytes")
+        else:
+            print("uglify FAILED returncode", rslt.returncode)
 
     # Iterate through file in binary
     chCount = 0
@@ -81,16 +95,18 @@ def writeFileContentsAsHex(filePath, outFile):
                 lineChIdx = 0
             chCount += 1
 
-    if MINIFY_HTML and file_extension.upper()[:4] == ".HTM":
+    if removeReqd:
         print("Removing", inFileName)
         os.remove(inFileName)
 
 # Get command line argument to determine which UI to generate
 parser = argparse.ArgumentParser(description='Generate ' + GEN_RESOURCES_TITLE + 'UI')
 parser.add_argument('--UI', type=str, default=DEFAULT_UI, help=GEN_HELP_TEXT)
+parser.add_argument('--COMPRESS', type=bool, default=True)
 args = parser.parse_args()
 uiFolder = "./" + args.UI + "UI"
-print("Generating UI from " + uiFolder)
+compress = args.COMPRESS
+print("Generating UI from " + uiFolder + " and compressing" if args.COMPRESS else "")
 
 resFileInfo = []
 lineNormalIndentChars = 4
@@ -114,7 +130,7 @@ with open(os.path.join(GEN_RESOURCES_H_FOLDER, "GenResources.h"), "w") as outFil
             # Write variable def
             outFile.write("static const uint8_t " + cIdent + "[] {")
             # Write file contents as hex
-            writeFileContentsAsHex(filePath, outFile)
+            writeFileContentsAsHex(filePath, outFile, compress)
             outFile.write("\n" + " " * lineHexIndentChars + "};\n\n")
             # Form the file info to be added to webUI
             fileInfoRec = {

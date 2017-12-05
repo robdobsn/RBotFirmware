@@ -462,15 +462,15 @@ private:
     double _timeBetweenHomingStepsUs;
 
     // MotionHelper for the robot motion
-    MotionHelper _motionHelper;
+    MotionHelper& _motionHelper;
 
     // Defaults
     static constexpr int homingStepTimeUs_default = 1000;
     static constexpr int maxHomingSecs_default = 1000;
 
 public:
-    RobotSandTableScara(const char* pRobotTypeName) :
-        RobotBase(pRobotTypeName)
+    RobotSandTableScara(const char* pRobotTypeName, MotionHelper& motionHelper) :
+        RobotBase(pRobotTypeName), _motionHelper(motionHelper)
     {
         _homingState = HOMING_STATE_IDLE;
         _homeReqMillis = 0;
@@ -603,7 +603,7 @@ public:
             }
             case AXIS0_HOMED:
             {
-                _motionHelper.axisIsHome(0);
+                _motionHelper.axisSetHome(0);
                 // Rotate from endstop if needed
                 _homingStateNext = AXIS1_TO_ENDSTOP;
                 _homingSeekAxis1Endstop0 = HSEEK_OFF;
@@ -647,7 +647,7 @@ public:
             }
             case AXIS1_HOMED:
             {
-                _motionHelper.axisIsHome(1);
+                _motionHelper.axisSetHome(1);
                 _homingState = HOMING_STATE_IDLE;
                 Log.info("Homing - complete");
                 break;

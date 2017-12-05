@@ -34,7 +34,7 @@
         <div class="uiBlock">
             <div class="uiForm">
                 <input type="text" name="gcode" class="form-control" placeholder="G-Code ..." id="gcodeSendBox">
-                <button type="submit" class="btn btn-default" title="Send G-Code" onclick="sendGcodeFromInput(event)">
+                <button type="submit" class="btn btn-default" title="Send G-Code" onclick="sendGCode(event)">
                     <svg class="icon-action">
                         <use xlink:href="#icon-send"></use>
                     </svg>
@@ -45,14 +45,14 @@
 
         <div class="uiBlock">
             <div class="uiForm">
-                <button id="btnUpload" class="btn btn-default" title="Upload a G-Code file" onclick="buttonUploadClick(event)" >
+                <button id="btnUpload" class="btn btn-default" title="Upload a G-Code file" onclick="btnUpldClk(event)" >
                     <svg class="icon-action">
                         <use xlink:href="#icon-upload"></use>
                     </svg>
                     <span>Upload</span>
                 </button>
                 <span id="txtUploadStatus" class="txt-status"></span>
-                <button id="btnUploadCancel" class="btn btn-default disabled" title="Cancel upload" onclick="buttonUploadCancel(event)" >
+                <button id="btnUploadCancel" class="btn btn-default disabled" title="Cancel upload" onclick="btnUpldCncl(event)" >
                     <svg class="icon-action">
                         <use xlink:href="#icon-cancel"></use>
                     </svg>
@@ -89,7 +89,7 @@
                 <div class="uiPanelHead">
                     <span>Movement</span>
                 </div>
-                <div class="uiTable uiTableButtons tableMovement">
+                <div class="uiTable uiTblBtns tableMovement">
                     <tr>
                         <td class="home-buttons visible-lg">
                             <div class="btn-group" role="group">
@@ -102,25 +102,25 @@
                             <div class="btn-group btn-group-justified" role="group">
                                 <a class="btn btn-default" onclick="moveClick(0,-100)">
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-left-chevron"></use>
+                                        <use xlink:href="#ico-lc"></use>
                                     </svg>
                                     <span>X-100</span>
                                 </a>
                                 <a class="btn btn-default" onclick="moveClick(0,-10)">
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-left-chevron"></use>
+                                        <use xlink:href="#ico-lc"></use>
                                     </svg>
                                     <span>X-10</span>
                                 </a>
                                 <a class="btn btn-default" onclick="moveClick(0,-1)">
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-left-chevron"></use>
+                                        <use xlink:href="#ico-lc"></use>
                                     </svg>
                                     <span>X-1</span>
                                 </a>
                                 <a class="btn btn-default" onclick="moveClick(0,-0.1)">
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-left-chevron"></use>
+                                        <use xlink:href="#ico-lc"></use>
                                     </svg>
                                     <span>X-0.1</span>
                                 </a>
@@ -131,26 +131,26 @@
                                 <a class="btn btn-default" onclick="moveClick(0,0.1)">
                                     <span>X+0.1</span>
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-right-chevron"></use>
+                                        <use xlink:href="#ico-rc"></use>
                                     </svg>
                                 </a>
                                 <a class="btn btn-default" onclick="moveClick(0,1)">
                                     <span>X+1</span>
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-right-chevron"></use>
+                                        <use xlink:href="#ico-rc"></use>
                                     </svg>
                                 </a>
                                 <a class="btn btn-default" onclick="moveClick(0,10)">
                                     <span>X+10</span>
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-right-chevron"></use>
+                                        <use xlink:href="#ico-rc"></use>
                                     </svg>
                                 </a>
                                 <a class="btn btn-default" onclick="moveClick(0,100)">
                                     <span>X+100</span>
 
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-right-chevron"></use>
+                                        <use xlink:href="#ico-rc"></use>
                                     </svg>
                                 </a>
                             </div>
@@ -168,25 +168,25 @@
                             <div class="btn-group btn-group-justified" role="group">
                                 <a class="btn btn-default" onclick="moveClick(1,-100)">
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-left-chevron"></use>
+                                        <use xlink:href="#ico-lc"></use>
                                     </svg>
                                     <span>Y-100</span>
                                 </a>
                                 <a class="btn btn-default" onclick="moveClick(1,-10)">
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-left-chevron"></use>
+                                        <use xlink:href="#ico-lc"></use>
                                     </svg>
                                     <span>Y-10</span>
                                 </a>
                                 <a class="btn btn-default" onclick="moveClick(1,-1)">
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-left-chevron"></use>
+                                        <use xlink:href="#ico-lc"></use>
                                     </svg>
                                     <span>Y-1</span>
                                 </a>
                                 <a class="btn btn-default" onclick="moveClick(1,-0.1)">
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-left-chevron"></use>
+                                        <use xlink:href="#ico-lc"></use>
                                     </svg>
                                     <span>Y-0.1</span>
                                 </a>
@@ -197,26 +197,26 @@
                                 <a class="btn btn-default" onclick="moveClick(1,0.1)">
                                     <span>Y+0.1</span>
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-right-chevron"></use>
+                                        <use xlink:href="#ico-rc"></use>
                                     </svg>
                                 </a>
                                 <a class="btn btn-default" onclick="moveClick(1,1)">
                                     <span>Y+1</span>
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-right-chevron"></use>
+                                        <use xlink:href="#ico-rc"></use>
                                     </svg>
                                 </a>
                                 <a class="btn btn-default" onclick="moveClick(1,10)">
                                     <span>Y+10</span>
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-right-chevron"></use>
+                                        <use xlink:href="#ico-rc"></use>
                                     </svg>
                                 </a>
                                 <a class="btn btn-default" onclick="moveClick(1,100)">
                                     <span>Y+100</span>
 
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-right-chevron"></use>
+                                        <use xlink:href="#ico-rc"></use>
                                     </svg>
                                 </a>
                             </div>
@@ -234,25 +234,25 @@
                             <div class="btn-group btn-group-justified" role="group">
                                 <a class="btn btn-default" onclick="moveClick(2,-100)">
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-left-chevron"></use>
+                                        <use xlink:href="#ico-lc"></use>
                                     </svg>
                                     <span>Z-100</span>
                                 </a>
                                 <a class="btn btn-default" onclick="moveClick(2,-10)">
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-left-chevron"></use>
+                                        <use xlink:href="#ico-lc"></use>
                                     </svg>
                                     <span>Z-10</span>
                                 </a>
                                 <a class="btn btn-default" onclick="moveClick(2,-1)">
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-left-chevron"></use>
+                                        <use xlink:href="#ico-lc"></use>
                                     </svg>
                                     <span>Z-1</span>
                                 </a>
                                 <a class="btn btn-default" onclick="moveClick(2,-0.1)">
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-left-chevron"></use>
+                                        <use xlink:href="#ico-lc"></use>
                                     </svg>
                                     <span>Z-0.1</span>
                                 </a>
@@ -263,26 +263,26 @@
                                 <a class="btn btn-default" onclick="moveClick(2,0.1)">
                                     <span>Z+0.1</span>
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-right-chevron"></use>
+                                        <use xlink:href="#ico-rc"></use>
                                     </svg>
                                 </a>
                                 <a class="btn btn-default" onclick="moveClick(2,1)">
                                     <span>Z+1</span>
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-right-chevron"></use>
+                                        <use xlink:href="#ico-rc"></use>
                                     </svg>
                                 </a>
                                 <a class="btn btn-default" onclick="moveClick(2,10)">
                                     <span>Z+10</span>
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-right-chevron"></use>
+                                        <use xlink:href="#ico-rc"></use>
                                     </svg>
                                 </a>
                                 <a class="btn btn-default" onclick="moveClick(2,100)">
                                     <span>Z+100</span>
 
                                     <svg class="icon-action">
-                                        <use xlink:href="#icon-right-chevron"></use>
+                                        <use xlink:href="#ico-rc"></use>
                                     </svg>
                                 </a>
                             </div>
@@ -307,12 +307,12 @@
                 <path d="M1200 103l-483 276l-314 -399v423h-399l1196 796v-1096zM483 424v-230l683 953z" transform="scale(1,-1) translate(0,-1200)"></path>
             </g>
         </symbol >
-        <symbol id="icon-left-chevron" viewBox="0 0 1200 1200">
+        <symbol id="ico-lc" viewBox="0 0 1200 1200">
             <g>
                 <path d="M885 900l-352 -353l352 -353l-197 -198l-552 552l552 550z"></path>
             </g>
         </symbol >
-        <symbol id="icon-right-chevron" viewBox="0 0 1200 1200">
+        <symbol id="ico-rc" viewBox="0 0 1200 1200">
             <g>
                 <path d="M1064 547l-551 -551l-198 198l353 353l-353 353l198 198z"></path>
             </g>

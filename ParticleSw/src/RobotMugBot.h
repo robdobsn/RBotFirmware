@@ -41,7 +41,7 @@ public:
                 thisAxisValid = false;
             if (axisParams[i]._maxValValid && motionElem._pt2MM.getVal(i) > axisParams[i]._maxVal)
                 thisAxisValid = false;
-            Log.info("ptToActuator (%s) %f -> %f (homeOffVal %f, homeOffSteps %ld)", thisAxisValid ? "OK" : "INVALID",
+            Log.trace("ptToActuator (%s) %f -> %f (homeOffVal %f, homeOffSteps %ld)", thisAxisValid ? "OK" : "INVALID",
                 motionElem._pt2MM.getVal(i), actuatorCoords._pt[i], axisParams[i]._homeOffsetVal, axisParams[i]._homeOffsetSteps);
             isValid &= thisAxisValid;
         }
@@ -63,7 +63,7 @@ public:
             if (axisParams[i]._maxValValid && ptVal > axisParams[i]._maxVal)
                 ptVal = axisParams[i]._maxVal;
             pt.setVal(i, ptVal);
-            Log.info("actuatorToPt %d %f -> %f (perunit %f)", i, actuatorCoords.getVal(i), ptVal, axisParams[i].stepsPerUnit());
+            Log.trace("actuatorToPt %d %f -> %f (perunit %f)", i, actuatorCoords.getVal(i), ptVal, axisParams[i].stepsPerUnit());
         }
     }
 
@@ -97,11 +97,11 @@ private:
     double _timeBetweenHomingStepsUs;
 
     // MotionHelper for the robot motion
-    MotionHelper _motionHelper;
+    MotionHelper& _motionHelper;
 
 public:
-    RobotMugBot(const char* pRobotTypeName) :
-        RobotBase(pRobotTypeName)
+    RobotMugBot(const char* pRobotTypeName, MotionHelper& motionHelper) :
+        RobotBase(pRobotTypeName), _motionHelper(motionHelper)
     {
         _homingState = HOMING_STATE_IDLE;
         _homeReqMillis = 0;
@@ -212,8 +212,8 @@ public:
             }
             case HOMING_STATE_COMPLETE:
             {
-                _motionHelper.axisIsHome(0);
-                _motionHelper.axisIsHome(1);
+                _motionHelper.axisSetHome(0);
+                _motionHelper.axisSetHome(1);
                 _homingState = HOMING_STATE_IDLE;
                 Log.info("Homing - complete");
                 break;

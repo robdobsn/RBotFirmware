@@ -78,54 +78,64 @@ unsigned long configDirtyStartMs = 0;
 // Mugbot on PiHat 1.1
 // linear axis 1/8 microstepping,
 // rotary axis 1/16 microstepping
-static const char* ROBOT_CONFIG_STR_MUGBOT_PIHAT_1_1 =
-    "{\"robotType\": \"MugBot\", \"xMaxMM\":150, \"yMaxMM\":120, "
-    " \"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":60.0,"
-    " \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":5.0, \"acceleration\":2.0,"
-    " \"stepsPerRotation\":3200, \"unitsPerRotation\":360, \"minVal\":0, \"maxVal\":240}, "
-    " \"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
-    " \"stepsPerRotation\":1600, \"unitsPerRotation\":2.0, \"minVal\":0, \"maxVal\":78, "
-    " \"endStop0\": { \"sensePin\": \"D7\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"}},"
-    " \"axis2\": { \"servoPin\": \"D0\", \"isServoAxis\": 1, \"homeOffsetVal\": 120, \"homeOffsetSteps\": 1666,"
-    " \"minVal\":0, \"maxVal\":180, \"stepsPerRotation\":2000, \"unitsPerRotation\":360 },"
-    "}";
+// static const char* ROBOT_CONFIG_STR_MUGBOT_PIHAT_1_1 =
+//     "{\"robotType\": \"MugBot\", \"xMaxMM\":150, \"yMaxMM\":120, "
+//     " \"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":60.0,"
+//     " \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":5.0, \"acceleration\":2.0,"
+//     " \"stepsPerRotation\":3200, \"unitsPerRotation\":360, \"minVal\":0, \"maxVal\":240}, "
+//     " \"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
+//     " \"stepsPerRotation\":1600, \"unitsPerRotation\":2.0, \"minVal\":0, \"maxVal\":78, "
+//     " \"endStop0\": { \"sensePin\": \"D7\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"}},"
+//     " \"axis2\": { \"servoPin\": \"D0\", \"isServoAxis\": 1, \"homeOffsetVal\": 120, \"homeOffsetSteps\": 1666,"
+//     " \"minVal\":0, \"maxVal\":180, \"stepsPerRotation\":2000, \"unitsPerRotation\":360 },"
+//     "}";
+//
+// static const char* ROBOT_CONFIG_STR_GEISTBOT =
+//     "{\"robotType\": \"GeistBot\", \"xMaxMM\":400, \"yMaxMM\":400, "
+//     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
+//     " \"maxHomingSecs\":120, \"homingLinOffsetDegs\":70, \"homingCentreOffsetMM\":4,"
+//     " \"homingRotCentreDegs\":3.7, \"cmdsAtStart\":\"G28;ModSpiral\", "
+//     " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
+//     " \"stepsPerRotation\":12000, \"unitsPerRotation\":360, \"isDominantAxis\":1,"
+//     " \"endStop0\": { \"sensePin\": \"A6\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"}},"
+//     " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
+//     " \"stepsPerRotation\":12000, \"unitsPerRotation\":44.8, \"minVal\":0, \"maxVal\":195, "
+//     " \"endStop0\": { \"sensePin\": \"A7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
+//     "}";
+//
+// static const char* ROBOT_CONFIG_STR_SANDTABLESCARA =
+//     "{\"robotType\": \"SandTableScara\", \"xMaxMM\":190, \"yMaxMM\":190, "
+//     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
+//     " \"blockDistanceMM\":1.0, \"homingAxis1OffsetDegs\":20.0,"
+//     " \"maxHomingSecs\":120, \"cmdsAtStart\":\"G28\","
+//     " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
+//     " \"minNsBetweenSteps\":1000000,"
+//     " \"stepsPerRotation\":9600, \"unitsPerRotation\":628.318,"
+//     " \"endStop0\": { \"sensePin\": \"A6\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
+//     " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
+//     " \"minNsBetweenSteps\":1000000,"
+//     " \"stepsPerRotation\":9600, \"unitsPerRotation\":628.318, \"homeOffsetSteps\": 0,"
+//     " \"endStop0\": { \"sensePin\": \"A7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
+//     "}";
 
-static const char* ROBOT_CONFIG_STR_GEISTBOT =
-    "{\"robotType\": \"GeistBot\", \"xMaxMM\":400, \"yMaxMM\":400, "
-    " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
-    " \"maxHomingSecs\":120, \"homingLinOffsetDegs\":70, \"homingCentreOffsetMM\":4,"
-    " \"homingRotCentreDegs\":3.7, \"cmdsAtStart\":\"G28;ModSpiral\", "
-    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
-    " \"stepsPerRotation\":12000, \"unitsPerRotation\":360, \"isDominantAxis\":1,"
-    " \"endStop0\": { \"sensePin\": \"A6\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"}},"
-    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
-    " \"stepsPerRotation\":12000, \"unitsPerRotation\":44.8, \"minVal\":0, \"maxVal\":195, "
-    " \"endStop0\": { \"sensePin\": \"A7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
-    "}";
+// static const char* ROBOT_CONFIG_STR_AIRHOCKEY =
+//     "{\"robotType\": \"HockeyBot\", \"xMaxMM\":350, \"yMaxMM\":400, "
+//     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
+//     " \"cmdsAtStart\":\"\", "
+//     " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":5000.0, \"acceleration\":5000.0,"
+//     " \"stepsPerRotation\":3200, \"unitsPerRotation\":62, \"minNsBetweenSteps\":1000},"
+//     " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":5000.0, \"acceleration\":5000.0,"
+//     " \"stepsPerRotation\":3200, \"unitsPerRotation\":62, \"minNsBetweenSteps\":1000}"
+//     "}";
 
-static const char* ROBOT_CONFIG_STR_SANDTABLESCARA =
-    "{\"robotType\": \"SandTableScara\", \"xMaxMM\":190, \"yMaxMM\":190, "
-    " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
-    " \"blockDistanceMM\":1.0, \"homingAxis1OffsetDegs\":20.0,"
-    " \"maxHomingSecs\":120, \"cmdsAtStart\":\"G28\","
-    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
-    " \"minNsBetweenSteps\":1000000,"
-    " \"stepsPerRotation\":9600, \"unitsPerRotation\":628.318,"
-    " \"endStop0\": { \"sensePin\": \"A6\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
-    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
-    " \"minNsBetweenSteps\":1000000,"
-    " \"stepsPerRotation\":9600, \"unitsPerRotation\":628.318, \"homeOffsetSteps\": 0,"
-    " \"endStop0\": { \"sensePin\": \"A7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
-    "}";
-
-static const char* ROBOT_CONFIG_STR_AIRHOCKEY =
-    "{\"robotType\": \"HockeyBot\", \"xMaxMM\":350, \"yMaxMM\":400, "
+static const char* ROBOT_CONFIG_STR_XY =
+    "{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, "
     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
     " \"cmdsAtStart\":\"\", "
-    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":5000.0, \"acceleration\":5000.0,"
-    " \"stepsPerRotation\":3200, \"unitsPerRotation\":62, \"minNsBetweenSteps\":1000},"
-    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":5000.0, \"acceleration\":5000.0,"
-    " \"stepsPerRotation\":3200, \"unitsPerRotation\":62, \"minNsBetweenSteps\":1000}"
+    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":100.0, \"acceleration\":10.0,"
+    " \"stepsPerRotation\":3200, \"unitsPerRotation\":60, \"minNsBetweenSteps\":10000},"
+    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":100.0, \"acceleration\":10.0,"
+    " \"stepsPerRotation\":3200, \"unitsPerRotation\":60, \"minNsBetweenSteps\":10000}"
     "}";
 
 static const char* ROBOT_DEFAULT_SEQUENCE_COMMANDS =
@@ -140,7 +150,7 @@ static const char* ROBOT_DEFAULT_PATTERN_COMMANDS =
     "  }"
     "}";*/
 
-static const char* ROBOT_CONFIG_STR = ROBOT_CONFIG_STR_AIRHOCKEY;
+static const char* ROBOT_CONFIG_STR = ROBOT_CONFIG_STR_XY;
 
 static const char* WORKFLOW_CONFIG_STR =
     "{\"CommandQueue\": { \"cmdQueueMaxLen\":50 } }";
@@ -221,7 +231,7 @@ void restAPI_Status(RestAPIEndpointMsg& apiMsg, String& retStr)
 }
 
 // Exec via particle function
-char* particleAPI_Exec(char* cmdStr)
+const char* particleAPI_Exec(const char* cmdStr)
 {
     Log.trace("ParticleAPI Exec method %s", cmdStr);
     _commandInterpreter.process(cmdStr);
@@ -352,7 +362,7 @@ unsigned long particleAPI_ReportHealthHash()
 {
     particleAPI_ReportHealth(NULL, NULL);
     unsigned long hashVal = 0;
-    for (int i = 0; i < particleAPI_statusStr.length(); i++)
+    for (unsigned int i = 0; i < particleAPI_statusStr.length(); i++)
     {
         hashVal += particleAPI_statusStr.charAt(i);
     }

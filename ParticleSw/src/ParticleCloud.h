@@ -3,7 +3,7 @@
 
 #pragma once
 
-typedef char* (*ParticleRxCallbackType)(char* cmdStr);
+typedef const char* (*ParticleRxCallbackType)(const char* cmdStr);
 
 typedef char* (*ParticleCallbackType)(const char* idStr,
                 const char* initialContentJsonElementList);
@@ -102,7 +102,7 @@ public:
                 // Check for status change
                 unsigned long statusHash = 0;
                 if (__queryStatusHashFn != NULL)
-                    statusHash == __queryStatusHashFn();
+                    statusHash = __queryStatusHashFn();
                 if ((statusHash != __lastStatusHashValue) || (__queryStatusHashFn == NULL))
                 {
                     // Serial.println("Particle var status has changed");

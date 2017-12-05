@@ -186,11 +186,11 @@ private:
     double _timeBetweenHomingStepsUs;
 
     // MotionHelper for the robot motion
-    MotionHelper _motionHelper;
+    MotionHelper& _motionHelper;
 
 public:
-    RobotGeistBot(const char* pRobotTypeName) :
-        RobotBase(pRobotTypeName)
+    RobotGeistBot(const char* pRobotTypeName, MotionHelper& motionHelper) :
+        RobotBase(pRobotTypeName), _motionHelper(motionHelper)
     {
         _homingState = HOMING_STATE_IDLE;
         _homeReqMillis = 0;
@@ -325,7 +325,7 @@ private:
             case ROTATE_TO_LINEAR_SEEK_ANGLE:
             {
                 _homingStateNext = LINEAR_SEEK_ENDSTOP;
-                _motionHelper.axisIsHome(0);
+                _motionHelper.axisSetHome(0);
                 _homingStepsLimit = _homingLinOffsetDegs * _motionHelper.getStepsPerUnit(0);
                 _homingApplyStepLimit = true;
                 // To purely rotate both steppers must turn in the same direction
@@ -411,7 +411,7 @@ private:
             }
             case HOMING_STATE_COMPLETE:
             {
-                _motionHelper.axisIsHome(1);
+                _motionHelper.axisSetHome(1);
                 _homingState = HOMING_STATE_IDLE;
                 Log.info("Homing - complete");
                 break;
