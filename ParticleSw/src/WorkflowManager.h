@@ -23,8 +23,8 @@ public:
     // Init
     void init(const char* configStr)
     {
-        Log.info("Constructing WorkflowManager from %s", configStr);
-        String cmdQueueCfg = RdJson::getString("CommandQueue", "NONE", configStr);
+        String cmdQueueCfg = RdJson::getString("commandQueue", "{}", configStr);
+        Log.info("Constructing WorkflowManager from %s", cmdQueueCfg.c_str());
 
         _cmdQueue.init(cmdQueueCfg);
     }

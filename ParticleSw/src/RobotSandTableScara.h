@@ -499,7 +499,7 @@ public:
         return true;
     }
 
-    void home(RobotCommandArgs& args)
+    void goHome(RobotCommandArgs& args)
     {
         // Info
         Log.info("%s home x%d, y%d, z%d", _robotTypeName.c_str(), args.valid.X(), args.valid.Y(), args.valid.Z());

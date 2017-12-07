@@ -84,6 +84,8 @@ public:
     uint32_t _stepCount;
     // True if this axis is actively moving
     bool _isActive;
+    // If this axis is a servo then this should be non-NULL
+    Servo* _pServo;
     // Pins and current values for step and direction
     int _stepPin;
     bool _stepPinValue;
@@ -104,6 +106,7 @@ public:
         _usAccum = 0;
         _stepCount = 0;
         _isActive = false;
+        _pServo = NULL;
         _stepPin = -1;
         _stepPinValue = false;
         _dirnPin = -1;
@@ -126,7 +129,7 @@ public:
         _stepsFromLastZero = 0;
     }
 
-    void setPins(int stepPin, int dirnPin)
+    void setPins(int stepPin, int dirnPin, Servo * pServo)
     {
         _stepPin = stepPin;
         _dirnPin = dirnPin;
@@ -134,6 +137,7 @@ public:
         _stepPinValue = false;
         digitalWrite(_dirnPin, false);
         _dirnPinValue = false;
+        _pServo = pServo;
     }
 };
 
@@ -186,26 +190,37 @@ static void __isrStepperMotion(void)
         // Check if it is the start of a new block
         if (__isrStartOfNewBlock)
         {
-            // Check if active
-            pAxisVars->_isActive = (pAxisVars->_stepNum[qPos] != 0);
-
-            // Set params for active axis
-            if (pAxisVars->_isActive)
+            // Check if this is a Servo
+            if (pAxisVars->_pServo)
             {
-                // Direction
-                bool stepDirn = pAxisVars->_stepDirn[qPos];
-                if (pAxisVars->_dirnPinValue != stepDirn)
-                {
-                    digitalWrite(pAxisVars->_dirnPin, stepDirn);
-                    pAxisVars->_dirnPinValue = stepDirn;
-                }
+                pAxisVars->_isActive = false;
+                pAxisVars->_pServo->writeMicroseconds(pAxisVars->_stepNum[qPos]);
+                pAxisVars->_stepCount = pAxisVars->_stepNum[qPos];
+                pAxisVars->_stepsFromLastZero = pAxisVars->_stepNum[qPos];
+            }
+            else
+            {
+                // Check if active
+                pAxisVars->_isActive = (pAxisVars->_stepNum[qPos] != 0);
 
-                // Counts
-                pAxisVars->_stepCount = 0;
-                pAxisVars->_usAccum = 0;
-#ifdef DEBUG_TIME_ISR_JITTER
-                pAxisVars->_dbgLastStepUsValid = false;
-#endif
+                // Set params for active axis
+                if (pAxisVars->_isActive)
+                {
+                    // Direction
+                    bool stepDirn = pAxisVars->_stepDirn[qPos];
+                    if (pAxisVars->_dirnPinValue != stepDirn)
+                    {
+                        digitalWrite(pAxisVars->_dirnPin, stepDirn);
+                        pAxisVars->_dirnPinValue = stepDirn;
+                    }
+
+                    // Counts
+                    pAxisVars->_stepCount = 0;
+                    pAxisVars->_usAccum = 0;
+    #ifdef DEBUG_TIME_ISR_JITTER
+                    pAxisVars->_dbgLastStepUsValid = false;
+    #endif
+                }
             }
         }
 
@@ -330,11 +345,11 @@ public:
         __isrIsEnabled = !pause;
     }
 
-    bool setAxis(int axisIdx, int pinStep, int pinDirn)
+    bool setAxis(int axisIdx, int pinStep, int pinDirn, Servo* pServo)
     {
         if (axisIdx < 0 || axisIdx >= ISR_MAX_AXES)
             return false;
-        __isrAxisVars[axisIdx].setPins(pinStep, pinDirn);
+        __isrAxisVars[axisIdx].setPins(pinStep, pinDirn, pServo);
         return true;
     }
 
@@ -362,7 +377,7 @@ public:
         return __isrRingBufferPosn.canPut();
     }
 
-    void addAxisSteps(int axisIdx, int stepNum, bool stepDirection, uint32_t uSBetweenSteps)
+    void addAxisSteps(int axisIdx, uint32_t stepNum, bool stepDirection, uint32_t uSBetweenSteps)
     {
         __isrAxisVars[axisIdx]._stepUs[__isrRingBufferPosn._putPos] = uSBetweenSteps;
         __isrAxisVars[axisIdx]._stepNum[__isrRingBufferPosn._putPos] = stepNum;

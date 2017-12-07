@@ -4,6 +4,7 @@ import os, os.path
 import shutil
 import subprocess
 import argparse
+import gzip
 
 # Title of program
 GEN_RESOURCES_TITLE = "RdWebServer"
@@ -48,6 +49,7 @@ def writeFileContentsAsHex(filePath, outFile, compress):
     # print("File", filePath, "name", filename, "ext", file_extension)
     inFileName = filePath
     removeReqd = False
+    contentEncoding = ""
     if compress and file_extension.upper()[:4] == ".HTM":
         removeReqd = True
         print("Minifying")
@@ -60,9 +62,12 @@ def writeFileContentsAsHex(filePath, outFile, compress):
         rslt = subprocess.run(["html-minifier", filePath, "--minify-js", "--minify-css", "--remove-comments"], shell=True, stdout=subprocess.PIPE)
         if (rslt.returncode == 0):
             # print(rslt)
-            with open(inFileName, "wb") as text_file:
+            with gzip.open(inFileName, 'wb') as text_file:
                 text_file.write(rslt.stdout)
-            print("Input HTML was",os.stat(filePath).st_size,"bytes, minified file is",os.stat(inFileName).st_size, "bytes")
+            contentEncoding = "gzip"
+            # with open(inFileName, "wb") as text_file:
+            #     text_file.write(rslt.stdout)
+            print("Input HTML was", os.stat(filePath).st_size, "bytes, minified file is", os.stat(inFileName).st_size, "bytes")
         else:
             print("MINIFY FAILED returncode", rslt.returncode)
     elif compress and (file_extension.upper()[:3] == ".JS" or file_extension.upper()[:4] == ".CSS"):
@@ -99,6 +104,8 @@ def writeFileContentsAsHex(filePath, outFile, compress):
         print("Removing", inFileName)
         os.remove(inFileName)
 
+    return contentEncoding
+
 # Get command line argument to determine which UI to generate
 parser = argparse.ArgumentParser(description='Generate ' + GEN_RESOURCES_TITLE + 'UI')
 parser.add_argument('--UI', type=str, default=DEFAULT_UI, help=GEN_HELP_TEXT)
@@ -130,13 +137,14 @@ with open(os.path.join(GEN_RESOURCES_H_FOLDER, "GenResources.h"), "w") as outFil
             # Write variable def
             outFile.write("static const uint8_t " + cIdent + "[] {")
             # Write file contents as hex
-            writeFileContentsAsHex(filePath, outFile, compress)
+            contentEncoding = writeFileContentsAsHex(filePath, outFile, compress)
             outFile.write("\n" + " " * lineHexIndentChars + "};\n\n")
             # Form the file info to be added to webUI
             fileInfoRec = {
                 "fileName": fileName,
                 "filePath": filePath,
                 "fileExt": fileExt,
+                "contentEncoding": contentEncoding,
                 "fileCIdent": cIdent
             }
             resFileInfo.append(fileInfoRec)
@@ -153,8 +161,9 @@ with open(os.path.join(GEN_RESOURCES_H_FOLDER, "GenResources.h"), "w") as outFil
         outFile.write(" " * lineNormalIndentChars + "RdWebServerResourceDescr(")
         outFile.write("\"" + fileInf["fileName"] + "\", ")
         outFile.write("\"" + mimeType + "\", ")
+        outFile.write("\"" + fileInf["contentEncoding"] + "\", ")
         outFile.write(fileInf["fileCIdent"] + ", ")
-        outFile.write("sizeof(" + fileInf["fileCIdent"] + "))")
+        outFile.write("sizeof(" + fileInf["fileCIdent"] + ")-1)")
     outFile.write("\n" + " " * lineNormalIndentChars + "};\n\n")
 
     # Write the sixe of the resource list

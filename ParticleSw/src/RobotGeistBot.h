@@ -223,7 +223,7 @@ public:
         return true;
     }
 
-    void home(RobotCommandArgs& args)
+    void goHome(RobotCommandArgs& args)
     {
         // GeistBot can only home X & Y axes together so ignore params
         Log.info("%s home x%d, y%d, z%d", _robotTypeName.c_str(), args.valid.X(), args.valid.Y(), args.valid.Z());

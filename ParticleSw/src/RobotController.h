@@ -164,12 +164,20 @@ public:
         _pRobot->getCurStatus(args);
     }
 
-    // Home
-    void home(RobotCommandArgs& args)
+    // Go Home
+    void goHome(RobotCommandArgs& args)
     {
         if (!_pRobot)
             return;
-        _pRobot->home(args);
+        _pRobot->goHome(args);
+    }
+
+    // Set Home
+    void setHome(RobotCommandArgs& args)
+    {
+        if (!_pRobot)
+            return;
+        _pRobot->setHome(args);
     }
 
     bool wasActiveInLastNSeconds(int nSeconds)

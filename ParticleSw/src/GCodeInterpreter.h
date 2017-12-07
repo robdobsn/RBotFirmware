@@ -93,7 +93,7 @@ public:
         RobotCommandArgs cmdArgs;
         rslt = getGcodeCmdArgs(pArgsStr, cmdArgs);
 
-        Log.trace("GCodeInterpreter Cmd G%d %s", cmdNum, pArgsStr);
+        Log.info("GCodeInterpreter Cmd G%d %s", cmdNum, pArgsStr);
 
         // Switch on number
         switch(cmdNum)
@@ -109,7 +109,7 @@ public:
             case 28: // Home axes
                 if (takeAction)
                 {
-                    pRobotController->home(cmdArgs);
+                    pRobotController->goHome(cmdArgs);
                 }
                 return true;
             case 90: // Move absolute
@@ -124,6 +124,12 @@ public:
                 {
                     cmdArgs.moveType = RobotMoveTypeArg_Relative;
                     pRobotController->setMotionParams(cmdArgs);
+                }
+                return true;
+            case 92: // Set home
+                if (takeAction)
+                {
+                    pRobotController->setHome(cmdArgs);
                 }
                 return true;
         }

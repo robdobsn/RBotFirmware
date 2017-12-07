@@ -78,18 +78,19 @@ unsigned long configDirtyStartMs = 0;
 // Mugbot on PiHat 1.1
 // linear axis 1/8 microstepping,
 // rotary axis 1/16 microstepping
-// static const char* ROBOT_CONFIG_STR_MUGBOT_PIHAT_1_1 =
-//     "{\"robotType\": \"MugBot\", \"xMaxMM\":150, \"yMaxMM\":120, "
-//     " \"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":60.0,"
-//     " \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":5.0, \"acceleration\":2.0,"
-//     " \"stepsPerRotation\":3200, \"unitsPerRotation\":360, \"minVal\":0, \"maxVal\":240}, "
-//     " \"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
-//     " \"stepsPerRotation\":1600, \"unitsPerRotation\":2.0, \"minVal\":0, \"maxVal\":78, "
-//     " \"endStop0\": { \"sensePin\": \"D7\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"}},"
-//     " \"axis2\": { \"servoPin\": \"D0\", \"isServoAxis\": 1, \"homeOffsetVal\": 120, \"homeOffsetSteps\": 1666,"
-//     " \"minVal\":0, \"maxVal\":180, \"stepsPerRotation\":2000, \"unitsPerRotation\":360 },"
-//     "}";
-//
+static const char* ROBOT_CONFIG_STR_MUGBOT_PIHAT_1_1 =
+    "{\"robotType\": \"MugBot\", \"xMaxMM\":150, \"yMaxMM\":120,"
+    " \"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":60.0,"
+    " \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":50.0, \"acceleration\":20.0,"
+    " \"stepsPerRotation\":6400, \"unitsPerRotation\":360, \"minVal\":-360, \"maxVal\":360},"
+    " \"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":75.0, \"acceleration\":25.0,"
+    " \"stepsPerRotation\":1600, \"unitsPerRotation\":1.0, \"minVal\":0, \"maxVal\":100,"
+    " \"homeOffsetVal\": 100,"
+    " \"endStop0\": { \"sensePin\": \"D7\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"}},"
+    " \"axis2\": { \"servoPin\": \"D0\", \"isServoAxis\": 1, \"homeOffsetVal\": 180, \"homeOffsetSteps\": 2000,"
+    " \"minVal\":0, \"maxVal\":180, \"stepsPerRotation\":2000, \"unitsPerRotation\":360 },"
+    "}";
+
 // static const char* ROBOT_CONFIG_STR_GEISTBOT =
 //     "{\"robotType\": \"GeistBot\", \"xMaxMM\":400, \"yMaxMM\":400, "
 //     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
@@ -128,15 +129,16 @@ unsigned long configDirtyStartMs = 0;
 //     " \"stepsPerRotation\":3200, \"unitsPerRotation\":62, \"minNsBetweenSteps\":1000}"
 //     "}";
 
-static const char* ROBOT_CONFIG_STR_XY =
-    "{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, "
-    " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
-    " \"cmdsAtStart\":\"\", "
-    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":100.0, \"acceleration\":10.0,"
-    " \"stepsPerRotation\":3200, \"unitsPerRotation\":60, \"minNsBetweenSteps\":10000},"
-    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":100.0, \"acceleration\":10.0,"
-    " \"stepsPerRotation\":3200, \"unitsPerRotation\":60, \"minNsBetweenSteps\":10000}"
-    "}";
+// static const char* ROBOT_CONFIG_STR_XY =
+//     "{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, "
+//     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
+//     " \"cmdsAtStart\":\"\", "
+//     " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":100.0, \"acceleration\":10.0,"
+//     " \"stepsPerRotation\":3200, \"unitsPerRotation\":60, \"minNsBetweenSteps\":10000},"
+//     " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":100.0, \"acceleration\":10.0,"
+//     " \"stepsPerRotation\":3200, \"unitsPerRotation\":60, \"minNsBetweenSteps\":10000},"
+//     " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
+//     "}";
 
 static const char* ROBOT_DEFAULT_SEQUENCE_COMMANDS =
     "{}";
@@ -150,10 +152,7 @@ static const char* ROBOT_DEFAULT_PATTERN_COMMANDS =
     "  }"
     "}";*/
 
-static const char* ROBOT_CONFIG_STR = ROBOT_CONFIG_STR_XY;
-
-static const char* WORKFLOW_CONFIG_STR =
-    "{\"CommandQueue\": { \"cmdQueueMaxLen\":50 } }";
+static const char* ROBOT_CONFIG_STR = ROBOT_CONFIG_STR_MUGBOT_PIHAT_1_1;
 
 // Post settings information via API
 void restAPI_PostSettings(RestAPIEndpointMsg& apiMsg, String& retStr)
@@ -257,12 +256,12 @@ void setup()
     #endif
 
     // Add API endpoints
-    restAPIEndpoints.addEndpoint("postsettings", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_PostSettings, "");
-    restAPIEndpoints.addEndpoint("getsettings", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_GetSettings, "");
-    restAPIEndpoints.addEndpoint("exec", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Exec, "");
-    restAPIEndpoints.addEndpoint("pattern", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Pattern, "");
-    restAPIEndpoints.addEndpoint("sequence", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Sequence, "");
-    restAPIEndpoints.addEndpoint("status", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Status, "");
+    restAPIEndpoints.addEndpoint("postsettings", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_PostSettings, "", "");
+    restAPIEndpoints.addEndpoint("getsettings", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_GetSettings, "", "");
+    restAPIEndpoints.addEndpoint("exec", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Exec, "", "");
+    restAPIEndpoints.addEndpoint("pattern", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Pattern, "", "");
+    restAPIEndpoints.addEndpoint("sequence", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Sequence, "", "");
+    restAPIEndpoints.addEndpoint("status", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Status, "", "");
 
     // Construct web server
     Log.info("Main: Constructing Web Server");
@@ -286,7 +285,7 @@ void setup()
 
     // Init robot controller and workflow manager
     _robotController.init(ROBOT_CONFIG_STR);
-    _workflowManager.init(WORKFLOW_CONFIG_STR);
+    _workflowManager.init(ROBOT_CONFIG_STR);
 
     // Configure the command interpreter
     bool configLoaded = false;

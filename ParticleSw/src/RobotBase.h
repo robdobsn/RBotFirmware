@@ -69,7 +69,11 @@ public:
     }
 
     // Homing commands
-    virtual void home(RobotCommandArgs& args)
+    virtual void goHome(RobotCommandArgs& args)
+    {
+    }
+
+    virtual void setHome(RobotCommandArgs& args)
     {
     }
 

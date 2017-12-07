@@ -91,6 +91,7 @@ private:
     unsigned long _maxHomingSecs;
     typedef enum HOMING_SEEK_TYPE { HSEEK_NONE, HSEEK_ON, HSEEK_OFF } HOMING_SEEK_TYPE;
     HOMING_SEEK_TYPE _homingSeekAxis1Endstop0;
+    bool _homeX, _homeY, _homeZ;
     // the following values determine which stepper moves during the current homing stage
     typedef enum HOMING_STEP_TYPE { HSTEP_NONE, HSTEP_FORWARDS, HSTEP_BACKWARDS } HOMING_STEP_TYPE;
     HOMING_STEP_TYPE _homingAxis1Step;
@@ -108,6 +109,7 @@ public:
         _homingStepsDone = 0;
         _homingStepsLimit = 0;
         _maxHomingSecs = maxHomingSecs_default;
+        _homeX = _homeY = _homeZ = false;
         _timeBetweenHomingStepsUs = _homingLinearSlowStepTimeUs;
         _motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
     }
@@ -130,13 +132,33 @@ public:
         return true;
     }
 
-    void home(RobotCommandArgs& args)
+    void goHome(RobotCommandArgs& args)
     {
         // Info
-        Log.info("%s home x%d, y%d, z%d", _robotTypeName.c_str(), args.valid.X(), args.valid.Y(), args.valid.Z());
+        _homeX = args.valid.X();
+        _homeY = args.valid.Y();
+        _homeZ = args.valid.Z();
+        Log.info("%s goHome x%d, y%d, z%d", _robotTypeName.c_str(),
+                        _homeX, _homeY, _homeZ);
 
         // Set homing state
         homingSetNewState(HOMING_STATE_INIT);
+    }
+
+    void setHome(RobotCommandArgs& args)
+    {
+        // Info
+        _homeX = args.valid.X();
+        _homeY = args.valid.Y();
+        _homeZ = args.valid.Z();
+        Log.info("%s setHome x%d, y%d, z%d", _robotTypeName.c_str(),
+                        _homeX, _homeY, _homeZ);
+        if(_homeX)
+            _motionHelper.axisSetHome(0);
+        if(_homeY)
+            _motionHelper.axisSetHome(1);
+        if(_homeZ)
+            _motionHelper.axisSetHome(2);
     }
 
     bool canAcceptCommand()
@@ -187,17 +209,29 @@ public:
             }
             case HOMING_STATE_INIT:
             {
-                _homeReqMillis = millis();
-                // If we are at the endstop we need to move away from it first
-                _homingStateNext = HOMING_STATE_SEEK_ENDSTOP;
-                _homingSeekAxis1Endstop0 = HSEEK_OFF;
-                // Move away from endstop if needed
-                _homingAxis1Step = HSTEP_FORWARDS;
-                _timeBetweenHomingStepsUs = _homingLinearFastStepTimeUs;
-                bool endstop1Val = _motionHelper.isAtEndStop(1,0);
-                Log.info("Homing started%s", endstop1Val ? " moving from endstop" : "");
-                _motionHelper.jumpHome(2);
-                break;
+                // Check which axes we are homing
+                if (_homeZ)
+                {
+                    _motionHelper.jumpHome(2);
+                }
+                if (_homeY)
+                {
+                    _homeReqMillis = millis();
+                    // If we are at the endstop we need to move away from it first
+                    _homingStateNext = HOMING_STATE_SEEK_ENDSTOP;
+                    _homingSeekAxis1Endstop0 = HSEEK_OFF;
+                    // Move away from endstop if needed
+                    _homingAxis1Step = HSTEP_FORWARDS;
+                    _timeBetweenHomingStepsUs = _homingLinearFastStepTimeUs;
+                    bool endstop1Val = _motionHelper.isAtEndStop(1,0);
+                    Log.info("Homing started%s", endstop1Val ? " moving from endstop" : "");
+                    break;
+                }
+                else
+                {
+                    _homingState = HOMING_STATE_IDLE;
+                    break;
+                }
             }
             case HOMING_STATE_SEEK_ENDSTOP:
             {

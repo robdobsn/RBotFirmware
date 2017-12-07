@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <!-- RBotFirmware CNC Control
         by Rob Dobson (c) 2017
@@ -13,24 +15,534 @@
     <meta name="author" content="Rob Dobson">
 
     <title id="title">RBot</title>
+    <link rel="shortcut icon"type="image/x-icon" href="data:image/x-icon;,">
+    <script>
+        var favIcon = "\
+            AAABAAEAEBAQAAEABAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAAEAAA\
+            AAAAAAAAAAAAALDwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+            AAAAAAAAAAAAAAAAAAAAAAAAAAAAARERERAAAAAREREREQAAABEAAAARAAAAEQAAABERAAARAAAA\
+            EREQABEAAAAREREAEQAAABEAEQARAAAAEQARABEAAAARABEAEQAAABEAEQARAAAAERERABERERER\
+            ERAAEREREREAAAAAAAAAAAAAAAAAAAAAAAD//wAA4B8AAMAPAADPzwAAz8MAAM/BAADPwAAAz8wA\
+            AM/MAADPzAAAz8wAAM/AAADAAQAAwA8AAP//AAD//wAA";
 
-    <!-- Favicon -->
-    <link rel="shortcut icon" href="favicon.ico">
+        var docHead = document.getElementsByTagName('head')[0];
+        var newLink = document.createElement('link');
+        newLink.rel = 'shortcut icon';
+        newLink.type = 'image/x-icon';
+        newLink.href = 'data:image/png;base64,'+favIcon;
+        docHead.appendChild(newLink);
+
+        function bodyIsLoaded()
+        {
+            console.log("Body loaded");
+            // Location for program data
+            window.RBotUIVars = {
+                uploadFile: null,
+                uploadInProgress: false,
+                MAX_POST_CHUNK_SIZE: 1000,
+                UPLOAD_RETRY_TIME_MS: 1000,
+                MAX_UPLOAD_RETRIES: 180,
+                axisNames: ["X","Y","Z"]
+            };
+            // Handle the file send box listener
+            var inputFileUpload = document.getElementById("input_file_upload");
+            inputFileUpload.addEventListener('change', fileUploadChange, false);
+            // Status update timer
+            window.RBotUIVars.statusUpdateTimer = setTimeout(statusUpdate, 1000);
+        }
+
+        function statusUpdate() {
+            callAjax("/status", statusCallback);
+        }
+
+        function statusCallback(resp) {
+            var machineStatus = JSON.parse(resp);
+            var axisNames = window.RBotUIVars.axisNames;
+            if (machineStatus.hasOwnProperty("pos"))
+            {
+                for (var i = 0; i < axisNames.length; i++) {
+                    document.getElementById("td_" + axisNames[i]).innerHTML = machineStatus["pos"][axisNames[i]].toFixed(2);
+                }
+            }
+            window.RBotUIVars.statusUpdateTimer = setTimeout(statusUpdate, 500);
+        }
+
+        function callAjax(url, okCallback, failCallback)
+        {
+            var xmlhttp = new XMLHttpRequest();
+            xmlhttp.onreadystatechange = function()
+            {
+                if (xmlhttp.readyState === 4) {
+                    if (xmlhttp.status === 200) {
+                        if ((okCallback !== undefined) && (typeof okCallback !== 'undefined'))
+                            okCallback(xmlhttp.responseText);
+                    }
+                    else {
+                        if ((failCallback !== undefined) && (typeof failCallback !== 'undefined'))
+                            failCallback(xmlhttp);
+                    }
+                }
+            };
+
+            xmlhttp.open("GET", url, true);
+            xmlhttp.send();
+        }
+
+        function ajaxCallback()
+        {
+            console.log("AjaxCallback");
+        }
+
+        function postJson(url, jsonStrToPos, okCallback, failCallback)
+        {
+            var xmlhttp = new XMLHttpRequest();
+            xmlhttp.onreadystatechange = function()
+            {
+                if (xmlhttp.readyState === 4) {
+                    if (xmlhttp.status === 200) {
+                        if ((okCallback !== undefined) && (typeof okCallback !== 'undefined'))
+                            okCallback(xmlhttp.responseText);
+                    }
+                    else {
+                        if ((failCallback !== undefined) && (typeof failCallback !== 'undefined'))
+                            failCallback(xmlhttp);
+                    }
+                }
+            };
+            xmlhttp.open("POST", url);
+            xmlhttp.setRequestHeader("Content-Type", "application/json");
+            xmlhttp.send(jsonStrToPos);
+        }
+
+        function sendGcodeFromInput()
+        {
+            var gcode = document.getElementById('gcodeSendBox').value;
+            if (gcode.length !== 0) {
+                callAjax('/exec/' + gcode, ajaxCallback);
+            }
+        }
+
+        function reconnect(event) {
+            if (window.RBotUIVars.statusUpdateTimer)
+            {
+                clearTimeout(window.RBotUIVars.statusUpdateTimer);
+                window.RBotUIVars.statusUpdateTimer = setTimeout(statusUpdate, 100);
+            }
+        }
+
+        function pauseRobot(event) {
+            callAjax("/exec/pause");
+        }
+
+        function resumeRobot(event) {
+            callAjax("/exec/resume");
+        }
+
+        function stopRonbot() {
+            callAjax("/exec/stop");
+        }
+
+        function moveClick(axis, dist)
+        {
+            var axisNames = window.RBotUIVars.axisNames;
+            // Set relative positioning and restore to absolute afterwards
+            uploadSendFile("G91\nG0 " + axisNames[axis].toUpperCase() + dist.toString() + "\nG90");
+        }
+
+        function goHomeClick(axis)
+        {
+            var axisNames = window.RBotUIVars.axisNames;
+            callAjax("/exec/G28 " + axisNames[axis].toUpperCase());
+        }
+
+        function setHomeClick(axis)
+        {
+            var axisNames = window.RBotUIVars.axisNames;
+            callAjax("/exec/G92 " + axisNames[axis].toUpperCase());
+        }
+
+        function fileUploadChange(e) {
+            if (this.files.length > 0) {
+                startUpload(this.files[0]);
+                var inputFileUpload = document.getElementById("input_file_upload");
+                inputFileUpload.value = ""
+            }
+        }
+
+        function btnUpldClk(e) {
+            var inputFileUpload = document.getElementById("input_file_upload");
+            inputFileUpload.click();
+            e.preventDefault();
+        }
+
+        function btnUpldCncl(e) {
+            clearTimeout(window.RBotUIVars.uploadRetryTimer);
+            callAjax("/exec/stop");
+            setUploadState(false);
+            showUploadStatus("Cancelled");
+            e.preventDefault();
+        }
+
+        function showUploadStatus(statusStr)
+        {
+            txtUploadStatus = document.getElementById("txtUploadStatus");
+            txtUploadStatus.innerHTML = statusStr;
+        }
+
+        function setUploadState(uploadInProgress)
+        {
+            window.RBotUIVars.uploadInProgress = uploadInProgress;
+            btnUpload = document.getElementById("btnUpload");
+            if (uploadInProgress)
+                btnUpload.classList.add("disabled");
+            else
+                btnUpload.classList.remove("disabled");
+            btnUploadCancel = document.getElementById("btnUploadCancel");
+            if (!uploadInProgress)
+                btnUploadCancel.classList.add("disabled");
+            else
+                btnUploadCancel.classList.remove("disabled");
+        }
+
+        function startUpload(fileToUpload) {
+            // See if upload in progress
+            if (window.RBotUIVars.uploadInProgress) {
+                console.log("Upload still in progress");
+                return;
+            }
+            // Check if the file is within bounds
+            if (fileToUpload.size > window.RBotUIVars.MAX_FILE_SIZE) {
+                alert("File is too large");
+                return;
+            }
+            // Setup a new upload
+            window.RBotUIVars.uploadFile = fileToUpload;
+            window.RBotUIVars.uploadFileStartTime = new Date();
+            window.RBotUIVars.uploadLines = [];
+            window.RBotUIVars.uploadCurLine = 0;
+            window.RBotUIVars.uploadRetryCount = 0;
+            // Set status
+            setUploadState(true);
+            // Show status
+            showUploadStatus("Uploading " + window.RBotUIVars.uploadFile.name);
+            // Read the file and start sending
+            uploadReadFile().then(uploadSendFile, uploadReadFailed);
+        }
+
+        function uploadSendFile(dataToSend) {
+            // Split file into lines
+            window.RBotUIVars.uploadLines = dataToSend.toString().split("\n");
+            window.RBotUIVars.uploadCurLine = 0;
+            window.RBotUIVars.uploadRetryCount = 0;
+            uploadSendNextChunk();
+            // console.log("Success");
+
+        }
+
+        function uploadReadFailed(err) {
+            setUploadState(false);
+            showUploadStatus("Failed to upload file" + err)
+        }
+
+        function isGCode(inData)
+        {
+            for (var i = 0; i < inData.length && i < 1000;  i++)
+            {
+                if (inData.charCodeAt(i) > 127)
+                    return false;
+            }
+            return true;
+        }
+
+        function uploadReadFile() {
+            return new Promise(function(resolve, reject) {
+               var reader = new FileReader();
+                // Closure to capture the file information.
+                reader.onload = function(theFile) {
+                    console.log(theFile.target);
+                    // Check if file is GCode
+                    if (isGCode(theFile.target.result)) {
+                        resolve(theFile.target.result);
+                    }
+                    else {
+                        reject(new Error("File isn't GCode"));
+                    }
+                };
+                reader.onerror = function(err) {
+                    reject(err);
+                };
+                // Read in the image file as a data URL.
+                reader.readAsText(window.RBotUIVars.uploadFile);
+            });
+        }
+
+        function sendLineOfGCode(gCodeLine) {
+            return new Promise(function(resolve,reject) {
+                var xmlhttp = new XMLHttpRequest();
+                xmlhttp.onreadystatechange = function()
+                {
+                    if (xmlhttp.readyState === 4) {
+                        if (xmlhttp.status === 200) {
+                            resolve(xmlhttp.responseText);
+                        }
+                        else {
+                            reject(xmlhttp);
+                        }
+                    }
+                };
+                xmlhttp.open("GET", '/exec/' + gCodeLine, true);
+                xmlhttp.send();
+            });
+        }
+        function uploadSendNextChunk()
+        {
+            // Send a line
+            sendLineOfGCode(window.RBotUIVars.uploadLines[window.RBotUIVars.uploadCurLine]).then(uploadMoveNext, uploadRetry);
+        }
+
+        function uploadMoveNext()
+        {
+            console.log("Sent line " + window.RBotUIVars.uploadCurLine);
+            window.RBotUIVars.uploadRetryCount = 0;
+            window.RBotUIVars.uploadCurLine += 1;
+            while (window.RBotUIVars.uploadCurLine < window.RBotUIVars.uploadLines.length) {
+                if(window.RBotUIVars.uploadLines[window.RBotUIVars.uploadCurLine].trim().length === 0) {
+                    window.RBotUIVars.uploadCurLine += 1;
+                    continue
+                }
+                uploadSendNextChunk();
+                return;
+            }
+            console.log("Upload complete");
+            setUploadState(false);
+            showUploadStatus("")
+        }
+
+        function uploadRetry(xmlHttpReq)
+        {
+            window.RBotUIVars.uploadRetryCount += 1;
+            console.log("Failed to send,response " + xmlHttpReq.status.toString());
+            // Check status for i'm-busy codes
+            if (xmlHttpReq.status === 218 || xmlHttpReq.status === 503) {
+                if (window.RBotUIVars.uploadRetryCount > window.RBotUIVars.MAX_UPLOAD_RETRIES) {
+                    console.log("Failed after " + window.RBotUIVars.MAX_UPLOAD_RETRIES + " retries");
+                }
+                else {
+                    window.RBotUIVars.uploadRetryTimer = setTimeout(uploadSendNextChunk, window.RBotUIVars.UPLOAD_RETRY_TIME_MS);
+                    return;
+                }
+            }
+            else
+            {
+                console.log("Upload failed, response " + xmlHttpReq.status.toString());
+            }
+            // No longer uploading
+            setUploadState(false);
+            showUploadStatus("Upload failed")
+
+        }
+    </script>
+
     <!-- CSS -->
-    <link href="main.css" rel="stylesheet">
+    <style>
+        body{
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        #container {
+            display: flex;
+            flex-wrap: wrap;
+
+        }
+
+        .uiBlock {
+            margin: 5px;
+            align-items: baseline;
+            align-content: flex-start;
+            justify-content: center;
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .icon-connect {
+            color: white;
+            fill: white;
+            width: 16px;
+            height: 16px;
+            vertical-align: middle;
+        }
+        .icon-action {
+            color: #808080;
+            fill: #808080;
+            width: 16px;
+            height: 16px;
+            vertical-align: middle;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 6px 12px;
+            margin-bottom: 0;
+            font-size: 14px;
+            font-weight: normal;
+            line-height: 1.42857143;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: middle;
+            touch-action: manipulation;
+            cursor: pointer;
+            user-select: none;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            text-decoration: none;
+        }
+
+        .btn.disabled {
+            cursor: not-allowed;
+            opacity: .65;
+        }
+
+        .form-control {
+            padding: 6px 12px;
+            font-size: 14px;
+            line-height: 1.42857143;
+            color: #555;
+            background-color: #fff;
+            background-image: none;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+            box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+            vertical-align: middle;
+        }
+
+        .btn-action {
+            color: white;
+            background-color: #dea352;
+            border-color: #bd7e1f;
+        }
+
+        .btn-default {
+            color: #333;
+            text-shadow: 0 1px 0 #fff;
+            background-image: -webkit-linear-gradient(top, #fff 0%, #e0e0e0 100%);
+            background-image: -o-linear-gradient(top, #fff 0%, #e0e0e0 100%);
+            background-image: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#e0e0e0));
+            background-image: linear-gradient(to bottom, #fff 0%, #e0e0e0 100%);
+            background-repeat: repeat-x;
+            border-color: #dbdbdb;
+            border-color: #ccc;
+        }
+
+        .btn-primary {
+            color: white;
+            background-image: linear-gradient(to bottom, #e4af43 0, #dc7410 100%);
+            background-repeat: repeat-x;
+            border-color: #bd7e1f;
+        }
+
+        .btn-default.disabled {
+            background-color: #e0e0e0;
+            background-image: none;
+        }
+
+        .uiPanel {
+            display: block;
+            min-height: 1px;
+            background-color: #fff;
+            border: 1px solid #f1c77c;
+            border-radius: 4px;
+        }
+
+        .uiPanelHead {
+            background-image: linear-gradient(to bottom, #f7f0b9 0%, #f3ba64 100%);
+            background-repeat: repeat-x;
+            color: #8f3800;
+            background-color: #f7dd6f;
+            border-color: #f1c77c;
+            padding: 10px 10px 10px 10px;
+            border-bottom: 1px solid transparent;
+            border-top-left-radius: 3px;
+            border-top-right-radius: 3px;
+        }
+        .uiTable {
+            border: 0;
+            width: 100%;
+            max-width: 100%;
+            border-spacing: 0;
+            border-collapse: collapse;
+            background-color: transparent;
+            text-align: center;
+            vertical-align: middle !important;
+        }
+
+        .uiTableGrid > tbody > tr > th, .uiTableGrid > tbody > tr > td {
+            border: 1px solid #ddd;
+            min-width: 60px;
+            padding:5px;
+        }
+        .th-statusGrid {
+            width: 100px;
+        }
+
+        .uiTableButtons {
+            margin-top: 10px;
+        }
+        .uiTableButtons > tbody > tr {
+            padding-botton: 10px;
+        }
+        .uiTableButtons > tbody > tr > th, .uiTableButtons > tbody > tr > td {
+            border: none;
+            padding-left: 6px;
+            padding-right: 6px;
+        }
+
+        .btn-group {
+            padding-bottom: 9px;
+                position: relative;
+            display: inline-block;
+            vertical-align: middle;
+            width: auto;
+        }
+        .btn-group-justified {
+            display: table;
+            width: 350px;
+            table-layout: fixed;
+            border-collapse: separate;
+        }
+        .btn-group > .btn:first-child:not(:last-child):not(.dropdown-toggle) {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        .btn-group > .btn:first-child {
+            margin-left: 0;
+        }
+        .btn-group-justified>.btn, .btn-group-justified>.btn-group {
+            display: table-cell;
+            float: none;
+            width: 1%;
+        }
+        .txt-status {
+
+        }
+    </style>
+
 </head>
 
 <body onload="bodyIsLoaded(event)">
     <!-- Master layout -->
     <div id="container">
-        <!--<div class="uiBlock">-->
-        <!--<button type="button" class="btn btn-action">-->
-        <!--<svg class="icon-connect">-->
-        <!--<use xlink:href = "#icon-log-in"></use>-->
-        <!--</svg>-->
-        <!--<span>Connect</span>-->
-        <!--</button>-->
-        <!--</div>-->
+        <div class="uiBlock">
+            <button type="button" class="btn btn-action" onclick="reconnect(event)">
+                <svg class="icon-connect">
+                    <use xlink:href = "#icon-log-in"></use>
+                </svg>
+                <span>Connect</span>
+            </button>
+        </div>
         <div class="uiBlock">
             <div class="uiForm">
                 <input type="text" name="gcode" class="form-control" placeholder="G-Code ..." id="gcodeSendBox">
@@ -54,9 +566,40 @@
                 <span id="txtUploadStatus" class="txt-status"></span>
                 <button id="btnUploadCancel" class="btn btn-default disabled" title="Cancel upload" onclick="btnUpldCncl(event)" >
                     <svg class="icon-action">
-                        <use xlink:href="#icon-cancel"></use>
+                        <use xlink:href="#ico-cncl"></use>
                     </svg>
                     <span>Cancel</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="uiBlock">
+            <div class="uiForm">
+                <button type="button" class="btn btn-action" onclick="pauseRobot(event)">
+                    <svg class="icon-connect">
+                        <use xlink:href = "#ico-pause"></use>
+                    </svg>
+                    <span>Pause</span>
+                </button>
+            </div>
+        </div>
+        <div class="uiBlock">
+            <div class="uiForm">
+                <button type="button" class="btn btn-action" onclick="resumeRobot(event)">
+                    <svg class="icon-connect">
+                        <use xlink:href = "#ico-play"></use>
+                    </svg>
+                    <span>Resume</span>
+                </button>
+            </div>
+        </div>
+        <div class="uiBlock">
+            <div class="uiForm">
+                <button type="button" class="btn btn-action" onclick="stopRobot(event)">
+                    <svg class="icon-connect">
+                        <use xlink:href = "#ico-stop"></use>
+                    </svg>
+                    <span>Stop</span>
                 </button>
             </div>
         </div>
@@ -93,8 +636,11 @@
                     <tr>
                         <td class="home-buttons visible-lg">
                             <div class="btn-group" role="group">
-                                <button class="btn btn-primary" title="Home X axis (G28 X)" onclick="moveClick(0,0)">
-                                    <span>Home X</span>
+                                <button class="btn btn-primary" title="Home X axis (G28 X)" onclick="goHomeClick(0)">
+                                    <span>Go Home X</span>
+                                </button>
+                                <button class="btn btn-primary" title="Home X axis (G92 X)" onclick="setHomeClick(0)">
+                                    <span>Set Home X</span>
                                 </button>
                             </div>
                         </td>
@@ -159,8 +705,11 @@
                     <tr>
                         <td class="home-buttons visible-lg">
                             <div class="btn-group" role="group">
-                                <button class="btn btn-primary" title="Home Y axis (G28 Y)" onclick="moveClick(1,0)">
-                                    <span>Home Y</span>
+                                <button class="btn btn-primary" title="Home Y axis (G28 Y)" onclick="goHomeClick(1)">
+                                    <span>Go Home Y</span>
+                                </button>
+                                <button class="btn btn-primary" title="Home Y axis (G92 Y)" onclick="setHomeClick(1)">
+                                    <span>Set Home Y</span>
                                 </button>
                             </div>
                         </td>
@@ -225,8 +774,11 @@
                     <tr>
                         <td class="home-buttons visible-lg">
                             <div class="btn-group" role="group">
-                                <button class="btn btn-primary" title="Home Z axis (G28 Z)" onclick="moveClick(2,0)">
-                                    <span>Home Z</span>
+                                <button class="btn btn-primary" title="Home Z axis (G28 Z)" onclick="goHomeClick(2)">
+                                    <span>Go Home Z</span>
+                                </button>
+                                <button class="btn btn-primary" title="Home Z axis (G92 Z)" onclick="setHomeClick(2)">
+                                    <span>Set Home Z</span>
                                 </button>
                             </div>
                         </td>
@@ -304,7 +856,8 @@
         </symbol >
         <symbol id="icon-send" viewBox="0 0 1200 1200" >
             <g>
-                <path d="M1200 103l-483 276l-314 -399v423h-399l1196 796v-1096zM483 424v-230l683 953z" transform="scale(1,-1) translate(0,-1200)"></path>
+                <path d="M1200 103l-483 276l-314 -399v423h-399l1196 796v-1096zM483 424v-230l683 953z"
+                      transform="scale(1,-1) translate(0,-1200)"></path>
             </g>
         </symbol >
         <symbol id="ico-lc" viewBox="0 0 1200 1200">
@@ -319,8 +872,36 @@
         </symbol >
         <symbol id="icon-upload" viewBox="0 0 1200 1200">
             <g>
-                <path d="M502 1089q110 0 201 -59.5t135 -156.5q43 15 89 15q121 0 206 -86.5t86 -206.5q0 -99 -60 -181t-150 -110l-378 360q-13 16 -31.5 16t-31.5 -16l-381 -365h-9q-79 0 -135.5 57.5t-56.5 136.5q0 69 43 122.5t108 67.5q-2 19 -2 38q0 100 49 184.5t133.5 134t184.5 49.5z M632 467l223 -228q13 -16 8 -27.5t-26 -11.5h-137v-275q0 -10 -7.5 -17.5t-17.5 -7.5h-150q-10 0 -17.5 7.5t-7.5 17.5v275h-137q-21 0 -26 11.5t8 27.5q199 204 223 228q19 19 31.5 19t32.5 -19z"
+                <path d="M502 1089q110 0 201 -59.5t135 -156.5q43 15 89 15q121 0 206 -86.5t86 -206.5q0 -99 -60 -181t-150 -110l-378
+                 360q-13 16 -31.5 16t-31.5 -16l-381 -365h-9q-79 0 -135.5 57.5t-56.5 136.5q0 69 43 122.5t108 67.5q-2 19 -2 38q0 100
+                 49 184.5t133.5 134t184.5 49.5z M632 467l223 -228q13 -16 8 -27.5t-26 -11.5h-137v-275q0 -10 -7.5 -17.5t-17.5
+                 -7.5h-150q-10 0 -17.5 7.5t-7.5 17.5v275h-137q-21 0 -26 11.5t8 27.5q199 204 223 228q19 19 31.5 19t32.5 -19z"
                  transform="scale(1,-1) translate(0,-1100)"></path>
+            </g>
+        </symbol >
+        <symbol id="ico-cncl" viewBox="0 0 510 510">
+            <g>
+                <path d="M255,0C114.75,0,0,114.75,0,255s114.75,255,255,255s255-114.75,255-255S395.25,0,255,0z M382.5,346.8l-35.7,35.7
+			L255,290.7l-91.8,91.8l-35.7-35.7l91.8-91.8l-91.8-91.8l35.7-35.7l91.8,91.8l91.8-91.8l35.7,35.7L290.7,255L382.5,346.8z"></path>
+            </g>
+        </symbol >
+        <symbol id="ico-stop" viewBox="0 0 191 191">
+            <g>
+                <path d="M158.912,0H31.782C14.239,0,0,14.239,0,31.782v127.13c0,17.544,14.239,31.782,31.782,31.782
+				h127.13c17.544,0,31.782-14.239,31.782-31.782V31.782C190.695,14.239,176.456,0,158.912,0z"></path>
+            </g>
+        </symbol >
+        <symbol id="ico-pause" viewBox="0 0 46 46">
+            <g>
+                <path d="M13.987,0c-2.762,0-5,2.239-5,5v35.975c0,2.763,2.238,5,5,5s5-2.238,5-5V5C18.987,2.238,16.75,0,13.987,0z"/>
+                <path d="M31.987,0c-2.762,0-5,2.239-5,5v35.975c0,2.762,2.238,5,5,5s5-2.238,5-5V5C36.987,2.239,34.749,0,31.987,0z"/>
+            </g>
+        </symbol >
+        <symbol id="ico-play" viewBox="0 0 233 233">
+            <g>
+                <path d="M203.791,99.628L49.307,2.294c-4.567-2.719-10.238-2.266-14.521-2.266
+		c-17.132,0-17.056,13.227-17.056,16.578v198.94c0,2.833-0.075,16.579,17.056,16.579c4.283,0,9.955,0.451,14.521-2.267
+		l154.483-97.333c12.68-7.545,10.489-16.449,10.489-16.449S216.471,107.172,203.791,99.628z"/>
             </g>
         </symbol >
     </svg>
@@ -356,8 +937,5 @@
             </div>
         </div>
     </div>
-
-    <!-- Placed at the end so pages load faster -->
-    <script src="main.js"></script>
 </body>
 </html>
