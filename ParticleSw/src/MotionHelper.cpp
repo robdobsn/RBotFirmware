@@ -219,6 +219,12 @@ void MotionHelper::pipelineService(bool hasBeenPaused)
 }
 
 #else
+
+// void MotionHelper::calcMotionTimeUs(MotionPipelineElem& motionElem, AxisParams& axisParams)
+// {
+//
+// }
+
 void MotionHelper::pipelineService(bool hasBeenPaused)
 {
     // Check if any axis is moving
@@ -259,6 +265,7 @@ void MotionHelper::pipelineService(bool hasBeenPaused)
                     _axisParams[i]._targetStepsFromHome = actuatorCoords.getVal(i);
 
                 // Balance the time for each direction
+                // double calcMotionTime = calcMotionTimeUs(motionElem, axisParams);
                 double speedTargetMMps = _axisParams[0]._maxSpeed;
                 double timeToTargetS = distToTravelMM / speedTargetMMps;
                 long stepsAxis[MAX_AXES];
@@ -304,7 +311,7 @@ void MotionHelper::pipelineService(bool hasBeenPaused)
             }
 
             // Debug
-            Log.trace("MotionHelper StepNS X %ld Y %ld Z %ld)", _axisParams[0]._betweenStepsNs,
+            Log.info("MotionHelper StepNS X %ld Y %ld Z %ld)", _axisParams[0]._betweenStepsNs,
                         _axisParams[1]._betweenStepsNs, _axisParams[2]._betweenStepsNs);
             motionElem._pt1MM.logDebugStr("MotionFrom");
             motionElem._pt2MM.logDebugStr("MotionTo");
@@ -527,8 +534,8 @@ void MotionHelper::axisSetHome(int axisIdx)
 {
     if (axisIdx < 0 || axisIdx >= MAX_AXES)
         return;
-    _axisParams[axisIdx]._stepsFromHome = _axisParams[axisIdx]._homeOffsetSteps;
-    _axisParams[axisIdx]._targetStepsFromHome = _axisParams[axisIdx]._homeOffsetSteps;
+    _axisParams[axisIdx]._homeOffsetSteps = _axisParams[axisIdx]._stepsFromHome;
+    Log.trace("Setting axis#%d home %lu", axisIdx, _axisParams[axisIdx]._homeOffsetSteps);
 #ifdef USE_MOTION_ISR_MANAGER
     motionISRManager.resetZero(axisIdx);
 #endif
