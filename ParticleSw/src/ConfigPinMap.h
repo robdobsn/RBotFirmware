@@ -30,6 +30,8 @@ public:
                 return -1;
             }
         }
+        if (strlen(pinName) == 0)
+            return -1;
         return (int)strtol(pinName, NULL, 10);
     }
 

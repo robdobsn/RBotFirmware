@@ -148,16 +148,16 @@ public:
     void setHome(RobotCommandArgs& args)
     {
         // Info
-        _homeX = args.valid.X();
-        _homeY = args.valid.Y();
-        _homeZ = args.valid.Z();
+        bool homeX = args.valid.X();
+        bool homeY = args.valid.Y();
+        bool homeZ = args.valid.Z();
         Log.info("%s setHome x%d, y%d, z%d", _robotTypeName.c_str(),
-                        _homeX, _homeY, _homeZ);
-        if(_homeX)
+                        homeX, homeY, homeZ);
+        if(homeX)
             _motionHelper.axisSetHome(0);
-        if(_homeY)
+        if(homeY)
             _motionHelper.axisSetHome(1);
-        if(_homeZ)
+        if(homeZ)
             _motionHelper.axisSetHome(2);
     }
 

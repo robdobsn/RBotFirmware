@@ -31,7 +31,7 @@ SYSTEM_THREAD(ENABLED);
 
 // Application info
 static const char* APPLICATION_NAME = "RBotFirmware";
-SerialLogHandler logHandler(LOG_LEVEL_TRACE);
+SerialLogHandler logHandler(LOG_LEVEL_INFO);
 
 // Robot controller
 RobotController _robotController;
@@ -80,15 +80,16 @@ unsigned long configDirtyStartMs = 0;
 // rotary axis 1/16 microstepping
 static const char* ROBOT_CONFIG_STR_MUGBOT_PIHAT_1_1 =
     "{\"robotType\": \"MugBot\", \"xMaxMM\":150, \"yMaxMM\":120,"
-    " \"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":60.0,"
-    " \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":50.0, \"acceleration\":20.0,"
-    " \"stepsPerRotation\":6400, \"unitsPerRotation\":360, \"minVal\":-360, \"maxVal\":360},"
-    " \"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":75.0, \"acceleration\":25.0,"
-    " \"stepsPerRotation\":1600, \"unitsPerRotation\":1.0, \"minVal\":0, \"maxVal\":100,"
-    " \"homeOffsetVal\": 100,"
-    " \"endStop0\": { \"sensePin\": \"D7\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"}},"
-    " \"axis2\": { \"servoPin\": \"D0\", \"isServoAxis\": 1, \"homeOffsetVal\": 180, \"homeOffsetSteps\": 2000,"
-    " \"minVal\":0, \"maxVal\":180, \"stepsPerRotation\":2000, \"unitsPerRotation\":360 },"
+    "\"cmdsAtStart\":\"G28\","
+    "\"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":60.0,"
+    "\"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":50.0, \"acceleration\":20.0,"
+    "\"stepsPerRotation\":6400, \"unitsPerRotation\":360, \"minVal\":-360, \"maxVal\":360},"
+    "\"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":75.0, \"acceleration\":25.0,"
+    "\"stepsPerRotation\":1600, \"unitsPerRotation\":1.0, \"minVal\":0, \"maxVal\":100,"
+    "\"homeOffsetVal\": 100,"
+    "\"endStop0\": { \"sensePin\": \"D7\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"}},"
+    "\"axis2\": { \"servoPin\": \"D0\", \"isServoAxis\": 1, \"homeOffsetVal\": 180, \"homeOffsetSteps\": 2000,"
+    "\"minVal\":0, \"maxVal\":250, \"stepsPerRotation\":2000, \"unitsPerRotation\":360 },"
     "}";
 
 // static const char* ROBOT_CONFIG_STR_GEISTBOT =
