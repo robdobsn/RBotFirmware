@@ -87,9 +87,9 @@ static const char* ROBOT_CONFIG_STR_MUGBOT_PIHAT_1_1 =
     "\"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":75.0, \"acceleration\":25.0,"
     "\"stepsPerRotation\":1600, \"unitsPerRotation\":1.0, \"minVal\":0, \"maxVal\":100,"
     "\"homeOffsetVal\": 100,"
-    "\"endStop0\": { \"sensePin\": \"D7\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"}},"
-    "\"axis2\": { \"servoPin\": \"D0\", \"isServoAxis\": 1, \"homeOffsetVal\": 180, \"homeOffsetSteps\": 2000,"
-    "\"minVal\":0, \"maxVal\":250, \"stepsPerRotation\":2000, \"unitsPerRotation\":360 },"
+    "\"endStop0\": { \"sensePin\": \"D7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
+    "\"axis2\": { \"servoPin\": \"D0\", \"isServoAxis\": 1, \"homeOffsetVal\": 180, \"homeOffsetSteps\": 2500,"
+    "\"minVal\":0, \"maxVal\":180, \"stepsPerRotation\":2000, \"unitsPerRotation\":360 },"
     "}";
 
 // static const char* ROBOT_CONFIG_STR_GEISTBOT =
@@ -317,7 +317,7 @@ void setup()
     // Check for startup commands in the EEPROM config
     String runAtStart = RdJson::getString("startup", "", configManager.getConfigData());
     RdJson::unescapeString(runAtStart);
-    Log.info("Main startup commands <%s>", runAtStart.c_str());
+    Log.info("Main EEPROM commands <%s>", runAtStart.c_str());
     if (runAtStart.length() > 0)
         _commandInterpreter.process(runAtStart);
 

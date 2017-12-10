@@ -534,7 +534,15 @@ void MotionHelper::axisSetHome(int axisIdx)
 {
     if (axisIdx < 0 || axisIdx >= MAX_AXES)
         return;
-    _axisParams[axisIdx]._homeOffsetSteps = _axisParams[axisIdx]._stepsFromHome;
+    if (_axisParams[axisIdx]._isServoAxis)
+    {
+        _axisParams[axisIdx]._homeOffsetSteps = _axisParams[axisIdx]._stepsFromHome;
+    }
+    else
+    {
+        _axisParams[axisIdx]._stepsFromHome = _axisParams[axisIdx]._homeOffsetSteps;
+        _axisParams[axisIdx]._targetStepsFromHome = _axisParams[axisIdx]._homeOffsetSteps;
+    }
     Log.trace("Setting axis#%d home %lu", axisIdx, _axisParams[axisIdx]._homeOffsetSteps);
 #ifdef USE_MOTION_ISR_MANAGER
     motionISRManager.resetZero(axisIdx);

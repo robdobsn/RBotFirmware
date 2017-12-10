@@ -14,7 +14,7 @@
     <meta name="description" content="WebUI for RBotFirmware CNC">
     <meta name="author" content="Rob Dobson">
 
-    <title id="title">RBot</title>
+    <title id="title">Mug Bot</title>
     <link rel="shortcut icon"type="image/x-icon" href="data:image/x-icon;,">
     <script>
         var favIcon = "\
@@ -47,6 +47,9 @@
             // Handle the file send box listener
             var inputFileUpload = document.getElementById("input_file_upload");
             inputFileUpload.addEventListener('change', fileUploadChange, false);
+            // Handle enter in the gcode box
+            var gcodeSendBox = document.getElementById("gcodeSendBox");
+            gcodeSendBox.addEventListener('keypress', keyPressInGCodeBox, false);
             // Status update timer
             window.RBotUIVars.statusUpdateTimer = setTimeout(statusUpdate, 1000);
         }
@@ -138,8 +141,10 @@
             callAjax("/exec/resume");
         }
 
-        function stopRonbot() {
+        function stopRobot() {
             callAjax("/exec/stop");
+            setUploadState(false);
+            showUploadStatus("Cancelled");
         }
 
         function moveClick(axis, dist)
@@ -183,6 +188,12 @@
             e.preventDefault();
         }
 
+        function keyPressInGCodeBox(event)
+        {
+            if (event.keyCode == 13 || event.which == 13) {
+                sendGcodeFromInput();
+            }
+        }
         function showUploadStatus(statusStr)
         {
             txtUploadStatus = document.getElementById("txtUploadStatus");
@@ -546,7 +557,7 @@
         <div class="uiBlock">
             <div class="uiForm">
                 <input type="text" name="gcode" class="form-control" placeholder="G-Code ..." id="gcodeSendBox">
-                <button type="submit" class="btn btn-default" title="Send G-Code" onclick="sendGCode(event)">
+                <button type="submit" class="btn btn-default" title="Send G-Code" onclick="sendGcodeFromInput(event)">
                     <svg class="icon-action">
                         <use xlink:href="#icon-send"></use>
                     </svg>

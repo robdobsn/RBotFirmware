@@ -14,8 +14,8 @@ class RobotMugBot : public RobotBase
 public:
     // Defaults
     static constexpr int maxHomingSecs_default = 30;
-    static constexpr int _homingLinearFastStepTimeUs = 50;
-    static constexpr int _homingLinearSlowStepTimeUs = 80;
+    static constexpr int _homingLinearFastStepTimeUs = 15;
+    static constexpr int _homingLinearSlowStepTimeUs = 24;
 
 public:
 
@@ -78,6 +78,7 @@ private:
         HOMING_STATE_IDLE,
         HOMING_STATE_INIT,
         HOMING_STATE_SEEK_ENDSTOP,
+        HOMING_STATE_BACK_OFF,
         HOMING_STATE_COMPLETE
     } HOMING_STATE;
     HOMING_STATE _homingState;
@@ -138,6 +139,8 @@ public:
         _homeX = args.valid.X();
         _homeY = args.valid.Y();
         _homeZ = args.valid.Z();
+        if (!_homeX && !_homeY && !_homeZ)
+            _homeX = _homeY = _homeZ = true;
         Log.info("%s goHome x%d, y%d, z%d", _robotTypeName.c_str(),
                         _homeX, _homeY, _homeZ);
 
@@ -151,6 +154,8 @@ public:
         bool homeX = args.valid.X();
         bool homeY = args.valid.Y();
         bool homeZ = args.valid.Z();
+        if (!homeX && !homeY && !homeZ)
+            homeX = homeY = homeZ = true;
         Log.info("%s setHome x%d, y%d, z%d", _robotTypeName.c_str(),
                         homeX, homeY, homeZ);
         if(homeX)
@@ -189,8 +194,10 @@ public:
     void homingSetNewState(HOMING_STATE newState)
     {
         // Debug
-        if (_homingStepsDone != 0)
-            Log.trace("Changing state ... HomingSteps %d", _homingStepsDone);
+        // if (_homingStepsDone != 0)
+        Log.info("Changing state to %d ... HomingSteps %d", newState, _homingStepsDone);
+        // else
+        //     Log.trace("Changing state to %d ... HomingSteps %d", _homingStepsDone);
 
         // Reset homing vars
         _homingStepsDone = 0;
@@ -221,7 +228,7 @@ public:
                     _homingStateNext = HOMING_STATE_SEEK_ENDSTOP;
                     _homingSeekAxis1Endstop0 = HSEEK_OFF;
                     // Move away from endstop if needed
-                    _homingAxis1Step = HSTEP_FORWARDS;
+                    _homingAxis1Step = HSTEP_BACKWARDS;
                     _timeBetweenHomingStepsUs = _homingLinearFastStepTimeUs;
                     bool endstop1Val = _motionHelper.isAtEndStop(1,0);
                     Log.info("Homing started%s", endstop1Val ? " moving from endstop" : "");
@@ -236,12 +243,23 @@ public:
             case HOMING_STATE_SEEK_ENDSTOP:
             {
                 // Rotate to the rotation endstop
-                _homingStateNext = HOMING_STATE_COMPLETE;
+                _homingStateNext = HOMING_STATE_BACK_OFF;
                 _homingSeekAxis1Endstop0 = HSEEK_ON;
-                // To purely rotate both steppers must turn in the same direction
+                _homingAxis1Step = HSTEP_FORWARDS;
+                _timeBetweenHomingStepsUs = _homingLinearSlowStepTimeUs;
+                Log.info("Homing to end stop");
+                break;
+            }
+            case HOMING_STATE_BACK_OFF:
+            {
+                // Rotate to the rotation endstop
+                _homingStateNext = HOMING_STATE_COMPLETE;
+                _homingSeekAxis1Endstop0 = HSEEK_NONE;
                 _homingAxis1Step = HSTEP_BACKWARDS;
                 _timeBetweenHomingStepsUs = _homingLinearSlowStepTimeUs;
-                Log.trace("Homing to end stop");
+                _homingStepsLimit = 4000;
+                _homingApplyStepLimit = true;
+                Log.info("Homing to end stop");
                 break;
             }
             case HOMING_STATE_COMPLETE:
@@ -272,6 +290,7 @@ public:
         bool endstop1Val = _motionHelper.isAtEndStop(1,0);
         if (((_homingSeekAxis1Endstop0 == HSEEK_ON) && endstop1Val) || ((_homingSeekAxis1Endstop0 == HSEEK_OFF) && !endstop1Val))
         {
+            Log.info("Mugbot at endstop setting new state %d", _homingStateNext);
             homingSetNewState(_homingStateNext);
         }
 
@@ -288,7 +307,10 @@ public:
 
             // Check for step limit in this stage
             if (_homingApplyStepLimit && (_homingStepsDone >= _homingStepsLimit))
+            {
+                Log.info("Mugbot steps done setting new state %d", _homingStateNext);
                 homingSetNewState(_homingStateNext);
+            }
         }
 
         return true;
