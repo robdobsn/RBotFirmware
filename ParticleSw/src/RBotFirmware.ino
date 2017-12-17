@@ -199,27 +199,21 @@ void restAPI_GetSettings(RestAPIEndpointMsg& apiMsg, String& retStr)
 void restAPI_Exec(RestAPIEndpointMsg& apiMsg, String& retStr)
 {
     Log.trace("RestAPI Exec method %d contentLen %d", apiMsg._method, apiMsg._msgContentLen);
-    _commandInterpreter.process(apiMsg._pArgStr);
-    // Result
-    retStr = "{\"ok\"}";
+    _commandInterpreter.process(apiMsg._pArgStr, retStr);
 }
 
 // Start Pattern via API
 void restAPI_Pattern(RestAPIEndpointMsg& apiMsg, String& retStr)
 {
     Log.trace("RestAPI Pattern method %d contentLen %d", apiMsg._method, apiMsg._msgContentLen);
-    _commandInterpreter.process(apiMsg._pArgStr);
-    // Result
-    retStr = "{\"ok\"}";
+    _commandInterpreter.process(apiMsg._pArgStr, retStr);
 }
 
 // Start sequence via API
 void restAPI_Sequence(RestAPIEndpointMsg& apiMsg, String& retStr)
 {
     Log.trace("RestAPI Sequence method %d contentLen %d", apiMsg._method, apiMsg._msgContentLen);
-    _commandInterpreter.process(apiMsg._pArgStr);
-    // Result
-    retStr = "{\"ok\"}";
+    _commandInterpreter.process(apiMsg._pArgStr, retStr);
 }
 
 // Get machine status
@@ -231,12 +225,10 @@ void restAPI_Status(RestAPIEndpointMsg& apiMsg, String& retStr)
 }
 
 // Exec via particle function
-const char* particleAPI_Exec(const char* cmdStr)
+void particleAPI_Exec(const char* cmdStr, String& retStr)
 {
     Log.trace("ParticleAPI Exec method %s", cmdStr);
-    _commandInterpreter.process(cmdStr);
-    // Result
-    return "{\"ok\"}";
+    _commandInterpreter.process(cmdStr, retStr);
 }
 
 void setup()
@@ -312,14 +304,20 @@ void setup()
     String cmdsAtStart = RdJson::getString("cmdsAtStart", "", ROBOT_CONFIG_STR);
     Log.info("Main cmdsAtStart <%s>", cmdsAtStart.c_str());
     if (cmdsAtStart.length() > 0)
-        _commandInterpreter.process(cmdsAtStart);
+    {
+        String retStr;
+        _commandInterpreter.process(cmdsAtStart, retStr);
+    }
 
     // Check for startup commands in the EEPROM config
     String runAtStart = RdJson::getString("startup", "", configManager.getConfigData());
     RdJson::unescapeString(runAtStart);
     Log.info("Main EEPROM commands <%s>", runAtStart.c_str());
     if (runAtStart.length() > 0)
-        _commandInterpreter.process(runAtStart);
+    {
+        String retStr;
+        _commandInterpreter.process(runAtStart, retStr);
+    }
 
     // Add debug blocks
     debugLoopTimer.blockAdd(0, "Serial");

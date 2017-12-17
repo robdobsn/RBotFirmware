@@ -3,13 +3,13 @@
 
 #pragma once
 
-#include <queue>
+#include <list>
 #include "MotionPipelineElem.h"
 
 class MotionPipeline
 {
 private:
-    std::queue<MotionPipelineElem> _pipeline;
+    std::list<MotionPipelineElem> _pipeline;
     static const unsigned int _pipelineMaxLenDefault = 300;
     unsigned int _pipelineMaxLen = _pipelineMaxLenDefault;
     unsigned int _maxBlocksInAMove = 1;
@@ -56,7 +56,7 @@ public:
         }
 
         // Queue up the item
-        _pipeline.push(elem);
+        _pipeline.push_back(elem);
         return true;
     }
 
@@ -71,7 +71,7 @@ public:
 
         // Queue up the item
         MotionPipelineElem elem(pt1, pt2);
-        _pipeline.push(elem);
+        _pipeline.push_back(elem);
         return true;
     }
 
@@ -86,7 +86,7 @@ public:
 
         // read the item and remove
         elem = _pipeline.front();
-        _pipeline.pop();
+        _pipeline.pop_front();
         return true;
     }
 
@@ -113,7 +113,7 @@ public:
     void clear()
     {
         // Using technique from here https://stackoverflow.com/questions/709146/how-do-i-clear-the-stdqueue-efficiently
-        std::queue<MotionPipelineElem> emptyQ;
+        std::list<MotionPipelineElem> emptyQ;
         std::swap( _pipeline, emptyQ );
     }
 };

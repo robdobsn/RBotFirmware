@@ -176,7 +176,8 @@ public:
         }
         String cmdStr = String::format("G0 X%0.2f Y%0.2f", pt._pt[0], pt._pt[1]);
         Log.trace("PatternEval ->cmdInterp %s", cmdStr.c_str());
-        pCommandInterpreter->process(cmdStr.c_str());
+        String retStr;
+        pCommandInterpreter->process(cmdStr.c_str(), retStr);
 
         // Check if we reached a limit
         bool stopReqd = 0;

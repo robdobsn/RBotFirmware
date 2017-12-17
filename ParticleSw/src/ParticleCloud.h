@@ -3,7 +3,7 @@
 
 #pragma once
 
-typedef const char* (*ParticleRxCallbackType)(const char* cmdStr);
+typedef void (*ParticleRxCallbackType)(const char* cmdStr, String& retStr);
 
 typedef char* (*ParticleCallbackType)(const char* idStr,
                 const char* initialContentJsonElementList);
@@ -33,7 +33,8 @@ static int __particleApiCall(String cmd)
     if (__pParticleRxCallback)
     {
         cmd.toCharArray(__receivedApiBuf, MAX_API_STR_LEN);
-        __pParticleRxCallback(__receivedApiBuf);
+        String retStr;
+        __pParticleRxCallback(__receivedApiBuf, retStr);
     }
     return 0;
 }

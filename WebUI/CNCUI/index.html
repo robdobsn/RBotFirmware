@@ -15,15 +15,15 @@
     <meta name="author" content="Rob Dobson">
 
     <title id="title">Mug Bot</title>
-    <link rel="shortcut icon"type="image/x-icon" href="data:image/x-icon;,">
+    <link rel="shortcut icon" type="image/x-icon" href="data:image/x-icon;,">
     <script>
-        var favIcon = "\
-            AAABAAEAEBAQAAEABAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAAEAAA\
-            AAAAAAAAAAAAALDwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
-            AAAAAAAAAAAAAAAAAAAAAAAAAAAAARERERAAAAAREREREQAAABEAAAARAAAAEQAAABERAAARAAAA\
-            EREQABEAAAAREREAEQAAABEAEQARAAAAEQARABEAAAARABEAEQAAABEAEQARAAAAERERABERERER\
-            ERAAEREREREAAAAAAAAAAAAAAAAAAAAAAAD//wAA4B8AAMAPAADPzwAAz8MAAM/BAADPwAAAz8wA\
-            AM/MAADPzAAAz8wAAM/AAADAAQAAwA8AAP//AAD//wAA";
+        var favIcon =
+            "AAABAAEAEBAQAAEABAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAAEAAA"+
+            "AAAAAAAAAAAAALDwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"+
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAARERERAAAAAREREREQAAABEAAAARAAAAEQAAABERAAARAAAA"+
+            "EREQABEAAAAREREAEQAAABEAEQARAAAAEQARABEAAAARABEAEQAAABEAEQARAAAAERERABERERER"+
+            "ERAAEREREREAAAAAAAAAAAAAAAAAAAAAAAD//wAA4B8AAMAPAADPzwAAz8MAAM/BAADPwAAAz8wA"+
+            "AM/MAADPzAAAz8wAAM/AAADAAQAAwA8AAP//AAD//wAA";
 
         var docHead = document.getElementsByTagName('head')[0];
         var newLink = document.createElement('link');
@@ -190,25 +190,25 @@
 
         function keyPressInGCodeBox(event)
         {
-            if (event.keyCode == 13 || event.which == 13) {
+            if (event.keyCode === 13 || event.which === 13) {
                 sendGcodeFromInput();
             }
         }
         function showUploadStatus(statusStr)
         {
-            txtUploadStatus = document.getElementById("txtUploadStatus");
+            var txtUploadStatus = document.getElementById("txtUploadStatus");
             txtUploadStatus.innerHTML = statusStr;
         }
 
         function setUploadState(uploadInProgress)
         {
             window.RBotUIVars.uploadInProgress = uploadInProgress;
-            btnUpload = document.getElementById("btnUpload");
+            var btnUpload = document.getElementById("btnUpload");
             if (uploadInProgress)
                 btnUpload.classList.add("disabled");
             else
                 btnUpload.classList.remove("disabled");
-            btnUploadCancel = document.getElementById("btnUploadCancel");
+            var btnUploadCancel = document.getElementById("btnUploadCancel");
             if (!uploadInProgress)
                 btnUploadCancel.classList.add("disabled");
             else
@@ -255,7 +255,7 @@
             showUploadStatus("Failed to upload file" + err)
         }
 
-        function isGCode(inData)
+        function gCodeCheckFileValid(inData)
         {
             for (var i = 0; i < inData.length && i < 1000;  i++)
             {
@@ -272,7 +272,7 @@
                 reader.onload = function(theFile) {
                     console.log(theFile.target);
                     // Check if file is GCode
-                    if (isGCode(theFile.target.result)) {
+                    if (gCodeCheckFileValid(theFile.target.result)) {
                         resolve(theFile.target.result);
                     }
                     else {
@@ -294,26 +294,59 @@
                 {
                     if (xmlhttp.readyState === 4) {
                         if (xmlhttp.status === 200) {
-                            resolve(xmlhttp.responseText);
+                            var respJson = xmlhttp.response;
+                            if (respJson.rslt && respJson.rslt === "busy") {
+                                reject(xmlhttp);
+                            }
+                            else {
+                                resolve(xmlhttp);
+                            }
                         }
                         else {
                             reject(xmlhttp);
                         }
                     }
                 };
+                xmlhttp.responseType = 'json';
                 xmlhttp.open("GET", '/exec/' + gCodeLine, true);
                 xmlhttp.send();
             });
         }
+        function gCodeCheckLineValid(gCodeLine)
+        {
+            gCodeLine = gCodeLine.trim();
+            return (/^[GM]/.test(gCodeLine));
+        }
+        function gCodeStripComments(gCodeLine)
+        {
+            gCodeLine = gCodeLine.trim();
+            gCodeLine = gCodeLine.replace(/(\(.*?\))/, "");
+            return gCodeLine;
+        }
         function uploadSendNextChunk()
         {
+            // Find next line to send
+            while(true) {
+                var validGCodeLineFound = gCodeCheckLineValid(window.RBotUIVars.uploadLines[window.RBotUIVars.uploadCurLine]);
+                if (validGCodeLineFound)
+                    break;
+                window.RBotUIVars.uploadCurLine += 1;
+                if (window.RBotUIVars.uploadCurLine >= window.RBotUIVars.uploadLines.length)
+                {
+                    console.log("Upload complete");
+                    setUploadState(false);
+                    showUploadStatus("");
+                    return;
+                }
+            }
+            var gcodeToSend = gCodeStripComments(window.RBotUIVars.uploadLines[window.RBotUIVars.uploadCurLine]);
             // Send a line
-            sendLineOfGCode(window.RBotUIVars.uploadLines[window.RBotUIVars.uploadCurLine]).then(uploadMoveNext, uploadRetry);
+            sendLineOfGCode(gcodeToSend).then(uploadMoveNext, uploadRetry);
         }
 
         function uploadMoveNext()
         {
-            console.log("Sent line " + window.RBotUIVars.uploadCurLine);
+            console.log("Sent line " + window.RBotUIVars.uploadCurLine + "... " + window.RBotUIVars.uploadLines[window.RBotUIVars.uploadCurLine]);
             window.RBotUIVars.uploadRetryCount = 0;
             window.RBotUIVars.uploadCurLine += 1;
             while (window.RBotUIVars.uploadCurLine < window.RBotUIVars.uploadLines.length) {
@@ -326,15 +359,16 @@
             }
             console.log("Upload complete");
             setUploadState(false);
-            showUploadStatus("")
+            showUploadStatus("");
         }
 
         function uploadRetry(xmlHttpReq)
         {
             window.RBotUIVars.uploadRetryCount += 1;
-            console.log("Failed to send,response " + xmlHttpReq.status.toString());
+            console.log("Failed to send,response " + xmlHttpReq.status.toString() + "... " + xmlHttpReq.response);
             // Check status for i'm-busy codes
-            if (xmlHttpReq.status === 218 || xmlHttpReq.status === 503) {
+            if (xmlHttpReq.status === 218 || xmlHttpReq.status === 503 ||
+                                    (xmlHttpReq.status === 200 && xmlHttpReq.response.rslt === "busy")) {
                 if (window.RBotUIVars.uploadRetryCount > window.RBotUIVars.MAX_UPLOAD_RETRIES) {
                     console.log("Failed after " + window.RBotUIVars.MAX_UPLOAD_RETRIES + " retries");
                 }
@@ -443,7 +477,6 @@
             background-image: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#e0e0e0));
             background-image: linear-gradient(to bottom, #fff 0%, #e0e0e0 100%);
             background-repeat: repeat-x;
-            border-color: #dbdbdb;
             border-color: #ccc;
         }
 

@@ -23,7 +23,7 @@ public:
     const char* getPatterns();
     bool canAcceptCommand();
     bool queueIsEmpty();
-    bool processSingle(const char* pCmdStr);
-    bool process(const char* pCmdStr, int cmdIdx = -1);
+    void processSingle(const char* pCmdStr, String& retStr);
+    void process(const char* pCmdStr, String& retStr, int cmdIdx = -1);
     void service();
 };

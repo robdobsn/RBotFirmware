@@ -48,7 +48,8 @@ public:
 
             // Check for immediate instructions
             Log.trace("CommsSerial ->cmdInterp cmdStr %s", _curLine.c_str());
-            commandInterpreter.process(_curLine);
+            String retStr;
+            commandInterpreter.process(_curLine, retStr);
 
             // Reset line
             _curLine = "";

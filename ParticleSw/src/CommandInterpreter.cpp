@@ -79,21 +79,20 @@ bool CommandInterpreter::setWifi(const char* pCmdStr)
     return true;
 }
 
-bool CommandInterpreter::processSingle(const char* pCmdStr)
+void CommandInterpreter::processSingle(const char* pCmdStr, String& retStr)
 {
-    bool rslt = false;
+    retStr = "{\"rslt\":\"ok\"}";
+
     // Check if this is an immediate command
     if (strcasecmp(pCmdStr, "pause") == 0)
     {
         if (_pRobotController)
             _pRobotController->pause(true);
-        rslt = true;
     }
     else if (strcasecmp(pCmdStr, "resume") == 0)
     {
         if (_pRobotController)
             _pRobotController->pause(false);
-        rslt = true;
     }
     else if (strcasecmp(pCmdStr, "stop") == 0)
     {
@@ -103,35 +102,35 @@ bool CommandInterpreter::processSingle(const char* pCmdStr)
             _pWorkflowManager->clear();
         if (_pCommandExtender)
             _pCommandExtender->stop();
-        rslt = true;
     }
     else if (strstr(pCmdStr, "setwifi") == pCmdStr)
     {
-        rslt = setWifi(pCmdStr);
+        setWifi(pCmdStr);
     }
     else if (strstr(pCmdStr, "clearwifi") == pCmdStr)
     {
         WiFi.clearCredentials();
         Log.info("CmdInterp: WiFi Credentials Cleared");
-        rslt = true;
     }
     else if (_pWorkflowManager)
     {
         // Send the line to the workflow manager
         if (strlen(pCmdStr) != 0)
-            rslt = _pWorkflowManager->add(pCmdStr);
+        {
+            bool rslt = _pWorkflowManager->add(pCmdStr);
+            if (!rslt)
+                retStr = "{\"rslt\":\"busy\"}";
+        }
     }
-    Log.trace("CmdInterp procSingle rslt %s", rslt ? "OK" : "Fail");
-
-    return rslt;
+    Log.trace("CmdInterp procSingle rslt %s", retStr.c_str());
 }
 
-bool CommandInterpreter::process(const char* pCmdStr, int cmdIdx)
+void CommandInterpreter::process(const char* pCmdStr, String& retStr, int cmdIdx)
 {
     // Handle the case of a single string
     if (strstr(pCmdStr, ";") == NULL)
     {
-        return processSingle(pCmdStr);
+        return processSingle(pCmdStr, retStr);
     }
 
     // Handle multiple commands (semicolon delimited)
@@ -162,7 +161,7 @@ bool CommandInterpreter::process(const char* pCmdStr, int cmdIdx)
             if (cmdIdx == -1 || cmdIdx == curCmdIdx)
             {
                 /*Log.trace("cmdProc single %d %s", stLen, pCurCmd);*/
-                processSingle(pCurCmd);
+                processSingle(pCurCmd, retStr);
             }
             delete [] pCurCmd;
 
@@ -174,7 +173,6 @@ bool CommandInterpreter::process(const char* pCmdStr, int cmdIdx)
         }
         pCurStrEnd++;
     }
-    return true;
 }
 
 void CommandInterpreter::service()
