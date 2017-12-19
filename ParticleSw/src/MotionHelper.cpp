@@ -7,11 +7,6 @@
 #include "MotionHelper.h"
 #include "Utils.h"
 
-#ifdef USE_MOTION_ISR_MANAGER
-#include "MotionISRManager.h"
-static MotionISRManager motionISRManager;
-#endif
-
 bool MotionHelper::configure(const char* robotConfigJSON)
 {
     // Get motor enable info
@@ -66,10 +61,6 @@ bool MotionHelper::configureAxis(const char* robotConfigJSON, int axisIdx)
         Log.info("Axis%d (step pin %ld, dirn pin %ld)", axisIdx, stepPin, dirnPin);
         if ((stepPin != -1 && dirnPin != -1))
             _stepperMotors[axisIdx] = new StepperMotor(StepperMotor::MOTOR_TYPE_DRIVER, stepPin, dirnPin);
-
-#ifdef USE_MOTION_ISR_MANAGER
-        motionISRManager.setAxis(axisIdx, stepPin, dirnPin, NULL);
-#endif
     }
     else
     {
@@ -85,10 +76,6 @@ bool MotionHelper::configureAxis(const char* robotConfigJSON, int axisIdx)
 
             // For servos go home now
             jumpHome(axisIdx);
-
-#ifdef USE_MOTION_ISR_MANAGER
-            motionISRManager.setAxis(axisIdx, -1, -1, _servoMotors[axisIdx]);
-#endif
         }
     }
 
@@ -111,119 +98,8 @@ bool MotionHelper::configureAxis(const char* robotConfigJSON, int axisIdx)
 
     // Other data
     _axisParams[axisIdx]._stepsFromHome = 0;
-
-#ifdef USE_MOTION_ISR_MANAGER
-    motionISRManager.resetZero(axisIdx);
-#endif
     return true;
 }
-
-#ifdef USE_MOTION_ISR_MANAGER
-void MotionHelper::pipelineService(bool hasBeenPaused)
-{
-    // Check if we can add to the motionISRManager
-    if (!motionISRManager.canAdd())
-        return;
-
-    // Get a motion element from the queue if any available
-    MotionPipelineElem motionElem;
-    if (_motionPipeline.get(motionElem))
-    {
-        // Correct for any overflows in stepper values (may occur with rotational robots)
-        _correctStepOverflowFn(_axisParams, _numRobotAxes);
-
-        // Check if a real distance
-        double distToTravelMM = motionElem.delta();
-        bool valid = true;
-        if (distToTravelMM < distToTravelMM_ignoreBelow)
-            valid = false;
-
-        // Get absolute step position to move to
-        PointND actuatorCoords;
-        if (valid)
-            valid = _ptToActuatorFn(motionElem, actuatorCoords, _axisParams, _numRobotAxes);
-
-        // Activate motion if valid - otherwise ignore
-        if (valid)
-        {
-            // Get steps from home for each axis
-            for (int i = 0; i < MAX_AXES; i++)
-                _axisParams[i]._targetStepsFromHome = actuatorCoords.getVal(i);
-
-            // Balance the time for each direction
-            double speedTargetMMps = _axisParams[0]._maxSpeed;
-            double timeToTargetS = distToTravelMM / speedTargetMMps;
-            long stepsAxis[MAX_AXES];
-            double timePerStepAxisNs[MAX_AXES];
-            Log.trace("motionHelper speedTargetMMps %0.2f distToTravelMM %0.2f timeToTargetMS %0.2f",
-                    speedTargetMMps, distToTravelMM, timeToTargetS*1000.0);
-            for (int i = 0; i < MAX_AXES; i++)
-            {
-                stepsAxis[i] = labs(_axisParams[i]._targetStepsFromHome - _axisParams[i]._stepsFromHome);
-                if (stepsAxis[i] == 0)
-                    timePerStepAxisNs[i] = 1000000000;
-                else
-                    timePerStepAxisNs[i] = timeToTargetS * 1000000000 / stepsAxis[i];
-                if (timePerStepAxisNs[i] < _axisParams[i]._minNsBetweenSteps)
-                    timePerStepAxisNs[i] = _axisParams[i]._minNsBetweenSteps;
-                Log.trace("motionHelper axis%d target %ld fromHome %ld timerPerStepNs %f",
-                            i, _axisParams[i]._targetStepsFromHome, _axisParams[i]._stepsFromHome,
-                            timePerStepAxisNs[i]);
-            }
-
-            // Check if there is little difference from current timePerStep on the
-            // dominant axis
-            if (_axisParams[0]._isDominantAxis && isInBounds(timePerStepAxisNs[0],
-                        _axisParams[0]._betweenStepsNs*0.66, _axisParams[0]._betweenStepsNs*1.33))
-            {
-                // In that case use the dominant axis time with a correction factor
-                double speedCorrectionFactor = _axisParams[0]._betweenStepsNs / timePerStepAxisNs[0];
-                _axisParams[1]._betweenStepsNs = timePerStepAxisNs[1] * speedCorrectionFactor;
-            }
-            else if (_axisParams[1]._isDominantAxis && isInBounds(timePerStepAxisNs[1],
-                        _axisParams[1]._betweenStepsNs*0.66, _axisParams[1]._betweenStepsNs*1.33))
-            {
-                // In that case use the dominant axis time with a correction factor
-                double speedCorrectionFactor = _axisParams[1]._betweenStepsNs / timePerStepAxisNs[1];
-                _axisParams[0]._betweenStepsNs = timePerStepAxisNs[0] * speedCorrectionFactor;
-            }
-            else
-            {
-                // allow each axis to use a different stepping time
-                _axisParams[0]._betweenStepsNs = timePerStepAxisNs[0];
-                _axisParams[1]._betweenStepsNs = timePerStepAxisNs[1];
-            }
-
-            // Add to the motion ISR
-            for (int i = 0; i < MAX_AXES; i++)
-            {
-                bool stepDirn = _axisParams[i]._targetStepsFromHome > _axisParams[i]._stepsFromHome;
-                uint32_t steps = _axisParams[i]._targetStepsFromHome - _axisParams[i]._stepsFromHome;
-                if (!stepDirn)
-                    steps = _axisParams[i]._stepsFromHome - _axisParams[i]._targetStepsFromHome;
-                motionISRManager.addAxisSteps(i, steps, stepDirn, _axisParams[i]._betweenStepsNs);
-            }
-            motionISRManager.addComplete();
-
-            // Debug
-            Log.trace("MotionHelper StepNS X %ld Y %ld Z %ld)", _axisParams[0]._betweenStepsNs,
-                        _axisParams[1]._betweenStepsNs, _axisParams[2]._betweenStepsNs);
-            motionElem._pt1MM.logDebugStr("MotionFrom");
-            motionElem._pt2MM.logDebugStr("MotionTo");
-        }
-        // Log.trace("Move to %sx %0.2f y %0.2f -> ax0Tgt %0.2f Ax1Tgt %0.2f (stpNSXY %ld %ld)",
-        //             valid?"":"INVALID ", motionElem._pt2MM._pt[0], motionElem._pt2MM._pt[1],
-        //             actuatorCoords._pt[0], actuatorCoords._pt[1],
-        //             _axisParams[0]._betweenStepsNs, _axisParams[1]._betweenStepsNs);
-    }
-}
-
-#else
-
-// void MotionHelper::calcMotionTimeUs(MotionPipelineElem& motionElem, AxisParams& axisParams)
-// {
-//
-// }
 
 void MotionHelper::pipelineService(bool hasBeenPaused)
 {
@@ -359,14 +235,7 @@ void MotionHelper::pipelineService(bool hasBeenPaused)
         _debugLastPosDispMs = millis();
     }
 }
-#endif
 
-#ifdef USE_MOTION_ISR_MANAGER
-bool MotionHelper::isMoving()
-{
-    return motionISRManager.isMoving();
-}
-#else
 bool MotionHelper::isMoving()
 {
     for (int i = 0; i < MAX_AXES; i++)
@@ -377,7 +246,6 @@ bool MotionHelper::isMoving()
     }
     return false;
 }
-#endif
 
 bool MotionHelper::canAcceptCommand()
 {
@@ -433,9 +301,6 @@ MotionHelper::MotionHelper()
     _moveRelative = false;
     configMotionPipeline();
 
-#ifdef USE_MOTION_ISR_MANAGER
-    motionISRManager.clear();
-#endif
     // // TESTCODE
     // _axisParams[0]._betweenStepsNs = 5000 * 1000;
     // _axisParams[1]._betweenStepsNs = 100 * 1000;
@@ -476,10 +341,6 @@ void MotionHelper::deinit()
             _endStops[i][j] = NULL;
         }
     }
-
-#ifdef USE_MOTION_ISR_MANAGER
-    motionISRManager.clear();
-#endif
 }
 
 void MotionHelper::enableMotors(bool en, bool timeout)
@@ -523,11 +384,6 @@ void MotionHelper::setAxisParams(const char* robotConfigJSON)
         if (configureAxis(robotConfigJSON, i))
             _numRobotAxes = i+1;
     }
-
-#ifdef USE_MOTION_ISR_MANAGER
-    motionISRManager.start();
-#endif
-
 }
 
 void MotionHelper::axisSetHome(int axisIdx)
@@ -544,9 +400,6 @@ void MotionHelper::axisSetHome(int axisIdx)
         _axisParams[axisIdx]._targetStepsFromHome = _axisParams[axisIdx]._homeOffsetSteps;
     }
     Log.trace("Setting axis#%d home %lu", axisIdx, _axisParams[axisIdx]._homeOffsetSteps);
-#ifdef USE_MOTION_ISR_MANAGER
-    motionISRManager.resetZero(axisIdx);
-#endif
 }
 
 void MotionHelper::step(int axisIdx, bool direction)
@@ -592,13 +445,9 @@ void MotionHelper::jumpHome(int axisIdx)
 
 long MotionHelper::getAxisStepsFromHome(int axisIdx)
 {
-#ifdef USE_MOTION_ISR_MANAGER
-    return motionISRManager.getStepsFromZero(axisIdx);
-#else
     if (axisIdx < 0 || axisIdx >= MAX_AXES)
         return 0;
     return _axisParams[axisIdx]._stepsFromHome;
-#endif
 }
 
 // Endstops

@@ -3,8 +3,6 @@
 
 #pragma once
 
-//#define USE_MOTION_ISR_MANAGER 1
-
 #include "StepperMotor.h"
 #include "AxisParams.h"
 #include "EndStop.h"
