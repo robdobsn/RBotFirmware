@@ -5,35 +5,39 @@
 
 #include "math.h"
 
-static const int MAX_AXES = 3;
-
 class AxisFloats
 {
 public:
+	static constexpr int MAX_AXES = 3;
 	float _pt[MAX_AXES];
+	uint8_t _validityFlags;
 
 public:
 	AxisFloats()
 	{
 		for (int i = 0; i < MAX_AXES; i++)
 			_pt[i] = 0;
+		_validityFlags = 0;
 	}
-	AxisFloats(const AxisFloats& pt)
+	AxisFloats(const AxisFloats& other)
 	{
 		for (int i = 0; i < MAX_AXES; i++)
-			_pt[i] = pt._pt[i];
+			_pt[i] = other._pt[i];
+		_validityFlags = other._validityFlags;
 	}
 	AxisFloats(float x, float y)
 	{
 		_pt[0] = x;
 		_pt[1] = y;
 		_pt[2] = 0;
+		_validityFlags = 0xff;
 	}
 	AxisFloats(float x, float y, float z)
 	{
 		_pt[0] = x;
 		_pt[1] = y;
 		_pt[2] = z;
+		_validityFlags = 0xff;
 	}
 	float getVal(int axisIdx)
 	{
@@ -44,13 +48,38 @@ public:
 	void setVal(int axisIdx, float val)
 	{
 		if (axisIdx >= 0 && axisIdx < MAX_AXES)
+		{
+			int axisMask = 0x01 << axisIdx;
 			_pt[axisIdx] = val;
+			_validityFlags |= axisMask;
+		}
 	}
 	void set(float val0, float val1, float val2 = 0)
 	{
 		_pt[0] = val0;
 		_pt[1] = val1;
 		_pt[2] = val2;
+		_validityFlags = 0xff;
+	}
+	void setValid(int axisIdx, bool isValid)
+	{
+		if (axisIdx >= 0 && axisIdx < MAX_AXES)
+		{
+			int axisMask = 0x01 << axisIdx;
+			if (isValid)
+				_validityFlags |= axisMask;
+			else
+				_validityFlags &= ~axisMask;
+		}
+	}
+	bool isValid(int axisIdx)
+	{
+		if (axisIdx >= 0 && axisIdx < MAX_AXES)
+		{
+			int axisMask = 0x01 << axisIdx;
+			return (_validityFlags & axisMask) != 0;
+		}
+		return false;
 	}
 	float X()
 	{
@@ -64,10 +93,11 @@ public:
 	{
 		return _pt[2];
 	}
-	void operator=(const AxisFloats& pt)
+	void operator=(const AxisFloats& other)
 	{
 		for (int i = 0; i < MAX_AXES; i++)
-			_pt[i] = pt._pt[i];
+			_pt[i] = other._pt[i];
+		_validityFlags = other._validityFlags;
 	}
 	AxisFloats operator-(const AxisFloats& pt)
 	{
@@ -158,6 +188,7 @@ public:
 class AxisBools
 {
 public:
+	static constexpr int MAX_AXES = 3;
 	bool _valid[MAX_AXES];
 
 public:
@@ -210,6 +241,7 @@ public:
 class AxisU32s
 {
 public:
+	static constexpr int MAX_AXES = 3;
 	uint32_t vals[MAX_AXES];
 
 public:

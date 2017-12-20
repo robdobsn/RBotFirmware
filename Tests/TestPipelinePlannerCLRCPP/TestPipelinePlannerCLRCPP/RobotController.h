@@ -40,7 +40,7 @@ public:
 	static bool ptToActuator(MotionPipelineElem& motionElem, AxisFloats& actuatorCoords, AxisParams axisParams[], int numAxes)
 	{
 		bool isValid = true;
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < AxisBools::MAX_AXES; i++)
 		{
 			// Axis val from home point
 			float axisValFromHome = motionElem._pt2MM.getVal(i) - axisParams[i]._homeOffsetVal;
@@ -63,7 +63,7 @@ public:
 
 	static void actuatorToPt(AxisFloats& actuatorCoords, AxisFloats& pt, AxisParams axisParams[], int numAxes)
 	{
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < AxisBools::MAX_AXES; i++)
 		{
 			float ptVal = actuatorCoords.getVal(i) - axisParams[i]._homeOffsetSteps;
 			ptVal = ptVal / axisParams[i].stepsPerUnit() + axisParams[i]._homeOffsetVal;

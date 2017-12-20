@@ -67,7 +67,7 @@ public:
 	unsigned int count()
 	{
 		unsigned int getPos = _getPos;
-		if (getPos < _putPos)
+		if (getPos <= _putPos)
 			return _putPos - getPos;
 		return _bufLen - getPos + _putPos;
 	}

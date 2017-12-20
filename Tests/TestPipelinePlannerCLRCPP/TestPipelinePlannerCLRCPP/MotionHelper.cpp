@@ -107,7 +107,7 @@ bool MotionHelper::configureAxis(const char* robotConfigJSON, int axisIdx)
 	// RD big hack here - fixed vals etc!!!!
 
 	// Set the axis parameters
-	_axisParams[axisIdx].set(100, 100, 1000, 3200, 10, true, 0, true, 1000, false, axisIdx <= 1);
+	_axisParams[axisIdx].set(10, 1000, 1000, 3200, 10, true, 0, true, 1000, false, axisIdx <= 1);
 
 
 
@@ -172,11 +172,7 @@ void MotionHelper::getCurStatus(RobotCommandArgs& args)
 {
 	// Get current position
 	AxisFloats axisPosns;
-	for (int i = 0; i < MAX_AXES; i++)
-	{
-		args.pt._pt[i] = _axisMotion._axisPositionMM._pt[i];
-	}
-	args.valid = AxisBools(true, true, true);
+	args.pt = _axisMotion._axisPositionMM;
 	// Absolute/Relative movement
 	args.moveType = _moveRelative ? RobotMoveTypeArg_Relative : RobotMoveTypeArg_Absolute;
 }

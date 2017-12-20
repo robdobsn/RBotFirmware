@@ -128,7 +128,8 @@ public:
 			_entrySpeedMMps = prevMaxExitSpeed;
 			// since we're now acceleration or cruise limited
 			// we don't need to recalculate our entry speed anymore
-			//_recalcFlag = false;
+			if (_entrySpeedMMps >= _nominalSpeedMMps)
+				_recalcFlag = false;
 		}
 		// Now max out the exit speed
 		maximizeExitSpeed();

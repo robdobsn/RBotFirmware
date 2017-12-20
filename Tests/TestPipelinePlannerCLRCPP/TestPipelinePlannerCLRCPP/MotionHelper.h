@@ -24,6 +24,7 @@ public:
 	static constexpr double blockDistanceMM_default = 1.0;
 	static constexpr double distToTravelMM_ignoreBelow = 0.01;
 	static constexpr float MINIMUM_PRIMARY_MOVE_DIST_MM = 0.0001f;
+	static constexpr int MAX_AXES = 3;
 
 private:
 	// Pause

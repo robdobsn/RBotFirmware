@@ -24,7 +24,6 @@ class RobotCommandArgs
 {
 public:
 	AxisFloats pt;
-	AxisBools valid;
 	bool extrudeValid;
 	float extrudeVal;
 	bool feedrateValid;
@@ -51,7 +50,6 @@ public:
 	{
 		clear();
 		pt = copyFrom.pt;
-		valid = copyFrom.valid;
 		extrudeValid = copyFrom.extrudeValid;
 		extrudeVal = copyFrom.extrudeVal;
 		feedrateValid = copyFrom.feedrateValid;
@@ -63,11 +61,10 @@ public:
 	}
 	void setAxisValue(int axisIdx, float value, bool isValid)
 	{
-		if (axisIdx >= 0 && axisIdx < MAX_AXES)
+		if (axisIdx >= 0 && axisIdx < AxisBools::MAX_AXES)
 		{
 			pt.setVal(axisIdx, value);
-			valid.setVal(axisIdx, isValid);
+			pt.setValid(axisIdx, isValid);
 		}
 	}
-
 };
