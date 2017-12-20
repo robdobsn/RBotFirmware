@@ -17,9 +17,9 @@ public:
     EndStop(int axisIdx, int endStopIdx, const char* endStopJSON)
     {
         // Get end stop
-        WiringString pinName = RdJson::getString("sensePin", "-1", endStopJSON);
+        String pinName = RdJson::getString("sensePin", "-1", endStopJSON);
         long activeLevel = RdJson::getLong("activeLevel", 1, endStopJSON);
-        WiringString inputTypeStr = RdJson::getString("inputType", "", endStopJSON);
+        String inputTypeStr = RdJson::getString("inputType", "", endStopJSON);
         long pinId = ConfigPinMap::getPinFromName(pinName.c_str());
         int inputType = ConfigPinMap::getInputType(inputTypeStr.c_str());
         Log.info("Axis%dEndStop%d (sense %ld, level %ld, type %d)", axisIdx, endStopIdx, pinId,

@@ -24,6 +24,8 @@
 #define INPUT 0
 #define OUTPUT 4
 
+#define String WiringString
+
 class RdLogger {
 public:
 #pragma warning(push)
@@ -96,6 +98,10 @@ class Servo
 {
 public:
 	void attach(int pin)
+	{}
+	void detach()
+	{}
+	void writeMicroseconds(int us)
 	{}
 };
 

@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "application.h"
+
 class ConfigPinMap
 {
 public:

@@ -8,7 +8,6 @@
 #include "AxisParams.h"
 #include "AxisMotion.h"
 #include "EndStop.h"
-#include "MotionPipeline.h"
 #include "RobotCommandArgs.h"
 #include "MotionPlanner.h"
 
@@ -20,9 +19,10 @@ class MotionHelper
 {
 public:
 	static const int MAX_ENDSTOPS_PER_AXIS = 2;
-	static constexpr double stepDisableSecs_default = 60.0;
-	static constexpr double blockDistanceMM_default = 1.0;
-	static constexpr double distToTravelMM_ignoreBelow = 0.01;
+	static constexpr float stepDisableSecs_default = 60.0f;
+	static constexpr float blockDistanceMM_default = 1.0f;
+	static constexpr float junctionDeviation_default = 0.05f;
+	static constexpr float distToTravelMM_ignoreBelow = 0.01f;
 	static constexpr float MINIMUM_PRIMARY_MOVE_DIST_MM = 0.0001f;
 	static constexpr int MAX_AXES = 3;
 
@@ -31,9 +31,8 @@ private:
 	bool _isPaused;
 	bool _wasPaused;
     // Robot dimensions
-    double _xMaxMM;
-    double _yMaxMM;
-    double _maxMotionDistanceMM;
+    float _xMaxMM;
+    float _yMaxMM;
     // Stepper motors
     StepperMotor* _stepperMotors[MAX_AXES];
     // Servo motors
@@ -56,23 +55,12 @@ private:
 	correctStepOverflowFnType _correctStepOverflowFn;
 	// Number of actual axes of motion
 	int _numRobotAxes;
-	// Block distance
-	float _blockDistanceMM;
-	// Junction deviation
-	float _junctionDeviation;
-	// Minimum planner speed mm/s
-	float _minimumPlannerSpeedMMps;
 	// Relative motion
 	bool _moveRelative;
 	// Planner used to plan the pipeline of motion
 	MotionPlanner _motionPlanner;
-	// Motion pipeline
-	MotionPipeline _motionPipeline;
 	// Axis Current Motion
 	AxisMotion _axisMotion;
-	// Previous pipeline element
-	bool _prevPipelineElemValid;
-	MotionPipelineElem _prevPipelineElem;
 
 	// Debug
 	unsigned long _debugLastPosDispMs;
@@ -86,8 +74,6 @@ private:
 	bool configure(const char* robotConfigJSON);
 	bool configureAxis(const char* robotConfigJSON, int axisIdx);
 	void pipelineService(bool hasBeenPaused);
-	bool addBlockToPlanner(MotionPipelineElem& elem);
-	void recalculatePipeline();
 
 public:
 	bool isMoving();
@@ -107,8 +93,6 @@ public:
 
 	// Stop
 	void stop();
-
-	void configMotionPipeline();
 
 	MotionHelper();
 	~MotionHelper();
