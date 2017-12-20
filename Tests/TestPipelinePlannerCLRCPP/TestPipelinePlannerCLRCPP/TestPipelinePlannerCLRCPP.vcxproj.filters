@@ -33,9 +33,6 @@
     <ClInclude Include="MotionHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="RobotController.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="RobotCommandArgs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -60,6 +57,27 @@
     <ClInclude Include="AxisValues.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Particle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ConfigPinMap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="spark_wiring_string_mod.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EndStop.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="StepperMotor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="jsmnParticleR.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="app.rc">
@@ -80,6 +98,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="application.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ConfigPinMap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="spark_wiring_string_mod.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="jsmnParticleR.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

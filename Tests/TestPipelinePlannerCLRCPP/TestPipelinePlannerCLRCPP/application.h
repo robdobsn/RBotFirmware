@@ -4,7 +4,8 @@
 #include <stdio.h>  
 #include <stdarg.h> 
 #include <algorithm>
-#include "String.h"
+#include "spark_wiring_string_mod.h"
+#include <ctype.h>
 
 #define TEST_IN_GCPP
 
@@ -15,6 +16,13 @@
 #define STEPTICKER_FROMFP(x) ((float)(x)/STEPTICKER_FPSCALE)
 
 #define __attribute__(A) /* do nothing */
+
+#define strcasecmp(a,b) _stricmp(a,b)
+
+#define INPUT_PULLUP 1
+#define INPUT_PULLDOWN 2
+#define INPUT 0
+#define OUTPUT 4
 
 class RdLogger {
 public:
@@ -43,6 +51,17 @@ public:
 		//System::Console::WriteLine(buffer);
 		va_end(args);
 	}
+	void error(const char * format, ...)
+	{
+		char buffer[1000];
+		va_list args;
+		va_start(args, format);
+		vsprintf(buffer, format, args);
+		printf(buffer);
+		printf("\n");
+		//System::Console::WriteLine(buffer);
+		va_end(args);
+	}
 #pragma warning(pop)
 
 	static RdLogger* getLogger() {
@@ -58,5 +77,37 @@ public:
 
 static RdLogger Log;
 
-#define String std::string
+//bool isspace(int c)
+//{
+//	return (c == ' ' || c == 9 || c == 0x0a || c == 0x0b || c == 0x0c || c == 0x0d);
+//}
 
+extern void pinMode(int pin, int mode);
+
+extern void digitalWrite(int pin, int val);
+
+extern bool digitalRead(int pin);
+
+typedef int PinMode;
+
+extern void delayMicroseconds(unsigned long us);
+
+class Servo
+{
+public:
+	void attach(int pin)
+	{}
+};
+
+unsigned long millis();
+
+class Time_t
+{
+public:
+	static unsigned long now()
+	{
+		return 0;
+	}
+};
+
+extern Time_t Time;

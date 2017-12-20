@@ -37,7 +37,7 @@ public:
 	}
 
 	// Check if ready to accept data
-	bool canAdd()
+	bool canAccept()
 	{
 		return _pipelinePosn.canPut();
 	}

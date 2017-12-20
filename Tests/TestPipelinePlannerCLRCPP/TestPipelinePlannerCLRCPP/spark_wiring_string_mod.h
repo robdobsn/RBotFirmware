@@ -29,26 +29,17 @@ License along with this library; if not, see <http://www.gnu.org/licenses/>.
 
 #include <stdarg.h>
 
-// When compiling programs with this class, the following gcc parameters
-// dramatically increase performance and memory (RAM) efficiency, typically
-// with little or no increase in code size.
-//     -felide-constructors
-//     -std=c++0x
-
-class __FlashStringHelper;
-#define F(X) (X)
-
 // An inherited class for holding the result of a concatenation.  These
 // result objects are assumed to be writable by subsequent concatenations.
 class StringSumHelper;
 
 // The string class
-class String
+class WiringString
 {
 	// use a function pointer to allow for "if (s)" without the
 	// complications of an operator bool(). for more information, see:
 	// http://www.artima.com/cppsource/safebool.html
-	typedef void (String::*StringIfHelperType)() const;
+	typedef void (WiringString::*StringIfHelperType)() const;
 	void StringIfHelper() const {}
 
 public:
@@ -57,23 +48,22 @@ public:
 	// if the initial value is null or invalid, or if memory allocation
 	// fails, the string will be marked as invalid (i.e. "if (s)" will
 	// be false).
-	String(const char *cstr = "");
-	String(const char *cstr, unsigned int length);
-	String(const String &str);
-	String(const __FlashStringHelper *pstr);
+	WiringString(const char *cstr = "");
+	WiringString(const char *cstr, unsigned int length);
+	WiringString(const WiringString &str);
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
 	String(String &&rval);
 	String(StringSumHelper &&rval);
 #endif
-	explicit String(char c);
-	explicit String(unsigned char, unsigned char base = 10);
-	explicit String(int, unsigned char base = 10);
-	explicit String(unsigned int, unsigned char base = 10);
-	explicit String(long, unsigned char base = 10);
-	explicit String(unsigned long, unsigned char base = 10);
-	explicit String(float, int decimalPlaces = 6);
-	explicit String(double, int decimalPlaces = 6);
-	~String(void);
+	explicit WiringString(char c);
+	explicit WiringString(unsigned char, unsigned char base = 10);
+	explicit WiringString(int, unsigned char base = 10);
+	explicit WiringString(unsigned int, unsigned char base = 10);
+	explicit WiringString(long, unsigned char base = 10);
+	explicit WiringString(unsigned long, unsigned char base = 10);
+	explicit WiringString(float, int decimalPlaces = 6);
+	explicit WiringString(double, int decimalPlaces = 6);
+	~WiringString(void);
 
 	// memory management
 	// return true on success, false on failure (in which case, the string
@@ -85,9 +75,8 @@ public:
 	// creates a copy of the assigned value.  if the value is null or
 	// invalid, or if the memory allocation fails, the string will be
 	// marked as invalid ("if (s)" will be false).
-	String & operator = (const String &rhs);
-	String & operator = (const char *cstr);
-	String & operator = (const __FlashStringHelper *pstr);
+	WiringString & operator = (const WiringString &rhs);
+	WiringString & operator = (const char *cstr);
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
 	String & operator = (String &&rval);
 	String & operator = (StringSumHelper &&rval);
@@ -100,9 +89,8 @@ public:
 	// returns true on success, false on failure (in which case, the string
 	// is left unchanged).  if the argument is null or invalid, the
 	// concatenation is considered unsucessful.
-	unsigned char concat(const String &str);
+	unsigned char concat(const WiringString &str);
 	unsigned char concat(const char *cstr);
-	unsigned char concat(const __FlashStringHelper * str);
 	unsigned char concat(char c);
 	unsigned char concat(unsigned char c);
 	unsigned char concat(int num);
@@ -114,16 +102,16 @@ public:
 
 	// if there's not enough memory for the concatenated value, the string
 	// will be left unchanged (but this isn't signalled in any way)
-	String & operator += (const String &rhs) { concat(rhs); return (*this); }
-	String & operator += (const char *cstr) { concat(cstr); return (*this); }
-	String & operator += (char c) { concat(c); return (*this); }
-	String & operator += (unsigned char num) { concat(num); return (*this); }
-	String & operator += (int num) { concat(num); return (*this); }
-	String & operator += (unsigned int num) { concat(num); return (*this); }
-	String & operator += (long num) { concat(num); return (*this); }
-	String & operator += (unsigned long num) { concat(num); return (*this); }
+	WiringString & operator += (const WiringString &rhs) { concat(rhs); return (*this); }
+	WiringString & operator += (const char *cstr) { concat(cstr); return (*this); }
+	WiringString & operator += (char c) { concat(c); return (*this); }
+	WiringString & operator += (unsigned char num) { concat(num); return (*this); }
+	WiringString & operator += (int num) { concat(num); return (*this); }
+	WiringString & operator += (unsigned int num) { concat(num); return (*this); }
+	WiringString & operator += (long num) { concat(num); return (*this); }
+	WiringString & operator += (unsigned long num) { concat(num); return (*this); }
 
-	friend StringSumHelper & operator + (const StringSumHelper &lhs, const String &rhs);
+	friend StringSumHelper & operator + (const StringSumHelper &lhs, const WiringString &rhs);
 	friend StringSumHelper & operator + (const StringSumHelper &lhs, const char *cstr);
 	friend StringSumHelper & operator + (const StringSumHelper &lhs, char c);
 	friend StringSumHelper & operator + (const StringSumHelper &lhs, unsigned char num);
@@ -135,22 +123,22 @@ public:
 	friend StringSumHelper & operator + (const StringSumHelper &lhs, double num);
 
 	// comparison (only works w/ Strings and "strings")
-	operator StringIfHelperType() const { return buffer ? &String::StringIfHelper : 0; }
-	int compareTo(const String &s) const;
-	unsigned char equals(const String &s) const;
+	operator StringIfHelperType() const { return buffer ? &WiringString::StringIfHelper : 0; }
+	int compareTo(const WiringString &s) const;
+	unsigned char equals(const WiringString &s) const;
 	unsigned char equals(const char *cstr) const;
-	unsigned char operator == (const String &rhs) const { return equals(rhs); }
+	unsigned char operator == (const WiringString &rhs) const { return equals(rhs); }
 	unsigned char operator == (const char *cstr) const { return equals(cstr); }
-	unsigned char operator != (const String &rhs) const { return !equals(rhs); }
+	unsigned char operator != (const WiringString &rhs) const { return !equals(rhs); }
 	unsigned char operator != (const char *cstr) const { return !equals(cstr); }
-	unsigned char operator <  (const String &rhs) const;
-	unsigned char operator >  (const String &rhs) const;
-	unsigned char operator <= (const String &rhs) const;
-	unsigned char operator >= (const String &rhs) const;
-	unsigned char equalsIgnoreCase(const String &s) const;
-	unsigned char startsWith(const String &prefix) const;
-	unsigned char startsWith(const String &prefix, unsigned int offset) const;
-	unsigned char endsWith(const String &suffix) const;
+	unsigned char operator <  (const WiringString &rhs) const;
+	unsigned char operator >  (const WiringString &rhs) const;
+	unsigned char operator <= (const WiringString &rhs) const;
+	unsigned char operator >= (const WiringString &rhs) const;
+	unsigned char equalsIgnoreCase(const WiringString &s) const;
+	unsigned char startsWith(const WiringString &prefix) const;
+	unsigned char startsWith(const WiringString &prefix, unsigned int offset) const;
+	unsigned char endsWith(const WiringString &suffix) const;
 
 	// character acccess
 	char charAt(unsigned int index) const;
@@ -167,29 +155,29 @@ public:
 	// search
 	int indexOf(char ch) const;
 	int indexOf(char ch, unsigned int fromIndex) const;
-	int indexOf(const String &str) const;
-	int indexOf(const String &str, unsigned int fromIndex) const;
+	int indexOf(const WiringString &str) const;
+	int indexOf(const WiringString &str, unsigned int fromIndex) const;
 	int lastIndexOf(char ch) const;
 	int lastIndexOf(char ch, unsigned int fromIndex) const;
-	int lastIndexOf(const String &str) const;
-	int lastIndexOf(const String &str, unsigned int fromIndex) const;
-	String substring(unsigned int beginIndex) const;
-	String substring(unsigned int beginIndex, unsigned int endIndex) const;
+	int lastIndexOf(const WiringString &str) const;
+	int lastIndexOf(const WiringString &str, unsigned int fromIndex) const;
+	WiringString substring(unsigned int beginIndex) const;
+	WiringString substring(unsigned int beginIndex, unsigned int endIndex) const;
 
 	// modification
-	String& replace(char find, char replace);
-	String& replace(const String& find, const String& replace);
-	String& remove(unsigned int index);
-	String& remove(unsigned int index, unsigned int count);
-	String& toLowerCase(void);
-	String& toUpperCase(void);
-	String& trim(void);
+	WiringString& replace(char find, char replace);
+	WiringString& replace(const WiringString& find, const WiringString& replace);
+	WiringString& remove(unsigned int index);
+	WiringString& remove(unsigned int index, unsigned int count);
+	WiringString& toLowerCase(void);
+	WiringString& toUpperCase(void);
+	WiringString& trim(void);
 
 	// parsing/conversion
 	long toInt(void) const;
 	float toFloat(void) const;
 
-	static String format(const char* format, ...);
+	static WiringString format(const char* format, ...);
 
 protected:
 	char *buffer;	        // the actual char array
@@ -203,8 +191,7 @@ protected:
 	unsigned char concat(const char *cstr, unsigned int length);
 
 	// copy and move
-	String & copy(const char *cstr, unsigned int length);
-	String & copy(const __FlashStringHelper *pstr, unsigned int length);
+	WiringString & copy(const char *cstr, unsigned int length);
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
 	void move(String &rhs);
@@ -215,6 +202,18 @@ protected:
 };
 
 
+class StringSumHelper : public WiringString
+{
+public:
+	StringSumHelper(const WiringString &s) : WiringString(s) {}
+	StringSumHelper(const char *p) : WiringString(p) {}
+	StringSumHelper(char c) : WiringString(c) {}
+	StringSumHelper(unsigned char num) : WiringString(num) {}
+	StringSumHelper(int num) : WiringString(num) {}
+	StringSumHelper(unsigned int num) : WiringString(num) {}
+	StringSumHelper(long num) : WiringString(num) {}
+	StringSumHelper(unsigned long num) : WiringString(num) {}
+};
 
 #endif  // __cplusplus
 #endif  // String_class_h

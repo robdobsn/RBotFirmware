@@ -23,13 +23,13 @@ License along with this library; if not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************
 */
 
-#include "stdafx.h"
+#include "application.h"
 #include "String.h"
 #include <stdio.h>
 #include <limits.h>
 #include <ctype.h>
 #include <stdlib.h>
-#include <cstdint.h>
+//#include <cstdint.h>
 
 //These are very crude implementations - will refine later
 //------------------------------------------------------------------------------------------
@@ -64,29 +64,22 @@ void dtoa(double val, unsigned char prec, char *sout) {
 /*  Constructors                             */
 /*********************************************/
 
-String::String(const char *cstr)
+WiringString::WiringString(const char *cstr)
 {
 	init();
 	if (cstr) copy(cstr, strlen(cstr));
 }
 
-String::String(const char *cstr, unsigned int length)
+WiringString::WiringString(const char *cstr, unsigned int length)
 {
 	init();
 	if (cstr) copy(cstr, length);
 }
 
-String::String(const String &value)
+WiringString::WiringString(const WiringString &value)
 {
 	init();
 	*this = value;
-}
-
-String::String(const __FlashStringHelper *pstr)
-{
-	init();
-	const char* cstr = reinterpret_cast<const char*>(pstr);
-	if (cstr) copy(cstr, strlen(cstr));
 }
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
@@ -102,7 +95,7 @@ String::String(StringSumHelper &&rval)
 }
 #endif
 
-String::String(char c)
+WiringString::WiringString(char c)
 {
 	init();
 	char buf[2];
@@ -111,7 +104,7 @@ String::String(char c)
 	*this = buf;
 }
 
-String::String(unsigned char value, unsigned char base)
+WiringString::WiringString(unsigned char value, unsigned char base)
 {
 	init();
 	char buf[9];
@@ -119,7 +112,7 @@ String::String(unsigned char value, unsigned char base)
 	*this = buf;
 }
 
-String::String(int value, unsigned char base)
+WiringString::WiringString(int value, unsigned char base)
 {
 	init();
 	char buf[34];
@@ -127,7 +120,7 @@ String::String(int value, unsigned char base)
 	*this = buf;
 }
 
-String::String(unsigned int value, unsigned char base)
+WiringString::WiringString(unsigned int value, unsigned char base)
 {
 	init();
 	char buf[33];
@@ -135,7 +128,7 @@ String::String(unsigned int value, unsigned char base)
 	*this = buf;
 }
 
-String::String(long value, unsigned char base)
+WiringString::WiringString(long value, unsigned char base)
 {
 	init();
 	char buf[34];
@@ -143,7 +136,7 @@ String::String(long value, unsigned char base)
 	*this = buf;
 }
 
-String::String(unsigned long value, unsigned char base)
+WiringString::WiringString(unsigned long value, unsigned char base)
 {
 	init();
 	char buf[33];
@@ -151,7 +144,7 @@ String::String(unsigned long value, unsigned char base)
 	*this = buf;
 }
 
-String::String(float value, int decimalPlaces)
+WiringString::WiringString(float value, int decimalPlaces)
 {
 	init();
 	char buf[33];
@@ -159,14 +152,14 @@ String::String(float value, int decimalPlaces)
 	*this = buf;
 }
 
-String::String(double value, int decimalPlaces)
+WiringString::WiringString(double value, int decimalPlaces)
 {
 	init();
 	char buf[33];
 	dtoa(value, decimalPlaces, buf);
 	*this = buf;
 }
-String::~String()
+WiringString::~WiringString()
 {
 	free(buffer);
 }
@@ -175,7 +168,7 @@ String::~String()
 /*  Memory Management                        */
 /*********************************************/
 
-inline void String::init(void)
+inline void WiringString::init(void)
 {
 	buffer = NULL;
 	capacity = 0;
@@ -183,14 +176,14 @@ inline void String::init(void)
 	flags = 0;
 }
 
-void String::invalidate(void)
+void WiringString::invalidate(void)
 {
 	if (buffer) free(buffer);
 	buffer = NULL;
 	capacity = len = 0;
 }
 
-unsigned char String::reserve(unsigned int size)
+unsigned char WiringString::reserve(unsigned int size)
 {
 	if (buffer && capacity >= size) return 1;
 	if (changeBuffer(size)) {
@@ -200,7 +193,7 @@ unsigned char String::reserve(unsigned int size)
 	return 0;
 }
 
-unsigned char String::changeBuffer(unsigned int maxStrLen)
+unsigned char WiringString::changeBuffer(unsigned int maxStrLen)
 {
 	char *newbuffer = (char *)realloc(buffer, maxStrLen + 1);
 	if (newbuffer) {
@@ -215,7 +208,7 @@ unsigned char String::changeBuffer(unsigned int maxStrLen)
 /*  Copy and Move                            */
 /*********************************************/
 
-String & String::copy(const char *cstr, unsigned int length)
+WiringString & WiringString::copy(const char *cstr, unsigned int length)
 {
 	if (!reserve(length)) {
 		invalidate();
@@ -225,10 +218,6 @@ String & String::copy(const char *cstr, unsigned int length)
 	memcpy(buffer, cstr, length);
 	buffer[len] = 0;
 	return *this;
-}
-
-String & String::copy(const __FlashStringHelper *pstr, unsigned int length) {
-	return copy(reinterpret_cast<const char*>(pstr), length);
 }
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
@@ -254,21 +243,13 @@ void String::move(String &rhs)
 }
 #endif
 
-String & String::operator = (const String &rhs)
+WiringString & WiringString::operator = (const WiringString &rhs)
 {
 	if (this == &rhs) return *this;
 
 	if (rhs.buffer) copy(rhs.buffer, rhs.len);
 	else invalidate();
 
-	return *this;
-}
-
-String & String::operator = (const __FlashStringHelper *pstr)
-{
-	const char* cstr = reinterpret_cast<const char*>(pstr);
-	if (cstr) copy(cstr, strlen(cstr));
-	else invalidate();
 	return *this;
 }
 
@@ -286,7 +267,7 @@ String & String::operator = (StringSumHelper &&rval)
 }
 #endif
 
-String & String::operator = (const char *cstr)
+WiringString & WiringString::operator = (const char *cstr)
 {
 	if (cstr) copy(cstr, strlen(cstr));
 	else invalidate();
@@ -298,12 +279,12 @@ String & String::operator = (const char *cstr)
 /*  concat                                   */
 /*********************************************/
 
-unsigned char String::concat(const String &s)
+unsigned char WiringString::concat(const WiringString &s)
 {
 	return concat(s.buffer, s.len);
 }
 
-unsigned char String::concat(unsigned long num)
+unsigned char WiringString::concat(unsigned long num)
 {
 	char buf[11];
 	ultoa(num, buf, 10);
@@ -311,7 +292,7 @@ unsigned char String::concat(unsigned long num)
 }
 
 
-unsigned char String::concat(const char *cstr, unsigned int length)
+unsigned char WiringString::concat(const char *cstr, unsigned int length)
 {
 	unsigned int newlen = len + length;
 	if (!cstr) return 0;
@@ -322,17 +303,13 @@ unsigned char String::concat(const char *cstr, unsigned int length)
 	return 1;
 }
 
-unsigned char String::concat(const char *cstr)
+unsigned char WiringString::concat(const char *cstr)
 {
 	if (!cstr) return 0;
 	return concat(cstr, strlen(cstr));
 }
 
-unsigned char String::concat(const __FlashStringHelper * str) {
-	return concat(reinterpret_cast<const char*>(str));
-}
-
-unsigned char String::concat(char c)
+unsigned char WiringString::concat(char c)
 {
 	char buf[2];
 	buf[0] = c;
@@ -340,42 +317,42 @@ unsigned char String::concat(char c)
 	return concat(buf, 1);
 }
 
-unsigned char String::concat(unsigned char num)
+unsigned char WiringString::concat(unsigned char num)
 {
 	char buf[4];
 	itoa(num, buf, 10);
 	return concat(buf, strlen(buf));
 }
 
-unsigned char String::concat(int num)
+unsigned char WiringString::concat(int num)
 {
 	char buf[7];
 	itoa(num, buf, 10);
 	return concat(buf, strlen(buf));
 }
 
-unsigned char String::concat(unsigned int num)
+unsigned char WiringString::concat(unsigned int num)
 {
 	char buf[6];
 	itoa(num, buf, 10);
 	return concat(buf, strlen(buf));
 }
 
-unsigned char String::concat(long num)
+unsigned char WiringString::concat(long num)
 {
 	char buf[12];
 	ltoa(num, buf, 10);
 	return concat(buf, strlen(buf));
 }
 
-unsigned char String::concat(float num)
+unsigned char WiringString::concat(float num)
 {
 	char buf[20];
 	dtoa(num, 6, buf);
 	return concat(buf, strlen(buf));
 }
 
-unsigned char String::concat(double num)
+unsigned char WiringString::concat(double num)
 {
 	char buf[20];
 	dtoa(num, 6, buf);
@@ -386,7 +363,7 @@ unsigned char String::concat(double num)
 /*  Concatenate                              */
 /*********************************************/
 
-StringSumHelper & operator + (const StringSumHelper &lhs, const String &rhs)
+StringSumHelper & operator + (const StringSumHelper &lhs, const WiringString &rhs)
 {
 	StringSumHelper &a = const_cast<StringSumHelper&>(lhs);
 	if (!a.concat(rhs.buffer, rhs.len)) a.invalidate();
@@ -459,7 +436,7 @@ StringSumHelper & operator + (const StringSumHelper &lhs, double num)
 /*  Comparison                               */
 /*********************************************/
 
-int String::compareTo(const String &s) const
+int WiringString::compareTo(const WiringString &s) const
 {
 	if (!buffer || !s.buffer) {
 		if (s.buffer && s.len > 0) return 0 - *(unsigned char *)s.buffer;
@@ -469,39 +446,39 @@ int String::compareTo(const String &s) const
 	return strcmp(buffer, s.buffer);
 }
 
-unsigned char String::equals(const String &s2) const
+unsigned char WiringString::equals(const WiringString &s2) const
 {
 	return (len == s2.len && compareTo(s2) == 0);
 }
 
-unsigned char String::equals(const char *cstr) const
+unsigned char WiringString::equals(const char *cstr) const
 {
 	if (len == 0) return (cstr == NULL || *cstr == 0);
 	if (cstr == NULL) return buffer[0] == 0;
 	return strcmp(buffer, cstr) == 0;
 }
 
-unsigned char String::operator<(const String &rhs) const
+unsigned char WiringString::operator<(const WiringString &rhs) const
 {
 	return compareTo(rhs) < 0;
 }
 
-unsigned char String::operator>(const String &rhs) const
+unsigned char WiringString::operator>(const WiringString &rhs) const
 {
 	return compareTo(rhs) > 0;
 }
 
-unsigned char String::operator<=(const String &rhs) const
+unsigned char WiringString::operator<=(const WiringString &rhs) const
 {
 	return compareTo(rhs) <= 0;
 }
 
-unsigned char String::operator>=(const String &rhs) const
+unsigned char WiringString::operator>=(const WiringString &rhs) const
 {
 	return compareTo(rhs) >= 0;
 }
 
-unsigned char String::equalsIgnoreCase(const String &s2) const
+unsigned char WiringString::equalsIgnoreCase(const WiringString &s2) const
 {
 	if (this == &s2) return 1;
 	if (len != s2.len) return 0;
@@ -514,19 +491,19 @@ unsigned char String::equalsIgnoreCase(const String &s2) const
 	return 1;
 }
 
-unsigned char String::startsWith(const String &s2) const
+unsigned char WiringString::startsWith(const WiringString &s2) const
 {
 	if (len < s2.len) return 0;
 	return startsWith(s2, 0);
 }
 
-unsigned char String::startsWith(const String &s2, unsigned int offset) const
+unsigned char WiringString::startsWith(const WiringString &s2, unsigned int offset) const
 {
 	if (offset > len - s2.len || !buffer || !s2.buffer) return 0;
 	return strncmp(&buffer[offset], s2.buffer, s2.len) == 0;
 }
 
-unsigned char String::endsWith(const String &s2) const
+unsigned char WiringString::endsWith(const WiringString &s2) const
 {
 	if (len < s2.len || !buffer || !s2.buffer) return 0;
 	return strcmp(&buffer[len - s2.len], s2.buffer) == 0;
@@ -536,17 +513,17 @@ unsigned char String::endsWith(const String &s2) const
 /*  Character Access                         */
 /*********************************************/
 
-char String::charAt(unsigned int loc) const
+char WiringString::charAt(unsigned int loc) const
 {
 	return operator[](loc);
 }
 
-void String::setCharAt(unsigned int loc, char c)
+void WiringString::setCharAt(unsigned int loc, char c)
 {
 	if (loc < len) buffer[loc] = c;
 }
 
-char & String::operator[](unsigned int index)
+char & WiringString::operator[](unsigned int index)
 {
 	static char dummy_writable_char;
 	if (index >= len || !buffer) {
@@ -556,13 +533,13 @@ char & String::operator[](unsigned int index)
 	return buffer[index];
 }
 
-char String::operator[](unsigned int index) const
+char WiringString::operator[](unsigned int index) const
 {
 	if (index >= len || !buffer) return 0;
 	return buffer[index];
 }
 
-void String::getBytes(unsigned char *buf, unsigned int bufsize, unsigned int index) const
+void WiringString::getBytes(unsigned char *buf, unsigned int bufsize, unsigned int index) const
 {
 	if (!bufsize || !buf) return;
 	if (index >= len) {
@@ -579,12 +556,12 @@ void String::getBytes(unsigned char *buf, unsigned int bufsize, unsigned int ind
 /*  Search                                   */
 /*********************************************/
 
-int String::indexOf(char c) const
+int WiringString::indexOf(char c) const
 {
 	return indexOf(c, 0);
 }
 
-int String::indexOf(char ch, unsigned int fromIndex) const
+int WiringString::indexOf(char ch, unsigned int fromIndex) const
 {
 	if (fromIndex >= len) return -1;
 	const char* temp = strchr(buffer + fromIndex, ch);
@@ -592,12 +569,12 @@ int String::indexOf(char ch, unsigned int fromIndex) const
 	return temp - buffer;
 }
 
-int String::indexOf(const String &s2) const
+int WiringString::indexOf(const WiringString &s2) const
 {
 	return indexOf(s2, 0);
 }
 
-int String::indexOf(const String &s2, unsigned int fromIndex) const
+int WiringString::indexOf(const WiringString &s2, unsigned int fromIndex) const
 {
 	if (fromIndex >= len) return -1;
 	const char *found = strstr(buffer + fromIndex, s2.buffer);
@@ -605,12 +582,12 @@ int String::indexOf(const String &s2, unsigned int fromIndex) const
 	return found - buffer;
 }
 
-int String::lastIndexOf(char theChar) const
+int WiringString::lastIndexOf(char theChar) const
 {
 	return lastIndexOf(theChar, len - 1);
 }
 
-int String::lastIndexOf(char ch, unsigned int fromIndex) const
+int WiringString::lastIndexOf(char ch, unsigned int fromIndex) const
 {
 	if (fromIndex >= len) return -1;
 	char tempchar = buffer[fromIndex + 1];
@@ -621,12 +598,12 @@ int String::lastIndexOf(char ch, unsigned int fromIndex) const
 	return temp - buffer;
 }
 
-int String::lastIndexOf(const String &s2) const
+int WiringString::lastIndexOf(const WiringString &s2) const
 {
 	return lastIndexOf(s2, len - s2.len);
 }
 
-int String::lastIndexOf(const String &s2, unsigned int fromIndex) const
+int WiringString::lastIndexOf(const WiringString &s2, unsigned int fromIndex) const
 {
 	if (s2.len == 0 || len == 0 || s2.len > len) return -1;
 	if (fromIndex >= len) fromIndex = len - 1;
@@ -639,19 +616,19 @@ int String::lastIndexOf(const String &s2, unsigned int fromIndex) const
 	return found;
 }
 
-String String::substring(unsigned int left) const
+WiringString WiringString::substring(unsigned int left) const
 {
 	return substring(left, len);
 }
 
-String String::substring(unsigned int left, unsigned int right) const
+WiringString WiringString::substring(unsigned int left, unsigned int right) const
 {
 	if (left > right) {
 		unsigned int temp = right;
 		right = left;
 		left = temp;
 	}
-	String out;
+	WiringString out;
 	if (left > len) return out;
 	if (right > len) right = len;
 	char temp = buffer[right];  // save the replaced character
@@ -665,7 +642,7 @@ String String::substring(unsigned int left, unsigned int right) const
 /*  Modification                             */
 /*********************************************/
 
-String& String::replace(char find, char replace)
+WiringString& WiringString::replace(char find, char replace)
 {
 	if (buffer)
 		for (char *p = buffer; *p; p++) {
@@ -674,7 +651,7 @@ String& String::replace(char find, char replace)
 	return *this;
 }
 
-String& String::replace(const String& find, const String& replace)
+WiringString& WiringString::replace(const WiringString& find, const WiringString& replace)
 {
 	if (len == 0 || find.len == 0) return *this;
 	int diff = replace.len - find.len;
@@ -720,12 +697,12 @@ String& String::replace(const String& find, const String& replace)
 	return *this;
 }
 
-String& String::remove(unsigned int index) {
+WiringString& WiringString::remove(unsigned int index) {
 	int count = len - index;
 	return remove(index, count);
 }
 
-String& String::remove(unsigned int index, unsigned int count) {
+WiringString& WiringString::remove(unsigned int index, unsigned int count) {
 	if (index >= len) { return *this; }
 	if (count <= 0) { return *this; }
 	if (index + count > len) { count = len - index; }
@@ -736,7 +713,7 @@ String& String::remove(unsigned int index, unsigned int count) {
 	return *this;
 }
 
-String& String::toLowerCase(void)
+WiringString& WiringString::toLowerCase(void)
 {
 	if (buffer) {
 		for (char *p = buffer; *p; p++) {
@@ -746,7 +723,7 @@ String& String::toLowerCase(void)
 	return *this;
 }
 
-String& String::toUpperCase(void)
+WiringString& WiringString::toUpperCase(void)
 {
 	if (buffer) {
 		for (char *p = buffer; *p; p++) {
@@ -756,7 +733,7 @@ String& String::toUpperCase(void)
 	return *this;
 }
 
-String& String::trim(void)
+WiringString& WiringString::trim(void)
 {
 	if (!buffer || len == 0) return *this;
 	char *begin = buffer;
@@ -773,20 +750,20 @@ String& String::trim(void)
 /*  Parsing / Conversion                     */
 /*********************************************/
 
-long String::toInt(void) const
+long WiringString::toInt(void) const
 {
 	if (buffer) return atol(buffer);
 	return 0;
 }
 
 
-float String::toFloat(void) const
+float WiringString::toFloat(void) const
 {
 	if (buffer) return float(atof(buffer));
 	return 0;
 }
 
-String String::format(const char* fmt, ...)
+WiringString WiringString::format(const char* fmt, ...)
 {
 	va_list marker;
 	va_start(marker, fmt);
@@ -795,7 +772,7 @@ String String::format(const char* fmt, ...)
 	size_t n = vsnprintf(test, bufsize, fmt, marker);
 	va_end(marker);
 
-	String result;
+	WiringString result;
 	result.reserve(n);  // internally adds +1 for null terminator
 	if (result.buffer) {
 		va_start(marker, fmt);
@@ -804,9 +781,4 @@ String String::format(const char* fmt, ...)
 		result.len = n;
 	}
 	return result;
-}
-
-std::ostream& operator << (std::ostream& os, const String& value) {
-	os << '"' << value.c_str() << '"';
-	return os;
 }

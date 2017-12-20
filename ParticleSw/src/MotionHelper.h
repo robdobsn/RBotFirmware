@@ -64,7 +64,7 @@ private:
 private:
     bool isInBounds(double v, double b1, double b2)
     {
-        return (v > min(b1, b2) && v < max(b1,b2));
+        return (v > std::min(b1, b2) && v < std::max(b1,b2));
     }
 
     bool configure(const char* robotConfigJSON);
@@ -149,7 +149,7 @@ public:
     // Endstops
     bool isEndStopValid(int axisIdx, int endStopIdx);
     bool isAtEndStop(int axisIdx, int endStopIdx);
-    void moveTo(RobotCommandArgs& args);
+    bool moveTo(RobotCommandArgs& args);
     void setMotionParams(RobotCommandArgs& args);
     void getCurStatus(RobotCommandArgs& args);
     void service(bool processPipeline);

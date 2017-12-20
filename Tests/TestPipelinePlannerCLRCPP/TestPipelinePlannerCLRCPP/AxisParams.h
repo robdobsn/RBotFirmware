@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "RdJson.h"
+
 class AxisParams
 {
 public:
@@ -41,7 +43,7 @@ public:
 		_unitsPerRotation = unitsPerRotation_default;
 		_minValValid = false;
 		_maxValValid = false;
-		_isPrimaryAxis = false;
+		_isPrimaryAxis = true;
 		_isDominantAxis = false;
 		_isServoAxis = false;
 		_homeOffsetVal = homeOffsetVal_default;
@@ -55,20 +57,20 @@ public:
 		return 1;
 	}
 
-	void set(float maxSpeed, float maxAcceleration, float minNsBetweenSteps, float stepsPerRotation,
-		float unitsPerRotation, bool minValValid, float minVal, bool maxValValid, float maxVal,
-				bool isDominantAxis, bool isPrimaryAxis)
+    void setFromJSON(const char* axisJSON)
 	{
-		_maxSpeed = maxSpeed;
-		_maxAcceleration = maxAcceleration;
-		_minNsBetweenSteps = minNsBetweenSteps;
-		_stepsPerRotation = stepsPerRotation;
-		_unitsPerRotation = unitsPerRotation;
-		_minValValid = minValValid;
-		_minVal = minVal;
-		_maxValValid = maxValValid;
-		_maxVal = maxVal;
-		_isDominantAxis = isDominantAxis;
-		_isPrimaryAxis = isPrimaryAxis;
+        // Stepper motor
+        _maxSpeed = float(RdJson::getDouble("maxSpeed", AxisParams::maxSpeed_default, axisJSON));
+        _maxAcceleration = float(RdJson::getDouble("acceleration", AxisParams::acceleration_default, axisJSON));
+        _minNsBetweenSteps = float(RdJson::getDouble("minNsBetweenSteps", AxisParams::minNsBetweenSteps_default, axisJSON));
+        _stepsPerRotation = float(RdJson::getDouble("stepsPerRotation", AxisParams::stepsPerRotation_default, axisJSON));
+        _unitsPerRotation = float(RdJson::getDouble("unitsPerRotation", AxisParams::unitsPerRotation_default, axisJSON));
+        _minVal = float(RdJson::getDouble("minVal", 0, _minValValid, axisJSON));
+        _maxVal = float(RdJson::getDouble("maxVal", 0, _maxValValid, axisJSON));
+        _isDominantAxis = RdJson::getLong("isDominantAxis", 0, axisJSON) != 0;
+		_isPrimaryAxis = RdJson::getLong("isPrimaryAxis", 1, axisJSON) != 0;
+        _isServoAxis = RdJson::getLong("isServoAxis", 0, axisJSON) != 0;
+        _homeOffsetVal = float(RdJson::getDouble("homeOffsetVal", 0, axisJSON));
+        _homeOffsetSteps = RdJson::getLong("homeOffsetSteps", 0, axisJSON);
 	}
 };

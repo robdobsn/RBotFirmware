@@ -3,11 +3,11 @@
 
 #pragma once
 
-//#define USE_MOTION_ISR_MANAGER 1
-
-#include "Application.h"
+#include "application.h"
+#include "StepperMotor.h"
 #include "AxisParams.h"
 #include "AxisMotion.h"
+#include "EndStop.h"
 #include "MotionPipeline.h"
 #include "RobotCommandArgs.h"
 #include "MotionPlanner.h"
@@ -30,6 +30,14 @@ private:
 	// Pause
 	bool _isPaused;
 	bool _wasPaused;
+    // Robot dimensions
+    double _xMaxMM;
+    double _yMaxMM;
+    double _maxMotionDistanceMM;
+    // Stepper motors
+    StepperMotor* _stepperMotors[MAX_AXES];
+    // Servo motors
+    Servo* _servoMotors[MAX_AXES];
 	// Axis parameters
 	AxisParams _axisParams[MAX_AXES];
 	// Step enable
@@ -40,6 +48,8 @@ private:
 	bool _motorsAreEnabled;
 	unsigned long _motorEnLastMillis;
 	unsigned long _motorEnLastUnixTime;
+    // End stops
+    EndStop* _endStops[MAX_AXES][MAX_ENDSTOPS_PER_AXIS];
 	// Callbacks for coordinate conversion etc
 	ptToActuatorFnType _ptToActuatorFn;
 	actuatorToPtFnType _actuatorToPtFn;
