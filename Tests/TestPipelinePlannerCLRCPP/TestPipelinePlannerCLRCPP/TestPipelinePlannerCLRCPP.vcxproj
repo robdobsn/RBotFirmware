@@ -159,6 +159,7 @@
     <ClInclude Include="spark_wiring_string_mod.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="StepperMotor.h" />
+    <ClInclude Include="TestCaseMotion.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>
@@ -177,6 +178,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="TestCaseMotion.cpp" />
     <ClCompile Include="TestPipelinePlannerCLRCPP.cpp" />
   </ItemGroup>
   <ItemGroup>

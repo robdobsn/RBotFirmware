@@ -155,5 +155,8 @@ public:
 	}
 
 	void debugShowBlocks();
+	int testGetPipelineCount();
+	void testGetPipelineElem(int elIdx, MotionPipelineElem& elem);
+
 
 };

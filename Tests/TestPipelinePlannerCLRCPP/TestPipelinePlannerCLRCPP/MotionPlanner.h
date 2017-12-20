@@ -292,6 +292,14 @@ public:
 				Log.trace("#%d En %0.3f Ex %0.3f", elIdx++, pElem->_entrySpeedMMps, pElem->_exitSpeedMMps);
 			}
 		}
+	}
 
+	int testGetPipelineCount()
+	{
+		return _motionPipeline.count();
+	}
+	void testGetPipelineElem(int elIdx, MotionPipelineElem& elem)
+	{
+		elem = *_motionPipeline.peekNthFromPut(_motionPipeline.count()-1-elIdx);
 	}
 };

@@ -683,3 +683,12 @@ void MotionHelper::debugShowBlocks()
 {
 	_motionPlanner.debugShowBlocks();
 }
+
+int MotionHelper::testGetPipelineCount()
+{
+	return _motionPlanner.testGetPipelineCount();
+}
+void MotionHelper::testGetPipelineElem(int elIdx, MotionPipelineElem& elem)
+{
+	_motionPlanner.testGetPipelineElem(elIdx, elem);
+}
