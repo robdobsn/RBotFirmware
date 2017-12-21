@@ -234,7 +234,7 @@ bool MotionHelper::moveTo(RobotCommandArgs& args)
 	Log.trace("Feedrate %0.3f, reciprocalTime %0.3f", args.feedrateVal, reciprocalTime);
 
 	// Create a motion pipeline element for this movement
-	MotionPipelineElem elem(_curAxisPosition._axisPositionMM, args.pt);
+	MotionPipelineElem elem(_numRobotAxes, _curAxisPosition._axisPositionMM, args.pt);
 
 	Log.trace("MotionPipelineElem delta %0.3f", elem.delta());
 

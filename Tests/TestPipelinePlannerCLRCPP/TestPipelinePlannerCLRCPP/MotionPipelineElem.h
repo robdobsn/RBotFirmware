@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AxisValues.h"
+#include <vector>
 
 class MotionPipelineElem
 {
@@ -34,6 +35,20 @@ public:
 	float _accelPerTick;
 	float _decelPerTick;
 	float _initialStepRate;
+	int _numAxes;
+
+	// this is the data needed to determine when each motor needs to be issued a step
+	using tickinfo_t = struct {
+		int32_t steps_per_tick; // 2.30 fixed point
+		int32_t counter; // 2.30 fixed point
+		int32_t acceleration_change; // 2.30 fixed point signed
+		int32_t deceleration_change; // 2.30 fixed point
+		int32_t plateau_rate; // 2.30 fixed point
+		uint32_t steps_to_move;
+		uint32_t step_count;
+		uint32_t next_accel_event;
+	};
+	std::vector<tickinfo_t> _tickInfo;
 
 public:
 	MotionPipelineElem()
@@ -58,9 +73,11 @@ public:
 		_accelPerTick = 0;
 		_decelPerTick = 0;
 		_initialStepRate = 0;
+		_numAxes = 0;
+		_tickInfo.resize(0);
 	}
 
-	MotionPipelineElem(AxisFloats& pt1, AxisFloats& pt2)
+	MotionPipelineElem(int numAxes, AxisFloats& pt1, AxisFloats& pt2)
 	{
 		_pt1MM = pt1;
 		_pt2MM = pt2;
@@ -84,6 +101,8 @@ public:
 		_accelPerTick = 0;
 		_decelPerTick = 0;
 		_initialStepRate = 0;
+		_numAxes = numAxes;
+		_tickInfo.resize(_numAxes);
 	}
 
 	double delta()
@@ -250,14 +269,14 @@ public:
 		// the updates to the blocks to get around it
 		//this->locked = true;
 		// Now figure out the two acceleration ramp change events in ticks
-		this->_accelUntil = accelTicks;
-		this->_decelAfter = totalTicks - decelTicks;
+		_accelUntil = accelTicks;
+		_decelAfter = totalTicks - decelTicks;
 
 		// Now figure out the acceleration PER TICK, this should ideally be held as a float, even a double if possible as it's very critical to the block timing
 		// steps/tick^2
 
-		this->_accelPerTick = acceleration_in_steps / STEP_TICKER_FREQUENCY_2;
-		this->_decelPerTick = deceleration_in_steps / STEP_TICKER_FREQUENCY_2;
+		_accelPerTick = acceleration_in_steps / STEP_TICKER_FREQUENCY_2;
+		_decelPerTick = deceleration_in_steps / STEP_TICKER_FREQUENCY_2;
 
 		// We now have everything we need for this block to call a Steppermotor->move method !!!!
 		// Theorically, if accel is done per tick, the speed curve should be perfect.
@@ -265,11 +284,45 @@ public:
 
 		//puts "accelerate_until: #{this->accelerate_until}, decelerate_after: #{this->decelerate_after}, acceleration_per_tick: #{this->acceleration_per_tick}, total_move_ticks: #{this->total_move_ticks}"
 
-		this->_initialStepRate = initialStepRate;
+		_initialStepRate = initialStepRate;
 
 		// prepare the block for stepticker
 		//this->prepare();
 		//this->locked = false;
+
+		float inv = 1.0F / _axisMaxSteps;
+		for (uint8_t axisIdx = 0; axisIdx < _numAxes; axisIdx++) {
+			uint32_t steps = _absSteps.getVal(axisIdx);
+			_tickInfo[axisIdx].steps_to_move = steps;
+			if (steps == 0) continue;
+
+			float aratio = inv * steps;
+			_tickInfo[axisIdx].steps_per_tick = STEPTICKER_TOFP((_initialStepRate * aratio) / STEP_TICKER_FREQUENCY); // steps/sec / tick frequency to get steps per tick in 2.30 fixed point
+			_tickInfo[axisIdx].counter = 0; // 2.30 fixed point
+			_tickInfo[axisIdx].step_count = 0;
+			_tickInfo[axisIdx].next_accel_event = this->_totalMoveTicks + 1;
+
+			float acceleration_change = 0;
+			if (_accelUntil != 0) { // If the next accel event is the end of accel
+				_tickInfo[axisIdx].next_accel_event = _accelUntil;
+				acceleration_change = _accelPerTick;
+
+			}
+			else if (_decelAfter == 0 /*&& this->accelerate_until == 0*/) {
+				// we start off decelerating
+				acceleration_change = -_decelPerTick;
+
+			}
+			else if (_decelAfter != _totalMoveTicks /*&& this->accelerate_until == 0*/) {
+				// If the next event is the start of decel ( don't set this if the next accel event is accel end )
+				_tickInfo[axisIdx].next_accel_event = _decelAfter;
+			}
+
+			// convert to fixed point after scaling
+			_tickInfo[axisIdx].acceleration_change = STEPTICKER_TOFP(acceleration_change * aratio);
+			_tickInfo[axisIdx].deceleration_change = -STEPTICKER_TOFP(_decelPerTick * aratio);
+			_tickInfo[axisIdx].plateau_rate = STEPTICKER_TOFP((_maxStepRatePerSec * aratio) / STEP_TICKER_FREQUENCY);
+		}
 
 
 	}

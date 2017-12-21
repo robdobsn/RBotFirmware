@@ -55,20 +55,6 @@ public:
 		return true;
 	}
 
-	// Add to pipeline
-	bool add(AxisFloats& pt1, AxisFloats& pt2)
-	{
-		// Check if full
-		if (!_pipelinePosn.canPut())
-			return false;
-
-		// Add the item
-		MotionPipelineElem elem(pt1, pt2);
-		_pipeline[_pipelinePosn._putPos] = elem;
-		_pipelinePosn.hasPut();
-		return true;
-	}
-
 	// Can get from queue (i.e. not empty)
 	bool canGet()
 	{

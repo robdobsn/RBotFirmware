@@ -26,8 +26,11 @@ public:
 	{
 		_prevPipelineElemValid = false;
 		_minimumPlannerSpeedMMps = 0;
-		// Configure the motion pipeline
-		configure(0, 100.0f, 1.0f, 0.05f);
+		// Configure the motion pipeline - these values will be changed in config
+		_maxMotionDistanceMM = 0;
+		_blockDistanceMM = 0;
+		_junctionDeviation = 0;
+		_numRobotAxes = 0;
 	}
 	void configure(int numRobotAxes, float maxMotionDistanceMM, float blockDistanceMM, float junctionDeviation)
 	{
