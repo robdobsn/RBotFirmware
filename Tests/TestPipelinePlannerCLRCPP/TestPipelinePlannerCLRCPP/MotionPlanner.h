@@ -186,7 +186,6 @@ public:
 
 	void recalculatePipeline()
 	{
-
 		// A newly added block is decel limited
 		// We find its max entry speed given its exit speed
 		//
@@ -206,8 +205,6 @@ public:
 		//    then we're still decel limited. update previous trapezoid with our max entry for prev exit
 		//    if max_entry >= prev_exit
 		//    then we're accel limited. set recalculate to false, work out max exit speed
-		//	
-		// Finally, work out trapezoid for the final(and newest) block.
 
 		Log.trace("------recalculatePipeline");
 		// Step 1:
@@ -264,17 +261,6 @@ public:
 			}
 
 		}
-		// Step 3:
-		// work out trapezoid for final (and newest) block
-		// now current points to the item most recently inserted
-		// which has not had calculate_trapezoid run yet
-		//pElem = _motionPipeline.peekNthFromPut(0);
-		//if (pElem)
-		//{
-		//	pElem->_exitSpeedMMps = _minimumPlannerSpeedMMps;
-		//		pElem->calculateTrapezoid();
-		//	Log.trace("Final (most recent) #%d after trapezoid entrySpeed %0.3f, exitSpeed %0.3f", elemIdxFromPutPos, pElem->_entrySpeedMMps, pElem->_exitSpeedMMps);
-		//}
 	}
 
 	void debugShowBlocks()

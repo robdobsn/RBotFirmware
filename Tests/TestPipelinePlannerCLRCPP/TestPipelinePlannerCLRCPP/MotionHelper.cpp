@@ -12,54 +12,20 @@ MotionHelper::MotionHelper()
 	// Init
 	_isPaused = false;
 	_wasPaused = false;
+	_moveRelative = false;
     _xMaxMM = 0;
     _yMaxMM = 0;
     _numRobotAxes = 0;
-	for (int i = 0; i < MAX_AXES; i++)
-{
-        _stepperMotors[i] = NULL;
-        _servoMotors[i] = NULL;
-        for (int j = 0; j < MAX_ENDSTOPS_PER_AXIS; j++)
-            _endStops[i][j] = NULL;
-}
-	_axisMotion.clear();
-	_stepEnablePin = -1;
-	_stepEnableActiveLevel = true;
-	_stepDisableSecs = 60.0;
+	// Clear axis current location
+	_curAxisPosition.clear();
+	// Coordinate conversion management
 	_ptToActuatorFn = NULL;
 	_actuatorToPtFn = NULL;
 	_correctStepOverflowFn = NULL;
-	_motorEnLastMillis = 0;
-	_motorEnLastUnixTime = 0;
-	_moveRelative = false;
 }
 
 MotionHelper::~MotionHelper()
 {
-	deinit();
-}
-
-void MotionHelper::deinit()
-{
-	// disable
-	if (_stepEnablePin != -1)
-		pinMode(_stepEnablePin, INPUT);
-
-	// remove motors and end stops
-	for (int i = 0; i < MAX_AXES; i++)
-	{
-		delete _stepperMotors[i];
-		_stepperMotors[i] = NULL;
-		if (_servoMotors[i])
-			_servoMotors[i]->detach();
-		delete _servoMotors[i];
-		_servoMotors[i] = NULL;
-		for (int j = 0; j < MAX_ENDSTOPS_PER_AXIS; j++)
-		{
-			delete _endStops[i][j];
-			_endStops[i][j] = NULL;
-		}
-	}
 }
 
 void MotionHelper::setTransforms(ptToActuatorFnType ptToActuatorFn, actuatorToPtFnType actuatorToPtFn,
@@ -71,12 +37,12 @@ void MotionHelper::setTransforms(ptToActuatorFnType ptToActuatorFn, actuatorToPt
 	_correctStepOverflowFn = correctStepOverflowFn;
 }
 
-void MotionHelper::setAxisParams(const char* robotConfigJSON)
+void MotionHelper::configure(const char* robotConfigJSON)
 {
-	// Deinitialise
-	deinit();
+	// MotionIO
+	_motionIO.deinit();
 
-	// Axes
+	// Configure Axes
 	for (int i = 0; i < MAX_AXES; i++)
 	{
 		if (configureAxis(robotConfigJSON, i))
@@ -84,31 +50,10 @@ void MotionHelper::setAxisParams(const char* robotConfigJSON)
 	}
 
 	// Configure robot
-	configure(robotConfigJSON);
+	configureRobot(robotConfigJSON);
 
 	// Clear motion info
-	_axisMotion.clear();
-}
-
-bool MotionHelper::configure(const char* robotConfigJSON)
-{
-	// Get motor enable info
-    String stepEnablePinName = RdJson::getString("stepEnablePin", "-1", robotConfigJSON);
-    _stepEnableActiveLevel = RdJson::getLong("stepEnableActiveLevel", 1, robotConfigJSON);
-    _stepEnablePin = ConfigPinMap::getPinFromName(stepEnablePinName.c_str());
-    _stepDisableSecs = float(RdJson::getDouble("stepDisableSecs", stepDisableSecs_default, robotConfigJSON));
-    _xMaxMM = float(RdJson::getDouble("xMaxMM", 0, robotConfigJSON));
-    _yMaxMM = float(RdJson::getDouble("yMaxMM", 0, robotConfigJSON));
-    Log.info("MotorEnable (pin %d, actLvl %d, disableAfter %0.2fs)", _stepEnablePin, _stepEnableActiveLevel, _stepDisableSecs);
-	float maxMotionDistanceMM = sqrt(_xMaxMM * _xMaxMM + _yMaxMM * _yMaxMM);
-	float blockDistanceMM = float(RdJson::getDouble("blockDistanceMM", blockDistanceMM_default, robotConfigJSON));
-	float junctionDeviation = float(RdJson::getDouble("junctionDeviation", junctionDeviation_default, robotConfigJSON));
-	_motionPlanner.configure(_numRobotAxes, maxMotionDistanceMM, blockDistanceMM, junctionDeviation);
-
-    // Enable pin - initially disable
-    pinMode(_stepEnablePin, OUTPUT);
-    digitalWrite(_stepEnablePin, !_stepEnableActiveLevel);
-	return true;
+	_curAxisPosition.clear();
 }
 
 bool MotionHelper::configureAxis(const char* robotConfigJSON, int axisIdx)
@@ -126,57 +71,34 @@ bool MotionHelper::configureAxis(const char* robotConfigJSON, int axisIdx)
     _axisParams[axisIdx].setFromJSON(axisJSON.c_str());
 	_axisParams[axisIdx].debugLog(axisIdx);
 
+	// Configure motionIO - motors and end-stops
+	_motionIO.configureAxis(axisJSON.c_str(), axisIdx);
 
-    // Check the kind of motor to use
-    bool isValid = false;
-    String stepPinName = RdJson::getString("stepPin", "-1", axisJSON, isValid);
-    if (isValid)
-    {
-        // Create the stepper motor for the axis
-        String dirnPinName = RdJson::getString("dirnPin", "-1", axisJSON);
-        int stepPin = ConfigPinMap::getPinFromName(stepPinName.c_str());
-        int dirnPin = ConfigPinMap::getPinFromName(dirnPinName.c_str());
-        Log.info("Axis%d (step pin %ld, dirn pin %ld)", axisIdx, stepPin, dirnPin);
-        if ((stepPin != -1 && dirnPin != -1))
-            _stepperMotors[axisIdx] = new StepperMotor(StepperMotor::MOTOR_TYPE_DRIVER, stepPin, dirnPin);
-    }
-    else
-    {
-        // Create a servo motor for the axis
-        String servoPinName = RdJson::getString("servoPin", "-1", axisJSON);
-        long servoPin = ConfigPinMap::getPinFromName(servoPinName.c_str());
-        Log.info("Axis%d (servo pin %ld)", axisIdx, servoPin);
-        if ((servoPin != -1))
-        {
-            _servoMotors[axisIdx] = new Servo();
-            if (_servoMotors[axisIdx])
-                _servoMotors[axisIdx]->attach(servoPin);
-
-            // For servos go home now
-            jumpHome(axisIdx);
-        }
-    }
-
-    // End stops
-    for (int endStopIdx =0; endStopIdx < MAX_ENDSTOPS_PER_AXIS; endStopIdx++)
-    {
-        // Get the config for endstop if present
-        String endStopIdStr = "endStop" + String(endStopIdx);
-        String endStopJSON = RdJson::getString(endStopIdStr, "{}", axisJSON);
-        if (endStopJSON.length() == 0 || endStopJSON.equals("{}"))
-            continue;
-
-        // Create endStop from JSON
-        _endStops[axisIdx][endStopIdx] = new EndStop(axisIdx, endStopIdx, endStopJSON);
-    }
-
-    // TEST Major axis
-    if (axisIdx == 0)
-        _axisParams[0]._isDominantAxis = true;
+	// TEST Major axis
+	if (axisIdx == 0)
+		_axisParams[0]._isDominantAxis = true;
 
     return true;
 }
 
+bool MotionHelper::configureRobot(const char* robotConfigJSON)
+{
+	// Get motor enable info
+	String stepEnablePinName = RdJson::getString("stepEnablePin", "-1", robotConfigJSON);
+	_xMaxMM = float(RdJson::getDouble("xMaxMM", 0, robotConfigJSON));
+	_yMaxMM = float(RdJson::getDouble("yMaxMM", 0, robotConfigJSON));
+
+	// Motion planner
+	float maxMotionDistanceMM = sqrt(_xMaxMM * _xMaxMM + _yMaxMM * _yMaxMM);
+	float blockDistanceMM = float(RdJson::getDouble("blockDistanceMM", blockDistanceMM_default, robotConfigJSON));
+	float junctionDeviation = float(RdJson::getDouble("junctionDeviation", junctionDeviation_default, robotConfigJSON));
+	_motionPlanner.configure(_numRobotAxes, maxMotionDistanceMM, blockDistanceMM, junctionDeviation);
+
+	// MotionIO
+	_motionIO.configureMotors(robotConfigJSON);
+	return true;
+}
+#
 bool MotionHelper::canAcceptCommand()
 {
 	// Check that at the motion pipeline can accept new data
@@ -190,33 +112,6 @@ void MotionHelper::stop()
 	_isPaused = false;
 }
 
-void MotionHelper::enableMotors(bool en, bool timeout)
-{
-//        Log.trace("Enable %d, disable level %d, disable after time %0.2f", en, !_stepEnableActiveLevel, _stepDisableSecs);
-    if (en)
-    {
-        if (_stepEnablePin != -1)
-        {
-            if (!_motorsAreEnabled)
-                Log.info("MotionHelper motors enabled, disable after time %0.2f", _stepDisableSecs);
-            digitalWrite(_stepEnablePin, _stepEnableActiveLevel);
-        }
-        _motorsAreEnabled = true;
-        _motorEnLastMillis = millis();
-        _motorEnLastUnixTime = Time.now();
-    }
-    else
-    {
-        if (_stepEnablePin != -1)
-        {
-            if (_motorsAreEnabled)
-                Log.info("MotionHelper motors disabled by %s", timeout ? "timeout" : "command");
-            digitalWrite(_stepEnablePin, !_stepEnableActiveLevel);
-        }
-        _motorsAreEnabled = false;
-    }
-}
-
 void MotionHelper::setMotionParams(RobotCommandArgs& args)
 {
 	// Check for relative movement specified and set accordingly
@@ -228,75 +123,9 @@ void MotionHelper::getCurStatus(RobotCommandArgs& args)
 {
 	// Get current position
 	AxisFloats axisPosns;
-	args.pt = _axisMotion._axisPositionMM;
+	args.pt = _curAxisPosition._axisPositionMM;
 	// Absolute/Relative movement
 	args.moveType = _moveRelative ? RobotMoveTypeArg_Relative : RobotMoveTypeArg_Absolute;
-}
-
-void MotionHelper::step(int axisIdx, bool direction)
-{
-	if (axisIdx < 0 || axisIdx >= MAX_AXES)
-		return;
-
-    enableMotors(true, false);
-    if (_stepperMotors[axisIdx])
-    {
-        _stepperMotors[axisIdx]->step(direction);
-    }
-    //_axisParams[axisIdx]._stepsFromHome += (direction ? 1 : -1);
-    //_axisParams[axisIdx]._lastStepMicros = micros();
-}
-
-void MotionHelper::jump(int axisIdx, long targetStepsFromHome)
-{
-	if (axisIdx < 0 || axisIdx >= MAX_AXES)
-		return;
-
-    if (_servoMotors[axisIdx])
-    {
-        //_servoMotors[axisIdx]->writeMicroseconds(targetStepsFromHome);
-    }
-    //_axisParams[axisIdx]._stepsFromHome = targetStepsFromHome;
-}
-
-void MotionHelper::jumpHome(int axisIdx)
-{
-	if (axisIdx < 0 || axisIdx >= MAX_AXES)
-		return;
-
-    if (_servoMotors[axisIdx])
-    {
-        Log.trace("Servo(ax#%d) jumpHome to %ld", axisIdx, _axisParams[axisIdx]._homeOffsetSteps);
-        _servoMotors[axisIdx]->writeMicroseconds(_axisParams[axisIdx]._homeOffsetSteps);
-    }
-    //_axisParams[axisIdx]._stepsFromHome = _axisParams[axisIdx]._homeOffsetSteps;
-    //_axisParams[axisIdx]._targetStepsFromHome = _axisParams[axisIdx]._homeOffsetSteps;
-}
-
-// Endstops
-bool MotionHelper::isEndStopValid(int axisIdx, int endStopIdx)
-{
-    if (axisIdx < 0 || axisIdx >= MAX_AXES)
-        return false;
-    if (endStopIdx < 0 || endStopIdx >= MAX_ENDSTOPS_PER_AXIS)
-        return false;
-    return true;
-}
-
-bool MotionHelper::isAtEndStop(int axisIdx, int endStopIdx)
-{
-    // For safety return true in these cases
-    if (axisIdx < 0 || axisIdx >= MAX_AXES)
-        return true;
-    if (endStopIdx < 0 || endStopIdx >= MAX_ENDSTOPS_PER_AXIS)
-        return true;
-
-    // Test endstop
-    if(_endStops[axisIdx][endStopIdx])
-        return _endStops[axisIdx][endStopIdx]->isAtEndStop();
-
-    // All other cases return true (as this might be safer)
-    return true;
 }
 
 bool MotionHelper::moveTo(RobotCommandArgs& args)
@@ -313,7 +142,7 @@ bool MotionHelper::moveTo(RobotCommandArgs& args)
 	float squareSum = 0;
 	for (int i = 0; i < _numRobotAxes; i++)
 	{
-		deltas[i] = args.pt._pt[i] - _axisMotion._axisPositionMM._pt[i];
+		deltas[i] = args.pt._pt[i] - _curAxisPosition._axisPositionMM._pt[i];
 		if (deltas[i] != 0)
 		{
 			isAMove = true;
@@ -391,7 +220,7 @@ bool MotionHelper::moveTo(RobotCommandArgs& args)
 	for (int i = 0; i < _numRobotAxes; i++)
 	{
 		// Speed and time
-		float axisDist = fabsf(args.pt._pt[i] - _axisMotion._axisPositionMM._pt[i]);
+		float axisDist = fabsf(args.pt._pt[i] - _curAxisPosition._axisPositionMM._pt[i]);
 		if (axisDist == 0)
 			continue;
 		float axisReqdAcc = axisDist * reciprocalTime;
@@ -405,7 +234,7 @@ bool MotionHelper::moveTo(RobotCommandArgs& args)
 	Log.trace("Feedrate %0.3f, reciprocalTime %0.3f", args.feedrateVal, reciprocalTime);
 
 	// Create a motion pipeline element for this movement
-	MotionPipelineElem elem(_axisMotion._axisPositionMM, args.pt);
+	MotionPipelineElem elem(_curAxisPosition._axisPositionMM, args.pt);
 
 	Log.trace("MotionPipelineElem delta %0.3f", elem.delta());
 
@@ -420,85 +249,14 @@ bool MotionHelper::moveTo(RobotCommandArgs& args)
 	elem._moveDistMM = moveDist;
 
 	// Add the block to the planner queue
-	return _motionPlanner.addBlock(elem, _axisMotion);
-
-	//// Get the starting position - this is either the destination of the
-	//// last block in the pipeline or the current target location of the
-	//// robot (whether currently moving or idle)
-	//// Peek at the last block in the pipeline if there is one
-	//PointND startPos;
-	//MotionPipelineElem lastPipelineEntry;
-	//bool queueValid = _motionPipeline.peekLast(lastPipelineEntry);
-	//if (queueValid)
-	//{
-	//	startPos = lastPipelineEntry._pt2MM;
-	//	Log.trace("MotionHelper using queue end, startPos X %0.2f Y %0.2f",
-	//		startPos._pt[0], startPos._pt[1]);
-	//}
-	//else
-	//{
-	//	PointND axisPosns;
-	//	for (int i = 0; i < MAX_AXES; i++)
-	//		axisPosns._pt[i] = _axisParams[i]._targetStepsFromHome;
-	//	PointND curXy;
-	//	_actuatorToPtFn(axisPosns, curXy, _axisParams, _numRobotAxes);
-	//	startPos = curXy;
-	//	Log.trace("MotionHelper queue empty startPos X %0.2f Y%0.2f",
-	//		startPos._pt[0], startPos._pt[1]);
-	//}
-
-	//// Handle reltative motion and fill in the destPos for axes for
-	//// which values not specified
-	//// Don't use servo values for computing distance to travel
-	//PointND destPos = args.pt;
-	//bool includeDist[MAX_AXES];
-	//for (int i = 0; i < MAX_AXES; i++)
-	//{
-	//	if (!args.valid.isValid(i))
-	//	{
-	//		destPos.setVal(i, startPos.getVal(i));
-	//	}
-	//	else
-	//	{
-	//		if (_moveRelative)
-	//			destPos.setVal(i, startPos.getVal(i) + args.pt.getVal(i));
-	//	}
-	//	includeDist[i] = !_axisParams[i]._isServoAxis;
-	//}
-
-	//// Split up into blocks of maximum length
-	//double lineLen = destPos.distanceTo(startPos, includeDist);
-
-	//// Ensure at least one block
-	//int numBlocks = int(lineLen / _blockDistanceMM);
-	//if (numBlocks == 0)
-	//	numBlocks = 1;
-	//Log.trace("MotionHelper numBlocks %d (lineLen %0.2f / blockDistMM %02.f)",
-	//	numBlocks, lineLen, _blockDistanceMM);
-	//PointND steps = (destPos - startPos) / numBlocks;
-	//for (int i = 0; i < numBlocks; i++)
-	//{
-	//	// Create block
-	//	PointND pt1 = startPos + steps * i;
-	//	PointND pt2 = startPos + steps * (i + 1);
-	//	// Fix any axes which are non-stepping
-	//	for (int j = 0; j < MAX_AXES; j++)
-	//	{
-	//		if (_axisParams[j]._isServoAxis)
-	//		{
-	//			pt1.setVal(j, (i == 0) ? startPos.getVal(j) : destPos.getVal(j));
-	//			pt2.setVal(j, destPos.getVal(j));
-	//		}
-	//	}
-	//	// If last block then just use end point coords
-	//	if (i == numBlocks - 1)
-	//		pt2 = destPos;
-	//	// Log.trace("Adding x %0.2f y %0.2f", blkX, blkY);
-	//	// Add to pipeline
-	//	if (!_motionPipeline.add(pt1, pt2))
-	//		break;
-	//}
-
+	bool moveOk = _motionPlanner.addBlock(elem, _curAxisPosition);
+	if (moveOk)
+	{
+		// Update axisMotion
+		_curAxisPosition._axisPositionMM = elem._pt2MM;
+		_curAxisPosition._stepsFromHome = elem._destActuatorCoords;
+	}
+	return moveOk;
 }
 
 void MotionHelper::service(bool processPipeline)
