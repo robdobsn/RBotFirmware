@@ -262,8 +262,8 @@ public:
 		float acceleration_time = 1.0f * accelTicks / STEP_TICKER_FREQUENCY;  
 		float deceleration_time = 1.0f * decelTicks / STEP_TICKER_FREQUENCY;
 
-		float acceleration_in_steps = (timeToAccelerateSecs > 0.0F) ? (_maxStepRatePerSec - initialStepRate) / timeToAccelerateSecs : 0;
-		float deceleration_in_steps = (timeToDecelerateSecs > 0.0F) ? (_maxStepRatePerSec - finalStepRate) / timeToDecelerateSecs: 0;
+		float acceleration_in_steps = (timeToAccelerateSecs > 0.000001F) ? (_maxStepRatePerSec - initialStepRate) / timeToAccelerateSecs : 0;
+		float deceleration_in_steps = (timeToDecelerateSecs > 0.000001F) ? (_maxStepRatePerSec - finalStepRate) / timeToDecelerateSecs: 0;
 
 		// we have a potential race condition here as we could get interrupted anywhere in the middle of this call, we need to lock
 		// the updates to the blocks to get around it
@@ -306,12 +306,10 @@ public:
 			if (_accelUntil != 0) { // If the next accel event is the end of accel
 				_tickInfo[axisIdx].next_accel_event = _accelUntil;
 				acceleration_change = _accelPerTick;
-
 			}
 			else if (_decelAfter == 0 /*&& this->accelerate_until == 0*/) {
 				// we start off decelerating
 				acceleration_change = -_decelPerTick;
-
 			}
 			else if (_decelAfter != _totalMoveTicks /*&& this->accelerate_until == 0*/) {
 				// If the next event is the start of decel ( don't set this if the next accel event is accel end )
@@ -327,6 +325,19 @@ public:
 
 	}
 
+	void debugShowBlkHead()
+	{
+		Log.trace("idx\tEnSpd\tExitSpd\ttotTik\tInitRt\tAccTo\tAccPer\tDecFr\tDecPer\tX-Acc\tX-Dec\tX-Plat\tY-Acc\tY-Dec\tY-Plat");
+	}
 
+	void debugShowBlock(int elemIdx)
+	{
+		Log.trace("%d\t%0.3f\t%0.3f\t%lu\t%0.1f\t%lu\t%0.1f\t%lu\t%0.1f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f", elemIdx++, 
+				_entrySpeedMMps, _exitSpeedMMps, _totalMoveTicks, _initialStepRate, 
+				_accelUntil, _accelPerTick, _decelAfter, _decelPerTick,
+				STEPTICKER_FROMFP(_tickInfo[0].acceleration_change)*1e10, STEPTICKER_FROMFP(_tickInfo[0].deceleration_change)*1e10, STEPTICKER_FROMFP(_tickInfo[0].plateau_rate)*1e3,
+				STEPTICKER_FROMFP(_tickInfo[1].acceleration_change)*1e10, STEPTICKER_FROMFP(_tickInfo[1].deceleration_change)*1e10, STEPTICKER_FROMFP(_tickInfo[1].plateau_rate)*1e3
+			);
+	}
 
 };

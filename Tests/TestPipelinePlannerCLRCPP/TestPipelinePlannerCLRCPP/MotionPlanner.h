@@ -247,7 +247,12 @@ public:
 				pPrevElem = pElem;
 				// Next element
 				if (elemIdxFromPutPos == 0)
+				{
+					// Calculate trapezoid on last element
+					pPrevElem->calculateTrapezoid();
+					Log.trace("Forward pass cur #%d after trapezoid entrySpeed %0.3f, exitSpeed %0.3f", elemIdxFromPutPos, pPrevElem->_entrySpeedMMps, pPrevElem->_exitSpeedMMps);
 					break;
+				}
 				elemIdxFromPutPos--;
 				pElem = _motionPipeline.peekNthFromPut(elemIdxFromPutPos);
 				if (!pElem)
@@ -260,7 +265,7 @@ public:
 
 				// Set exit speed and calculate trapezoid on this block
 				pPrevElem->calculateTrapezoid();
-				Log.trace("Forward pass #%d after trapezoid entrySpeed %0.3f, exitSpeed %0.3f", elemIdxFromPutPos, pElem->_entrySpeedMMps, pElem->_exitSpeedMMps);
+				Log.trace("Forward pass #%d after trapezoid entrySpeed %0.3f, exitSpeed %0.3f", elemIdxFromPutPos+1, pPrevElem->_entrySpeedMMps, pPrevElem->_exitSpeedMMps);
 			}
 
 		}
@@ -269,12 +274,18 @@ public:
 	void debugShowBlocks()
 	{
 		int elIdx = 0;
+		bool headShown = false;
 		for (int i = _motionPipeline.count() - 1; i >= 0; i--)
 		{
 			MotionPipelineElem* pElem = _motionPipeline.peekNthFromPut(i);
 			if (pElem)
 			{
-				Log.trace("#%d En %0.3f Ex %0.3f", elIdx++, pElem->_entrySpeedMMps, pElem->_exitSpeedMMps);
+				if (!headShown)
+				{
+					pElem->debugShowBlkHead();
+					headShown = true;
+				}
+				pElem->debugShowBlock(elIdx);
 			}
 		}
 	}
