@@ -11,9 +11,9 @@ static const char* ROBOT_CONFIG_STR_XY =
     "{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, "
     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
     " \"cmdsAtStart\":\"\", "
-    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":100.0, \"acceleration\":100.0,"
+    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":100.0, \"maxAcc\":100.0,"
     " \"stepsPerRotation\":3200, \"unitsPerRotation\":60 },"
-    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":100.0, \"acceleration\":100.0,"
+    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":100.0, \"maxAcc\":100.0,"
     " \"stepsPerRotation\":3200, \"unitsPerRotation\":60 },"
     " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
     "}";
@@ -183,7 +183,7 @@ int main()
 		MotionHelper _motionHelper;
 
 		_motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
-		_motionHelper.setAxisParams(ROBOT_CONFIG_STR_XY);
+		_motionHelper.configure(ROBOT_CONFIG_STR_XY);
 
 		for (int i = 0; i < tc->numIns(); i++)
 		{

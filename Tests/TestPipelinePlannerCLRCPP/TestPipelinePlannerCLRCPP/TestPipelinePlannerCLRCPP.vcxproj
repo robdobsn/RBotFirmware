@@ -142,12 +142,13 @@
   <ItemGroup>
     <ClInclude Include="ActuatorCoordinates.h" />
     <ClInclude Include="application.h" />
-    <ClInclude Include="AxisMotion.h" />
+    <ClInclude Include="AxisPosition.h" />
     <ClInclude Include="AxisParams.h" />
     <ClInclude Include="ConfigPinMap.h" />
     <ClInclude Include="EndStop.h" />
     <ClInclude Include="jsmnParticleR.h" />
     <ClInclude Include="MotionHelper.h" />
+    <ClInclude Include="MotionIO.h" />
     <ClInclude Include="MotionPipeline.h" />
     <ClInclude Include="MotionPipelineElem.h" />
     <ClInclude Include="MotionPlanner.h" />

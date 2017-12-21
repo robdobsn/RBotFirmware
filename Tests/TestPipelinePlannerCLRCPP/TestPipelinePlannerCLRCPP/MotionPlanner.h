@@ -58,7 +58,7 @@ public:
 		return true;
 	}
 
-	bool addBlock(MotionPipelineElem& elem, AxisMotion& curAxisMotion)
+	bool addBlock(MotionPipelineElem& elem, AxisPosition& curAxisPosition)
 	{
 		// Find if there are any steps
 		bool hasSteps = false;
@@ -66,7 +66,7 @@ public:
 		for (int i = 0; i < _numRobotAxes; i++)
 		{
 			// Check if any actual steps to perform
-			int steps = int(std::ceil(elem._destActuatorCoords._pt[i] - curAxisMotion._stepsFromHome._pt[i]));
+			int steps = int(std::ceil(elem._destActuatorCoords._pt[i] - curAxisPosition._stepsFromHome._pt[i]));
 			if (steps != 0)
 				hasSteps = true;
 			// Direction
@@ -79,10 +79,6 @@ public:
 		// Check there are some actual steps
 		if (!hasSteps)
 			return false;
-
-		// Update axisMotion
-		curAxisMotion._axisPositionMM = elem._pt2MM;
-		curAxisMotion._stepsFromHome = elem._destActuatorCoords;
 
 		// Max steps for an axis
 		elem._axisMaxSteps = axisMaxSteps;

@@ -58,7 +58,7 @@ public:
 	{
         // Stepper motor
         _maxSpeed = float(RdJson::getDouble("maxSpeed", AxisParams::maxSpeed_default, axisJSON));
-        _maxAcceleration = float(RdJson::getDouble("acceleration", AxisParams::acceleration_default, axisJSON));
+        _maxAcceleration = float(RdJson::getDouble("maxAcc", AxisParams::acceleration_default, axisJSON));
         _stepsPerRotation = float(RdJson::getDouble("stepsPerRotation", AxisParams::stepsPerRotation_default, axisJSON));
         _unitsPerRotation = float(RdJson::getDouble("unitsPerRotation", AxisParams::unitsPerRotation_default, axisJSON));
         _minVal = float(RdJson::getDouble("minVal", 0, _minValValid, axisJSON));

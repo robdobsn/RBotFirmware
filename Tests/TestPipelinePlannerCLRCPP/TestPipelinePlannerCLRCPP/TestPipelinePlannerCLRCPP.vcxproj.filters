@@ -30,9 +30,6 @@
     <ClInclude Include="MotionPipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MotionHelper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="RobotCommandArgs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -49,9 +46,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MotionPlanner.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="AxisMotion.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="AxisValues.h">
@@ -79,6 +73,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TestCaseMotion.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MotionHelper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MotionIO.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AxisPosition.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -2,7 +2,7 @@
 
 #include "AxisValues.h"
 
-class AxisMotion
+class AxisPosition
 {
 public:
 	AxisFloats _axisPositionMM;
