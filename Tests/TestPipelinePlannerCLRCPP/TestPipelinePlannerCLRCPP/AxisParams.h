@@ -10,7 +10,6 @@ class AxisParams
 public:
 	static constexpr float maxSpeed_default = 100.0f;
 	static constexpr float acceleration_default = 100.0f;
-	static constexpr float minNsBetweenSteps_default = 10000.0f;
 	static constexpr float stepsPerRotation_default = 1.0f;
 	static constexpr float unitsPerRotation_default = 1.0f;
 	static constexpr float homeOffsetVal_default = 0.0f;
@@ -19,7 +18,6 @@ public:
 	// Parameters
 	float _maxSpeed;
 	float _maxAcceleration;
-	float _minNsBetweenSteps;
 	float _stepsPerRotation;
 	float _unitsPerRotation;
 	bool _minValValid;
@@ -38,7 +36,6 @@ public:
 	{
 		_maxSpeed = maxSpeed_default;
 		_maxAcceleration = acceleration_default;
-		_minNsBetweenSteps = minNsBetweenSteps_default;
 		_stepsPerRotation = stepsPerRotation_default;
 		_unitsPerRotation = unitsPerRotation_default;
 		_minValValid = false;
@@ -62,7 +59,6 @@ public:
         // Stepper motor
         _maxSpeed = float(RdJson::getDouble("maxSpeed", AxisParams::maxSpeed_default, axisJSON));
         _maxAcceleration = float(RdJson::getDouble("acceleration", AxisParams::acceleration_default, axisJSON));
-        _minNsBetweenSteps = float(RdJson::getDouble("minNsBetweenSteps", AxisParams::minNsBetweenSteps_default, axisJSON));
         _stepsPerRotation = float(RdJson::getDouble("stepsPerRotation", AxisParams::stepsPerRotation_default, axisJSON));
         _unitsPerRotation = float(RdJson::getDouble("unitsPerRotation", AxisParams::unitsPerRotation_default, axisJSON));
         _minVal = float(RdJson::getDouble("minVal", 0, _minValValid, axisJSON));
@@ -72,5 +68,13 @@ public:
         _isServoAxis = RdJson::getLong("isServoAxis", 0, axisJSON) != 0;
         _homeOffsetVal = float(RdJson::getDouble("homeOffsetVal", 0, axisJSON));
         _homeOffsetSteps = RdJson::getLong("homeOffsetSteps", 0, axisJSON);
+	}
+
+	void debugLog(int axisIdx)
+	{
+		Log.info("Axis%d params maxSpeed %02.f, acceleration %0.2f, stepsPerRotation %0.2f, unitsPerRotation %0.2f",
+			axisIdx, _maxSpeed, _maxAcceleration, _stepsPerRotation, _unitsPerRotation);
+		Log.info("Axis%d params minVal %02.f (%d), maxVal %0.2f (%d), isDominant %d, isServo %d, homeOffVal %0.2f, homeOffSteps %ld",
+			axisIdx, _minVal, _minValValid, _maxVal, _maxValValid, _isDominantAxis, _isServoAxis, _homeOffsetVal, _homeOffsetSteps);
 	}
 };

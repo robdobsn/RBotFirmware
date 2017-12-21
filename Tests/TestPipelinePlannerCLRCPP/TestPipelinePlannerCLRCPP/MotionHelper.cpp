@@ -124,14 +124,8 @@ bool MotionHelper::configureAxis(const char* robotConfigJSON, int axisIdx)
 
 	// Set the axis parameters
     _axisParams[axisIdx].setFromJSON(axisJSON.c_str());
-	Log.info("Axis%d params maxSpeed %02.f, acceleration %0.2f, minNsBetweenSteps %0.2f stepsPerRotation %0.2f, unitsPerRotation %0.2f",
-		axisIdx, _axisParams[axisIdx]._maxSpeed, _axisParams[axisIdx]._maxAcceleration, _axisParams[axisIdx]._minNsBetweenSteps,
-		_axisParams[axisIdx]._stepsPerRotation, _axisParams[axisIdx]._unitsPerRotation);
-	Log.info("Axis%d params minVal %02.f (%d), maxVal %0.2f (%d), isDominant %d, isServo %d, homeOffVal %0.2f, homeOffSteps %ld",
-		axisIdx, _axisParams[axisIdx]._minVal, _axisParams[axisIdx]._minValValid,
-		_axisParams[axisIdx]._maxVal, _axisParams[axisIdx]._maxValValid,
-		_axisParams[axisIdx]._isDominantAxis, _axisParams[axisIdx]._isServoAxis,
-		_axisParams[axisIdx]._homeOffsetVal, _axisParams[axisIdx]._homeOffsetSteps);
+	_axisParams[axisIdx].debugLog(axisIdx);
+
 
     // Check the kind of motor to use
     bool isValid = false;
