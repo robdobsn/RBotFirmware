@@ -9,6 +9,7 @@
 #include "RobotCommandArgs.h"
 #include "MotionPlanner.h"
 #include "MotionIO.h"
+#include "MotionActuator.h"
 
 typedef bool(*ptToActuatorFnType) (MotionPipelineElem& motionElem, AxisFloats& actuatorCoords, AxisParams axisParams[], int numAxes);
 typedef void(*actuatorToPtFnType) (AxisFloats& actuatorCoords, AxisFloats& xy, AxisParams axisParams[], int numAxes);
@@ -20,16 +21,18 @@ public:
 	static constexpr float blockDistanceMM_default = 1.0f;
 	static constexpr float junctionDeviation_default = 0.05f;
 	static constexpr float distToTravelMM_ignoreBelow = 0.01f;
+	static constexpr int pipelineLen_default = 100;
 	static constexpr float MINIMUM_PRIMARY_MOVE_DIST_MM = 0.0001f;
 	static constexpr int MAX_AXES = 3;
 
 private:
 	// Pause
 	bool _isPaused;
-	bool _wasPaused;
     // Robot dimensions
     float _xMaxMM;
     float _yMaxMM;
+	// Block distance
+	float _blockDistanceMM;
 	// Number of actual axes of motion
 	int _numRobotAxes;
 	// Axis parameters
@@ -44,9 +47,12 @@ private:
 	MotionPlanner _motionPlanner;
 	// Axis Current Motion
 	AxisPosition _curAxisPosition;
+	// Motion pipeline
+	MotionPipeline _motionPipeline;
 	// Motion IO (Motors and end-stops)
 	MotionIO _motionIO;
-
+	// Motion 
+	MotionActuator _motionActuator;
 	// Debug
 	unsigned long _debugLastPosDispMs;
 
@@ -57,11 +63,18 @@ public:
 	void setTransforms(ptToActuatorFnType ptToActuatorFn, actuatorToPtFnType actuatorToPtFn,
 		correctStepOverflowFnType correctStepOverflowFn);
 
-	void deinit();
 	void configure(const char* robotConfigJSON);
 
-	void axisSetHome(int axisIdx);
-	long getAxisStepsFromHome(int axisIdx);
+	// Can accept
+	bool canAccept();
+	// Pause (or un-pause) all motion
+	void pause(bool pauseIt);
+	// Check if paused
+	bool isPaused();
+	// Stop
+	void stop();
+
+
 	double getStepsPerUnit(int axisIdx)
 	{
 		if (axisIdx < 0 || axisIdx >= MAX_AXES)
@@ -94,25 +107,6 @@ public:
 	{
 		return _axisParams;
 	}
-
-	bool isMoving();
-	bool canAcceptCommand();
-
-	// Pause (or un-pause) all motion
-	void pause(bool pauseIt)
-	{
-		_isPaused = pauseIt;
-	}
-
-	// Check if paused
-	bool isPaused()
-	{
-		return _isPaused;
-	}
-
-	// Stop
-	void stop();
-
 
 	bool moveTo(RobotCommandArgs& args);
 	void setMotionParams(RobotCommandArgs& args);

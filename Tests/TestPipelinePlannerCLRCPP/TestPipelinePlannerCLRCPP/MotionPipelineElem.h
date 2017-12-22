@@ -36,6 +36,7 @@ public:
 	float _decelPerTick;
 	float _initialStepRate;
 	int _numAxes;
+	bool _changeInProgress;
 
 	// this is the data needed to determine when each motor needs to be issued a step
 	using tickinfo_t = struct {
@@ -53,34 +54,24 @@ public:
 public:
 	MotionPipelineElem()
 	{
-		_accMMpss = 0;
-		_speedMMps = 0;
-		_axisMaxSteps = 0;
-		_primaryAxisMove = false;
-		_nominalSpeedMMps = 0;
-		_nominalStepRatePerSec = 0;
-		_maxStepRatePerSec = 0;
-		_moveDistMM = 0;
-		_maxEntrySpeedMMps = 0;
-		_entrySpeedMMps = 0;
-		_exitSpeedMMps = 0;
-		_isRunning = false;
-		_nominalLengthFlag = false;
-		_recalcFlag = false;
-		_accelUntil = 0;
-		_decelAfter = 0;
-		_totalMoveTicks = 0;
-		_accelPerTick = 0;
-		_decelPerTick = 0;
-		_initialStepRate = 0;
 		_numAxes = 0;
-		_tickInfo.resize(0);
+		clear();
 	}
 
 	MotionPipelineElem(int numAxes, AxisFloats& pt1, AxisFloats& pt2)
 	{
+		// Reset size of tick vector
+		_numAxes = numAxes;
+		_tickInfo.resize(_numAxes);
+		// Set points
 		_pt1MM = pt1;
 		_pt2MM = pt2;
+		clear();
+	}
+
+	void clear()
+	{
+		// Clear values
 		_accMMpss = 0;
 		_speedMMps = 0;
 		_axisMaxSteps = 0;
@@ -101,8 +92,7 @@ public:
 		_accelPerTick = 0;
 		_decelPerTick = 0;
 		_initialStepRate = 0;
-		_numAxes = numAxes;
-		_tickInfo.resize(_numAxes);
+		_changeInProgress = false;
 	}
 
 	double delta()
@@ -267,7 +257,8 @@ public:
 
 		// we have a potential race condition here as we could get interrupted anywhere in the middle of this call, we need to lock
 		// the updates to the blocks to get around it
-		//this->locked = true;
+		_changeInProgress = true;
+
 		// Now figure out the two acceleration ramp change events in ticks
 		_accelUntil = accelTicks;
 		_decelAfter = totalTicks - decelTicks;
@@ -286,10 +277,7 @@ public:
 
 		_initialStepRate = initialStepRate;
 
-		// prepare the block for stepticker
-		//this->prepare();
-		//this->locked = false;
-
+		// Make calculations for the MotionActuator (which gets the block and effects it)
 		float inv = 1.0F / _axisMaxSteps;
 		for (uint8_t axisIdx = 0; axisIdx < _numAxes; axisIdx++) {
 			uint32_t steps = _absSteps.getVal(axisIdx);
@@ -322,7 +310,8 @@ public:
 			_tickInfo[axisIdx].plateau_rate = STEPTICKER_TOFP((_maxStepRatePerSec * aratio) / STEP_TICKER_FREQUENCY);
 		}
 
-
+		// No more changes
+		_changeInProgress = false;
 	}
 
 	void debugShowBlkHead()

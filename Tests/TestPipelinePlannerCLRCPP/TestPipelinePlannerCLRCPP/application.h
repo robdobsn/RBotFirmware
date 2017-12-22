@@ -105,7 +105,8 @@ public:
 	{}
 };
 
-unsigned long millis();
+extern unsigned long millis();
+extern uint32_t micros();
 
 class Time_t
 {

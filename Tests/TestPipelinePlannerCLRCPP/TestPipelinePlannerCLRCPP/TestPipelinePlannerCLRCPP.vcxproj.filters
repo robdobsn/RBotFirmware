@@ -84,6 +84,9 @@
     <ClInclude Include="AxisPosition.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MotionActuator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="app.rc">
@@ -116,6 +119,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="TestCaseMotion.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MotionActuator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

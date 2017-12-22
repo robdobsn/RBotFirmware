@@ -11,11 +11,11 @@ MotionHelper::MotionHelper()
 {
 	// Init
 	_isPaused = false;
-	_wasPaused = false;
 	_moveRelative = false;
     _xMaxMM = 0;
     _yMaxMM = 0;
-    _numRobotAxes = 0;
+	_blockDistanceMM = 0;
+	_numRobotAxes = 0;
 	// Clear axis current location
 	_curAxisPosition.clear();
 	// Coordinate conversion management
@@ -88,27 +88,46 @@ bool MotionHelper::configureRobot(const char* robotConfigJSON)
 	_xMaxMM = float(RdJson::getDouble("xMaxMM", 0, robotConfigJSON));
 	_yMaxMM = float(RdJson::getDouble("yMaxMM", 0, robotConfigJSON));
 
-	// Motion planner
-	float maxMotionDistanceMM = sqrt(_xMaxMM * _xMaxMM + _yMaxMM * _yMaxMM);
-	float blockDistanceMM = float(RdJson::getDouble("blockDistanceMM", blockDistanceMM_default, robotConfigJSON));
+	// Motion Pipeline and Planner
+	_blockDistanceMM = float(RdJson::getDouble("blockDistanceMM", blockDistanceMM_default, robotConfigJSON));
 	float junctionDeviation = float(RdJson::getDouble("junctionDeviation", junctionDeviation_default, robotConfigJSON));
-	_motionPlanner.configure(_numRobotAxes, maxMotionDistanceMM, blockDistanceMM, junctionDeviation);
+	int pipelineLen = int(RdJson::getLong("pipelineLen", pipelineLen_default, robotConfigJSON));
+	// Pipeline length and block size
+	Log.trace("MotionHelper configMotionPipeline len %d, _blockDistanceMM %0.2f",
+					pipelineLen, _blockDistanceMM);
+	_motionPipeline.init(pipelineLen);
+	_motionPlanner.configure(_numRobotAxes, junctionDeviation);
 
 	// MotionIO
 	_motionIO.configureMotors(robotConfigJSON);
 	return true;
 }
 #
-bool MotionHelper::canAcceptCommand()
+bool MotionHelper::canAccept()
 {
 	// Check that at the motion pipeline can accept new data
-    return _motionPlanner.canAccept();
+	return _motionPipeline.canAccept();
+}
+
+
+// Pause (or un-pause) all motion
+void MotionHelper::pause(bool pauseIt)
+{
+	_motionActuator.pause(pauseIt);
+	_isPaused = pauseIt;
+}
+
+// Check if paused
+bool MotionHelper::isPaused()
+{
+	return _isPaused;
 }
 
 // Stop
 void MotionHelper::stop()
 {
-	_motionPlanner.clear();
+	_motionPipeline.clear();
+	_motionActuator.clear();
 	_isPaused = false;
 }
 
@@ -249,7 +268,7 @@ bool MotionHelper::moveTo(RobotCommandArgs& args)
 	elem._moveDistMM = moveDist;
 
 	// Add the block to the planner queue
-	bool moveOk = _motionPlanner.addBlock(elem, _curAxisPosition);
+	bool moveOk = _motionPlanner.addBlock(_motionPipeline, elem, _curAxisPosition);
 	if (moveOk)
 	{
 		// Update axisMotion
@@ -264,15 +283,7 @@ void MotionHelper::service(bool processPipeline)
 	// Check if we should process the movement pipeline
 	if (processPipeline)
 	{
-		if (_isPaused)
-		{
-			_wasPaused = true;
-		}
-		else
-		{
-			pipelineService(_wasPaused);
-			_wasPaused = false;
-		}
+		_motionActuator.process();
 	}
 }
 
@@ -433,14 +444,28 @@ void MotionHelper::pipelineService(bool hasBeenPaused)
 
 void MotionHelper::debugShowBlocks()
 {
-	_motionPlanner.debugShowBlocks();
+	int elIdx = 0;
+	bool headShown = false;
+	for (int i = _motionPipeline.count() - 1; i >= 0; i--)
+	{
+		MotionPipelineElem* pElem = _motionPipeline.peekNthFromPut(i);
+		if (pElem)
+		{
+			if (!headShown)
+			{
+				pElem->debugShowBlkHead();
+				headShown = true;
+			}
+			pElem->debugShowBlock(elIdx);
+		}
+	}
 }
 
 int MotionHelper::testGetPipelineCount()
 {
-	return _motionPlanner.testGetPipelineCount();
+	return _motionPipeline.count();
 }
 void MotionHelper::testGetPipelineElem(int elIdx, MotionPipelineElem& elem)
 {
-	_motionPlanner.testGetPipelineElem(elIdx, elem);
+	elem = *_motionPipeline.peekNthFromPut(_motionPipeline.count() - 1 - elIdx);
 }

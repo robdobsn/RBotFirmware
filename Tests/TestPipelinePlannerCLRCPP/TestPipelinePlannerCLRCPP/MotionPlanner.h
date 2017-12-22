@@ -5,17 +5,11 @@
 class MotionPlanner
 {
 private:
-	// Motion pipeline
-	MotionPipeline _motionPipeline;
 	// Previous pipeline element
 	bool _prevPipelineElemValid;
 	MotionPipelineElem _prevPipelineElem;
 	// Minimum planner speed mm/s
 	float _minimumPlannerSpeedMMps;
-	// Max distance of travel
-	float _maxMotionDistanceMM;
-	// Block distance
-	float _blockDistanceMM;
 	// Junction deviation
 	float _junctionDeviation;
 
@@ -27,32 +21,14 @@ public:
 		_prevPipelineElemValid = false;
 		_minimumPlannerSpeedMMps = 0;
 		// Configure the motion pipeline - these values will be changed in config
-		_maxMotionDistanceMM = 0;
-		_blockDistanceMM = 0;
 		_junctionDeviation = 0;
 		_numRobotAxes = 0;
 	}
-	void configure(int numRobotAxes, float maxMotionDistanceMM, float blockDistanceMM, float junctionDeviation)
+
+	void configure(int numRobotAxes, float junctionDeviation)
 	{
-		_maxMotionDistanceMM = maxMotionDistanceMM;
-		_blockDistanceMM = blockDistanceMM;
 		_junctionDeviation = junctionDeviation;
 		_numRobotAxes = numRobotAxes;
-		// Calculate max blocks that a movement command can translate into
-		int maxPossibleBlocksInMove = int(ceil(_maxMotionDistanceMM / _blockDistanceMM));
-		Log.trace("MotionHelper configMotionPipeline _maxMotionDistanceMM %0.2f _blockDistanceMM %0.2f",
-			_maxMotionDistanceMM, _blockDistanceMM);
-		_motionPipeline.init(maxPossibleBlocksInMove);
-	}
-
-	bool canAccept()
-	{
-		return _motionPipeline.canAccept();
-	}
-
-	void clear()
-	{
-		_motionPipeline.clear();
 	}
 
 	bool addBlock(MotionPipelineElem& elem, float moveDist, float *unitVec)
@@ -61,7 +37,7 @@ public:
 		return true;
 	}
 
-	bool addBlock(MotionPipelineElem& elem, AxisPosition& curAxisPosition)
+	bool addBlock(MotionPipeline& motionPipeline, MotionPipelineElem& elem, AxisPosition& curAxisPosition)
 	{
 		// Find if there are any steps
 		bool hasSteps = false;
@@ -124,11 +100,15 @@ public:
 		float junctionDeviation = _junctionDeviation;
 		float vmaxJunction = _minimumPlannerSpeedMMps;
 
+		// Invalidate the prev element if the pipeline becomes empty
+		if (!motionPipeline.canGet())
+			_prevPipelineElemValid = false;
+
 		// For primary axis moves compute the vmaxJunction
 		// But only if there are still elements in the queue
 		// If not assume the robot is idle and start the move
 		// from scratch
-		if (elem._primaryAxisMove && _motionPipeline.canGet())
+		if (elem._primaryAxisMove && _prevPipelineElemValid)
 		{
 			float prevNominalSpeed = _prevPipelineElem._primaryAxisMove ? _prevPipelineElem._nominalSpeedMMps : 0;
 			if (junctionDeviation > 0.0f && prevNominalSpeed > 0.0f)
@@ -149,12 +129,11 @@ public:
 						vmaxJunction = std::min(vmaxJunction, sqrtf(elem._accMMpss * junctionDeviation * sinThetaD2 / (1.0F - sinThetaD2)));
 					}
 				}
-
 			}
 		}
 		elem._maxEntrySpeedMMps = vmaxJunction;
 
-		Log.trace("PrevMoveInQueue %d, JunctionDeviation %0.3f, VmaxJunction %0.3f", _motionPipeline.canGet(), junctionDeviation, vmaxJunction);
+		Log.trace("PrevMoveInQueue %d, JunctionDeviation %0.3f, VmaxJunction %0.3f", motionPipeline.canGet(), junctionDeviation, vmaxJunction);
 
 		// Calculate max allowable speed using v^2 = u^2 - 2as
 		// Was acceleration*60*60*distance, in case this breaks, but here we prefer to use seconds instead of minutes
@@ -177,17 +156,17 @@ public:
 		elem._recalcFlag = true;
 
 		// Store the element in the queue and remember previous element
-		_motionPipeline.add(elem);
+		motionPipeline.add(elem);
 		_prevPipelineElem = elem;
 		_prevPipelineElemValid = true;
 
 		// Recalculate the whole queue
-		recalculatePipeline();
+		recalculatePipeline(motionPipeline);
 
 		return true;
 	}
 
-	void recalculatePipeline()
+	void recalculatePipeline(MotionPipeline& motionPipeline)
 	{
 		// A newly added block is decel limited
 		// We find its max entry speed given its exit speed
@@ -217,9 +196,9 @@ public:
 		MotionPipelineElem* pElem = NULL;
 		MotionPipelineElem* pPrevElem = NULL;
 		MotionPipelineElem* pNext = NULL;
-		if (_motionPipeline.peekNthFromPut(elemIdxFromPutPos) != NULL)
+		if (motionPipeline.peekNthFromPut(elemIdxFromPutPos) != NULL)
 		{
-			pElem = _motionPipeline.peekNthFromPut(elemIdxFromPutPos);
+			pElem = motionPipeline.peekNthFromPut(elemIdxFromPutPos);
 			while (pElem && pElem->_recalcFlag)
 			{
 				// Get the max entry speed
@@ -227,7 +206,7 @@ public:
 				Log.trace("Backwards pass #%d element %08x, tryEntrySpeed %0.3f, newEntrySpeed %0.3f", elemIdxFromPutPos, pElem, entrySpeed, pElem->_entrySpeedMMps);
 				entrySpeed = pElem->_entrySpeedMMps;
 				// Next elem
-				pNext = _motionPipeline.peekNthFromPut(elemIdxFromPutPos + 1);
+				pNext = motionPipeline.peekNthFromPut(elemIdxFromPutPos + 1);
 				if (!pNext)
 					break;
 				pElem = pNext;
@@ -254,7 +233,7 @@ public:
 					break;
 				}
 				elemIdxFromPutPos--;
-				pElem = _motionPipeline.peekNthFromPut(elemIdxFromPutPos);
+				pElem = motionPipeline.peekNthFromPut(elemIdxFromPutPos);
 				if (!pElem)
 					break;
 				// Pass the exit speed of the previous block
@@ -269,33 +248,5 @@ public:
 			}
 
 		}
-	}
-
-	void debugShowBlocks()
-	{
-		int elIdx = 0;
-		bool headShown = false;
-		for (int i = _motionPipeline.count() - 1; i >= 0; i--)
-		{
-			MotionPipelineElem* pElem = _motionPipeline.peekNthFromPut(i);
-			if (pElem)
-			{
-				if (!headShown)
-				{
-					pElem->debugShowBlkHead();
-					headShown = true;
-				}
-				pElem->debugShowBlock(elIdx);
-			}
-		}
-	}
-
-	int testGetPipelineCount()
-	{
-		return _motionPipeline.count();
-	}
-	void testGetPipelineElem(int elIdx, MotionPipelineElem& elem)
-	{
-		elem = *_motionPipeline.peekNthFromPut(_motionPipeline.count()-1-elIdx);
 	}
 };

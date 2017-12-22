@@ -28,3 +28,9 @@ unsigned long millis()
 {
 	return 0;
 }
+
+uint32_t curMicros = 0;
+uint32_t micros()
+{
+	return curMicros++;
+}

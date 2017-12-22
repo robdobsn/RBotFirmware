@@ -147,6 +147,7 @@
     <ClInclude Include="ConfigPinMap.h" />
     <ClInclude Include="EndStop.h" />
     <ClInclude Include="jsmnParticleR.h" />
+    <ClInclude Include="MotionActuator.h" />
     <ClInclude Include="MotionHelper.h" />
     <ClInclude Include="MotionIO.h" />
     <ClInclude Include="MotionPipeline.h" />
@@ -171,6 +172,7 @@
     <ClCompile Include="AssemblyInfo.cpp" />
     <ClCompile Include="ConfigPinMap.cpp" />
     <ClCompile Include="jsmnParticleR.cpp" />
+    <ClCompile Include="MotionActuator.cpp" />
     <ClCompile Include="MotionHelper.cpp" />
     <ClCompile Include="spark_wiring_string_mod.cpp" />
     <ClCompile Include="stdafx.cpp">

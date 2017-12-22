@@ -111,7 +111,11 @@ public:
 		//	Console::WriteLine(temp);
 
 		line = line->Trim();
-		if (line == "TESTCASE")
+		if (line->StartsWith("#"))
+		{
+			return;
+		}
+		else if (line == "TESTCASE")
 		{
 			//TestCaseM^ testCase = gcnew TestCaseM;
 			testCaseUnderConstruction->clear();

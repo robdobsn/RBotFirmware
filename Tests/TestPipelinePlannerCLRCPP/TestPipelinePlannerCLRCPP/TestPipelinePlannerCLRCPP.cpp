@@ -8,7 +8,7 @@ using namespace System;
 #include "MotionHelper.h"
 
 static const char* ROBOT_CONFIG_STR_XY =
-    "{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, "
+	"{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
     " \"cmdsAtStart\":\"\", "
     " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":100.0, \"maxAcc\":100.0,"
@@ -62,9 +62,14 @@ static void correctStepOverflow(AxisParams axisParams[], int numAxes)
 	// Not necessary for a non-continuous rotation bot
 }
 
-bool isApprox(double a, double b, double epsilon = 0.001)
+bool isApproxF(double a, double b, double epsilon = 0.001)
 {
 	return (fabs(a - b) < epsilon);
+}
+
+bool isApproxL(int64_t a, int64_t b, int64_t epsilon = 1)
+{
+	return (llabs(a - b) < epsilon);
 }
 
 static bool getCmdNumber(const char* pCmdStr, int& cmdNum)
@@ -163,6 +168,51 @@ static bool interpG(String& cmdStr, bool takeAction, MotionHelper& motionHelper)
 	return false;
 }
 
+struct TEST_FIELD
+{
+	bool checkThis;
+	char* name;
+	bool isFloat;
+	float valFloat;
+	int64_t valLong;
+};
+
+
+void testMotionElemVals(int valIdx, int& errorCount, MotionPipelineElem& elem, const char* pRslt)
+{
+	TEST_FIELD __testFields[] = {
+		{ false, "", false, 0, 0 },
+		{ true, "_entrySpeedMMps", true, elem._entrySpeedMMps, 0},
+		{ true, "_exitSpeedMMps", true, elem._exitSpeedMMps, 0 },
+		{ true, "_totalMoveTicks", false, 0, elem._totalMoveTicks },
+		{ true, "_initialStepRate", true, elem._initialStepRate, 0 },
+		{ true, "_accelUntil", false, 0, elem._accelUntil },
+		{ true, "_accelPerTick", true, elem._accelPerTick, 0 },
+		{ true, "_decelAfter", false, 0, elem._decelAfter },
+		{ true, "_decelPerTick", true, elem._decelPerTick, 0 }
+	};
+
+	if (valIdx >= sizeof(__testFields) / sizeof(TEST_FIELD))
+		return;
+
+	if (__testFields[valIdx].isFloat)
+	{
+		if (!isApproxF(__testFields[valIdx].valFloat, atof(pRslt)))
+		{
+			Log.info("ERROR field %s mismatch", __testFields[valIdx].name);
+			errorCount++;
+		}
+	}
+	else
+	{
+		if (!isApproxL(__testFields[valIdx].valLong, atol(pRslt)))
+		{
+			Log.info("ERROR field %s mismatch", __testFields[valIdx].name);
+			errorCount++;
+		}
+	}
+}
+
 int main()
 {
     Console::WriteLine(L"Test RBot Motion");
@@ -216,28 +266,9 @@ int main()
 			char *pRslt;
 			pRslt = strtok(pStr, toks);
 			int valIdx = 0;
-			while (pRslt != NULL) 
-			{
-				if (valIdx == 0)
-				{
-					if (!isApprox(elem._entrySpeedMMps, atof(pRslt)))
-					{
-						Log.info("ERROR field _entrySpeedMMps mismatch");
-						errorCount++;
-					}
-				}
-				else if (valIdx == 1)
-				{
-					if (!isApprox(elem._exitSpeedMMps, atof(pRslt)))
-					{
-						Log.info("ERROR field _exitSpeedMMps mismatch");
-						errorCount++;
-					}
-				}
-				valIdx++;
-				pRslt = strtok(NULL, toks);
-			}
-
+			if (pRslt != NULL)
+				testMotionElemVals(valIdx, errorCount, elem, pRslt);
+			valIdx++;
 		}
 
 		//rcArgs.setAxisValue(0, 1, 0);
