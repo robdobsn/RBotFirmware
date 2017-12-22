@@ -12,7 +12,7 @@ public:
 
 private:
 	// Stepper motors
-	StepperMotor * _stepperMotors[MAX_AXES];
+	StepperMotor* _stepperMotors[MAX_AXES];
 	// Servo motors
 	Servo* _servoMotors[MAX_AXES];
 	// Step enable
@@ -136,7 +136,16 @@ public:
 		return true;
 	}
 
-	void step(int axisIdx, bool direction)
+	// Check if a step is in progress, if so end it and return true, else false
+	bool stepEnd(int axisIdx)
+	{
+		if (axisIdx < 0 || axisIdx >= MAX_AXES)
+			return true;
+		// Check if step in progress
+		return _stepperMotors[axisIdx]->stepEnd();
+	}
+
+	void stepSynch(int axisIdx, bool direction)
 	{
 		if (axisIdx < 0 || axisIdx >= MAX_AXES)
 			return;
@@ -144,7 +153,7 @@ public:
 		enableMotors(true, false);
 		if (_stepperMotors[axisIdx])
 		{
-			_stepperMotors[axisIdx]->step(direction);
+			_stepperMotors[axisIdx]->stepSync(direction);
 		}
 		//_axisParams[axisIdx]._stepsFromHome += (direction ? 1 : -1);
 		//_axisParams[axisIdx]._lastStepMicros = micros();
@@ -215,5 +224,4 @@ public:
 	{
 		return _motorEnLastUnixTime;
 	}
-
 };

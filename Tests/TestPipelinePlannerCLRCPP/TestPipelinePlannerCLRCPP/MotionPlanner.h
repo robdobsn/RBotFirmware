@@ -12,7 +12,7 @@ private:
 	float _minimumPlannerSpeedMMps;
 	// Junction deviation
 	float _junctionDeviation;
-
+	// Nunber of axes of motion
 	int _numRobotAxes;
 
 public:

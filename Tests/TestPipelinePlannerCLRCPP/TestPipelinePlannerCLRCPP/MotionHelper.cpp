@@ -7,7 +7,8 @@
 #include "MotionHelper.h"
 #include "Utils.h"
 
-MotionHelper::MotionHelper()
+MotionHelper::MotionHelper() :
+		_motionActuator(_motionIO, _motionPipeline)
 {
 	// Init
 	_isPaused = false;

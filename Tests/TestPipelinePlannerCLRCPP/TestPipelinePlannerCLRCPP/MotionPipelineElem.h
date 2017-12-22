@@ -48,6 +48,8 @@ public:
 		uint32_t steps_to_move;
 		uint32_t step_count;
 		uint32_t next_accel_event;
+
+		uint32_t _usAccum;
 	};
 	std::vector<tickinfo_t> _tickInfo;
 
@@ -308,6 +310,9 @@ public:
 			_tickInfo[axisIdx].acceleration_change = STEPTICKER_TOFP(acceleration_change * aratio);
 			_tickInfo[axisIdx].deceleration_change = -STEPTICKER_TOFP(_decelPerTick * aratio);
 			_tickInfo[axisIdx].plateau_rate = STEPTICKER_TOFP((_maxStepRatePerSec * aratio) / STEP_TICKER_FREQUENCY);
+
+			// Clear accumulator
+			_tickInfo[axisIdx]._usAccum = 0;
 		}
 
 		// No more changes
