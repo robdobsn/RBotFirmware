@@ -32,8 +32,6 @@ public:
 
 
 
-	float _maxStepRatePerSec;
-	AxisFloats _unitVec;
 	float _maxEntrySpeedMMps;
 	float _entrySpeedMMps;
 	bool _nominalLengthFlag;
@@ -96,7 +94,6 @@ public:
 	{
 		// Clear values
 		_maxParamSpeedMMps = 0;
-		_maxStepRatePerSec = 0;
 		_moveDistPrimaryAxesMM = 0;
 		_maxEntrySpeedMMps = 0;
 		_entrySpeedMMps = 0;
@@ -234,15 +231,15 @@ public:
 		// Now this is the maximum rate we'll achieve this move, either because
 		// it's the higher we can achieve, or because it's the higher we are
 		// allowed to achieve
-		_maxStepRatePerSec = std::min(maxPossStepRate, stepRatePerSecAtMaxParamSpeed);
+		float maxStepRatePerSec = std::min(maxPossStepRate, stepRatePerSecAtMaxParamSpeed);
 
 		// Now figure out how long it takes to accelerate in seconds
-		float timeToAccelerateSecs = (_maxStepRatePerSec - initialStepRate) / accInStepUnits;
+		float timeToAccelerateSecs = (maxStepRatePerSec - initialStepRate) / accInStepUnits;
 
 		// Now figure out how long it takes to decelerate
-		float timeToDecelerateSecs = (finalStepRate - _maxStepRatePerSec) / -accInStepUnits;
+		float timeToDecelerateSecs = (finalStepRate - maxStepRatePerSec) / -accInStepUnits;
 
-		Log.trace("trapezoid maxStepRatePerSec %0.3f steps/s, timeToAccelerate %0.3f s, timeToDecelerate %0.3f s", _maxStepRatePerSec, timeToAccelerateSecs, timeToDecelerateSecs);
+		Log.trace("trapezoid maxStepRatePerSec %0.3f steps/s, timeToAccelerate %0.3f s, timeToDecelerate %0.3f s", maxStepRatePerSec, timeToAccelerateSecs, timeToDecelerateSecs);
 
 		// Now we know how long it takes to accelerate and decelerate, but we must
 		// also know how long the entire move takes so we can figure out how long
@@ -253,14 +250,14 @@ public:
 		if (maxPossStepRate > stepRatePerSecAtMaxParamSpeed)
 		{
 			// Figure out the acceleration and deceleration distances ( in steps )
-			float accelDistance = ((initialStepRate + _maxStepRatePerSec) / 2.0F) * timeToAccelerateSecs;
-			float decelDistance = ((_maxStepRatePerSec + finalStepRate) / 2.0F) * timeToDecelerateSecs;
+			float accelDistance = ((initialStepRate + maxStepRatePerSec) / 2.0F) * timeToAccelerateSecs;
+			float decelDistance = ((maxStepRatePerSec + finalStepRate) / 2.0F) * timeToDecelerateSecs;
 
 			// Figure out the plateau steps
 			float plateauDist = absMaxStepsForAnyAxis - accelDistance - decelDistance;
 
 			// Figure out the plateau time in seconds
-			plateauTimeSecs = plateauDist / _maxStepRatePerSec;
+			plateauTimeSecs = plateauDist / maxStepRatePerSec;
 		}
 
 		// Figure out how long the move takes total ( in seconds )
@@ -291,8 +288,8 @@ public:
 		float acceleration_time = 1.0f * accelTicks / STEP_TICKER_FREQUENCY;  
 		float deceleration_time = 1.0f * decelTicks / STEP_TICKER_FREQUENCY;
 
-		float acceleration_in_steps = (timeToAccelerateSecs > 0.000001F) ? (_maxStepRatePerSec - initialStepRate) / timeToAccelerateSecs : 0;
-		float deceleration_in_steps = (timeToDecelerateSecs > 0.000001F) ? (_maxStepRatePerSec - finalStepRate) / timeToDecelerateSecs: 0;
+		float acceleration_in_steps = (timeToAccelerateSecs > 0.000001F) ? (maxStepRatePerSec - initialStepRate) / timeToAccelerateSecs : 0;
+		float deceleration_in_steps = (timeToDecelerateSecs > 0.000001F) ? (maxStepRatePerSec - finalStepRate) / timeToDecelerateSecs: 0;
 
 		// we have a potential race condition here as we could get interrupted anywhere in the middle of this call, we need to lock
 		// the updates to the blocks to get around it
@@ -384,7 +381,7 @@ public:
 			// convert to fixed point after scaling
 			_tickInfo[axisIdx].acceleration_change = STEPTICKER_TOFP(acceleration_change * aratio);
 			_tickInfo[axisIdx].deceleration_change = -STEPTICKER_TOFP(_decelPerTick * aratio);
-			_tickInfo[axisIdx].plateau_rate = STEPTICKER_TOFP((_maxStepRatePerSec * aratio) / STEP_TICKER_FREQUENCY);
+			_tickInfo[axisIdx].plateau_rate = STEPTICKER_TOFP((maxStepRatePerSec * aratio) / STEP_TICKER_FREQUENCY);
 
 		}
 

@@ -13,15 +13,22 @@ public:
 	static constexpr double MINIMUM_MOVE_DIST_MM = 0.0001;
 
 private:
-	// Previous pipeline element
-	bool _prevMotionBlockValid;
-	MotionBlock _prevMotionBlock;
 	// Minimum planner speed mm/s
 	float _minimumPlannerSpeedMMps;
 	// Junction deviation
 	float _junctionDeviation;
 	// Motion parameters shared by many calculations
 	MotionBlock::motionParams _motionParams;
+
+	// Structure to store details on last processed block
+	struct MotionBlockSequentialData
+	{
+		AxisFloats _unitVectors;
+		float _maxParamSpeedMMps;
+	};
+	// Data on previously processed block
+	bool _prevMotionBlockValid;
+	MotionBlockSequentialData _prevMotionBlock;
 
 public:
 	MotionPlanner()
@@ -84,18 +91,18 @@ public:
 			maxParamSpeedMMps = args.feedrateVal;
 
 		// Find the unit vectors
-		AxisFloats unitVec;
+		AxisFloats curBlockUnitVectors;
 		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 		{
 			if (axesParams.isPrimaryAxis(axisIdx))
 			{
-				unitVec._pt[axisIdx] = float(deltas[axisIdx] / moveDist);
+				curBlockUnitVectors._pt[axisIdx] = float(deltas[axisIdx] / moveDist);
 				// Check that the move speed doesn't exceed max
 				if (axesParams.getMaxSpeed(axisIdx) > 0)
 				{
 					if (maxParamSpeedMMps > 0)
 					{
-						double axisSpeed = fabs(unitVec._pt[axisIdx] * maxParamSpeedMMps);
+						double axisSpeed = fabs(curBlockUnitVectors._pt[axisIdx] * maxParamSpeedMMps);
 						if (axisSpeed > axesParams.getMaxSpeed(axisIdx))
 						{
 							maxParamSpeedMMps *= axisSpeed / axesParams.getMaxSpeed(axisIdx);
@@ -132,24 +139,15 @@ public:
 
 		// Store values in the block
 		block._maxParamSpeedMMps = float(maxParamSpeedMMps);
-		block._unitVec = unitVec;
 		block._moveDistPrimaryAxesMM = float(moveDist);
 
-		// Add the block to the planner queue
-		return addBlock(motionPipeline, block, destActuatorCoords, curAxisPositions, isAPrimaryMove);
-	}
-
-	bool addBlock(MotionPipeline& motionPipeline, MotionBlock& block,
-				AxisFloats& destActuatorCoords, AxisPosition& curAxisPosition,
-				bool isAPrimaryMove)
-	{
 		// Find if there are any steps
 		bool hasSteps = false;
 		
 		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 		{
 			// Check if any actual steps to perform
-			int steps = int(std::ceil(destActuatorCoords._pt[axisIdx] - curAxisPosition._stepsFromHome._pt[axisIdx]));
+			int steps = int(std::ceil(destActuatorCoords._pt[axisIdx] - curAxisPositions._stepsFromHome._pt[axisIdx]));
 			if (steps != 0)
 				hasSteps = true;
 			// Direction
@@ -198,9 +196,9 @@ public:
 			{
 				// Compute cosine of angle between previous and current path. (prev_unit_vec is negative)
 				// NOTE: Max junction velocity is computed without sin() or acos() by trig half angle identity.
-				float cosTheta = -_prevMotionBlock._unitVec.X() * block._unitVec.X()
-					- _prevMotionBlock._unitVec.Y() * block._unitVec.Y()
-					- _prevMotionBlock._unitVec.Z() * block._unitVec.Z();
+				float cosTheta = -_prevMotionBlock._unitVectors.X() * curBlockUnitVectors.X()
+					- _prevMotionBlock._unitVectors.Y() * curBlockUnitVectors.Y()
+					- _prevMotionBlock._unitVectors.Z() * curBlockUnitVectors.Z();
 
 				// Skip and use default max junction speed for 0 degree acute junction.
 				if (cosTheta < 0.95F) {
@@ -240,7 +238,10 @@ public:
 
 		// Store the element in the queue and remember previous element
 		motionPipeline.add(block);
-		_prevMotionBlock = block;
+		MotionBlockSequentialData prevBlockInfo;
+		prevBlockInfo._maxParamSpeedMMps = block._maxParamSpeedMMps;
+		prevBlockInfo._unitVectors = curBlockUnitVectors;
+		_prevMotionBlock = prevBlockInfo;
 		_prevMotionBlockValid = true;
 
 		// Recalculate the whole queue
