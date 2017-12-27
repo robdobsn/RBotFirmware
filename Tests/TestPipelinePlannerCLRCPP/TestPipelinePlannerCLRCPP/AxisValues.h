@@ -275,52 +275,52 @@ public:
 	}
 };
 
-class AxisU32s
+class AxisInt32s
 {
 public:
-	uint32_t vals[RobotConsts::MAX_AXES];
+	int32_t vals[RobotConsts::MAX_AXES];
 
 public:
-	AxisU32s()
+	AxisInt32s()
 	{
 		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 			vals[i] = 0;
 	}
-	AxisU32s(const AxisU32s& u32s)
+	AxisInt32s(const AxisInt32s& u32s)
 	{
 		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 			vals[i] = u32s.vals[i];
 	}
-	void operator=(const AxisU32s& u32s)
+	void operator=(const AxisInt32s& u32s)
 	{
 		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 			vals[i] = u32s.vals[i];
 	}
-	AxisU32s(uint32_t xVal, uint32_t yVal, uint32_t zVal)
+	AxisInt32s(int32_t xVal, int32_t yVal, int32_t zVal)
 	{
 		vals[0] = xVal;
 		vals[1] = yVal;
 		vals[2] = zVal;
 	}
-	uint32_t X()
+	int32_t X()
 	{
 		return vals[0];
 	}
-	uint32_t Y()
+	int32_t Y()
 	{
 		return vals[1];
 	}
-	uint32_t Z()
+	int32_t Z()
 	{
 		return vals[2];
 	}
-	uint32_t getVal(int axisIdx)
+	int32_t getVal(int axisIdx)
 	{
 		if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
 			return vals[axisIdx];
 		return 0;
 	}
-	void setVal(int axisIdx, uint32_t val)
+	void setVal(int axisIdx, int32_t val)
 	{
 		if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
 			vals[axisIdx] = val;

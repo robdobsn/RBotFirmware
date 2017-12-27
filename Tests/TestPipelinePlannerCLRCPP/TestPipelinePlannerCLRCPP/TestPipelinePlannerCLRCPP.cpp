@@ -203,7 +203,7 @@ void testMotionElemVals(int outIdx, int valIdx, int& errorCount, MotionPipelineE
 
 	if (__testFields[valIdx].isFloat)
 	{
-		if (!isApproxF(__testFields[valIdx].valFloat, atof(pRslt), fabs(__testFields[valIdx].valFloat)/10000))
+		if (!isApproxF(__testFields[valIdx].valFloat, atof(pRslt), fabs(__testFields[valIdx].valFloat)/1000))
 		{
 			Log.info("ERROR Out %d field %s mismatch %f != %s", outIdx, __testFields[valIdx].name, __testFields[valIdx].valFloat, pRslt);
 			errorCount++;
@@ -232,7 +232,7 @@ int main()
 	}
 
 	Log.trace("Sizeof MotionPipelineElem %d, AxisBools %d, AxisFloat %d, AxisUint32s %d", 
-				sizeof(MotionPipelineElem), sizeof(AxisBools), sizeof(AxisFloats), sizeof(AxisU32s));
+				sizeof(MotionPipelineElem), sizeof(AxisBools), sizeof(AxisFloats), sizeof(AxisInt32s));
 
 	int totalErrorCount = 0;
 

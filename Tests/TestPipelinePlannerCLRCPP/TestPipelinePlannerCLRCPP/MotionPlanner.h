@@ -149,9 +149,9 @@ public:
 				hasSteps = true;
 			// Direction
 			elem._stepDirn.setVal(axisIdx, steps < 0);
-			elem._absSteps.vals[axisIdx] = labs(steps);
-			if (axisMaxSteps < elem._absSteps.vals[axisIdx])
-				axisMaxSteps = elem._absSteps.vals[axisIdx];
+			elem._axisStepsToTarget.setVal(axisIdx, steps);
+			if (axisMaxSteps < uint32_t(labs(steps)))
+				axisMaxSteps = labs(steps);
 		}
 
 		// Check there are some actual steps

@@ -31,8 +31,12 @@ public:
 	float _maxSpeedMMps;
 	// Direction of stepping in this block for each axis
 	AxisBools _stepDirn;
+	// Steps required for each axis
+	AxisInt32s _axisStepsToTarget;
 
-	AxisU32s _absSteps;
+
+
+
 	uint32_t _axisMaxSteps;
 	bool _primaryAxisMove;
 	float _nominalSpeedMMps;
@@ -326,13 +330,13 @@ public:
 		float inv = 1.0F / _axisMaxSteps;
 		for (uint8_t axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++) {
 
-			uint32_t axisTotalSteps = _absSteps.getVal(axisIdx);
+			uint32_t axisTotalSteps = labs(_axisStepsToTarget.getVal(axisIdx));
 			float axisStepRatio = inv * axisTotalSteps;
 
 			_tickInfo[axisIdx]._nsAccum = 0;
 			_tickInfo[axisIdx]._nsToNextStep = 1000000000;
 			_tickInfo[axisIdx]._curStepCount = 0;
-			_tickInfo[axisIdx]._stepDirection = _stepDirn[axisIdx];
+			_tickInfo[axisIdx]._stepDirection = (_axisStepsToTarget.getVal(axisIdx) >= 0);
 			_tickInfo[axisIdx]._totalSteps = axisTotalSteps;
 			_tickInfo[axisIdx]._accelSteps = 0;
 			_tickInfo[axisIdx]._decelStartSteps = 0;
@@ -362,11 +366,12 @@ public:
 			//uint32_t _decelIncreasePerStepNs;
 
 
-			uint32_t steps = _absSteps.getVal(axisIdx);
-			_tickInfo[axisIdx].steps_to_move = steps;
-			if (steps == 0) continue;
+			uint32_t absSteps = labs(_axisStepsToTarget.getVal(axisIdx));
+			_tickInfo[axisIdx].steps_to_move = absSteps;
+			if (absSteps == 0) 
+				continue;
 
-			float aratio = inv * steps;
+			float aratio = inv * absSteps;
 			_tickInfo[axisIdx].steps_per_tick = STEPTICKER_TOFP((_initialStepRate * aratio) / STEP_TICKER_FREQUENCY); // steps/sec / tick frequency to get steps per tick in 2.30 fixed point
 			_tickInfo[axisIdx].counter = 0; // 2.30 fixed point
 			_tickInfo[axisIdx].step_count = 0;
