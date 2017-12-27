@@ -160,121 +160,19 @@ bool MotionHelper::moveTo(RobotCommandArgs& args)
 	// Handle any motion parameters (such as relative movement, feedrate, etc)
 	setMotionParams(args);
 
-	// Find axis deltas and sum of squares of motion on primary axes
-	float deltas[MAX_AXES];
-	bool isAMove = false;
-	bool isAPrimaryMove = false;
-	float squareSum = 0;
-	for (int i = 0; i < _numRobotAxes; i++)
-	{
-		deltas[i] = args.pt._pt[i] - _curAxisPosition._axisPositionMM._pt[i];
-		if (deltas[i] != 0)
-		{
-			isAMove = true;
-			if (_axisParams[i]._isPrimaryAxis)
-			{
-				squareSum += powf(deltas[i], 2);
-				isAPrimaryMove = true;
-			}
-		}
-	}
-
-	// Distance being moved
-	float moveDist = sqrtf(squareSum);
-
-	// Ignore if there is no real movement
-	if (!isAMove || (isAPrimaryMove && moveDist < MINIMUM_PRIMARY_MOVE_DIST_MM))
-		return false;
-
-	Log.trace("Moving %0.3f mm", moveDist);
-
-	// Find the unit vectors
-	AxisFloats unitVec;
-	for (int i = 0; i < _numRobotAxes; i++)
-	{
-		if (_axisParams[i]._isPrimaryAxis)
-		{
-			unitVec._pt[i] = deltas[i] / moveDist;
-			// Check that the move speed doesn't exceed max
-			if (_axisParams[i]._maxSpeed > 0)
-			{
-				if (args.feedrateValid)
-				{
-					float axisSpeed = fabsf(unitVec._pt[i] * args.feedrateVal);
-					if (axisSpeed > _axisParams[i]._maxSpeed)
-					{
-						args.feedrateVal *= axisSpeed / _axisParams[i]._maxSpeed;
-						args.feedrateValid = true;
-					}
-				}
-				else
-				{
-					args.feedrateVal = _axisParams[i]._maxSpeed;
-					args.feedrateValid = true;
-				}
-			}
-		}
-	}
-
-	// Calculate move time
-	float reciprocalTime = args.feedrateVal / moveDist;
-	Log.trace("Feedrate %0.3f, reciprocalTime %0.3f", args.feedrateVal, reciprocalTime);
-
-	// Use default acceleration for dominant axis (or 1st primary) to start with
-	float acceleration = _axisParams[0].acceleration_default;
-	int dominantIdx = -1;
-	int firstPrimaryIdx = -1;
-	for (int i = 0; i < _numRobotAxes; i++)
-	{
-		if (_axisParams[i]._isDominantAxis)
-		{
-			dominantIdx = i;
-			break;
-		}
-		if (firstPrimaryIdx = -1 && _axisParams[i]._isPrimaryAxis)
-		{
-			firstPrimaryIdx = i;
-		}
-	}
-	if (dominantIdx != -1)
-		acceleration = _axisParams[dominantIdx]._maxAcceleration;
-	else if (firstPrimaryIdx != -1)
-		acceleration = _axisParams[firstPrimaryIdx]._maxAcceleration;
-
-	// Check speed limits for each axis individually
-	for (int i = 0; i < _numRobotAxes; i++)
-	{
-		// Speed and time
-		float axisDist = fabsf(args.pt._pt[i] - _curAxisPosition._axisPositionMM._pt[i]);
-		if (axisDist == 0)
-			continue;
-		float axisReqdAcc = axisDist * reciprocalTime;
-		if (axisReqdAcc > _axisParams[i]._maxAcceleration)
-		{
-			args.feedrateVal *= _axisParams[i]._maxAcceleration / axisReqdAcc;
-			reciprocalTime = args.feedrateVal / moveDist;
-		}
-	}
-
-	Log.trace("Feedrate %0.3f, reciprocalTime %0.3f", args.feedrateVal, reciprocalTime);
-
 	// Create a motion pipeline element for this movement
 	MotionPipelineElem elem(_numRobotAxes, _curAxisPosition._axisPositionMM, args.pt);
 
-	Log.trace("MotionPipelineElem delta %0.3f", elem.delta());
-
-	// Convert to actuator coords
+	// Convert the move to actuator coordinates
 	AxisFloats actuatorCoords;
 	_ptToActuatorFn(elem, actuatorCoords, _axisParams, _numRobotAxes);
 	elem._destActuatorCoords = actuatorCoords;
-	elem._speedMMps = args.feedrateVal;
-	elem._accMMpss = acceleration;
-	elem._primaryAxisMove = isAPrimaryMove;
-	elem._unitVec = unitVec;
-	elem._moveDistMM = moveDist;
+	elem._feedrateVal = args.feedrateVal;
+	elem._feedrateValid = args.feedrateValid;
 
-	// Add the block to the planner queue
-	bool moveOk = _motionPlanner.addBlock(_motionPipeline, elem, _curAxisPosition);
+	// Plan the move
+	bool moveOk = _motionPlanner.moveTo(elem, _curAxisPosition, _axisParams, 
+			_motionPipeline);
 	if (moveOk)
 	{
 		// Update axisMotion
@@ -282,6 +180,7 @@ bool MotionHelper::moveTo(RobotCommandArgs& args)
 		_curAxisPosition._stepsFromHome = elem._destActuatorCoords;
 	}
 	return moveOk;
+
 }
 
 void MotionHelper::service(bool processPipeline)

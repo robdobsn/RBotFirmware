@@ -1,9 +1,15 @@
 #pragma once
 
 #include "MotionPipeline.h"
+typedef bool(*ptToActuatorFnType) (MotionPipelineElem& motionElem, AxisFloats& actuatorCoords, AxisParams axisParams[], int numAxes);
+typedef void(*actuatorToPtFnType) (AxisFloats& actuatorCoords, AxisFloats& xy, AxisParams axisParams[], int numAxes);
+typedef void(*correctStepOverflowFnType) (AxisParams axisParams[], int numAxes);
 
 class MotionPlanner
 {
+public:
+	static constexpr double MINIMUM_MOVE_DIST_MM = 0.0001;
+
 private:
 	// Previous pipeline element
 	bool _prevPipelineElemValid;
@@ -29,6 +35,121 @@ public:
 	{
 		_junctionDeviation = junctionDeviation;
 		_numRobotAxes = numRobotAxes;
+	}
+
+	bool moveTo(MotionPipelineElem& elem, AxisPosition& curAxisPositions,
+				AxisParams axisParams[], MotionPipeline& motionPipeline)
+	{
+		// Find axis deltas and sum of squares of motion on primary axes
+		double deltas[MotionPipelineElem::MAX_AXES];
+		bool isAMove = false;
+		bool isAPrimaryMove = false;
+		double squareSum = 0;
+		for (int i = 0; i < _numRobotAxes; i++)
+		{
+			deltas[i] = elem._pt2MM._pt[i] - curAxisPositions._axisPositionMM._pt[i];
+			if (deltas[i] != 0)
+			{
+				isAMove = true;
+				if (axisParams[i]._isPrimaryAxis)
+				{
+					squareSum += pow(deltas[i], 2);
+					isAPrimaryMove = true;
+				}
+			}
+		}
+
+		// Distance being moved
+		double moveDist = sqrt(squareSum);
+
+		// Ignore if there is no real movement
+		if (!isAMove || moveDist < MINIMUM_MOVE_DIST_MM)
+			return false;
+
+		Log.trace("Moving %0.3f mm", moveDist);
+
+		// Find the unit vectors
+		AxisFloats unitVec;
+		for (int i = 0; i < _numRobotAxes; i++)
+		{
+			if (axisParams[i]._isPrimaryAxis)
+			{
+				unitVec._pt[i] = float(deltas[i] / moveDist);
+				// Check that the move speed doesn't exceed max
+				if (axisParams[i]._maxSpeed > 0)
+				{
+					if (elem._feedrateValid)
+					{
+						double axisSpeed = fabs(unitVec._pt[i] * elem._feedrateVal);
+						if (axisSpeed > axisParams[i]._maxSpeed)
+						{
+							elem._feedrateVal *= axisSpeed / axisParams[i]._maxSpeed;
+							elem._feedrateValid = true;
+						}
+					}
+					else
+					{
+						elem._feedrateVal = axisParams[i]._maxSpeed;
+						elem._feedrateValid = true;
+					}
+				}
+			}
+		}
+
+		// Calculate move time
+		double reciprocalTime = elem._feedrateVal / moveDist;
+		Log.trace("Feedrate %0.3f, reciprocalTime %0.3f", elem._feedrateVal, reciprocalTime);
+
+		// Use default acceleration for dominant axis (or 1st primary) to start with
+		double acceleration = axisParams[0].acceleration_default;
+		int dominantIdx = -1;
+		int firstPrimaryIdx = -1;
+		for (int i = 0; i < _numRobotAxes; i++)
+		{
+			if (axisParams[i]._isDominantAxis)
+			{
+				dominantIdx = i;
+				break;
+			}
+			if (firstPrimaryIdx = -1 && axisParams[i]._isPrimaryAxis)
+			{
+				firstPrimaryIdx = i;
+			}
+		}
+		if (dominantIdx != -1)
+			acceleration = axisParams[dominantIdx]._maxAcceleration;
+		else if (firstPrimaryIdx != -1)
+			acceleration = axisParams[firstPrimaryIdx]._maxAcceleration;
+
+		// Check speed limits for each axis individually
+		for (int i = 0; i < _numRobotAxes; i++)
+		{
+			// Speed and time
+			double axisDist = fabs(elem._pt2MM._pt[i] - curAxisPositions._axisPositionMM._pt[i]);
+			if (axisDist == 0)
+				continue;
+			double axisReqdAcc = axisDist * reciprocalTime;
+			if (axisReqdAcc > axisParams[i]._maxAcceleration)
+			{
+				elem._feedrateVal *= axisParams[i]._maxAcceleration / axisReqdAcc;
+				reciprocalTime = elem._feedrateVal / moveDist;
+			}
+		}
+
+		Log.trace("Feedrate %0.3f, reciprocalTime %0.3f", elem._feedrateVal, reciprocalTime);
+
+
+		Log.trace("MotionPipelineElem delta %0.3f", elem.delta());
+
+		// Convert to actuator coords
+		elem._speedMMps = float(elem._feedrateVal);
+		elem._accMMpss = float(acceleration);
+		elem._primaryAxisMove = isAPrimaryMove;
+		elem._unitVec = unitVec;
+		elem._moveDistMM = float(moveDist);
+
+		// Add the block to the planner queue
+		return addBlock(motionPipeline, elem, curAxisPositions);
 	}
 
 	bool addBlock(MotionPipelineElem& elem, float moveDist, float *unitVec)

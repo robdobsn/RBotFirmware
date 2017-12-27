@@ -6,12 +6,28 @@
 
 class MotionActuator
 {
+public:
+	static constexpr uint32_t TICK_INTERVAL_NS = 1000;
+
 private:
 	volatile bool _isPaused;
-	volatile bool _isRunning;
 	MotionPipeline& _motionPipeline;
 	MotionIO& _motionIO;
 	unsigned long _blockStartMicros;
+
+private:
+	// Currently executing block
+	struct axisExecInfo_t
+	{
+		bool _isActive;
+		uint32_t _curAccumulatorNs;
+		uint32_t _curStepIntervalNs;
+		uint32_t _curStepCount;
+		uint32_t _targetStepCount;
+		int32_t _stepIntervalChangePerStepNs;
+		int _axisStepPhaseNum;
+	};
+	axisExecInfo_t _axisExecInfo[MotionPipelineElem::MAX_AXES];
 
 public:
 	MotionActuator(MotionIO& motionIO, MotionPipeline& motionPipeline) :
@@ -19,7 +35,6 @@ public:
 		_motionIO(motionIO)
 	{
 		_isPaused = false;
-		_isRunning = false;
 		_blockStartMicros = 0;
 	}
 
@@ -31,13 +46,129 @@ public:
 	void clear()
 	{
 		_isPaused = false;
-		_isRunning = false;
 		_blockStartMicros = 0;
 	}
 
 	void pause(bool pauseIt)
 	{
 		_isPaused = pauseIt;
+	}
+
+	void process()
+	{
+		// Check if paused
+		if (_isPaused)
+			return;
+
+		// Do a step-end for any motor which needs one - return here to avoid too short a pulse
+		if (_motionIO.stepEnd())
+			return;
+
+		// Peek a MotionPipelineElem from the queue
+		MotionPipelineElem* pElem = _motionPipeline.peekGet();
+		if (!pElem)
+			return;
+
+		// Check if the element is being changed
+		if (pElem->_changeInProgress)
+			return;
+
+		// Signal that we are now working on this block
+		bool newBlock = !pElem->_isRunning;
+		pElem->_isRunning = true;
+
+		// New block
+		if (newBlock)
+		{
+			// Prep each axis separately
+			for (uint8_t axisIdx = 0; MotionPipelineElem::MAX_AXES; axisIdx++)
+			{
+				// Set inactive for now
+				axisExecInfo_t& axisExecInfo = _axisExecInfo[axisIdx];
+				axisExecInfo._isActive = false;
+				// Intialise the phase of the block
+				for (int phaseIdx = 0; phaseIdx < MotionPipelineElem::MAX_STEP_PHASES; phaseIdx++)
+				{
+					// Check if there are any steps in this phase
+					MotionPipelineElem::axisStepInfo_t& axisStepInfo = pElem->_axisStepInfo[axisIdx];
+					if (axisStepInfo._stepPhases[phaseIdx]._stepsInPhase != 0)
+					{
+						// Initialise the first active phase
+						axisExecInfo._curAccumulatorNs = 0;
+						axisExecInfo._curStepIntervalNs = axisStepInfo._initialStepIntervalNs;
+						axisExecInfo._curStepCount = 0;
+						axisExecInfo._targetStepCount = axisStepInfo._stepPhases[phaseIdx]._stepsInPhase;
+						axisExecInfo._stepIntervalChangePerStepNs = axisStepInfo._stepPhases[phaseIdx]._stepIntervalChangeNs;
+						axisExecInfo._axisStepPhaseNum = phaseIdx;
+						axisExecInfo._isActive = true;
+						// Set direction for the axis
+						_motionIO.stepDirn(axisIdx, pElem->_stepDirn[axisIdx]);
+						break;
+					}
+				}
+			}
+		}
+
+		// Go through the axes
+		bool anyAxisMoving = false;
+		for (int axisIdx = 0; axisIdx < MotionPipelineElem::MAX_AXES; axisIdx++)
+		{
+			// Check if there is any motion left for this axis
+			axisExecInfo_t& axisExecInfo = _axisExecInfo[axisIdx];
+			if (!axisExecInfo._isActive)
+				continue;
+
+			// Bump the accumulator
+			axisExecInfo._curAccumulatorNs += TICK_INTERVAL_NS;
+
+			// Check for accumulator overflow
+			if (axisExecInfo._curAccumulatorNs >= axisExecInfo._curStepIntervalNs)
+			{
+				// Subtract from accumulator leaving remainder to combat rounding errors
+				axisExecInfo._curAccumulatorNs -= axisExecInfo._curStepIntervalNs;
+				
+				// Accelerate as required (changing interval between steps)
+				axisExecInfo._curStepIntervalNs += axisExecInfo._stepIntervalChangePerStepNs;
+
+				// Step
+				_motionIO.stepStart(axisIdx);
+				axisExecInfo._curStepCount++;
+
+				// Check if phase is done
+				if (axisExecInfo._curStepCount >= axisExecInfo._targetStepCount)
+				{
+					// Check for the next phase
+					axisExecInfo._isActive = false;
+					MotionPipelineElem::axisStepInfo_t& axisStepInfo = pElem->_axisStepInfo[axisIdx];
+					for (int phaseIdx = axisExecInfo._axisStepPhaseNum+1; phaseIdx < MotionPipelineElem::MAX_STEP_PHASES; phaseIdx++)
+					{
+						// Check if there are any steps in this phase
+						if (axisStepInfo._stepPhases[phaseIdx]._stepsInPhase != 0)
+						{
+							// Initialise the phase
+							axisExecInfo._curStepCount = 0;
+							axisExecInfo._targetStepCount = axisStepInfo._stepPhases[phaseIdx]._stepsInPhase;
+							axisExecInfo._stepIntervalChangePerStepNs = axisStepInfo._stepPhases[phaseIdx]._stepIntervalChangeNs;
+							axisExecInfo._axisStepPhaseNum = phaseIdx;
+							axisExecInfo._isActive = true;
+							break;
+						}
+					}
+				}
+			}
+
+			// Check if axis is moving
+			anyAxisMoving |= axisExecInfo._isActive;
+		}
+
+		// Any axes still moving?
+		if (!anyAxisMoving) 
+		{
+
+			// If not this block is complete
+			_motionPipeline.remove();
+		}
+
 	}
 
 	void processSmoothie()
@@ -69,10 +200,6 @@ public:
 		if (_blockStartMicros > curUs)
 			usElapsed = 0xffffffff - _blockStartMicros + curUs;
 
-		if (curUs == 449409)
-		{
-			printf("Here");
-		}
 		// New block
 		if (newBlock)
 		{ 
@@ -143,100 +270,100 @@ public:
 
 			// block complete
 			_motionPipeline.remove();
-			_isRunning = false;
 		}
 	}
 
-	void processRob()
-	{
-		// Check if paused
-		if (_isPaused)
-			return;
+	
+	//void processRob()
+	//{
+	//	// Check if paused
+	//	if (_isPaused)
+	//		return;
 
-		// Do a step-end for any motor which needs one - return here to avoid too short a pulse
-		if (_motionIO.stepEnd())
-			return;
+	//	// Do a step-end for any motor which needs one - return here to avoid too short a pulse
+	//	if (_motionIO.stepEnd())
+	//		return;
 
-		// Peek a MotionPipelineElem from the queue
-		MotionPipelineElem* pElem = _motionPipeline.peekGet();
-		if (!pElem)
-			return;
+	//	// Peek a MotionPipelineElem from the queue
+	//	MotionPipelineElem* pElem = _motionPipeline.peekGet();
+	//	if (!pElem)
+	//		return;
 
-		// Check if the element is being changed
-		if (pElem->_changeInProgress)
-			return;
+	//	// Check if the element is being changed
+	//	if (pElem->_changeInProgress)
+	//		return;
 
-		// Signal that we are now working on this block
-		bool newBlock = !pElem->_isRunning;
-		pElem->_isRunning = true;
+	//	// Signal that we are now working on this block
+	//	bool newBlock = !pElem->_isRunning;
+	//	pElem->_isRunning = true;
 
-		// Get current uS elapsed
-		static uint32_t lastUs = micros();
-		uint32_t curUs = micros();
-		uint32_t usElapsed = curUs - lastUs;
-		if (lastUs > curUs)
-			usElapsed = 0xffffffff - lastUs + curUs;
+	//	// Get current uS elapsed
+	//	static uint32_t lastUs = micros();
+	//	uint32_t curUs = micros();
+	//	uint32_t usElapsed = curUs - lastUs;
+	//	if (lastUs > curUs)
+	//		usElapsed = 0xffffffff - lastUs + curUs;
 
-		// Go through the axes
-		bool allAxesDone = true;
-		for (int axisIdx = 0; axisIdx < pElem->_numAxes; axisIdx++)
-		{
-			// Get pointer to this axis
-			volatile MotionPipelineElem::tickinfo_t* pTickInfo = &(pElem->_tickInfo[axisIdx]);
+	//	// Go through the axes
+	//	bool allAxesDone = true;
+	//	for (int axisIdx = 0; axisIdx < pElem->_numAxes; axisIdx++)
+	//	{
+	//		// Get pointer to this axis
+	//		volatile MotionPipelineElem::tickinfo_t* pTickInfo = &(pElem->_tickInfo[axisIdx]);
 
-			// Accumulate time elapsed since last step
-			pTickInfo->_nsAccum += usElapsed * 1000;
+	//		// Accumulate time elapsed since last step
+	//		pTickInfo->_nsAccum += usElapsed * 1000;
 
-			uint32_t nsToNextStep = pTickInfo->_nsToNextStep;
-			// See if it is time for another step
-			if (pTickInfo->_nsAccum > nsToNextStep)
-			{
-				// Avoid a rollover by checking for a signficant jump
-				if (pTickInfo->_nsAccum > nsToNextStep + nsToNextStep)
-					pTickInfo->_nsAccum = 0;
-				else
-					pTickInfo->_nsAccum -= nsToNextStep;
-				// Set direction if not already set
-				if (newBlock)
-					_motionIO.stepDirn(axisIdx, pTickInfo->_stepDirection);
-				// Start the step
-				_motionIO.stepStart(axisIdx);
-				// Count the steps
-				pTickInfo->_curStepCount++;
-				// Find the time for the next step
-				if (pTickInfo->_curStepCount < pTickInfo->_accelSteps)
-				{
-					// We're accelerating
-					allAxesDone = false;
-					pTickInfo->_nsToNextStep -= pTickInfo->_accelReducePerStepNs;
-				}
-				else if (pTickInfo->_curStepCount < pTickInfo->_decelStartSteps)
-				{
-					// We're in the plateau
-					allAxesDone = false;
-					// No change to nsToNextStep
-				}
-				else if (pTickInfo->_curStepCount < pTickInfo->_totalSteps)
-				{
-					// We're in the deceleration phase
-					allAxesDone = false;
-					pTickInfo->_nsToNextStep += pTickInfo->_decelIncreasePerStepNs;
-				}
-				else
-				{
-					// We're done
-				}
-			}
-		}
+	//		uint32_t nsToNextStep = pTickInfo->_nsToNextStep;
+	//		// See if it is time for another step
+	//		if (pTickInfo->_nsAccum > nsToNextStep)
+	//		{
+	//			// Avoid a rollover by checking for a signficant jump
+	//			if (pTickInfo->_nsAccum > nsToNextStep + nsToNextStep)
+	//				pTickInfo->_nsAccum = 0;
+	//			else
+	//				pTickInfo->_nsAccum -= nsToNextStep;
+	//			// Set direction if not already set
+	//			if (newBlock)
+	//				_motionIO.stepDirn(axisIdx, pTickInfo->_stepDirection);
+	//			// Start the step
+	//			_motionIO.stepStart(axisIdx);
+	//			// Count the steps
+	//			pTickInfo->_curStepCount++;
+	//			// Find the time for the next step
+	//			if (pTickInfo->_curStepCount < pTickInfo->_accelSteps)
+	//			{
+	//				// We're accelerating
+	//				allAxesDone = false;
+	//				pTickInfo->_nsToNextStep -= pTickInfo->_accelReducePerStepNs;
+	//			}
+	//			else if (pTickInfo->_curStepCount < pTickInfo->_decelStartSteps)
+	//			{
+	//				// We're in the plateau
+	//				allAxesDone = false;
+	//				// No change to nsToNextStep
+	//			}
+	//			else if (pTickInfo->_curStepCount < pTickInfo->_totalSteps)
+	//			{
+	//				// We're in the deceleration phase
+	//				allAxesDone = false;
+	//				pTickInfo->_nsToNextStep += pTickInfo->_decelIncreasePerStepNs;
+	//			}
+	//			else
+	//			{
+	//				// We're done
+	//			}
+	//		}
+	//	}
 
-		// Check all axes done
-		if (allAxesDone)
-		{
-			_motionPipeline.remove();
-		}
+	//	// Check all axes done
+	//	if (allAxesDone)
+	//	{
+	//		_motionPipeline.remove();
+	//	}
 
-		// Record last time
-		lastUs = curUs;
-	}
+	//	// Record last time
+	//	lastUs = curUs;
+	//}
 };
 

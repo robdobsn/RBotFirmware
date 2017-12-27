@@ -9,12 +9,25 @@ extern void testCompleted();
 
 class MotionPipelineElem
 {
+public: 
+	// Step phases of each block: acceleration, plateau, deceleration
+	static constexpr int MAX_STEP_PHASES = 3;
+	static constexpr int MAX_AXES = 3;
+
 public:
+	// From
 	AxisFloats _pt1MM;
+	// To
 	AxisFloats _pt2MM;
+	// To in actuator coordinates
+	AxisFloats _destActuatorCoords;
+	// Feedrate
+	double _feedrateVal;
+	bool _feedrateValid;
+
+
 	float _accMMpss;
 	float _speedMMps;
-	AxisFloats _destActuatorCoords;
 	AxisBools _stepDirn;
 	AxisU32s _absSteps;
 	uint32_t _axisMaxSteps;
@@ -61,6 +74,19 @@ public:
 		uint32_t _curStepCount;
 	};
 	std::vector<tickinfo_t> _tickInfo;
+
+
+	struct axisStepPhase_t 
+	{
+		int _stepsInPhase;
+		int32_t _stepIntervalChangeNs;
+	};
+	struct axisStepInfo_t 
+	{
+		axisStepPhase_t _stepPhases[MAX_STEP_PHASES];
+		uint32_t _initialStepIntervalNs;
+	};
+	axisStepInfo_t _axisStepInfo[MAX_AXES];
 
 public:
 	MotionPipelineElem()
@@ -189,6 +215,15 @@ public:
 		// If block is currently being processed don't change it
 		if (_isRunning)
 			return;
+
+		// At this point we are ready to calculate the phases of motion for this block: acceleration, plateau, deceleration
+
+		// First calculate the initial interval in NS based on the entry speed
+		//double initialStepIntervalNS = (1e9 * dominantAxisStepDistanceMM) / _entrySpeedMMps;
+		//double finalStepIntervalNS = (1e9 * dominantAxisStepDistanceMM) / _exisSpeedMMps;
+
+		// Now calculate the 
+
 
 		// Initial rate
 		float initialStepRate = _nominalStepRatePerSec * (_entrySpeedMMps / _nominalSpeedMMps);

@@ -11,10 +11,6 @@
 #include "MotionIO.h"
 #include "MotionActuator.h"
 
-typedef bool(*ptToActuatorFnType) (MotionPipelineElem& motionElem, AxisFloats& actuatorCoords, AxisParams axisParams[], int numAxes);
-typedef void(*actuatorToPtFnType) (AxisFloats& actuatorCoords, AxisFloats& xy, AxisParams axisParams[], int numAxes);
-typedef void(*correctStepOverflowFnType) (AxisParams axisParams[], int numAxes);
-
 class MotionHelper
 {
 public:
@@ -22,7 +18,6 @@ public:
 	static constexpr float junctionDeviation_default = 0.05f;
 	static constexpr float distToTravelMM_ignoreBelow = 0.01f;
 	static constexpr int pipelineLen_default = 100;
-	static constexpr float MINIMUM_PRIMARY_MOVE_DIST_MM = 0.0001f;
 	static constexpr int MAX_AXES = 3;
 
 private:
