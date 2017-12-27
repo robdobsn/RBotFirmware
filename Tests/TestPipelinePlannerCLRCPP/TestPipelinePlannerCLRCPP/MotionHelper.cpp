@@ -146,8 +146,9 @@ bool MotionHelper::moveTo(RobotCommandArgs& args)
 	AxisFloats actuatorCoords;
 	_ptToActuatorFn(elem, actuatorCoords, _axesParams.getAxisParamsArray(), RobotConsts::MAX_AXES);
 	elem._destActuatorCoords = actuatorCoords;
-	elem._feedrateVal = args.feedrateVal;
-	elem._feedrateValid = args.feedrateValid;
+	elem._maxSpeedMMps = -1;
+	if (args.feedrateValid)
+		elem._maxSpeedMMps = args.feedrateVal;
 
 	// Plan the move
 	bool moveOk = _motionPlanner.moveTo(elem, _curAxisPosition, _axesParams, _motionPipeline);

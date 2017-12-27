@@ -71,6 +71,7 @@ public:
 
 		// Find the unit vectors
 		AxisFloats unitVec;
+		double maxSpeedMMps = elem._maxSpeedMMps;
 		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 		{
 			if (axesParams.isPrimaryAxis(axisIdx))
@@ -79,27 +80,25 @@ public:
 				// Check that the move speed doesn't exceed max
 				if (axesParams.getMaxSpeed(axisIdx) > 0)
 				{
-					if (elem._feedrateValid)
+					if (maxSpeedMMps > 0)
 					{
-						double axisSpeed = fabs(unitVec._pt[axisIdx] * elem._feedrateVal);
+						double axisSpeed = fabs(unitVec._pt[axisIdx] * maxSpeedMMps);
 						if (axisSpeed > axesParams.getMaxSpeed(axisIdx))
 						{
-							elem._feedrateVal *= axisSpeed / axesParams.getMaxSpeed(axisIdx);
-							elem._feedrateValid = true;
+							maxSpeedMMps *= axisSpeed / axesParams.getMaxSpeed(axisIdx);
 						}
 					}
 					else
 					{
-						elem._feedrateVal = axesParams.getMaxSpeed(axisIdx);
-						elem._feedrateValid = true;
+						maxSpeedMMps = axesParams.getMaxSpeed(axisIdx);
 					}
 				}
 			}
 		}
 
 		// Calculate move time
-		double reciprocalTime = elem._feedrateVal / moveDist;
-		Log.trace("Feedrate %0.3f, reciprocalTime %0.3f", elem._feedrateVal, reciprocalTime);
+		double reciprocalTime = maxSpeedMMps / moveDist;
+		Log.trace("Feedrate %0.3f, reciprocalTime %0.3f", maxSpeedMMps, reciprocalTime);
 
 		// Check speed limits for each axis individually
 		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
@@ -111,18 +110,18 @@ public:
 			double axisReqdAcc = axisDist * reciprocalTime;
 			if (axisReqdAcc > axesParams.getMaxAccel(axisIdx))
 			{
-				elem._feedrateVal *= axesParams.getMaxAccel(axisIdx) / axisReqdAcc;
-				reciprocalTime = elem._feedrateVal / moveDist;
+				maxSpeedMMps *= axesParams.getMaxAccel(axisIdx) / axisReqdAcc;
+				reciprocalTime = maxSpeedMMps / moveDist;
 			}
 		}
 
-		Log.trace("Feedrate %0.3f, reciprocalTime %0.3f", elem._feedrateVal, reciprocalTime);
+		Log.trace("Feedrate %0.3f, reciprocalTime %0.3f", maxSpeedMMps, reciprocalTime);
 
 
 		Log.trace("MotionPipelineElem delta %0.3f", elem.delta());
 
-		// Convert to actuator coords
-		elem._speedMMps = float(elem._feedrateVal);
+		// Store values in the block
+		elem._maxSpeedMMps = float(maxSpeedMMps);
 		elem._primaryAxisMove = isAPrimaryMove;
 		elem._unitVec = unitVec;
 		elem._moveDistMM = float(moveDist);
@@ -142,17 +141,17 @@ public:
 		// Find if there are any steps
 		bool hasSteps = false;
 		uint32_t axisMaxSteps = 0;
-		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
+		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 		{
 			// Check if any actual steps to perform
-			int steps = int(std::ceil(elem._destActuatorCoords._pt[i] - curAxisPosition._stepsFromHome._pt[i]));
+			int steps = int(std::ceil(elem._destActuatorCoords._pt[axisIdx] - curAxisPosition._stepsFromHome._pt[axisIdx]));
 			if (steps != 0)
 				hasSteps = true;
 			// Direction
-			elem._stepDirn._valid[i] = (steps < 0);
-			elem._absSteps.vals[i] = labs(steps);
-			if (axisMaxSteps < elem._absSteps.vals[i])
-				axisMaxSteps = elem._absSteps.vals[i];
+			elem._stepDirn.setVal(axisIdx, steps < 0);
+			elem._absSteps.vals[axisIdx] = labs(steps);
+			if (axisMaxSteps < elem._absSteps.vals[axisIdx])
+				axisMaxSteps = elem._absSteps.vals[axisIdx];
 		}
 
 		// Check there are some actual steps
@@ -165,8 +164,8 @@ public:
 		// Check movement distance
 		if (elem._moveDistMM > 0.0f)
 		{
-			elem._nominalSpeedMMps = elem._speedMMps;
-			elem._nominalStepRatePerSec = axisMaxSteps * elem._speedMMps / elem._moveDistMM;
+			elem._nominalSpeedMMps = elem._maxSpeedMMps;
+			elem._nominalStepRatePerSec = axisMaxSteps * elem._maxSpeedMMps / elem._moveDistMM;
 		}
 		else
 		{

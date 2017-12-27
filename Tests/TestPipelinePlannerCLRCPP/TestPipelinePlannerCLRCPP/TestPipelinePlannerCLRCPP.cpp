@@ -231,6 +231,9 @@ int main()
 		exit(1);
 	}
 
+	Log.trace("Sizeof MotionPipelineElem %d, AxisBools %d, AxisFloat %d, AxisUint32s %d", 
+				sizeof(MotionPipelineElem), sizeof(AxisBools), sizeof(AxisFloats), sizeof(AxisU32s));
+
 	int totalErrorCount = 0;
 
 	// Go through tests

@@ -27,14 +27,11 @@ public:
 	AxisFloats _pt2MM;
 	// To in actuator coordinates
 	AxisFloats _destActuatorCoords;
-	// Feedrate
-	double _feedrateVal;
-	bool _feedrateValid;
-
-
-	float _accMMpss;
-	float _speedMMps;
+	// Max speed (maybe overridden by feedrate in the command)
+	float _maxSpeedMMps;
+	// Direction of stepping in this block for each axis
 	AxisBools _stepDirn;
+
 	AxisU32s _absSteps;
 	uint32_t _axisMaxSteps;
 	bool _primaryAxisMove;
@@ -112,8 +109,7 @@ public:
 	void clear()
 	{
 		// Clear values
-		_accMMpss = 0;
-		_speedMMps = 0;
+		_maxSpeedMMps = 0;
 		_axisMaxSteps = 0;
 		_primaryAxisMove = false;
 		_nominalSpeedMMps = 0;

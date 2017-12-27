@@ -188,58 +188,90 @@ public:
 class AxisBools
 {
 public:
-	bool _valid[RobotConsts::MAX_AXES];
+	struct
+	{
+		bool b0 : 1;
+		bool b1 : 1;
+		bool b2 : 1;
+		bool b3 : 1;
+		bool b4 : 1;
+		bool b5 : 1;
+		bool b6 : 1;
+	};
 
 public:
 	AxisBools()
 	{
-		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
-			_valid[i] = false;
+		b0 = b1 = b2 = b3 = b4 = b5 = b6 = 0;
 	}
-	AxisBools(const AxisBools& valid)
+	AxisBools(const AxisBools& other)
 	{
-		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
-			_valid[i] = valid._valid[i];
+		b0 = other.b0;
+		b1 = other.b1;
+		b2 = other.b2;
+		b3 = other.b3;
+		b4 = other.b4;
+		b5 = other.b5;
+		b6 = other.b6;
 	}
-	void operator=(const AxisBools& valid)
+	void operator=(const AxisBools& other)
 	{
-		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
-			_valid[i] = valid._valid[i];
+		b0 = other.b0;
+		b1 = other.b1;
+		b2 = other.b2;
+		b3 = other.b3;
+		b4 = other.b4;
+		b5 = other.b5;
+		b6 = other.b6;
 	}
-	bool operator[](int axisIdx)
+	bool isValid(int axisIdx)
 	{
-		if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
-			return _valid[axisIdx];
+		switch (axisIdx)
+		{
+		case 0: return b0;
+		case 1: return b1;
+		case 2: return b2;
+		case 3: return b3;
+		case 4: return b4;
+		case 5: return b5;
+		case 6: return b6;
+		}
 		return false;
 	}
 	AxisBools(bool xValid, bool yValid, bool zValid)
 	{
-		_valid[0] = xValid;
-		_valid[1] = yValid;
-		_valid[2] = zValid;
+		b0 = xValid;
+		b1 = yValid;
+		b2 = zValid;
 	}
 	bool X()
 	{
-		return _valid[0];
+		return b0;
 	}
 	bool Y()
 	{
-		return _valid[1];
+		return b1;
 	}
 	bool Z()
 	{
-		return _valid[2];
+		return b2;
 	}
-	bool isValid(int axisIdx)
+	bool operator[](int axisIdx)
 	{
-		if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
-			return _valid[axisIdx];
-		return false;
+		return isValid(axisIdx);
 	}
 	void setVal(int axisIdx, bool val)
 	{
-		if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
-			_valid[axisIdx] = val;
+		switch (axisIdx)
+		{
+		case 0: b0 = val; break;
+		case 1: b1 = val; break;
+		case 2: b2 = val; break;
+		case 3: b3 = val; break;
+		case 4: b4 = val; break;
+		case 5: b5 = val; break;
+		case 6: b6 = val; break;
+		}
 	}
 };
 

@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-f = open("../TestPipelinePlannerCLRCPP/TestPipelinePlannerCLRCPP/testOut/testOut_00016.txt")
+f = open("../TestPipelinePlannerCLRCPP/TestPipelinePlannerCLRCPP/testOut/testOut_00048.txt")
 lines = f.readlines()
 
 stepDist = 60 / 3200
