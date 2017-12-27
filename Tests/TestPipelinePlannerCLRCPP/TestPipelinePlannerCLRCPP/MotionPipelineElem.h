@@ -7,7 +7,7 @@
 #include <vector>
 extern void testCompleted();
 
-class MotionPipelineElem
+class MotionBlock
 {
 public: 
 	// Step phases of each block: acceleration, plateau, deceleration
@@ -21,25 +21,14 @@ public:
 
 
 public:
-	// From
-	AxisFloats _pt1MM;
-	// To
-	AxisFloats _pt2MM;
-	// To in actuator coordinates
-	AxisFloats _destActuatorCoords;
-	// Max speed (maybe overridden by feedrate in the command)
-	float _maxSpeedMMps;
-	// Direction of stepping in this block for each axis
-	AxisBools _stepDirn;
+	// Max speed set for master axis (maybe reduced by feedrate in a GCode command)
+	float _maxParamSpeedMMps;
 	// Steps required for each axis
 	AxisInt32s _axisStepsToTarget;
 
 
 
 
-	uint32_t _axisMaxSteps;
-	bool _primaryAxisMove;
-	float _nominalSpeedMMps;
 	float _nominalStepRatePerSec;
 	float _maxStepRatePerSec;
 	AxisFloats _unitVec;
@@ -95,28 +84,17 @@ public:
 	axisStepInfo_t _axisStepInfo[RobotConsts::MAX_AXES];
 
 public:
-	MotionPipelineElem()
-	{
-		clear();
-	}
-
-	MotionPipelineElem(AxisFloats& pt1, AxisFloats& pt2)
+	MotionBlock()
 	{
 		// Reset size of tick vector
 		_tickInfo.resize(RobotConsts::MAX_AXES);
-		// Set points
-		_pt1MM = pt1;
-		_pt2MM = pt2;
 		clear();
 	}
 
 	void clear()
 	{
 		// Clear values
-		_maxSpeedMMps = 0;
-		_axisMaxSteps = 0;
-		_primaryAxisMove = false;
-		_nominalSpeedMMps = 0;
+		_maxParamSpeedMMps = 0;
 		_nominalStepRatePerSec = 0;
 		_maxStepRatePerSec = 0;
 		_moveDistMM = 0;
@@ -135,12 +113,18 @@ public:
 		_changeInProgress = false;
 	}
 
-	double delta()
+	uint32_t getAbsMaxStepsForAnyAxis()
 	{
-		return _pt1MM.distanceTo(_pt2MM);
+		uint32_t axisMaxSteps = 0;
+		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+		{
+			if (axisMaxSteps < uint32_t(labs(_axisStepsToTarget.vals[axisIdx])))
+				axisMaxSteps = labs(_axisStepsToTarget.vals[axisIdx]);
+		}
+		return axisMaxSteps;
 	}
 
-	void calcMaxSpeedReverse(float exitSpeed, MotionPipelineElem::motionParams& motionParams)
+	void calcMaxSpeedReverse(float exitSpeed, MotionBlock::motionParams& motionParams)
 	{
 		// If entry speed is already at the maximum entry speed, no need to recheck. Block is cruising.
 		// If not, block in state of acceleration or deceleration. Reset entry speed to maximum and
@@ -161,14 +145,14 @@ public:
 		}
 	}
 
-	void calcMaxSpeedForward(float prevMaxExitSpeed, MotionPipelineElem::motionParams& motionParams)
+	void calcMaxSpeedForward(float prevMaxExitSpeed, MotionBlock::motionParams& motionParams)
 	{
 		// If the previous block is an acceleration block, but it is not long enough to complete the
 		// full speed change within the block, we need to adjust the entry speed accordingly. Entry
 		// speeds have already been reset, maximized, and reverse planned by reverse planner.
 		// If nominal length is true, max junction speed is guaranteed to be reached. No need to recheck.
-		if (prevMaxExitSpeed > _nominalSpeedMMps)
-			prevMaxExitSpeed = _nominalSpeedMMps;
+		if (prevMaxExitSpeed >  _maxParamSpeedMMps)
+			prevMaxExitSpeed = _maxParamSpeedMMps;
 		if (prevMaxExitSpeed > _maxEntrySpeedMMps)
 			prevMaxExitSpeed = _maxEntrySpeedMMps;
 		if (prevMaxExitSpeed <= _entrySpeedMMps)
@@ -177,7 +161,7 @@ public:
 			_entrySpeedMMps = prevMaxExitSpeed;
 			// since we're now acceleration or cruise limited
 			// we don't need to recalculate our entry speed anymore
-			if (_entrySpeedMMps >= _nominalSpeedMMps)
+			if (_entrySpeedMMps >= _maxParamSpeedMMps)
 				_recalcFlag = false;
 		}
 		// Now max out the exit speed
@@ -189,7 +173,7 @@ public:
 		return sqrtf(target_velocity * target_velocity - 2.0F * acceleration * distance);
 	}
 
-	void maximizeExitSpeed(MotionPipelineElem::motionParams& motionParams)
+	void maximizeExitSpeed(MotionBlock::motionParams& motionParams)
 	{
 		// If block is being executed then don't change
 		if (_isRunning)
@@ -198,7 +182,7 @@ public:
 		// If nominalLengthFlag then guaranteed to reach nominal speed regardless of entry
 		// speed so just use nominal speed
 		if (_nominalLengthFlag)
-			_exitSpeedMMps = std::min(_nominalSpeedMMps, _exitSpeedMMps);
+			_exitSpeedMMps = std::min(_maxParamSpeedMMps, _exitSpeedMMps);
 
 		// Otherwise work out max exit speed based on entry and acceleration
 		float maxExitSpeed = maxAllowableSpeed(-motionParams._accMMps2, _entrySpeedMMps, _moveDistMM);
@@ -213,7 +197,7 @@ public:
 	//                              |             + <- nominal_rate*exit_factor
 	//                              +-------------+
 	//                                  time -->
-	void calculateTrapezoid(MotionPipelineElem::motionParams& motionParams)
+	void calculateTrapezoid(MotionBlock::motionParams& motionParams)
 	{
 		// If block is currently being processed don't change it
 		if (_isRunning)
@@ -229,15 +213,16 @@ public:
 
 
 		// Initial rate
-		float initialStepRate = _nominalStepRatePerSec * (_entrySpeedMMps / _nominalSpeedMMps);
-		float finalStepRate = _nominalStepRatePerSec * (_exitSpeedMMps / _nominalSpeedMMps);
+		float initialStepRate = _nominalStepRatePerSec * (_entrySpeedMMps / _maxParamSpeedMMps);
+		float finalStepRate = _nominalStepRatePerSec * (_exitSpeedMMps / _maxParamSpeedMMps);
 
 		Log.trace("trapezoid initRate %0.3f steps/s, finalRate %0.3f steps/s", initialStepRate, finalStepRate);
 
 		// How many steps ( can be fractions of steps, we need very precise values ) to accelerate and decelerate
 		// This is a simplification to get rid of rate_delta and get the steps/s² accel directly from the mm/s² accel
-		float accInStepUnits = (motionParams._accMMps2 * _axisMaxSteps) / _moveDistMM;
-		float maxPossStepRate = sqrtf((_axisMaxSteps * accInStepUnits) + ((powf(initialStepRate, 2) + powf(finalStepRate, 2)) / 2.0F));
+		uint32_t absMaxStepsForAnyAxis = getAbsMaxStepsForAnyAxis();
+		float accInStepUnits = (motionParams._accMMps2 * absMaxStepsForAnyAxis) / _moveDistMM;
+		float maxPossStepRate = sqrtf((absMaxStepsForAnyAxis * accInStepUnits) + ((powf(initialStepRate, 2) + powf(finalStepRate, 2)) / 2.0F));
 
 		Log.trace("trapezoid accInStepUnits %0.3f steps/s2, maxPossStepRate %0.3f steps/s", accInStepUnits, maxPossStepRate);
 
@@ -267,7 +252,7 @@ public:
 			float decelDistance = ((_maxStepRatePerSec + finalStepRate) / 2.0F) * timeToDecelerateSecs;
 
 			// Figure out the plateau steps
-			float plateauDist = _axisMaxSteps - accelDistance - decelDistance;
+			float plateauDist = absMaxStepsForAnyAxis - accelDistance - decelDistance;
 
 			// Figure out the plateau time in seconds
 			plateauTimeSecs = plateauDist / _maxStepRatePerSec;
@@ -327,7 +312,7 @@ public:
 		_initialStepRate = initialStepRate;
 
 		// Make calculations for the MotionActuator (which gets the block and effects it)
-		float inv = 1.0F / _axisMaxSteps;
+		float inv = 1.0F / absMaxStepsForAnyAxis;
 		for (uint8_t axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++) {
 
 			uint32_t axisTotalSteps = labs(_axisStepsToTarget.getVal(axisIdx));

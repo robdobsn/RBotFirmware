@@ -18,7 +18,7 @@ static const char* ROBOT_CONFIG_STR_XY =
     " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
     "}";
 
-static bool ptToActuator(MotionPipelineElem& motionElem, AxisFloats& actuatorCoords, AxisParams axisParams[], int numAxes)
+static bool ptToActuator(MotionElem& motionElem, AxisFloats& actuatorCoords, AxisParams axisParams[], int numAxes)
 {
 	bool isValid = true;
 	for (int i = 0; i < RobotConsts::MAX_AXES; i++)
@@ -182,7 +182,7 @@ struct TEST_FIELD
 };
 
 
-void testMotionElemVals(int outIdx, int valIdx, int& errorCount, MotionPipelineElem& elem, const char* pRslt)
+void testMotionElemVals(int outIdx, int valIdx, int& errorCount, MotionBlock& elem, const char* pRslt)
 {
 	TEST_FIELD __testFields[] = {
 		{ false, "idx", false, 0, 0 },
@@ -232,7 +232,7 @@ int main()
 	}
 
 	Log.trace("Sizeof MotionPipelineElem %d, AxisBools %d, AxisFloat %d, AxisUint32s %d", 
-				sizeof(MotionPipelineElem), sizeof(AxisBools), sizeof(AxisFloats), sizeof(AxisInt32s));
+				sizeof(MotionBlock), sizeof(AxisBools), sizeof(AxisFloats), sizeof(AxisInt32s));
 
 	int totalErrorCount = 0;
 
@@ -271,8 +271,8 @@ int main()
 		{
 			char* pStr = NULL;
 			tc->getOut(i, pStr);
-			MotionPipelineElem elem;
-			_motionHelper.testGetPipelineElem(i, elem);
+			MotionBlock elem;
+			_motionHelper.testGetPipelineBlock(i, elem);
 			char toks[] = " ";
 			char *pRslt;
 			pRslt = strtok(pStr, toks);

@@ -1,7 +1,9 @@
 #pragma once
 
 #include "MotionPipeline.h"
-typedef bool(*ptToActuatorFnType) (MotionPipelineElem& motionElem, AxisFloats& actuatorCoords, AxisParams axisParams[], int numAxes);
+#include "MotionElem.h"
+
+typedef bool(*ptToActuatorFnType) (MotionElem& motionElem, AxisFloats& actuatorCoords, AxisParams axisParams[], int numAxes);
 typedef void(*actuatorToPtFnType) (AxisFloats& actuatorCoords, AxisFloats& xy, AxisParams axisParams[], int numAxes);
 typedef void(*correctStepOverflowFnType) (AxisParams axisParams[], int numAxes);
 
@@ -12,19 +14,19 @@ public:
 
 private:
 	// Previous pipeline element
-	bool _prevPipelineElemValid;
-	MotionPipelineElem _prevPipelineElem;
+	bool _prevMotionBlockValid;
+	MotionBlock _prevMotionBlock;
 	// Minimum planner speed mm/s
 	float _minimumPlannerSpeedMMps;
 	// Junction deviation
 	float _junctionDeviation;
 	// Motion parameters shared by many calculations
-	MotionPipelineElem::motionParams _motionParams;
+	MotionBlock::motionParams _motionParams;
 
 public:
 	MotionPlanner()
 	{
-		_prevPipelineElemValid = false;
+		_prevMotionBlockValid = false;
 		_minimumPlannerSpeedMMps = 0;
 		// Configure the motion pipeline - these values will be changed in config
 		_junctionDeviation = 0;
@@ -35,9 +37,13 @@ public:
 		_junctionDeviation = junctionDeviation;
 	}
 
-	bool moveTo(MotionPipelineElem& elem, AxisPosition& curAxisPositions,
+	bool moveTo(RobotCommandArgs& args,
+				MotionElem& elem, AxisFloats& destActuatorCoords,
+				AxisPosition& curAxisPositions,
 				AxesParams& axesParams, MotionPipeline& motionPipeline)
 	{
+		Log.trace("MotionElem distance delta %0.3f", elem.delta());
+
 		// Motion parameters used throughout planner process
 		_motionParams._accMMps2 = axesParams.getMasterMaxAccel();
 
@@ -69,9 +75,16 @@ public:
 
 		Log.trace("Moving %0.3f mm", moveDist);
 
+		// Create a block for this movement which will end up on the pipeline
+		MotionBlock block;
+
+		// Max speed (may be overridden downwards by feedrate)
+		double maxParamSpeedMMps = -1;
+		if (args.feedrateValid)
+			maxParamSpeedMMps = args.feedrateVal;
+
 		// Find the unit vectors
 		AxisFloats unitVec;
-		double maxSpeedMMps = elem._maxSpeedMMps;
 		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 		{
 			if (axesParams.isPrimaryAxis(axisIdx))
@@ -80,25 +93,25 @@ public:
 				// Check that the move speed doesn't exceed max
 				if (axesParams.getMaxSpeed(axisIdx) > 0)
 				{
-					if (maxSpeedMMps > 0)
+					if (maxParamSpeedMMps > 0)
 					{
-						double axisSpeed = fabs(unitVec._pt[axisIdx] * maxSpeedMMps);
+						double axisSpeed = fabs(unitVec._pt[axisIdx] * maxParamSpeedMMps);
 						if (axisSpeed > axesParams.getMaxSpeed(axisIdx))
 						{
-							maxSpeedMMps *= axisSpeed / axesParams.getMaxSpeed(axisIdx);
+							maxParamSpeedMMps *= axisSpeed / axesParams.getMaxSpeed(axisIdx);
 						}
 					}
 					else
 					{
-						maxSpeedMMps = axesParams.getMaxSpeed(axisIdx);
+						maxParamSpeedMMps = axesParams.getMaxSpeed(axisIdx);
 					}
 				}
 			}
 		}
 
 		// Calculate move time
-		double reciprocalTime = maxSpeedMMps / moveDist;
-		Log.trace("Feedrate %0.3f, reciprocalTime %0.3f", maxSpeedMMps, reciprocalTime);
+		double reciprocalTime = maxParamSpeedMMps / moveDist;
+		Log.trace("Feedrate %0.3f, reciprocalTime %0.3f", maxParamSpeedMMps, reciprocalTime);
 
 		// Check speed limits for each axis individually
 		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
@@ -110,33 +123,25 @@ public:
 			double axisReqdAcc = axisDist * reciprocalTime;
 			if (axisReqdAcc > axesParams.getMaxAccel(axisIdx))
 			{
-				maxSpeedMMps *= axesParams.getMaxAccel(axisIdx) / axisReqdAcc;
-				reciprocalTime = maxSpeedMMps / moveDist;
+				maxParamSpeedMMps *= axesParams.getMaxAccel(axisIdx) / axisReqdAcc;
+				reciprocalTime = maxParamSpeedMMps / moveDist;
 			}
 		}
 
-		Log.trace("Feedrate %0.3f, reciprocalTime %0.3f", maxSpeedMMps, reciprocalTime);
-
-
-		Log.trace("MotionPipelineElem delta %0.3f", elem.delta());
+		Log.trace("Feedrate %0.3f, reciprocalTime %0.3f", maxParamSpeedMMps, reciprocalTime);
 
 		// Store values in the block
-		elem._maxSpeedMMps = float(maxSpeedMMps);
-		elem._primaryAxisMove = isAPrimaryMove;
-		elem._unitVec = unitVec;
-		elem._moveDistMM = float(moveDist);
+		block._maxParamSpeedMMps = float(maxParamSpeedMMps);
+		block._unitVec = unitVec;
+		block._moveDistMM = float(moveDist);
 
 		// Add the block to the planner queue
-		return addBlock(motionPipeline, elem, curAxisPositions);
+		return addBlock(motionPipeline, block, destActuatorCoords, curAxisPositions, isAPrimaryMove);
 	}
 
-	bool addBlock(MotionPipelineElem& elem, float moveDist, float *unitVec)
-	{
-		bool hasSteps = false;
-		return true;
-	}
-
-	bool addBlock(MotionPipeline& motionPipeline, MotionPipelineElem& elem, AxisPosition& curAxisPosition)
+	bool addBlock(MotionPipeline& motionPipeline, MotionBlock& block,
+				AxisFloats& destActuatorCoords, AxisPosition& curAxisPosition,
+				bool isAPrimaryMove)
 	{
 		// Find if there are any steps
 		bool hasSteps = false;
@@ -144,12 +149,11 @@ public:
 		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 		{
 			// Check if any actual steps to perform
-			int steps = int(std::ceil(elem._destActuatorCoords._pt[axisIdx] - curAxisPosition._stepsFromHome._pt[axisIdx]));
+			int steps = int(std::ceil(destActuatorCoords._pt[axisIdx] - curAxisPosition._stepsFromHome._pt[axisIdx]));
 			if (steps != 0)
 				hasSteps = true;
 			// Direction
-			elem._stepDirn.setVal(axisIdx, steps < 0);
-			elem._axisStepsToTarget.setVal(axisIdx, steps);
+			block._axisStepsToTarget.setVal(axisIdx, steps);
 			if (axisMaxSteps < uint32_t(labs(steps)))
 				axisMaxSteps = labs(steps);
 		}
@@ -158,23 +162,18 @@ public:
 		if (!hasSteps)
 			return false;
 
-		// Max steps for an axis
-		elem._axisMaxSteps = axisMaxSteps;
-
 		// Check movement distance
-		if (elem._moveDistMM > 0.0f)
+		if (block._moveDistMM > 0.0f)
 		{
-			elem._nominalSpeedMMps = elem._maxSpeedMMps;
-			elem._nominalStepRatePerSec = axisMaxSteps * elem._maxSpeedMMps / elem._moveDistMM;
+			block._nominalStepRatePerSec = axisMaxSteps * block._maxParamSpeedMMps / block._moveDistMM;
 		}
 		else
 		{
-			elem._nominalSpeedMMps = 0;
-			elem._nominalStepRatePerSec = 0;
+			block._nominalStepRatePerSec = 0;
 		}
 
-		Log.trace("maxSteps %lu, nomSpeed %0.3f mm/s, nomRate %0.3f steps/s",
-			axisMaxSteps, elem._nominalSpeedMMps, elem._nominalStepRatePerSec);
+		Log.trace("maxSteps %lu, maxSpeedMMps %0.3f mm/s, nomRate %0.3f steps/s",
+			axisMaxSteps, block._maxParamSpeedMMps, block._nominalStepRatePerSec);
 
 		// Comments from Smoothieware!
 		// Compute the acceleration rate for the trapezoid generator. Depending on the slope of the line
@@ -201,26 +200,26 @@ public:
 
 		// Invalidate the prev element if the pipeline becomes empty
 		if (!motionPipeline.canGet())
-			_prevPipelineElemValid = false;
+			_prevMotionBlockValid = false;
 
 		// For primary axis moves compute the vmaxJunction
 		// But only if there are still elements in the queue
 		// If not assume the robot is idle and start the move
 		// from scratch
-		if (elem._primaryAxisMove && _prevPipelineElemValid)
+		if (isAPrimaryMove && _prevMotionBlockValid)
 		{
-			float prevNominalSpeed = _prevPipelineElem._primaryAxisMove ? _prevPipelineElem._nominalSpeedMMps : 0;
+			float prevNominalSpeed = isAPrimaryMove ? _prevMotionBlock._maxParamSpeedMMps : 0;
 			if (junctionDeviation > 0.0f && prevNominalSpeed > 0.0f)
 			{
 				// Compute cosine of angle between previous and current path. (prev_unit_vec is negative)
 				// NOTE: Max junction velocity is computed without sin() or acos() by trig half angle identity.
-				float cosTheta = -_prevPipelineElem._unitVec.X() * elem._unitVec.X()
-					- _prevPipelineElem._unitVec.Y() * elem._unitVec.Y()
-					- _prevPipelineElem._unitVec.Z() * elem._unitVec.Z();
+				float cosTheta = -_prevMotionBlock._unitVec.X() * block._unitVec.X()
+					- _prevMotionBlock._unitVec.Y() * block._unitVec.Y()
+					- _prevMotionBlock._unitVec.Z() * block._unitVec.Z();
 
 				// Skip and use default max junction speed for 0 degree acute junction.
 				if (cosTheta < 0.95F) {
-					vmaxJunction = std::min(prevNominalSpeed, elem._nominalSpeedMMps);
+					vmaxJunction = std::min(prevNominalSpeed, block._maxParamSpeedMMps);
 					// Skip and avoid divide by zero for straight junctions at 180 degrees. Limit to min() of nominal speeds.
 					if (cosTheta > -0.95F) {
 						// Compute maximum junction velocity based on maximum acceleration and junction deviation
@@ -230,14 +229,14 @@ public:
 				}
 			}
 		}
-		elem._maxEntrySpeedMMps = vmaxJunction;
+		block._maxEntrySpeedMMps = vmaxJunction;
 
 		Log.trace("PrevMoveInQueue %d, JunctionDeviation %0.3f, VmaxJunction %0.3f", motionPipeline.canGet(), junctionDeviation, vmaxJunction);
 
 		// Calculate max allowable speed using v^2 = u^2 - 2as
 		// Was acceleration*60*60*distance, in case this breaks, but here we prefer to use seconds instead of minutes
-		float maxAllowableSpeedMMps = sqrtf(_minimumPlannerSpeedMMps * _minimumPlannerSpeedMMps - 2.0F * (-_motionParams._accMMps2) * elem._moveDistMM);
-		elem._entrySpeedMMps = std::min(vmaxJunction, maxAllowableSpeedMMps);
+		float maxAllowableSpeedMMps = sqrtf(_minimumPlannerSpeedMMps * _minimumPlannerSpeedMMps - 2.0F * (-_motionParams._accMMps2) * block._moveDistMM);
+		block._entrySpeedMMps = std::min(vmaxJunction, maxAllowableSpeedMMps);
 
 		// Initialize planner efficiency flags
 		// Set flag if block will always reach maximum junction speed regardless of entry/exit speeds.
@@ -247,17 +246,17 @@ public:
 		// block nominal speed limits both the current and next maximum junction speeds. Hence, in both
 		// the reverse and forward planners, the corresponding block junction speed will always be at the
 		// the maximum junction speed and may always be ignored for any speed reduction checks.
-		elem._nominalLengthFlag = (elem._nominalSpeedMMps <= maxAllowableSpeedMMps);
+		block._nominalLengthFlag = (block._maxParamSpeedMMps <= maxAllowableSpeedMMps);
 
-		Log.trace("MaxAllowableSpeed %0.3f, entrySpeedMMps %0.3f, nominalLengthFlag %d", maxAllowableSpeedMMps, elem._entrySpeedMMps, elem._nominalLengthFlag);
+		Log.trace("MaxAllowableSpeed %0.3f, entrySpeedMMps %0.3f, nominalLengthFlag %d", maxAllowableSpeedMMps, block._entrySpeedMMps, block._nominalLengthFlag);
 
 		// Recalculation required
-		elem._recalcFlag = true;
+		block._recalcFlag = true;
 
 		// Store the element in the queue and remember previous element
-		motionPipeline.add(elem);
-		_prevPipelineElem = elem;
-		_prevPipelineElemValid = true;
+		motionPipeline.add(block);
+		_prevMotionBlock = block;
+		_prevMotionBlockValid = true;
 
 		// Recalculate the whole queue
 		recalculatePipeline(motionPipeline);
@@ -292,37 +291,37 @@ public:
 		// For each block, given the exit speed and acceleration, find the maximum entry speed
 		float entrySpeed = _minimumPlannerSpeedMMps;
 		int elemIdxFromPutPos = 0;
-		MotionPipelineElem* pElem = NULL;
-		MotionPipelineElem* pPrevElem = NULL;
-		MotionPipelineElem* pNext = NULL;
+		MotionBlock* pBlock = NULL;
+		MotionBlock* pPrevElem = NULL;
+		MotionBlock* pNext = NULL;
 		if (motionPipeline.peekNthFromPut(elemIdxFromPutPos) != NULL)
 		{
-			pElem = motionPipeline.peekNthFromPut(elemIdxFromPutPos);
-			while (pElem && pElem->_recalcFlag)
+			pBlock = motionPipeline.peekNthFromPut(elemIdxFromPutPos);
+			while (pBlock && pBlock->_recalcFlag)
 			{
 				// Get the max entry speed
-				pElem->calcMaxSpeedReverse(entrySpeed, _motionParams);
-				Log.trace("Backwards pass #%d element %08x, tryEntrySpeed %0.3f, newEntrySpeed %0.3f", elemIdxFromPutPos, pElem, entrySpeed, pElem->_entrySpeedMMps);
-				entrySpeed = pElem->_entrySpeedMMps;
+				pBlock->calcMaxSpeedReverse(entrySpeed, _motionParams);
+				Log.trace("Backwards pass #%d element %08x, tryEntrySpeed %0.3f, newEntrySpeed %0.3f", elemIdxFromPutPos, pBlock, entrySpeed, pBlock->_entrySpeedMMps);
+				entrySpeed = pBlock->_entrySpeedMMps;
 				// Next elem
 				pNext = motionPipeline.peekNthFromPut(elemIdxFromPutPos + 1);
 				if (!pNext)
 					break;
-				pElem = pNext;
+				pBlock = pNext;
 				// The exit speed for the previous block up the chain is the entry speed we've just calculated
-				pElem->_exitSpeedMMps = entrySpeed;
+				pBlock->_exitSpeedMMps = entrySpeed;
 				elemIdxFromPutPos++;
 			}
 
 			// Calc exit speed of first block
-			pElem->maximizeExitSpeed(_motionParams);
+			pBlock->maximizeExitSpeed(_motionParams);
 
 			// Step 2:
 			// Pointing to the first block that doesn't need recalculating (or the get block)
 			while (true)
 			{
 				// Save previous
-				pPrevElem = pElem;
+				pPrevElem = pBlock;
 				// Next element
 				if (elemIdxFromPutPos == 0)
 				{
@@ -332,14 +331,14 @@ public:
 					break;
 				}
 				elemIdxFromPutPos--;
-				pElem = motionPipeline.peekNthFromPut(elemIdxFromPutPos);
-				if (!pElem)
+				pBlock = motionPipeline.peekNthFromPut(elemIdxFromPutPos);
+				if (!pBlock)
 					break;
 				// Pass the exit speed of the previous block
 				// so this block can decide if it's accel or decel limited and update its fields as appropriate
-				pElem->calcMaxSpeedForward(pPrevElem->_exitSpeedMMps, _motionParams);
-				Log.trace("Forward pass #%d element %08x, prev En %0.3f Ex %0.3f. cur En %0.3f Ex %0.3f", elemIdxFromPutPos, pElem,
-					pPrevElem->_entrySpeedMMps, pPrevElem->_exitSpeedMMps, pElem->_entrySpeedMMps, pElem->_exitSpeedMMps);
+				pBlock->calcMaxSpeedForward(pPrevElem->_exitSpeedMMps, _motionParams);
+				Log.trace("Forward pass #%d element %08x, prev En %0.3f Ex %0.3f. cur En %0.3f Ex %0.3f", elemIdxFromPutPos, pBlock,
+					pPrevElem->_entrySpeedMMps, pPrevElem->_exitSpeedMMps, pBlock->_entrySpeedMMps, pBlock->_exitSpeedMMps);
 
 				// Set exit speed and calculate trapezoid on this block
 				pPrevElem->calculateTrapezoid(_motionParams);

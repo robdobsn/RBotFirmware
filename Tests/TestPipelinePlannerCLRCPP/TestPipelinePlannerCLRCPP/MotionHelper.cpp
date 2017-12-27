@@ -139,24 +139,20 @@ bool MotionHelper::moveTo(RobotCommandArgs& args)
 	// Handle any motion parameters (such as relative movement, feedrate, etc)
 	setMotionParams(args);
 
-	// Create a motion pipeline element for this movement
-	MotionPipelineElem elem(_curAxisPosition._axisPositionMM, args.pt);
+	// Create a motion element for this movement
+	MotionElem elem(_curAxisPosition._axisPositionMM, args.pt);
 
 	// Convert the move to actuator coordinates
 	AxisFloats actuatorCoords;
 	_ptToActuatorFn(elem, actuatorCoords, _axesParams.getAxisParamsArray(), RobotConsts::MAX_AXES);
-	elem._destActuatorCoords = actuatorCoords;
-	elem._maxSpeedMMps = -1;
-	if (args.feedrateValid)
-		elem._maxSpeedMMps = args.feedrateVal;
 
 	// Plan the move
-	bool moveOk = _motionPlanner.moveTo(elem, _curAxisPosition, _axesParams, _motionPipeline);
+	bool moveOk = _motionPlanner.moveTo(args, elem, actuatorCoords, _curAxisPosition, _axesParams, _motionPipeline);
 	if (moveOk)
 	{
 		// Update axisMotion
-		_curAxisPosition._axisPositionMM = elem._pt2MM;
-		_curAxisPosition._stepsFromHome = elem._destActuatorCoords;
+		_curAxisPosition._axisPositionMM = args.pt;
+		_curAxisPosition._stepsFromHome = actuatorCoords;
 	}
 	return moveOk;
 
@@ -332,15 +328,15 @@ void MotionHelper::debugShowBlocks()
 	bool headShown = false;
 	for (int i = _motionPipeline.count() - 1; i >= 0; i--)
 	{
-		MotionPipelineElem* pElem = _motionPipeline.peekNthFromPut(i);
-		if (pElem)
+		MotionBlock* pBlock = _motionPipeline.peekNthFromPut(i);
+		if (pBlock)
 		{
 			if (!headShown)
 			{
-				pElem->debugShowBlkHead();
+				pBlock->debugShowBlkHead();
 				headShown = true;
 			}
-			pElem->debugShowBlock(elIdx++);
+			pBlock->debugShowBlock(elIdx++);
 		}
 	}
 }
@@ -349,7 +345,7 @@ int MotionHelper::testGetPipelineCount()
 {
 	return _motionPipeline.count();
 }
-void MotionHelper::testGetPipelineElem(int elIdx, MotionPipelineElem& elem)
+void MotionHelper::testGetPipelineBlock(int elIdx, MotionBlock& block)
 {
-	elem = *_motionPipeline.peekNthFromPut(_motionPipeline.count() - 1 - elIdx);
+	block = *_motionPipeline.peekNthFromPut(_motionPipeline.count() - 1 - elIdx);
 }

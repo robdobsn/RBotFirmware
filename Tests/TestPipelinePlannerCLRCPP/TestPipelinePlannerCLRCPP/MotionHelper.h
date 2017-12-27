@@ -10,6 +10,7 @@
 #include "MotionPlanner.h"
 #include "MotionIO.h"
 #include "MotionActuator.h"
+#include "MotionElem.h"
 
 class MotionHelper
 {
@@ -100,7 +101,7 @@ public:
 
 	void debugShowBlocks();
 	int testGetPipelineCount();
-	void testGetPipelineElem(int elIdx, MotionPipelineElem& elem);
+	void testGetPipelineBlock(int elIdx, MotionBlock& elem);
 
 private:
 	bool isInBounds(double v, double b1, double b2)

@@ -11,7 +11,7 @@ class MotionPipeline
 {
 private:
 	MotionRingBufferPosn _pipelinePosn;
-	std::vector<MotionPipelineElem> _pipeline;
+	std::vector<MotionBlock> _pipeline;
 
 public:
 	MotionPipeline() :
@@ -43,14 +43,14 @@ public:
 	}
 
 	// Add to pipeline
-	bool add(MotionPipelineElem& elem)
+	bool add(MotionBlock& block)
 	{
 		// Check if full
 		if (!_pipelinePosn.canPut())
 			return false;
 
 		// Add the item
-		_pipeline[_pipelinePosn._putPos] = elem;
+		_pipeline[_pipelinePosn._putPos] = block;
 		_pipelinePosn.hasPut();
 		return true;
 	}
@@ -62,14 +62,14 @@ public:
 	}
 
 	// Get from queue
-	bool get(MotionPipelineElem& elem)
+	bool get(MotionBlock& block)
 	{
 		// Check if queue is empty
 		if (!_pipelinePosn.canGet())
 			return false;
 
 		// read the item and remove
-		elem = _pipeline[_pipelinePosn._getPos];
+		block = _pipeline[_pipelinePosn._getPos];
 		_pipelinePosn.hasGot();
 		return true;
 	}
@@ -87,7 +87,7 @@ public:
 	}
 
 	// Peek the block which would be got (if there is one)
-	MotionPipelineElem* peekGet()
+	MotionBlock* peekGet()
 	{
 		// Check if queue is empty
 		if (!_pipelinePosn.canGet())
@@ -100,7 +100,7 @@ public:
 	// 0 is the last element put in the queue
 	// 1 is the one put in before that
 	// returns NULL when nothing to peek
-	MotionPipelineElem* peekNthFromPut(unsigned int N)
+	MotionBlock* peekNthFromPut(unsigned int N)
 	{
 		// Get index
 		int nthPos = _pipelinePosn.getNthFromPut(N);
@@ -113,7 +113,7 @@ public:
 	// 0 is the element next got from the queue
 	// 1 is the one got after that
 	// returns NULL when nothing to peek
-	MotionPipelineElem* peekNthFromGet(unsigned int N)
+	MotionBlock* peekNthFromGet(unsigned int N)
 	{
 		// Get index
 		int nthPos = _pipelinePosn.getNthFromGet(N);

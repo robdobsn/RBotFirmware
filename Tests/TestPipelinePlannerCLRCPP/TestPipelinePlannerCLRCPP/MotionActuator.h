@@ -65,17 +65,17 @@ public:
 			return;
 
 		// Peek a MotionPipelineElem from the queue
-		MotionPipelineElem* pElem = _motionPipeline.peekGet();
-		if (!pElem)
+		MotionBlock* pBlock = _motionPipeline.peekGet();
+		if (!pBlock)
 			return;
 
 		// Check if the element is being changed
-		if (pElem->_changeInProgress)
+		if (pBlock->_changeInProgress)
 			return;
 
 		// Signal that we are now working on this block
-		bool newBlock = !pElem->_isRunning;
-		pElem->_isRunning = true;
+		bool newBlock = !pBlock->_isRunning;
+		pBlock->_isRunning = true;
 
 		// New block
 		if (newBlock)
@@ -87,10 +87,10 @@ public:
 				axisExecInfo_t& axisExecInfo = _axisExecInfo[axisIdx];
 				axisExecInfo._isActive = false;
 				// Intialise the phase of the block
-				for (int phaseIdx = 0; phaseIdx < MotionPipelineElem::MAX_STEP_PHASES; phaseIdx++)
+				for (int phaseIdx = 0; phaseIdx < MotionBlock::MAX_STEP_PHASES; phaseIdx++)
 				{
 					// Check if there are any steps in this phase
-					MotionPipelineElem::axisStepInfo_t& axisStepInfo = pElem->_axisStepInfo[axisIdx];
+					MotionBlock::axisStepInfo_t& axisStepInfo = pBlock->_axisStepInfo[axisIdx];
 					if (axisStepInfo._stepPhases[phaseIdx]._stepsInPhase != 0)
 					{
 						// Initialise the first active phase
@@ -102,7 +102,7 @@ public:
 						axisExecInfo._axisStepPhaseNum = phaseIdx;
 						axisExecInfo._isActive = true;
 						// Set direction for the axis
-						_motionIO.stepDirn(axisIdx, pElem->_stepDirn[axisIdx]);
+						_motionIO.stepDirn(axisIdx, pBlock->_axisStepsToTarget.getVal(axisIdx) >= 0);
 						break;
 					}
 				}
@@ -139,8 +139,8 @@ public:
 				{
 					// Check for the next phase
 					axisExecInfo._isActive = false;
-					MotionPipelineElem::axisStepInfo_t& axisStepInfo = pElem->_axisStepInfo[axisIdx];
-					for (int phaseIdx = axisExecInfo._axisStepPhaseNum+1; phaseIdx < MotionPipelineElem::MAX_STEP_PHASES; phaseIdx++)
+					MotionBlock::axisStepInfo_t& axisStepInfo = pBlock->_axisStepInfo[axisIdx];
+					for (int phaseIdx = axisExecInfo._axisStepPhaseNum+1; phaseIdx < MotionBlock::MAX_STEP_PHASES; phaseIdx++)
 					{
 						// Check if there are any steps in this phase
 						if (axisStepInfo._stepPhases[phaseIdx]._stepsInPhase != 0)
@@ -182,17 +182,17 @@ public:
 			return;
 
 		// Peek a MotionPipelineElem from the queue
-		MotionPipelineElem* pElem = _motionPipeline.peekGet();
-		if (!pElem)
+		MotionBlock* pBlock = _motionPipeline.peekGet();
+		if (!pBlock)
 			return;
 
 		// Check if the element is being changed
-		if (pElem->_changeInProgress)
+		if (pBlock->_changeInProgress)
 			return;
 
 		// Signal that we are now working on this block
-		bool newBlock = !pElem->_isRunning;
-		pElem->_isRunning = true;
+		bool newBlock = !pBlock->_isRunning;
+		pBlock->_isRunning = true;
 
 		// Get current uS elapsed
 		uint32_t curUs = micros();
@@ -206,9 +206,9 @@ public:
 			// need to prepare each active axis direction
 			for (uint8_t m = 0; m < RobotConsts::MAX_AXES; m++)
 			{
-				if (pElem->_tickInfo[m].steps_to_move == 0) 
+				if (pBlock->_tickInfo[m].steps_to_move == 0) 
 					continue;
-				_motionIO.stepDirn(m, pElem->_tickInfo[m]._stepDirection);
+				_motionIO.stepDirn(m, pBlock->_tickInfo[m]._stepDirection);
 			}
 			_blockStartMicros = curUs;
 		}
@@ -217,50 +217,50 @@ public:
 		for (int m = 0; m < RobotConsts::MAX_AXES; m++)
 		{
 			// Get pointer to this axis
-			volatile MotionPipelineElem::tickinfo_t* pTickInfo = &(pElem->_tickInfo[m]);
+			volatile MotionBlock::tickinfo_t* pTickInfo = &(pBlock->_tickInfo[m]);
 
-			if (pElem->_tickInfo[m].steps_to_move == 0) 
+			if (pBlock->_tickInfo[m].steps_to_move == 0) 
 				continue; // not active
 
 			still_moving = true;
 
-			pElem->_tickInfo[m].steps_per_tick += pElem->_tickInfo[m].acceleration_change;
+			pBlock->_tickInfo[m].steps_per_tick += pBlock->_tickInfo[m].acceleration_change;
 
-			if (usElapsed == pElem->_tickInfo[m].next_accel_event) {
-				if (usElapsed == pElem->_accelUntil) { // We are done accelerating, deceleration becomes 0 : plateau
-					pElem->_tickInfo[m].acceleration_change = 0;
-					if (pElem->_decelAfter < pElem->_totalMoveTicks) {
-						pElem->_tickInfo[m].next_accel_event = pElem->_decelAfter;
-						if (usElapsed != pElem->_decelAfter) { // We are plateauing
+			if (usElapsed == pBlock->_tickInfo[m].next_accel_event) {
+				if (usElapsed == pBlock->_accelUntil) { // We are done accelerating, deceleration becomes 0 : plateau
+					pBlock->_tickInfo[m].acceleration_change = 0;
+					if (pBlock->_decelAfter < pBlock->_totalMoveTicks) {
+						pBlock->_tickInfo[m].next_accel_event = pBlock->_decelAfter;
+						if (usElapsed != pBlock->_decelAfter) { // We are plateauing
 																				// steps/sec / tick frequency to get steps per tick
-							pElem->_tickInfo[m].steps_per_tick = pElem->_tickInfo[m].plateau_rate;
+							pBlock->_tickInfo[m].steps_per_tick = pBlock->_tickInfo[m].plateau_rate;
 						}
 					}
 				}
 
-				if (usElapsed == pElem->_decelAfter) { // We start decelerating
-					pElem->_tickInfo[m].acceleration_change = pElem->_tickInfo[m].deceleration_change;
+				if (usElapsed == pBlock->_decelAfter) { // We start decelerating
+					pBlock->_tickInfo[m].acceleration_change = pBlock->_tickInfo[m].deceleration_change;
 				}
 			}
 
 			// protect against rounding errors and such
-			if (pElem->_tickInfo[m].steps_per_tick <= 0) {
-				pElem->_tickInfo[m].counter = STEPTICKER_FPSCALE; // we force completion this step by setting to 1.0
-				pElem->_tickInfo[m].steps_per_tick = 0;
+			if (pBlock->_tickInfo[m].steps_per_tick <= 0) {
+				pBlock->_tickInfo[m].counter = STEPTICKER_FPSCALE; // we force completion this step by setting to 1.0
+				pBlock->_tickInfo[m].steps_per_tick = 0;
 			}
 
-			pElem->_tickInfo[m].counter += pElem->_tickInfo[m].steps_per_tick;
+			pBlock->_tickInfo[m].counter += pBlock->_tickInfo[m].steps_per_tick;
 
-			if (pElem->_tickInfo[m].counter >= STEPTICKER_FPSCALE) { // >= 1.0 step time
-				pElem->_tickInfo[m].counter -= STEPTICKER_FPSCALE; // -= 1.0F;
-				++pElem->_tickInfo[m].step_count;
+			if (pBlock->_tickInfo[m].counter >= STEPTICKER_FPSCALE) { // >= 1.0 step time
+				pBlock->_tickInfo[m].counter -= STEPTICKER_FPSCALE; // -= 1.0F;
+				++pBlock->_tickInfo[m].step_count;
 
 				// step the motor
 				_motionIO.stepStart(m);
-				if (pElem->_tickInfo[m].step_count == pElem->_tickInfo[m].steps_to_move) 
+				if (pBlock->_tickInfo[m].step_count == pBlock->_tickInfo[m].steps_to_move) 
 				{
 					// done
-					pElem->_tickInfo[m].steps_to_move = 0;
+					pBlock->_tickInfo[m].steps_to_move = 0;
 				}
 			}
 		}
