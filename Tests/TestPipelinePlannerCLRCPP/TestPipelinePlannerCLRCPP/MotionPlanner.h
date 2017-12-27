@@ -133,7 +133,7 @@ public:
 		// Store values in the block
 		block._maxParamSpeedMMps = float(maxParamSpeedMMps);
 		block._unitVec = unitVec;
-		block._moveDistMM = float(moveDist);
+		block._moveDistPrimaryAxesMM = float(moveDist);
 
 		// Add the block to the planner queue
 		return addBlock(motionPipeline, block, destActuatorCoords, curAxisPositions, isAPrimaryMove);
@@ -145,7 +145,7 @@ public:
 	{
 		// Find if there are any steps
 		bool hasSteps = false;
-		uint32_t axisMaxSteps = 0;
+		
 		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 		{
 			// Check if any actual steps to perform
@@ -154,26 +154,11 @@ public:
 				hasSteps = true;
 			// Direction
 			block._axisStepsToTarget.setVal(axisIdx, steps);
-			if (axisMaxSteps < uint32_t(labs(steps)))
-				axisMaxSteps = labs(steps);
 		}
 
 		// Check there are some actual steps
 		if (!hasSteps)
 			return false;
-
-		// Check movement distance
-		if (block._moveDistMM > 0.0f)
-		{
-			block._nominalStepRatePerSec = axisMaxSteps * block._maxParamSpeedMMps / block._moveDistMM;
-		}
-		else
-		{
-			block._nominalStepRatePerSec = 0;
-		}
-
-		Log.trace("maxSteps %lu, maxSpeedMMps %0.3f mm/s, nomRate %0.3f steps/s",
-			axisMaxSteps, block._maxParamSpeedMMps, block._nominalStepRatePerSec);
 
 		// Comments from Smoothieware!
 		// Compute the acceleration rate for the trapezoid generator. Depending on the slope of the line
@@ -235,7 +220,7 @@ public:
 
 		// Calculate max allowable speed using v^2 = u^2 - 2as
 		// Was acceleration*60*60*distance, in case this breaks, but here we prefer to use seconds instead of minutes
-		float maxAllowableSpeedMMps = sqrtf(_minimumPlannerSpeedMMps * _minimumPlannerSpeedMMps - 2.0F * (-_motionParams._accMMps2) * block._moveDistMM);
+		float maxAllowableSpeedMMps = sqrtf(_minimumPlannerSpeedMMps * _minimumPlannerSpeedMMps - 2.0F * (-_motionParams._accMMps2) * block._moveDistPrimaryAxesMM);
 		block._entrySpeedMMps = std::min(vmaxJunction, maxAllowableSpeedMMps);
 
 		// Initialize planner efficiency flags

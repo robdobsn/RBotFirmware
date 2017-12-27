@@ -25,14 +25,15 @@ public:
 	float _maxParamSpeedMMps;
 	// Steps required for each axis
 	AxisInt32s _axisStepsToTarget;
+	// Distance (pythagorean) to move considering primary axes only
+	float _moveDistPrimaryAxesMM;
 
 
 
 
-	float _nominalStepRatePerSec;
+
 	float _maxStepRatePerSec;
 	AxisFloats _unitVec;
-	float _moveDistMM;
 	float _maxEntrySpeedMMps;
 	float _entrySpeedMMps;
 	bool _nominalLengthFlag;
@@ -95,9 +96,8 @@ public:
 	{
 		// Clear values
 		_maxParamSpeedMMps = 0;
-		_nominalStepRatePerSec = 0;
 		_maxStepRatePerSec = 0;
-		_moveDistMM = 0;
+		_moveDistPrimaryAxesMM = 0;
 		_maxEntrySpeedMMps = 0;
 		_entrySpeedMMps = 0;
 		_exitSpeedMMps = 0;
@@ -135,7 +135,7 @@ public:
 			// for max allowable speed if block is decelerating and nominal length is false.
 			if ((!_nominalLengthFlag) && (_maxEntrySpeedMMps > exitSpeed)) 
 			{
-				float maxEntrySpeed = maxAllowableSpeed(-motionParams._accMMps2, exitSpeed, this->_moveDistMM);
+				float maxEntrySpeed = maxAllowableSpeed(-motionParams._accMMps2, exitSpeed, this->_moveDistPrimaryAxesMM);
 				_entrySpeedMMps = std::min(maxEntrySpeed, _maxEntrySpeedMMps);
 			}
 			else
@@ -185,7 +185,7 @@ public:
 			_exitSpeedMMps = std::min(_maxParamSpeedMMps, _exitSpeedMMps);
 
 		// Otherwise work out max exit speed based on entry and acceleration
-		float maxExitSpeed = maxAllowableSpeed(-motionParams._accMMps2, _entrySpeedMMps, _moveDistMM);
+		float maxExitSpeed = maxAllowableSpeed(-motionParams._accMMps2, _entrySpeedMMps, _moveDistPrimaryAxesMM);
 		_exitSpeedMMps = std::min(maxExitSpeed, _exitSpeedMMps);
 	}
 
@@ -209,19 +209,24 @@ public:
 		//double initialStepIntervalNS = (1e9 * dominantAxisStepDistanceMM) / _entrySpeedMMps;
 		//double finalStepIntervalNS = (1e9 * dominantAxisStepDistanceMM) / _exisSpeedMMps;
 
-		// Now calculate the 
+		// Now calculate the step rate at max parametric speed (might be altered by feedrate demanded)
+		uint32_t maxStepsOfAnyAxis = getAbsMaxStepsForAnyAxis();
+		float blockTime = _moveDistPrimaryAxesMM / _maxParamSpeedMMps;
+		float stepRatePerSecAtMaxParamSpeed = maxStepsOfAnyAxis / blockTime;
 
+		Log.trace("maxStepsOfAnyAxis %lu, _maxParamSpeedMMps %0.3f mm/s, stepRatePerSecAtMaxParamSpeed %0.3f steps/s",
+			maxStepsOfAnyAxis, _maxParamSpeedMMps, stepRatePerSecAtMaxParamSpeed);
 
 		// Initial rate
-		float initialStepRate = _nominalStepRatePerSec * (_entrySpeedMMps / _maxParamSpeedMMps);
-		float finalStepRate = _nominalStepRatePerSec * (_exitSpeedMMps / _maxParamSpeedMMps);
+		float initialStepRate = stepRatePerSecAtMaxParamSpeed * (_entrySpeedMMps / _maxParamSpeedMMps);
+		float finalStepRate = stepRatePerSecAtMaxParamSpeed * (_exitSpeedMMps / _maxParamSpeedMMps);
 
 		Log.trace("trapezoid initRate %0.3f steps/s, finalRate %0.3f steps/s", initialStepRate, finalStepRate);
 
 		// How many steps ( can be fractions of steps, we need very precise values ) to accelerate and decelerate
 		// This is a simplification to get rid of rate_delta and get the steps/s² accel directly from the mm/s² accel
 		uint32_t absMaxStepsForAnyAxis = getAbsMaxStepsForAnyAxis();
-		float accInStepUnits = (motionParams._accMMps2 * absMaxStepsForAnyAxis) / _moveDistMM;
+		float accInStepUnits = (motionParams._accMMps2 * absMaxStepsForAnyAxis) / _moveDistPrimaryAxesMM;
 		float maxPossStepRate = sqrtf((absMaxStepsForAnyAxis * accInStepUnits) + ((powf(initialStepRate, 2) + powf(finalStepRate, 2)) / 2.0F));
 
 		Log.trace("trapezoid accInStepUnits %0.3f steps/s2, maxPossStepRate %0.3f steps/s", accInStepUnits, maxPossStepRate);
@@ -229,7 +234,7 @@ public:
 		// Now this is the maximum rate we'll achieve this move, either because
 		// it's the higher we can achieve, or because it's the higher we are
 		// allowed to achieve
-		_maxStepRatePerSec = std::min(maxPossStepRate, _nominalStepRatePerSec);
+		_maxStepRatePerSec = std::min(maxPossStepRate, stepRatePerSecAtMaxParamSpeed);
 
 		// Now figure out how long it takes to accelerate in seconds
 		float timeToAccelerateSecs = (_maxStepRatePerSec - initialStepRate) / accInStepUnits;
@@ -245,7 +250,7 @@ public:
 		float plateauTimeSecs = 0;
 
 		// Only if there is actually a plateau ( we are limited by nominal_rate )
-		if (maxPossStepRate > _nominalStepRatePerSec)
+		if (maxPossStepRate > stepRatePerSecAtMaxParamSpeed)
 		{
 			// Figure out the acceleration and deceleration distances ( in steps )
 			float accelDistance = ((initialStepRate + _maxStepRatePerSec) / 2.0F) * timeToAccelerateSecs;
