@@ -154,7 +154,7 @@
     <ClInclude Include="MotionHelper.h" />
     <ClInclude Include="MotionIO.h" />
     <ClInclude Include="MotionPipeline.h" />
-    <ClInclude Include="MotionPipelineElem.h" />
+    <ClInclude Include="MotionBlock.h" />
     <ClInclude Include="MotionPlanner.h" />
     <ClInclude Include="MotionRingBuffer.h" />
     <ClInclude Include="AxisValues.h" />

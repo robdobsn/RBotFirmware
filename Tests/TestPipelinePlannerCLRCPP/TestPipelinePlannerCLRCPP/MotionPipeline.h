@@ -4,7 +4,7 @@
 #pragma once
 
 #include "MotionRingBuffer.h"
-#include "MotionPipelineElem.h"
+#include "MotionBlock.h"
 #include <vector>
 
 class MotionPipeline
