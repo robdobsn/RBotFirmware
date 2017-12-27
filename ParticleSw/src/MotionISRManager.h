@@ -14,62 +14,6 @@ static const int ISR_MAX_AXES = 3;
 static const int ISR_MAX_STEP_GROUPS = 50;
 static const uint16_t ISR_TIMER_PERIOD_US = 50;
 
-// Generic interrupt-safe ring buffer pointer class
-// Each pointer is only updated by one source (ISR or main thread)
-class MotionRingBufferPosn
-{
-public:
-    volatile unsigned int _putPos;
-    volatile unsigned int _getPos;
-    unsigned int _bufLen;
-
-    MotionRingBufferPosn(int maxLen)
-    {
-        _bufLen = maxLen;
-    }
-
-    void clear()
-    {
-        _getPos = _putPos = 0;
-    }
-    bool canPut()
-    {
-        if (_putPos == _getPos)
-            return true;
-        unsigned int gp = _getPos;
-        if (_putPos > gp)
-        {
-            if ((_putPos != _bufLen-1) || (gp != 0))
-                return true;
-        }
-        else
-        {
-            if (gp - _putPos > 1)
-                return true;
-        }
-        return false;
-    }
-
-    bool canGet()
-    {
-        return _putPos != _getPos;
-    }
-
-    void hasPut()
-    {
-        _putPos++;
-        if (_putPos >= _bufLen)
-            _putPos = 0;
-    }
-
-    void hasGot()
-    {
-        _getPos++;
-        if (_getPos >= _bufLen)
-            _getPos = 0;
-    }
-};
-
 // Class to handle motion variables for an axis
 class ISRAxisMotionVars
 {

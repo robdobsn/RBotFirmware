@@ -3,6 +3,8 @@
 #include "StepperMotor.h"
 #include "EndStop.h"
 
+#define BOUNDS_CHECK_ISR_FUNCTIONS 1
+
 class MotionIO
 {
 public:
@@ -136,13 +138,37 @@ public:
 		return true;
 	}
 
-	// Check if a step is in progress, if so end it and return true, else false
-	bool stepEnd(int axisIdx)
+	// Set step direction
+	void stepDirn(int axisIdx, bool dirn)
 	{
-		if (axisIdx < 0 || axisIdx >= MAX_AXES)
-			return true;
+#ifdef BOUNDS_CHECK_ISR_FUNCTIONS
+		_ASSERT(axisIdx >= 0 && axisIdx < MAX_AXES);
+#endif
+		// Start dirn
+		return _stepperMotors[axisIdx]->stepDirn(dirn);
+	}
+
+	// Start a step
+	void stepStart(int axisIdx)
+	{
+#ifdef BOUNDS_CHECK_ISR_FUNCTIONS
+		_ASSERT(axisIdx >= 0 && axisIdx < MAX_AXES);
+#endif
+		// Start step
+		return _stepperMotors[axisIdx]->stepStart();
+	}
+
+	// Check if a step is in progress on any motor, if all such and return true, else false
+	bool stepEnd()
+	{
 		// Check if step in progress
-		return _stepperMotors[axisIdx]->stepEnd();
+		bool aStepEnded = false;
+		for (int axisIdx = 0; axisIdx < MAX_AXES; axisIdx++)
+		{
+			if (_stepperMotors[axisIdx])
+				aStepEnded |= _stepperMotors[axisIdx]->stepEnd();
+		}
+		return aStepEnded;
 	}
 
 	void stepSynch(int axisIdx, bool direction)

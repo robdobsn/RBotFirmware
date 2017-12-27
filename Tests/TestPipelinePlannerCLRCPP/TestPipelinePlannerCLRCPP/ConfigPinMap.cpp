@@ -15,8 +15,8 @@ int ConfigPinMap::_pinMapDLen = sizeof(ConfigPinMap::_pinMapD)/sizeof(int);
 int ConfigPinMap::_pinMapA[] = {A0,A1,A2,A3,A4,A5,A6,A7};
 int ConfigPinMap::_pinMapALen = sizeof(ConfigPinMap::_pinMapA)/sizeof(int);
 #else
-int ConfigPinMap::_pinMapD[] = { 0,0,0,0,0,0,0,0 };
+int ConfigPinMap::_pinMapD[] = { 0,1,2,3,4,5,6,7 };
 int ConfigPinMap::_pinMapDLen = sizeof(ConfigPinMap::_pinMapD) / sizeof(int);
-int ConfigPinMap::_pinMapA[] = { 0,0,0,0,0,0,0,0 };
+int ConfigPinMap::_pinMapA[] = { 10,11,12,13,14,15,16,17 };
 int ConfigPinMap::_pinMapALen = sizeof(ConfigPinMap::_pinMapA) / sizeof(int);
 #endif

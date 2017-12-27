@@ -73,6 +73,8 @@ public:
 	bool isPaused();
 	// Stop
 	void stop();
+	// Check if idle
+	bool isIdle();
 
 
 	double getStepsPerUnit(int axisIdx)

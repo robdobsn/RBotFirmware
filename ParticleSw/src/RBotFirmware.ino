@@ -31,7 +31,7 @@ SYSTEM_THREAD(ENABLED);
 
 // Application info
 static const char* APPLICATION_NAME = "RBotFirmware";
-SerialLogHandler logHandler(LOG_LEVEL_INFO);
+SerialLogHandler logHandler(LOG_LEVEL_TRACE);
 
 // Robot controller
 RobotController _robotController;
@@ -82,13 +82,13 @@ static const char* ROBOT_CONFIG_STR_MUGBOT_PIHAT_1_1 =
     "{\"robotType\": \"MugBot\", \"xMaxMM\":150, \"yMaxMM\":120,"
     "\"cmdsAtStart\":\"G28\","
     "\"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":60.0,"
-    "\"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":50.0, \"acceleration\":20.0,"
+    "\"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":50.0, \"maxAcc\":20.0,"
     "\"stepsPerRotation\":6400, \"unitsPerRotation\":360, \"minVal\":-360, \"maxVal\":360},"
-    "\"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":75.0, \"acceleration\":25.0,"
+    "\"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":75.0, \"maxAcc\":25.0,"
     "\"stepsPerRotation\":1600, \"unitsPerRotation\":1.0, \"minVal\":0, \"maxVal\":100,"
     "\"homeOffsetVal\": 100,"
     "\"endStop0\": { \"sensePin\": \"D7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
-    "\"axis2\": { \"servoPin\": \"D0\", \"isServoAxis\": 1, \"homeOffsetVal\": 180, \"homeOffsetSteps\": 2500,"
+    "\"axis2\": { \"servoPin\": \"D0\", \"isServoAxis\": 1, \"isPrimaryAxis\": 0, \"homeOffsetVal\": 180, \"homeOffsetSteps\": 2500,"
     "\"minVal\":0, \"maxVal\":180, \"stepsPerRotation\":2000, \"unitsPerRotation\":360 },"
     "}";
 
@@ -97,10 +97,10 @@ static const char* ROBOT_CONFIG_STR_MUGBOT_PIHAT_1_1 =
 //     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
 //     " \"maxHomingSecs\":120, \"homingLinOffsetDegs\":70, \"homingCentreOffsetMM\":4,"
 //     " \"homingRotCentreDegs\":3.7, \"cmdsAtStart\":\"G28;ModSpiral\", "
-//     " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
+//     " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":75.0, \"maxAcc\":5.0,"
 //     " \"stepsPerRotation\":12000, \"unitsPerRotation\":360, \"isDominantAxis\":1,"
 //     " \"endStop0\": { \"sensePin\": \"A6\", \"activeLevel\":1, \"inputType\":\"INPUT_PULLUP\"}},"
-//     " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
+//     " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":75.0, \"maxAcc\":5.0,"
 //     " \"stepsPerRotation\":12000, \"unitsPerRotation\":44.8, \"minVal\":0, \"maxVal\":195, "
 //     " \"endStop0\": { \"sensePin\": \"A7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
 //     "}";
@@ -110,12 +110,10 @@ static const char* ROBOT_CONFIG_STR_MUGBOT_PIHAT_1_1 =
 //     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
 //     " \"blockDistanceMM\":1.0, \"homingAxis1OffsetDegs\":20.0,"
 //     " \"maxHomingSecs\":120, \"cmdsAtStart\":\"G28\","
-//     " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
-//     " \"minNsBetweenSteps\":1000000,"
+//     " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":75.0, \"maxAcc\":5.0,"
 //     " \"stepsPerRotation\":9600, \"unitsPerRotation\":628.318,"
 //     " \"endStop0\": { \"sensePin\": \"A6\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
-//     " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":75.0, \"acceleration\":5.0,"
-//     " \"minNsBetweenSteps\":1000000,"
+//     " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":75.0, \"maxAcc\":5.0,"
 //     " \"stepsPerRotation\":9600, \"unitsPerRotation\":628.318, \"homeOffsetSteps\": 0,"
 //     " \"endStop0\": { \"sensePin\": \"A7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
 //     "}";
@@ -124,20 +122,20 @@ static const char* ROBOT_CONFIG_STR_MUGBOT_PIHAT_1_1 =
 //     "{\"robotType\": \"HockeyBot\", \"xMaxMM\":350, \"yMaxMM\":400, "
 //     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
 //     " \"cmdsAtStart\":\"\", "
-//     " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":5000.0, \"acceleration\":5000.0,"
-//     " \"stepsPerRotation\":3200, \"unitsPerRotation\":62, \"minNsBetweenSteps\":1000},"
-//     " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":5000.0, \"acceleration\":5000.0,"
-//     " \"stepsPerRotation\":3200, \"unitsPerRotation\":62, \"minNsBetweenSteps\":1000}"
+//     " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":5000.0, \"maxAcc\":5000.0,"
+//     " \"stepsPerRotation\":3200, \"unitsPerRotation\":62},"
+//     " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":5000.0, \"maxAcc\":5000.0,"
+//     " \"stepsPerRotation\":3200, \"unitsPerRotation\":62}"
 //     "}";
 
 // static const char* ROBOT_CONFIG_STR_XY =
 //     "{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, "
 //     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
 //     " \"cmdsAtStart\":\"\", "
-//     " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":100.0, \"acceleration\":10.0,"
-//     " \"stepsPerRotation\":3200, \"unitsPerRotation\":60, \"minNsBetweenSteps\":10000},"
-//     " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":100.0, \"acceleration\":10.0,"
-//     " \"stepsPerRotation\":3200, \"unitsPerRotation\":60, \"minNsBetweenSteps\":10000},"
+//     " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":100.0, \"maxAcc\":10.0,"
+//     " \"stepsPerRotation\":3200, \"unitsPerRotation\":60},"
+//     " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":100.0, \"maxAcc\":10.0,"
+//     " \"stepsPerRotation\":3200, \"unitsPerRotation\":60},"
 //     " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
 //     "}";
 

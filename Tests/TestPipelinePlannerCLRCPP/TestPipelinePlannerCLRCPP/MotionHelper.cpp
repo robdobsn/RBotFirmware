@@ -110,7 +110,6 @@ bool MotionHelper::canAccept()
 	return _motionPipeline.canAccept();
 }
 
-
 // Pause (or un-pause) all motion
 void MotionHelper::pause(bool pauseIt)
 {
@@ -130,6 +129,12 @@ void MotionHelper::stop()
 	_motionPipeline.clear();
 	_motionActuator.clear();
 	_isPaused = false;
+}
+
+// Check if idle
+bool MotionHelper::isIdle()
+{
+	return !_motionPipeline.canGet();
 }
 
 void MotionHelper::setMotionParams(RobotCommandArgs& args)
@@ -284,7 +289,7 @@ void MotionHelper::service(bool processPipeline)
 	// Check if we should process the movement pipeline
 	if (processPipeline)
 	{
-		_motionActuator.process();
+		_motionActuator.processSmoothie();
 	}
 }
 
@@ -457,7 +462,7 @@ void MotionHelper::debugShowBlocks()
 				pElem->debugShowBlkHead();
 				headShown = true;
 			}
-			pElem->debugShowBlock(elIdx);
+			pElem->debugShowBlock(elIdx++);
 		}
 	}
 }

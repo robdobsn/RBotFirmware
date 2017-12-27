@@ -67,9 +67,9 @@ public:
 
 	bool readTestFile(System::String^ fileName)
 	{
-		testCaseUnderConstruction = gcnew TestCaseM;
 		try
 		{
+			testCaseUnderConstruction = gcnew TestCaseM;
 			Console::WriteLine("trying to open file {0}...", fileName);
 			StreamReader^ din = File::OpenText(fileName);
 
@@ -118,6 +118,7 @@ public:
 		else if (line == "TESTCASE")
 		{
 			//TestCaseM^ testCase = gcnew TestCaseM;
+			testCaseUnderConstruction = gcnew TestCaseM;
 			testCaseUnderConstruction->clear();
 		}
 		else if (line == "ENDTESTCASE")

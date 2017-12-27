@@ -5,6 +5,7 @@
 
 #include "AxisValues.h"
 #include <vector>
+extern void testCompleted();
 
 class MotionPipelineElem
 {
@@ -32,8 +33,8 @@ public:
 	uint32_t _accelUntil;
 	uint32_t _decelAfter;
 	uint32_t _totalMoveTicks;
-	float _accelPerTick;
-	float _decelPerTick;
+	double _accelPerTick;
+	double _decelPerTick;
 	float _initialStepRate;
 	int _numAxes;
 	bool _changeInProgress;
@@ -49,7 +50,15 @@ public:
 		uint32_t step_count;
 		uint32_t next_accel_event;
 
-		uint32_t _usAccum;
+		uint32_t _totalSteps;
+		uint32_t _accelSteps;
+		uint32_t _accelReducePerStepNs;
+		uint32_t _decelStartSteps;
+		uint32_t _decelIncreasePerStepNs;
+		uint32_t _nsAccum;
+		uint32_t _nsToNextStep;
+		bool _stepDirection;
+		uint32_t _curStepCount;
 	};
 	std::vector<tickinfo_t> _tickInfo;
 
@@ -282,6 +291,43 @@ public:
 		// Make calculations for the MotionActuator (which gets the block and effects it)
 		float inv = 1.0F / _axisMaxSteps;
 		for (uint8_t axisIdx = 0; axisIdx < _numAxes; axisIdx++) {
+
+			uint32_t axisTotalSteps = _absSteps.getVal(axisIdx);
+			float axisStepRatio = inv * axisTotalSteps;
+
+			_tickInfo[axisIdx]._nsAccum = 0;
+			_tickInfo[axisIdx]._nsToNextStep = 1000000000;
+			_tickInfo[axisIdx]._curStepCount = 0;
+			_tickInfo[axisIdx]._stepDirection = _stepDirn[axisIdx];
+			_tickInfo[axisIdx]._totalSteps = axisTotalSteps;
+			_tickInfo[axisIdx]._accelSteps = 0;
+			_tickInfo[axisIdx]._decelStartSteps = 0;
+			if (axisTotalSteps == 0)
+				continue;
+
+			// Calculate the steps for this axis scaled by ratio vs axis with max steps
+			_tickInfo[axisIdx]._nsToNextStep = uint32_t(1e9f / (_initialStepRate * axisStepRatio));
+			float stepsAccelerating = _initialStepRate * axisStepRatio * timeToAccelerateSecs + 0.5f * axisStepRatio * acceleration_in_steps * powf(timeToAccelerateSecs, 2);
+			_tickInfo[axisIdx]._accelSteps = uint32_t(stepsAccelerating);
+
+
+
+			//_tickInfo[axisIdx]._accelSteps = timeToAccelerateSecs 
+
+			//_tickInfo[axisIdx].next_accel_event = this->_totalMoveTicks + 1;
+
+
+			//uint32_t _nsAccum;
+			//uint32_t _nsToNextStep;
+			//bool _stepDirection;
+			//uint32_t _curStepCount;
+			//uint32_t _accelSteps;
+			//uint32_t _accelReducePerStepNs;
+			//uint32_t _decelStartSteps;
+			//uint32_t _totalSteps;
+			//uint32_t _decelIncreasePerStepNs;
+
+
 			uint32_t steps = _absSteps.getVal(axisIdx);
 			_tickInfo[axisIdx].steps_to_move = steps;
 			if (steps == 0) continue;
@@ -292,7 +338,7 @@ public:
 			_tickInfo[axisIdx].step_count = 0;
 			_tickInfo[axisIdx].next_accel_event = this->_totalMoveTicks + 1;
 
-			float acceleration_change = 0;
+			double acceleration_change = 0;
 			if (_accelUntil != 0) { // If the next accel event is the end of accel
 				_tickInfo[axisIdx].next_accel_event = _accelUntil;
 				acceleration_change = _accelPerTick;
@@ -311,8 +357,6 @@ public:
 			_tickInfo[axisIdx].deceleration_change = -STEPTICKER_TOFP(_decelPerTick * aratio);
 			_tickInfo[axisIdx].plateau_rate = STEPTICKER_TOFP((_maxStepRatePerSec * aratio) / STEP_TICKER_FREQUENCY);
 
-			// Clear accumulator
-			_tickInfo[axisIdx]._usAccum = 0;
 		}
 
 		// No more changes
@@ -321,16 +365,18 @@ public:
 
 	void debugShowBlkHead()
 	{
-		Log.trace("idx\tEnSpd\tExitSpd\ttotTik\tInitRt\tAccTo\tAccPer\tDecFr\tDecPer\tX-Acc\tX-Dec\tX-Plat\tY-Acc\tY-Dec\tY-Plat");
+		Log.trace("#idx\tEnSpd\tExitSpd\ttotTik\tInitRt\tAccTo\tAccPer\tDecFr\tDecPer\tX-Rt\tX-Acc\tX-Dec\tX-Plat\tY-Rt\tY-Acc\tY-Dec\tY-Plat");
 	}
 
 	void debugShowBlock(int elemIdx)
 	{
-		Log.trace("%d\t%0.3f\t%0.3f\t%lu\t%0.1f\t%lu\t%0.1f\t%lu\t%0.1f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f", elemIdx++, 
+		Log.trace("%d\t%0.3f\t%0.3f\t%lu\t%0.1f\t%lu\t%0.1f\t%lu\t%0.1f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f", elemIdx, 
 				_entrySpeedMMps, _exitSpeedMMps, _totalMoveTicks, _initialStepRate, 
 				_accelUntil, _accelPerTick, _decelAfter, _decelPerTick,
-				STEPTICKER_FROMFP(_tickInfo[0].acceleration_change)*1e10, STEPTICKER_FROMFP(_tickInfo[0].deceleration_change)*1e10, STEPTICKER_FROMFP(_tickInfo[0].plateau_rate)*1e3,
-				STEPTICKER_FROMFP(_tickInfo[1].acceleration_change)*1e10, STEPTICKER_FROMFP(_tickInfo[1].deceleration_change)*1e10, STEPTICKER_FROMFP(_tickInfo[1].plateau_rate)*1e3
+				STEPTICKER_FROMFP(_tickInfo[0].steps_per_tick)*1e3, STEPTICKER_FROMFP(_tickInfo[0].acceleration_change)*1e10,
+				STEPTICKER_FROMFP(_tickInfo[0].deceleration_change)*1e10, STEPTICKER_FROMFP(_tickInfo[0].plateau_rate)*1e3,
+				STEPTICKER_FROMFP(_tickInfo[1].steps_per_tick)*1e3, STEPTICKER_FROMFP(_tickInfo[1].acceleration_change)*1e10,
+				STEPTICKER_FROMFP(_tickInfo[1].deceleration_change)*1e10, STEPTICKER_FROMFP(_tickInfo[1].plateau_rate)*1e3
 			);
 	}
 

@@ -68,6 +68,12 @@ public:
 			pinMode(_pinDirection, INPUT);
 	}
 
+	// Set direction
+	void stepDirn(bool dirn)
+	{
+		digitalWrite(_pinDirection, _motorDirectionReversed ? dirn : !dirn);
+	}
+
 	bool stepEnd()
 	{
 		if (!_pinStepLevel)

@@ -64,6 +64,10 @@ static void correctStepOverflow(AxisParams axisParams[], int numAxes)
 
 bool isApproxF(double a, double b, double epsilon = 0.001)
 {
+	if (a == b)
+		return true;
+	if ((fabs(a) < 1e-5) && (fabs(b) < 1e-5))
+		return true;
 	return (fabs(a - b) < epsilon);
 }
 
@@ -173,15 +177,15 @@ struct TEST_FIELD
 	bool checkThis;
 	char* name;
 	bool isFloat;
-	float valFloat;
+	double valFloat;
 	int64_t valLong;
 };
 
 
-void testMotionElemVals(int valIdx, int& errorCount, MotionPipelineElem& elem, const char* pRslt)
+void testMotionElemVals(int outIdx, int valIdx, int& errorCount, MotionPipelineElem& elem, const char* pRslt)
 {
 	TEST_FIELD __testFields[] = {
-		{ false, "", false, 0, 0 },
+		{ false, "idx", false, 0, 0 },
 		{ true, "_entrySpeedMMps", true, elem._entrySpeedMMps, 0},
 		{ true, "_exitSpeedMMps", true, elem._exitSpeedMMps, 0 },
 		{ true, "_totalMoveTicks", false, 0, elem._totalMoveTicks },
@@ -194,20 +198,22 @@ void testMotionElemVals(int valIdx, int& errorCount, MotionPipelineElem& elem, c
 
 	if (valIdx >= sizeof(__testFields) / sizeof(TEST_FIELD))
 		return;
+	if (!__testFields[valIdx].checkThis)
+		return;
 
 	if (__testFields[valIdx].isFloat)
 	{
-		if (!isApproxF(__testFields[valIdx].valFloat, atof(pRslt)))
+		if (!isApproxF(__testFields[valIdx].valFloat, atof(pRslt), fabs(__testFields[valIdx].valFloat)/10000))
 		{
-			Log.info("ERROR field %s mismatch", __testFields[valIdx].name);
+			Log.info("ERROR Out %d field %s mismatch %f != %s", outIdx, __testFields[valIdx].name, __testFields[valIdx].valFloat, pRslt);
 			errorCount++;
 		}
 	}
 	else
 	{
-		if (!isApproxL(__testFields[valIdx].valLong, atol(pRslt)))
+		if (!isApproxL(__testFields[valIdx].valLong, atol(pRslt), 1))
 		{
-			Log.info("ERROR field %s mismatch", __testFields[valIdx].name);
+			Log.info("ERROR Out %d field %s mismatch %ld != %s", outIdx, __testFields[valIdx].name, __testFields[valIdx].valLong, pRslt);
 			errorCount++;
 		}
 	}
@@ -225,11 +231,13 @@ int main()
 		exit(1);
 	}
 
-	int errorCount = 0;
+	int totalErrorCount = 0;
 
 	// Go through tests
 	for each (TestCaseM^ tc in testCaseHandler.testCases)
 	{
+		int errorCount = 0;
+
 		MotionHelper _motionHelper;
 
 		_motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
@@ -252,7 +260,7 @@ int main()
 
 		if (tc->numOuts() != _motionHelper.testGetPipelineCount())
 		{
-			Log.info("ERROR Pipeline len != Output check count\n");
+			Log.info("ERROR Pipeline len != Output check count (%d vs %d)\n", _motionHelper.testGetPipelineCount(), tc->numOuts());
 			errorCount++;
 		}
 
@@ -266,61 +274,13 @@ int main()
 			char *pRslt;
 			pRslt = strtok(pStr, toks);
 			int valIdx = 0;
-			if (pRslt != NULL)
-				testMotionElemVals(valIdx, errorCount, elem, pRslt);
-			valIdx++;
+			while (pRslt != NULL)
+			{
+				testMotionElemVals(i, valIdx, errorCount, elem, pRslt);
+				valIdx++;
+				pRslt = strtok(NULL, toks);
+			}
 		}
-
-		//rcArgs.setAxisValue(0, 1, 0);
-		//rcArgs.setAxisValue(1, 0, 0);
-		//_motionHelper.moveTo(rcArgs);
-		//rcArgs.setAxisValue(0, 2, 0);
-		//rcArgs.setAxisValue(1, 0, 0);
-		//_motionHelper.moveTo(rcArgs);
-		//rcArgs.setAxisValue(0, 3, 0);
-		//rcArgs.setAxisValue(1, 0, 0);
-		//_motionHelper.moveTo(rcArgs);
-		//rcArgs.setAxisValue(0, 3.5, 0);
-		//rcArgs.setAxisValue(1, 0.5, 0);
-		//_motionHelper.moveTo(rcArgs);
-		//rcArgs.setAxisValue(0, 4, 0);
-		//rcArgs.setAxisValue(1, 1.5, 0);
-		//_motionHelper.moveTo(rcArgs);
-		//rcArgs.setAxisValue(0, 5, 0);
-		//rcArgs.setAxisValue(1, 3, 0);
-		//_motionHelper.moveTo(rcArgs);
-		//rcArgs.setAxisValue(0, 6, 0);
-		//rcArgs.setAxisValue(1, 5, 0);
-		//_motionHelper.moveTo(rcArgs);
-		//rcArgs.setAxisValue(0, 7, 0);
-		//rcArgs.setAxisValue(1, 7, 0);
-		//_motionHelper.moveTo(rcArgs);
-
-		//rcArgs.setAxisValue(0, 1, 0);
-		//rcArgs.setAxisValue(1, 0, 0);
-		//_motionHelper.moveTo(rcArgs);
-		//rcArgs.setAxisValue(0, 2, 0);
-		//rcArgs.setAxisValue(1, 0, 0);
-		//_motionHelper.moveTo(rcArgs);
-		//rcArgs.setAxisValue(0, 3, 0);
-		//rcArgs.setAxisValue(1, 0, 0);
-		//_motionHelper.moveTo(rcArgs);
-		//rcArgs.setAxisValue(0, 4, 0);
-		//rcArgs.setAxisValue(1, 0, 0);
-		//_motionHelper.moveTo(rcArgs);
-		//rcArgs.setAxisValue(0, 5, 0);
-		//rcArgs.setAxisValue(1, 0, 0);
-		//_motionHelper.moveTo(rcArgs);
-		//rcArgs.setAxisValue(0, 6, 0);
-		//rcArgs.setAxisValue(1, 0, 0);
-		//_motionHelper.moveTo(rcArgs);
-		//rcArgs.setAxisValue(0, 7, 0);
-		//rcArgs.setAxisValue(1, 0, 0);
-		//_motionHelper.moveTo(rcArgs);
-		//rcArgs.setAxisValue(0, 8, 0);
-		//rcArgs.setAxisValue(1, 0, 0);
-		//_motionHelper.moveTo(rcArgs);
-
 
 		_motionHelper.debugShowBlocks();
 
@@ -328,17 +288,31 @@ int main()
 		{
 			Log.info("-------------ERRORS---------------");
 		}
-		Log.info("Total error count %d", errorCount);
+		Log.info("Test Case error count %d", errorCount);
 
 
 		while (true)
 		{
 			if (_kbhit())
+			{
+				_getch();
 				break;
+			}
 			_motionHelper.service(true);
+			if (_motionHelper.isIdle())
+			{
+				testCompleted();
+			}
 		}
 
+		totalErrorCount += errorCount;
+
 	}
-    return 0;
+	if (totalErrorCount != 0)
+	{
+		Log.info("-------------TOTAL ERRORS---------------");
+	}
+	Log.info("Total error count %d", totalErrorCount);
+	return 0;
 }
 

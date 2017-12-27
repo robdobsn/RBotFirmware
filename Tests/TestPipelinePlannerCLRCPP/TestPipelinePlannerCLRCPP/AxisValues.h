@@ -207,6 +207,12 @@ public:
 		for (int i = 0; i < MAX_AXES; i++)
 			_valid[i] = valid._valid[i];
 	}
+	bool operator[](int axisIdx)
+	{
+		if (axisIdx >= 0 && axisIdx < MAX_AXES)
+			return _valid[axisIdx];
+		return false;
+	}
 	AxisBools(bool xValid, bool yValid, bool zValid)
 	{
 		_valid[0] = xValid;
