@@ -97,6 +97,7 @@
     <Link>
       <AdditionalDependencies />
       <SubSystem>Console</SubSystem>
+      <FullProgramDatabaseFile>true</FullProgramDatabaseFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -142,6 +143,7 @@
   <ItemGroup>
     <ClInclude Include="ActuatorCoordinates.h" />
     <ClInclude Include="application.h" />
+    <ClInclude Include="AxesParams.h" />
     <ClInclude Include="AxisPosition.h" />
     <ClInclude Include="AxisParams.h" />
     <ClInclude Include="ConfigPinMap.h" />
@@ -158,6 +160,7 @@
     <ClInclude Include="Particle.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="RobotCommandArgs.h" />
+    <ClInclude Include="RobotConsts.h" />
     <ClInclude Include="spark_wiring_string_mod.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="StepperMotor.h" />

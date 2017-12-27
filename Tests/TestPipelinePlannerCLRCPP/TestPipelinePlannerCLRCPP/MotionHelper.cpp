@@ -16,7 +16,6 @@ MotionHelper::MotionHelper() :
     _xMaxMM = 0;
     _yMaxMM = 0;
 	_blockDistanceMM = 0;
-	_numRobotAxes = 0;
 	// Clear axis current location
 	_curAxisPosition.clear();
 	// Coordinate conversion management
@@ -44,10 +43,15 @@ void MotionHelper::configure(const char* robotConfigJSON)
 	_motionIO.deinit();
 
 	// Configure Axes
-	for (int i = 0; i < MAX_AXES; i++)
+	_axesParams.clearAxes();
+	String axisJSON;
+	for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 	{
-		if (configureAxis(robotConfigJSON, i))
-			_numRobotAxes = i + 1;
+		if (_axesParams.configureAxis(robotConfigJSON, axisIdx, axisJSON))
+		{
+			// Configure motionIO - motors and end-stops
+			_motionIO.configureAxis(axisJSON.c_str(), axisIdx);
+		}
 	}
 
 	// Configure robot
@@ -55,31 +59,6 @@ void MotionHelper::configure(const char* robotConfigJSON)
 
 	// Clear motion info
 	_curAxisPosition.clear();
-}
-
-bool MotionHelper::configureAxis(const char* robotConfigJSON, int axisIdx)
-{
-	if (axisIdx < 0 || axisIdx >= MAX_AXES)
-		return false;
-
-    // Get params
-    String axisIdStr = "axis" + String(axisIdx);
-    String axisJSON = RdJson::getString(axisIdStr, "{}", robotConfigJSON);
-    if (axisJSON.length() == 0 || axisJSON.equals("{}"))
-        return false;
-
-	// Set the axis parameters
-    _axisParams[axisIdx].setFromJSON(axisJSON.c_str());
-	_axisParams[axisIdx].debugLog(axisIdx);
-
-	// Configure motionIO - motors and end-stops
-	_motionIO.configureAxis(axisJSON.c_str(), axisIdx);
-
-	// TEST Major axis
-	if (axisIdx == 0)
-		_axisParams[0]._isDominantAxis = true;
-
-    return true;
 }
 
 bool MotionHelper::configureRobot(const char* robotConfigJSON)
@@ -97,7 +76,7 @@ bool MotionHelper::configureRobot(const char* robotConfigJSON)
 	Log.trace("MotionHelper configMotionPipeline len %d, _blockDistanceMM %0.2f",
 					pipelineLen, _blockDistanceMM);
 	_motionPipeline.init(pipelineLen);
-	_motionPlanner.configure(_numRobotAxes, junctionDeviation);
+	_motionPlanner.configure(junctionDeviation);
 
 	// MotionIO
 	_motionIO.configureMotors(robotConfigJSON);
@@ -161,18 +140,17 @@ bool MotionHelper::moveTo(RobotCommandArgs& args)
 	setMotionParams(args);
 
 	// Create a motion pipeline element for this movement
-	MotionPipelineElem elem(_numRobotAxes, _curAxisPosition._axisPositionMM, args.pt);
+	MotionPipelineElem elem(_curAxisPosition._axisPositionMM, args.pt);
 
 	// Convert the move to actuator coordinates
 	AxisFloats actuatorCoords;
-	_ptToActuatorFn(elem, actuatorCoords, _axisParams, _numRobotAxes);
+	_ptToActuatorFn(elem, actuatorCoords, _axesParams.getAxisParamsArray(), RobotConsts::MAX_AXES);
 	elem._destActuatorCoords = actuatorCoords;
 	elem._feedrateVal = args.feedrateVal;
 	elem._feedrateValid = args.feedrateValid;
 
 	// Plan the move
-	bool moveOk = _motionPlanner.moveTo(elem, _curAxisPosition, _axisParams, 
-			_motionPipeline);
+	bool moveOk = _motionPlanner.moveTo(elem, _curAxisPosition, _axesParams, _motionPipeline);
 	if (moveOk)
 	{
 		// Update axisMotion
@@ -196,7 +174,7 @@ void MotionHelper::pipelineService(bool hasBeenPaused)
 {
 	//// Check if any axis is moving
 	//bool anyAxisMoving = false;
-	//for (int i = 0; i < MAX_AXES; i++)
+	//for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 	//{
 	//	// Check if movement required
 	//	if (_axisParams[i]._targetStepsFromHome == _axisParams[i]._stepsFromHome)
@@ -228,18 +206,18 @@ void MotionHelper::pipelineService(bool hasBeenPaused)
 	//		if (valid)
 	//		{
 	//			// Get steps from home for each axis
-	//			for (int i = 0; i < MAX_AXES; i++)
+	//			for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 	//				_axisParams[i]._targetStepsFromHome = actuatorCoords.getVal(i);
 
 	//			// Balance the time for each direction
 	//			// double calcMotionTime = calcMotionTimeUs(motionElem, axisParams);
 	//			double speedTargetMMps = _axisParams[0]._maxSpeed;
 	//			double timeToTargetS = distToTravelMM / speedTargetMMps;
-	//			long stepsAxis[MAX_AXES];
-	//			double timePerStepAxisNs[MAX_AXES];
+	//			long stepsAxis[RobotConsts::MAX_AXES];
+	//			double timePerStepAxisNs[RobotConsts::MAX_AXES];
 	//			Log.trace("motionHelper speedTargetMMps %0.2f distToTravelMM %0.2f timeToTargetMS %0.2f",
 	//				speedTargetMMps, distToTravelMM, timeToTargetS*1000.0);
-	//			for (int i = 0; i < MAX_AXES; i++)
+	//			for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 	//			{
 	//				stepsAxis[i] = labs(_axisParams[i]._targetStepsFromHome - _axisParams[i]._stepsFromHome);
 	//				if (stepsAxis[i] == 0)
@@ -291,7 +269,7 @@ void MotionHelper::pipelineService(bool hasBeenPaused)
 	//}
 
 	//// Make the next step on each axis as requred
-	//for (int i = 0; i < MAX_AXES; i++)
+	//for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 	//{
 	//	// Check if a move is required
 	//	if (_axisParams[i]._targetStepsFromHome == _axisParams[i]._stepsFromHome)
@@ -319,7 +297,7 @@ void MotionHelper::pipelineService(bool hasBeenPaused)
 
 //bool MotionHelper::isMoving()
 //{
-//	for (int i = 0; i < MAX_AXES; i++)
+//	for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 //	{
 //		// Check if movement required - if so we are busy
 //		if (_axisParams[i]._targetStepsFromHome != _axisParams[i]._stepsFromHome)
@@ -330,7 +308,7 @@ void MotionHelper::pipelineService(bool hasBeenPaused)
 
 //void MotionHelper::axisSetHome(int axisIdx)
 //{
-//	if (axisIdx < 0 || axisIdx >= MAX_AXES)
+//	if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
 //		return;
 //	if (_axisParams[axisIdx]._isServoAxis)
 //	{

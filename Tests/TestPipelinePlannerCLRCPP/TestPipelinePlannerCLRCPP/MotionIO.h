@@ -9,14 +9,13 @@ class MotionIO
 {
 public:
 	static const int MAX_ENDSTOPS_PER_AXIS = 2;
-	static constexpr int MAX_AXES = 3;
 	static constexpr float stepDisableSecs_default = 60.0f;
 
 private:
 	// Stepper motors
-	StepperMotor* _stepperMotors[MAX_AXES];
+	StepperMotor* _stepperMotors[RobotConsts::MAX_AXES];
 	// Servo motors
-	Servo* _servoMotors[MAX_AXES];
+	Servo* _servoMotors[RobotConsts::MAX_AXES];
 	// Step enable
 	int _stepEnablePin;
 	bool _stepEnableActiveLevel = true;
@@ -26,13 +25,13 @@ private:
 	unsigned long _motorEnLastMillis;
 	unsigned long _motorEnLastUnixTime;
 	// End stops
-	EndStop* _endStops[MAX_AXES][MAX_ENDSTOPS_PER_AXIS];
+	EndStop* _endStops[RobotConsts::MAX_AXES][MAX_ENDSTOPS_PER_AXIS];
 
 public:
 	MotionIO()
 	{
 		// Clear axis specific values
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 		{
 			_stepperMotors[i] = NULL;
 			_servoMotors[i] = NULL;
@@ -59,7 +58,7 @@ public:
 			pinMode(_stepEnablePin, INPUT);
 
 		// remove motors and end stops
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 		{
 			delete _stepperMotors[i];
 			_stepperMotors[i] = NULL;
@@ -77,7 +76,7 @@ public:
 
 	bool configureAxis(const char* axisJSON, int axisIdx)
 	{
-		if (axisIdx < 0 || axisIdx >= MAX_AXES)
+		if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
 			return false;
 
 		// Check the kind of motor to use
@@ -142,7 +141,7 @@ public:
 	void stepDirn(int axisIdx, bool dirn)
 	{
 #ifdef BOUNDS_CHECK_ISR_FUNCTIONS
-		_ASSERT(axisIdx >= 0 && axisIdx < MAX_AXES);
+		_ASSERT(axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES);
 #endif
 		// Start dirn
 		return _stepperMotors[axisIdx]->stepDirn(dirn);
@@ -152,7 +151,7 @@ public:
 	void stepStart(int axisIdx)
 	{
 #ifdef BOUNDS_CHECK_ISR_FUNCTIONS
-		_ASSERT(axisIdx >= 0 && axisIdx < MAX_AXES);
+		_ASSERT(axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES);
 #endif
 		// Start step
 		return _stepperMotors[axisIdx]->stepStart();
@@ -163,7 +162,7 @@ public:
 	{
 		// Check if step in progress
 		bool aStepEnded = false;
-		for (int axisIdx = 0; axisIdx < MAX_AXES; axisIdx++)
+		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 		{
 			if (_stepperMotors[axisIdx])
 				aStepEnded |= _stepperMotors[axisIdx]->stepEnd();
@@ -173,7 +172,7 @@ public:
 
 	void stepSynch(int axisIdx, bool direction)
 	{
-		if (axisIdx < 0 || axisIdx >= MAX_AXES)
+		if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
 			return;
 
 		enableMotors(true, false);
@@ -187,7 +186,7 @@ public:
 
 	void jump(int axisIdx, long targetPosition)
 	{
-		if (axisIdx < 0 || axisIdx >= MAX_AXES)
+		if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
 			return;
 
 		if (_servoMotors[axisIdx])
@@ -197,7 +196,7 @@ public:
 	// Endstops
 	bool isEndStopValid(int axisIdx, int endStopIdx)
 	{
-		if (axisIdx < 0 || axisIdx >= MAX_AXES)
+		if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
 			return false;
 		if (endStopIdx < 0 || endStopIdx >= MAX_ENDSTOPS_PER_AXIS)
 			return false;
@@ -207,7 +206,7 @@ public:
 	bool isAtEndStop(int axisIdx, int endStopIdx)
 	{
 		// For safety return true in these cases
-		if (axisIdx < 0 || axisIdx >= MAX_AXES)
+		if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
 			return true;
 		if (endStopIdx < 0 || endStopIdx >= MAX_ENDSTOPS_PER_AXIS)
 			return true;

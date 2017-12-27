@@ -4,7 +4,7 @@
 #pragma once
 
 #include "application.h"
-#include "AxisParams.h"
+#include "AxesParams.h"
 #include "AxisPosition.h"
 #include "RobotCommandArgs.h"
 #include "MotionPlanner.h"
@@ -18,7 +18,6 @@ public:
 	static constexpr float junctionDeviation_default = 0.05f;
 	static constexpr float distToTravelMM_ignoreBelow = 0.01f;
 	static constexpr int pipelineLen_default = 100;
-	static constexpr int MAX_AXES = 3;
 
 private:
 	// Pause
@@ -28,10 +27,8 @@ private:
     float _yMaxMM;
 	// Block distance
 	float _blockDistanceMM;
-	// Number of actual axes of motion
-	int _numRobotAxes;
-	// Axis parameters
-	AxisParams _axisParams[MAX_AXES];
+	// Axes parameters
+	AxesParams _axesParams;
 	// Callbacks for coordinate conversion etc
 	ptToActuatorFnType _ptToActuatorFn;
 	actuatorToPtFnType _actuatorToPtFn;
@@ -71,38 +68,24 @@ public:
 	// Check if idle
 	bool isIdle();
 
-
 	double getStepsPerUnit(int axisIdx)
 	{
-		if (axisIdx < 0 || axisIdx >= MAX_AXES)
-			return 0;
-		return _axisParams[axisIdx].stepsPerUnit();
+		return _axesParams.getStepsPerUnit(axisIdx);
 	}
 
 	double getStepsPerRotation(int axisIdx)
 	{
-		if (axisIdx < 0 || axisIdx >= MAX_AXES)
-			return 0;
-		return _axisParams[axisIdx]._stepsPerRotation;
+		return _axesParams.getStepsPerRotation(axisIdx);
 	}
 
 	double getUnitsPerRotation(int axisIdx)
 	{
-		if (axisIdx < 0 || axisIdx >= MAX_AXES)
-			return 0;
-		return _axisParams[axisIdx]._unitsPerRotation;
+		return _axesParams.getUnitsPerRotation(axisIdx);
 	}
 
 	long getHomeOffsetSteps(int axisIdx)
 	{
-		if (axisIdx < 0 || axisIdx >= MAX_AXES)
-			return 0;
-		return _axisParams[axisIdx]._homeOffsetSteps;
-	}
-
-	AxisParams* getAxisParamsArray()
-	{
-		return _axisParams;
+		return _axesParams.getHomeOffsetSteps(axisIdx);
 	}
 
 	bool moveTo(RobotCommandArgs& args);

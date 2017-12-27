@@ -87,6 +87,12 @@
     <ClInclude Include="MotionActuator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="AxesParams.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RobotConsts.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="app.rc">

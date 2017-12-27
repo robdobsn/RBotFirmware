@@ -61,7 +61,7 @@ public:
 	}
 	void setAxisValue(int axisIdx, float value, bool isValid)
 	{
-		if (axisIdx >= 0 && axisIdx < AxisBools::MAX_AXES)
+		if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
 		{
 			pt.setVal(axisIdx, value);
 			pt.setValid(axisIdx, isValid);

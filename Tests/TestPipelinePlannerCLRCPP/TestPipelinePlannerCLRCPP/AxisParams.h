@@ -16,8 +16,8 @@ public:
 	static constexpr long homeOffsetSteps_default = 0;
 
 	// Parameters
-	float _maxSpeed;
-	float _maxAcceleration;
+	float _maxSpeedMMps;
+	float _maxAccelMMps2;
 	float _stepsPerRotation;
 	float _unitsPerRotation;
 	bool _minValValid;
@@ -34,8 +34,13 @@ public:
 public:
 	AxisParams()
 	{
-		_maxSpeed = maxSpeed_default;
-		_maxAcceleration = acceleration_default;
+		clear();
+	}
+
+	void clear()
+	{
+		_maxSpeedMMps = maxSpeed_default;
+		_maxAccelMMps2 = acceleration_default;
 		_stepsPerRotation = stepsPerRotation_default;
 		_unitsPerRotation = unitsPerRotation_default;
 		_minValValid = false;
@@ -57,8 +62,8 @@ public:
     void setFromJSON(const char* axisJSON)
 	{
         // Stepper motor
-        _maxSpeed = float(RdJson::getDouble("maxSpeed", AxisParams::maxSpeed_default, axisJSON));
-        _maxAcceleration = float(RdJson::getDouble("maxAcc", AxisParams::acceleration_default, axisJSON));
+        _maxSpeedMMps = float(RdJson::getDouble("maxSpeed", AxisParams::maxSpeed_default, axisJSON));
+        _maxAccelMMps2 = float(RdJson::getDouble("maxAcc", AxisParams::acceleration_default, axisJSON));
         _stepsPerRotation = float(RdJson::getDouble("stepsPerRotation", AxisParams::stepsPerRotation_default, axisJSON));
         _unitsPerRotation = float(RdJson::getDouble("unitsPerRotation", AxisParams::unitsPerRotation_default, axisJSON));
         _minVal = float(RdJson::getDouble("minVal", 0, _minValValid, axisJSON));
@@ -73,7 +78,7 @@ public:
 	void debugLog(int axisIdx)
 	{
 		Log.info("Axis%d params maxSpeed %02.f, acceleration %0.2f, stepsPerRotation %0.2f, unitsPerRotation %0.2f",
-			axisIdx, _maxSpeed, _maxAcceleration, _stepsPerRotation, _unitsPerRotation);
+			axisIdx, _maxSpeedMMps, _maxAccelMMps2, _stepsPerRotation, _unitsPerRotation);
 		Log.info("Axis%d params minVal %02.f (%d), maxVal %0.2f (%d), isDominant %d, isServo %d, homeOffVal %0.2f, homeOffSteps %ld",
 			axisIdx, _minVal, _minValValid, _maxVal, _maxValValid, _isDominantAxis, _isServoAxis, _homeOffsetVal, _homeOffsetSteps);
 	}

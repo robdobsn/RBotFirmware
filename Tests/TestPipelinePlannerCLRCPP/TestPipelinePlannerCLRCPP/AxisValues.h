@@ -4,24 +4,24 @@
 #pragma once
 
 #include "math.h"
+#include "RobotConsts.h"
 
 class AxisFloats
 {
 public:
-	static constexpr int MAX_AXES = 3;
-	float _pt[MAX_AXES];
+	float _pt[RobotConsts::MAX_AXES];
 	uint8_t _validityFlags;
 
 public:
 	AxisFloats()
 	{
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 			_pt[i] = 0;
 		_validityFlags = 0;
 	}
 	AxisFloats(const AxisFloats& other)
 	{
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 			_pt[i] = other._pt[i];
 		_validityFlags = other._validityFlags;
 	}
@@ -41,13 +41,13 @@ public:
 	}
 	float getVal(int axisIdx)
 	{
-		if (axisIdx >= 0 && axisIdx < MAX_AXES)
+		if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
 			return _pt[axisIdx];
 		return 0;
 	}
 	void setVal(int axisIdx, float val)
 	{
-		if (axisIdx >= 0 && axisIdx < MAX_AXES)
+		if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
 		{
 			int axisMask = 0x01 << axisIdx;
 			_pt[axisIdx] = val;
@@ -63,7 +63,7 @@ public:
 	}
 	void setValid(int axisIdx, bool isValid)
 	{
-		if (axisIdx >= 0 && axisIdx < MAX_AXES)
+		if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
 		{
 			int axisMask = 0x01 << axisIdx;
 			if (isValid)
@@ -74,7 +74,7 @@ public:
 	}
 	bool isValid(int axisIdx)
 	{
-		if (axisIdx >= 0 && axisIdx < MAX_AXES)
+		if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
 		{
 			int axisMask = 0x01 << axisIdx;
 			return (_validityFlags & axisMask) != 0;
@@ -95,42 +95,42 @@ public:
 	}
 	void operator=(const AxisFloats& other)
 	{
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 			_pt[i] = other._pt[i];
 		_validityFlags = other._validityFlags;
 	}
 	AxisFloats operator-(const AxisFloats& pt)
 	{
 		AxisFloats result;
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 			result._pt[i] = _pt[i] - pt._pt[i];
 		return result;
 	}
 	AxisFloats operator-(float val)
 	{
 		AxisFloats result;
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 			result._pt[i] = _pt[i] - val;
 		return result;
 	}
 	AxisFloats operator+(const AxisFloats& pt)
 	{
 		AxisFloats result;
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 			result._pt[i] = _pt[i] + pt._pt[i];
 		return result;
 	}
 	AxisFloats operator+(float val)
 	{
 		AxisFloats result;
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 			result._pt[i] = _pt[i] + val;
 		return result;
 	}
 	AxisFloats operator/(const AxisFloats& pt)
 	{
 		AxisFloats result;
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 		{
 			if (pt._pt[i] != 0)
 				result._pt[i] = _pt[i] / pt._pt[i];
@@ -140,7 +140,7 @@ public:
 	AxisFloats operator/(float val)
 	{
 		AxisFloats result;
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 		{
 			if (val != 0)
 				result._pt[i] = _pt[i] / val;
@@ -150,7 +150,7 @@ public:
 	AxisFloats operator*(const AxisFloats& pt)
 	{
 		AxisFloats result;
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 		{
 			result._pt[i] = _pt[i] * pt._pt[i];
 		}
@@ -159,7 +159,7 @@ public:
 	AxisFloats operator*(float val)
 	{
 		AxisFloats result;
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 		{
 			result._pt[i] = _pt[i] * val;
 		}
@@ -168,7 +168,7 @@ public:
 	float distanceTo(const AxisFloats& pt, bool includeDist[] = NULL)
 	{
 		float distSum = 0;
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 		{
 			if ((includeDist == NULL) || includeDist[i])
 			{
@@ -188,28 +188,27 @@ public:
 class AxisBools
 {
 public:
-	static constexpr int MAX_AXES = 3;
-	bool _valid[MAX_AXES];
+	bool _valid[RobotConsts::MAX_AXES];
 
 public:
 	AxisBools()
 	{
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 			_valid[i] = false;
 	}
 	AxisBools(const AxisBools& valid)
 	{
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 			_valid[i] = valid._valid[i];
 	}
 	void operator=(const AxisBools& valid)
 	{
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 			_valid[i] = valid._valid[i];
 	}
 	bool operator[](int axisIdx)
 	{
-		if (axisIdx >= 0 && axisIdx < MAX_AXES)
+		if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
 			return _valid[axisIdx];
 		return false;
 	}
@@ -233,13 +232,13 @@ public:
 	}
 	bool isValid(int axisIdx)
 	{
-		if (axisIdx >= 0 && axisIdx < MAX_AXES)
+		if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
 			return _valid[axisIdx];
 		return false;
 	}
 	void setVal(int axisIdx, bool val)
 	{
-		if (axisIdx >= 0 && axisIdx < MAX_AXES)
+		if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
 			_valid[axisIdx] = val;
 	}
 };
@@ -247,23 +246,22 @@ public:
 class AxisU32s
 {
 public:
-	static constexpr int MAX_AXES = 3;
-	uint32_t vals[MAX_AXES];
+	uint32_t vals[RobotConsts::MAX_AXES];
 
 public:
 	AxisU32s()
 	{
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 			vals[i] = 0;
 	}
 	AxisU32s(const AxisU32s& u32s)
 	{
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 			vals[i] = u32s.vals[i];
 	}
 	void operator=(const AxisU32s& u32s)
 	{
-		for (int i = 0; i < MAX_AXES; i++)
+		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 			vals[i] = u32s.vals[i];
 	}
 	AxisU32s(uint32_t xVal, uint32_t yVal, uint32_t zVal)
@@ -286,13 +284,13 @@ public:
 	}
 	uint32_t getVal(int axisIdx)
 	{
-		if (axisIdx >= 0 && axisIdx < MAX_AXES)
+		if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
 			return vals[axisIdx];
 		return 0;
 	}
 	void setVal(int axisIdx, uint32_t val)
 	{
-		if (axisIdx >= 0 && axisIdx < MAX_AXES)
+		if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
 			vals[axisIdx] = val;
 	}
 };

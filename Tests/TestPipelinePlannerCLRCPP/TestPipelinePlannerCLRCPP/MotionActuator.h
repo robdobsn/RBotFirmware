@@ -27,7 +27,7 @@ private:
 		int32_t _stepIntervalChangePerStepNs;
 		int _axisStepPhaseNum;
 	};
-	axisExecInfo_t _axisExecInfo[MotionPipelineElem::MAX_AXES];
+	axisExecInfo_t _axisExecInfo[RobotConsts::MAX_AXES];
 
 public:
 	MotionActuator(MotionIO& motionIO, MotionPipeline& motionPipeline) :
@@ -81,7 +81,7 @@ public:
 		if (newBlock)
 		{
 			// Prep each axis separately
-			for (uint8_t axisIdx = 0; MotionPipelineElem::MAX_AXES; axisIdx++)
+			for (uint8_t axisIdx = 0; RobotConsts::MAX_AXES; axisIdx++)
 			{
 				// Set inactive for now
 				axisExecInfo_t& axisExecInfo = _axisExecInfo[axisIdx];
@@ -111,7 +111,7 @@ public:
 
 		// Go through the axes
 		bool anyAxisMoving = false;
-		for (int axisIdx = 0; axisIdx < MotionPipelineElem::MAX_AXES; axisIdx++)
+		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 		{
 			// Check if there is any motion left for this axis
 			axisExecInfo_t& axisExecInfo = _axisExecInfo[axisIdx];
@@ -204,7 +204,7 @@ public:
 		if (newBlock)
 		{ 
 			// need to prepare each active axis direction
-			for (uint8_t m = 0; m < pElem->_numAxes; m++)
+			for (uint8_t m = 0; m < RobotConsts::MAX_AXES; m++)
 			{
 				if (pElem->_tickInfo[m].steps_to_move == 0) 
 					continue;
@@ -214,7 +214,7 @@ public:
 		}
 		// Go through the axes
 		bool still_moving = false;
-		for (int m = 0; m < pElem->_numAxes; m++)
+		for (int m = 0; m < RobotConsts::MAX_AXES; m++)
 		{
 			// Get pointer to this axis
 			volatile MotionPipelineElem::tickinfo_t* pTickInfo = &(pElem->_tickInfo[m]);
