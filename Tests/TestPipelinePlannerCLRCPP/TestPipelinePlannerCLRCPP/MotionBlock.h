@@ -27,24 +27,28 @@ public:
 	AxisInt32s _axisStepsToTarget;
 	// Distance (pythagorean) to move considering primary axes only
 	float _moveDistPrimaryAxesMM;
-
-
-
-
-
+	// Computed max entry speed for a block based on max junction deviation calculation
 	float _maxEntrySpeedMMps;
+	// Computed entry speed for this block
 	float _entrySpeedMMps;
-	bool _nominalLengthFlag;
-	bool _recalcFlag;
-	bool _isRunning;
+	// Computed exit speed for this block
 	float _exitSpeedMMps;
+
+	// Flags
+	struct
+	{
+		bool _nominalLengthFlag : 1;
+		bool _recalcFlag : 1;
+		bool _isRunning : 1;
+		bool _changeInProgress : 1;
+	};
+
 	uint32_t _accelUntil;
 	uint32_t _decelAfter;
 	uint32_t _totalMoveTicks;
 	double _accelPerTick;
 	double _decelPerTick;
 	float _initialStepRate;
-	bool _changeInProgress;
 
 	// this is the data needed to determine when each motor needs to be issued a step
 	using tickinfo_t = struct {
@@ -57,15 +61,16 @@ public:
 		uint32_t step_count;
 		uint32_t next_accel_event;
 
-		uint32_t _totalSteps;
-		uint32_t _accelSteps;
-		uint32_t _accelReducePerStepNs;
-		uint32_t _decelStartSteps;
-		uint32_t _decelIncreasePerStepNs;
-		uint32_t _nsAccum;
-		uint32_t _nsToNextStep;
+		//uint32_t _totalSteps;
+		//uint32_t _accelSteps;
+		//uint32_t _accelReducePerStepNs;
+		//uint32_t _decelStartSteps;
+		//uint32_t _decelIncreasePerStepNs;
+		//uint32_t _nsAccum;
+		//uint32_t _nsToNextStep;
+		
 		bool _stepDirection;
-		uint32_t _curStepCount;
+		//uint32_t _curStepCount;
 	};
 	std::vector<tickinfo_t> _tickInfo;
 
@@ -121,7 +126,7 @@ public:
 		return axisMaxSteps;
 	}
 
-	void calcMaxSpeedReverse(float exitSpeed, MotionBlock::motionParams& motionParams)
+	float calcMaxSpeedReverse(float exitSpeed, MotionBlock::motionParams& motionParams)
 	{
 		// If entry speed is already at the maximum entry speed, no need to recheck. Block is cruising.
 		// If not, block in state of acceleration or deceleration. Reset entry speed to maximum and
@@ -140,6 +145,7 @@ public:
 				_entrySpeedMMps = _maxEntrySpeedMMps;
 			}
 		}
+		return _entrySpeedMMps;
 	}
 
 	void calcMaxSpeedForward(float prevMaxExitSpeed, MotionBlock::motionParams& motionParams)
@@ -317,23 +323,23 @@ public:
 		float inv = 1.0F / absMaxStepsForAnyAxis;
 		for (uint8_t axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++) {
 
-			uint32_t axisTotalSteps = labs(_axisStepsToTarget.getVal(axisIdx));
-			float axisStepRatio = inv * axisTotalSteps;
+			//uint32_t axisTotalSteps = labs(_axisStepsToTarget.getVal(axisIdx));
+			//float axisStepRatio = inv * axisTotalSteps;
 
-			_tickInfo[axisIdx]._nsAccum = 0;
-			_tickInfo[axisIdx]._nsToNextStep = 1000000000;
-			_tickInfo[axisIdx]._curStepCount = 0;
+			//_tickInfo[axisIdx]._nsAccum = 0;
+			//_tickInfo[axisIdx]._nsToNextStep = 1000000000;
+			//_tickInfo[axisIdx]._curStepCount = 0;
 			_tickInfo[axisIdx]._stepDirection = (_axisStepsToTarget.getVal(axisIdx) >= 0);
-			_tickInfo[axisIdx]._totalSteps = axisTotalSteps;
-			_tickInfo[axisIdx]._accelSteps = 0;
-			_tickInfo[axisIdx]._decelStartSteps = 0;
-			if (axisTotalSteps == 0)
-				continue;
+			//_tickInfo[axisIdx]._totalSteps = axisTotalSteps;
+			//_tickInfo[axisIdx]._accelSteps = 0;
+			//_tickInfo[axisIdx]._decelStartSteps = 0;
+			//if (axisTotalSteps == 0)
+			//	continue;
 
-			// Calculate the steps for this axis scaled by ratio vs axis with max steps
-			_tickInfo[axisIdx]._nsToNextStep = uint32_t(1e9f / (_initialStepRate * axisStepRatio));
-			float stepsAccelerating = _initialStepRate * axisStepRatio * timeToAccelerateSecs + 0.5f * axisStepRatio * acceleration_in_steps * powf(timeToAccelerateSecs, 2);
-			_tickInfo[axisIdx]._accelSteps = uint32_t(stepsAccelerating);
+			//// Calculate the steps for this axis scaled by ratio vs axis with max steps
+			//_tickInfo[axisIdx]._nsToNextStep = uint32_t(1e9f / (_initialStepRate * axisStepRatio));
+			//float stepsAccelerating = _initialStepRate * axisStepRatio * timeToAccelerateSecs + 0.5f * axisStepRatio * acceleration_in_steps * powf(timeToAccelerateSecs, 2);
+			//_tickInfo[axisIdx]._accelSteps = uint32_t(stepsAccelerating);
 
 
 
