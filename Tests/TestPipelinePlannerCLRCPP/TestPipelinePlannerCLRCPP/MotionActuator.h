@@ -173,6 +173,8 @@ public:
 
 	void processSmoothie()
 	{
+#ifdef USE_SMOOTHIE_CODE
+
 		// Check if paused
 		if (_isPaused)
 			return;
@@ -271,6 +273,7 @@ public:
 			// block complete
 			_motionPipeline.remove();
 		}
+#endif
 	}
 
 	

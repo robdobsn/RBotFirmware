@@ -43,6 +43,7 @@ public:
 		bool _changeInProgress : 1;
 	};
 
+#ifdef USE_SMOOTHIE_CODE
 	uint32_t _accelUntil;
 	uint32_t _decelAfter;
 	uint32_t _totalMoveTicks;
@@ -73,7 +74,7 @@ public:
 		//uint32_t _curStepCount;
 	};
 	std::vector<tickinfo_t> _tickInfo;
-
+#endif
 
 	struct axisStepPhase_t 
 	{
@@ -90,8 +91,10 @@ public:
 public:
 	MotionBlock()
 	{
+#ifdef USE_SMOOTHIE_CODE
 		// Reset size of tick vector
 		_tickInfo.resize(RobotConsts::MAX_AXES);
+#endif
 		clear();
 	}
 
@@ -106,13 +109,15 @@ public:
 		_isRunning = false;
 		_nominalLengthFlag = false;
 		_recalcFlag = false;
+		_changeInProgress = false;
+#ifdef USE_SMOOTHIE_CODE
 		_accelUntil = 0;
 		_decelAfter = 0;
 		_totalMoveTicks = 0;
 		_accelPerTick = 0;
 		_decelPerTick = 0;
 		_initialStepRate = 0;
-		_changeInProgress = false;
+#endif
 	}
 
 	uint32_t getAbsMaxStepsForAnyAxis()
@@ -301,6 +306,8 @@ public:
 		// the updates to the blocks to get around it
 		_changeInProgress = true;
 
+#ifdef USE_SMOOTHIE_CODE
+
 		// Now figure out the two acceleration ramp change events in ticks
 		_accelUntil = accelTicks;
 		_decelAfter = totalTicks - decelTicks;
@@ -390,6 +397,7 @@ public:
 			_tickInfo[axisIdx].plateau_rate = STEPTICKER_TOFP((maxStepRatePerSec * aratio) / STEP_TICKER_FREQUENCY);
 
 		}
+#endif
 
 		// No more changes
 		_changeInProgress = false;
@@ -402,6 +410,7 @@ public:
 
 	void debugShowBlock(int elemIdx)
 	{
+#ifdef USE_SMOOTHIE_CODE
 		Log.trace("%d\t%0.3f\t%0.3f\t%lu\t%0.1f\t%lu\t%0.1f\t%lu\t%0.1f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f\t%0.3f", elemIdx, 
 				_entrySpeedMMps, _exitSpeedMMps, _totalMoveTicks, _initialStepRate, 
 				_accelUntil, _accelPerTick, _decelAfter, _decelPerTick,
@@ -410,6 +419,7 @@ public:
 				STEPTICKER_FROMFP(_tickInfo[1].steps_per_tick)*1e3, STEPTICKER_FROMFP(_tickInfo[1].acceleration_change)*1e10,
 				STEPTICKER_FROMFP(_tickInfo[1].deceleration_change)*1e10, STEPTICKER_FROMFP(_tickInfo[1].plateau_rate)*1e3
 			);
+#endif
 	}
 
 };

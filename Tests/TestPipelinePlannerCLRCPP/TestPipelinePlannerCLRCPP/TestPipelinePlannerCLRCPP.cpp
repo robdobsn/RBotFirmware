@@ -188,12 +188,14 @@ void testMotionElemVals(int outIdx, int valIdx, int& errorCount, MotionBlock& el
 		{ false, "idx", false, 0, 0 },
 		{ true, "_entrySpeedMMps", true, elem._entrySpeedMMps, 0},
 		{ true, "_exitSpeedMMps", true, elem._exitSpeedMMps, 0 },
+#ifdef USE_SMOOTHIE_CODE
 		{ true, "_totalMoveTicks", false, 0, elem._totalMoveTicks },
 		{ true, "_initialStepRate", true, elem._initialStepRate, 0 },
 		{ true, "_accelUntil", false, 0, elem._accelUntil },
 		{ true, "_accelPerTick", true, elem._accelPerTick, 0 },
 		{ true, "_decelAfter", false, 0, elem._decelAfter },
 		{ true, "_decelPerTick", true, elem._decelPerTick, 0 }
+#endif
 	};
 
 	if (valIdx >= sizeof(__testFields) / sizeof(TEST_FIELD))
@@ -231,8 +233,9 @@ int main()
 		exit(1);
 	}
 
-	Log.trace("Sizeof MotionPipelineElem %d, AxisBools %d, AxisFloat %d, AxisUint32s %d", 
-				sizeof(MotionBlock), sizeof(AxisBools), sizeof(AxisFloats), sizeof(AxisInt32s));
+	Log.trace("Sizeof MotionPipelineElem %d, AxisBools %d, AxisFloat %d, AxisUint32s %d, axisStepInfo_t %d", 
+				sizeof(MotionBlock), sizeof(AxisBools), sizeof(AxisFloats), sizeof(AxisInt32s),
+				sizeof(MotionBlock::axisStepInfo_t));
 
 	int totalErrorCount = 0;
 

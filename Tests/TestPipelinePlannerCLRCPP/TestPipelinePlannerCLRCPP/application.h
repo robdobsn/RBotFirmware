@@ -7,6 +7,8 @@
 #include "spark_wiring_string_mod.h"
 #include <ctype.h>
 
+#define USE_SMOOTHIE_CODE 1
+
 #define TEST_IN_GCPP
 
 #define STEP_TICKER_FREQUENCY 1000000.0f
