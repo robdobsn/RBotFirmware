@@ -29,21 +29,21 @@ public:
 	float getStepsPerUnit(int axisIdx)
 	{
 		if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
-			return 0;
+			return AxisParams::stepsPerRotation_default / AxisParams::unitsPerRotation_default;
 		return _axisParams[axisIdx].stepsPerUnit();
 	}
 
 	float getStepsPerRotation(int axisIdx)
 	{
 		if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
-			return 0;
+			return AxisParams::stepsPerRotation_default;
 		return _axisParams[axisIdx]._stepsPerRotation;
 	}
 
 	float getUnitsPerRotation(int axisIdx)
 	{
 		if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
-			return 0;
+			return AxisParams::unitsPerRotation_default;
 		return _axisParams[axisIdx]._unitsPerRotation;
 	}
 
@@ -62,29 +62,57 @@ public:
 	float getMaxSpeed(int axisIdx)
 	{
 		if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
-			return 0;
+			return AxisParams::maxSpeed_default;
 		return _axisParams[axisIdx]._maxSpeedMMps;
+	}
+
+	float getMinSpeed(int axisIdx)
+	{
+		if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
+			return AxisParams::minSpeedMMps_default;
+		return _axisParams[axisIdx]._minSpeedMMps;
 	}
 
 	float getMaxAccel(int axisIdx)
 	{
 		if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
-			return 0;
+			return AxisParams::acceleration_default;
 		return _axisParams[axisIdx]._maxAccelMMps2;
 	}
 
 	bool isPrimaryAxis(int axisIdx)
 	{
 		if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
-			return 0;
+			return false;
 		return _axisParams[axisIdx]._isPrimaryAxis;
 	}
 
 	float getMasterMaxAccel()
 	{
 		if (_masterAxisIdx < 0 || _masterAxisIdx >= RobotConsts::MAX_AXES)
-			return 0;
+			return AxisParams::acceleration_default;
 		return _axisParams[_masterAxisIdx]._maxAccelMMps2;
+	}
+
+	float getMasterStepDistMM()
+	{
+		if (_masterAxisIdx < 0 || _masterAxisIdx >= RobotConsts::MAX_AXES)
+			return AxisParams::unitsPerRotation_default / AxisParams::stepsPerRotation_default;
+		return _axisParams[_masterAxisIdx]._unitsPerRotation / _axisParams[_masterAxisIdx]._stepsPerRotation;
+	}
+
+	uint32_t getMinStepIntervalNS()
+	{
+		if (_masterAxisIdx < 0 || _masterAxisIdx >= RobotConsts::MAX_AXES)
+			return uint32_t((1e9 * getMasterStepDistMM()) / AxisParams::maxSpeed_default);
+		return uint32_t((1e9 * getMasterStepDistMM()) / getMaxSpeed(_masterAxisIdx));
+	}
+
+	uint32_t getMaxStepIntervalNS()
+	{
+		if (_masterAxisIdx < 0 || _masterAxisIdx >= RobotConsts::MAX_AXES)
+			return uint32_t((1e9 * getMasterStepDistMM()) / AxisParams::minSpeedMMps_default);
+		return uint32_t((1e9 * getMasterStepDistMM()) / getMinSpeed(_masterAxisIdx));
 	}
 
 	bool configureAxis(const char* robotConfigJSON, int axisIdx, String& axisJSON)
@@ -121,7 +149,7 @@ public:
 				dominantIdx = i;
 				break;
 			}
-			if (firstPrimaryIdx = -1 && _axisParams[i]._isPrimaryAxis)
+			if (firstPrimaryIdx == -1 && _axisParams[i]._isPrimaryAxis)
 			{
 				firstPrimaryIdx = i;
 			}

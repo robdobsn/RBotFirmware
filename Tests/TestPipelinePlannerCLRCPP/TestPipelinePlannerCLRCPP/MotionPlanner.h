@@ -52,7 +52,10 @@ public:
 		Log.trace("MotionElem distance delta %0.3f", elem.delta());
 
 		// Motion parameters used throughout planner process
-		_motionParams._accMMps2 = axesParams.getMasterMaxAccel();
+		_motionParams._masterAxisMaxAccMMps2 = axesParams.getMasterMaxAccel();
+		_motionParams._masterAxisStepDistanceMM = axesParams.getMasterStepDistMM();
+		_motionParams._minStepIntervalNS = axesParams.getMinStepIntervalNS();
+		_motionParams._maxStepIntervalNS = axesParams.getMaxStepIntervalNS();
 
 		// Find axis deltas and sum of squares of motion on primary axes
 		double deltas[RobotConsts::MAX_AXES];
@@ -91,18 +94,17 @@ public:
 			maxParamSpeedMMps = args.feedrateVal;
 
 		// Find the unit vectors
-		AxisFloats curBlockUnitVectors;
 		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 		{
 			if (axesParams.isPrimaryAxis(axisIdx))
 			{
-				curBlockUnitVectors._pt[axisIdx] = float(deltas[axisIdx] / moveDist);
+				block.unitVectors._pt[axisIdx] = float(deltas[axisIdx] / moveDist);
 				// Check that the move speed doesn't exceed max
 				if (axesParams.getMaxSpeed(axisIdx) > 0)
 				{
 					if (maxParamSpeedMMps > 0)
 					{
-						double axisSpeed = fabs(curBlockUnitVectors._pt[axisIdx] * maxParamSpeedMMps);
+						double axisSpeed = fabs(block.unitVectors._pt[axisIdx] * maxParamSpeedMMps);
 						if (axisSpeed > axesParams.getMaxSpeed(axisIdx))
 						{
 							maxParamSpeedMMps *= axisSpeed / axesParams.getMaxSpeed(axisIdx);
@@ -196,9 +198,9 @@ public:
 			{
 				// Compute cosine of angle between previous and current path. (prev_unit_vec is negative)
 				// NOTE: Max junction velocity is computed without sin() or acos() by trig half angle identity.
-				float cosTheta = -_prevMotionBlock._unitVectors.X() * curBlockUnitVectors.X()
-					- _prevMotionBlock._unitVectors.Y() * curBlockUnitVectors.Y()
-					- _prevMotionBlock._unitVectors.Z() * curBlockUnitVectors.Z();
+				float cosTheta = -_prevMotionBlock._unitVectors.X() * block.unitVectors.X()
+					- _prevMotionBlock._unitVectors.Y() * block.unitVectors.Y()
+					- _prevMotionBlock._unitVectors.Z() * block.unitVectors.Z();
 
 				// Skip and use default max junction speed for 0 degree acute junction.
 				if (cosTheta < 0.95F) {
@@ -207,7 +209,7 @@ public:
 					if (cosTheta > -0.95F) {
 						// Compute maximum junction velocity based on maximum acceleration and junction deviation
 						float sinThetaD2 = sqrtf(0.5F * (1.0F - cosTheta)); // Trig half angle identity. Always positive.
-						vmaxJunction = std::min(vmaxJunction, sqrtf(_motionParams._accMMps2 * junctionDeviation * sinThetaD2 / (1.0F - sinThetaD2)));
+						vmaxJunction = std::min(vmaxJunction, sqrtf(_motionParams._masterAxisMaxAccMMps2 * junctionDeviation * sinThetaD2 / (1.0F - sinThetaD2)));
 					}
 				}
 			}
@@ -218,7 +220,7 @@ public:
 
 		// Calculate max allowable speed using v^2 = u^2 - 2as
 		// Was acceleration*60*60*distance, in case this breaks, but here we prefer to use seconds instead of minutes
-		float maxAllowableSpeedMMps = sqrtf(_minimumPlannerSpeedMMps * _minimumPlannerSpeedMMps - 2.0F * (-_motionParams._accMMps2) * block._moveDistPrimaryAxesMM);
+		float maxAllowableSpeedMMps = sqrtf(_minimumPlannerSpeedMMps * _minimumPlannerSpeedMMps - 2.0F * (-_motionParams._masterAxisMaxAccMMps2) * block._moveDistPrimaryAxesMM);
 		block._entrySpeedMMps = std::min(vmaxJunction, maxAllowableSpeedMMps);
 
 		// Initialize planner efficiency flags
@@ -240,7 +242,7 @@ public:
 		motionPipeline.add(block);
 		MotionBlockSequentialData prevBlockInfo;
 		prevBlockInfo._maxParamSpeedMMps = block._maxParamSpeedMMps;
-		prevBlockInfo._unitVectors = curBlockUnitVectors;
+		prevBlockInfo._unitVectors = block.unitVectors;
 		_prevMotionBlock = prevBlockInfo;
 		_prevMotionBlockValid = true;
 
