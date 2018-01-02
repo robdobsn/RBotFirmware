@@ -3,8 +3,8 @@
 #include "MotionPipeline.h"
 #include "MotionElem.h"
 
-typedef bool(*ptToActuatorFnType) (MotionElem& motionElem, AxisFloats& actuatorCoords, AxisParams axisParams[], int numAxes);
-typedef void(*actuatorToPtFnType) (AxisFloats& actuatorCoords, AxisFloats& xy, AxisParams axisParams[], int numAxes);
+typedef bool(*ptToActuatorFnType) (AxisFloats& pt, AxisFloats& actuatorCoords, AxisParams axisParams[], int numAxes);
+typedef void(*actuatorToPtFnType) (AxisFloats& actuatorCoords, AxisFloats& pt, AxisParams axisParams[], int numAxes);
 typedef void(*correctStepOverflowFnType) (AxisParams axisParams[], int numAxes);
 
 class MotionPlanner
@@ -45,11 +45,11 @@ public:
 	}
 
 	bool moveTo(RobotCommandArgs& args,
-				MotionElem& elem, AxisFloats& destActuatorCoords,
+				AxisFloats& destActuatorCoords,
 				AxisPosition& curAxisPositions,
 				AxesParams& axesParams, MotionPipeline& motionPipeline)
 	{
-		Log.trace("MotionElem distance delta %0.3f", elem.delta());
+		//Log.trace("MotionElem distance delta %0.3f", elem.delta());
 
 		// Motion parameters used throughout planner process
 		_motionParams._masterAxisMaxAccMMps2 = axesParams.getMasterMaxAccel();
@@ -64,7 +64,7 @@ public:
 		double squareSum = 0;
 		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 		{
-			deltas[axisIdx] = elem._pt2MM._pt[axisIdx] - curAxisPositions._axisPositionMM._pt[axisIdx];
+			deltas[axisIdx] = args.pt._pt[axisIdx] - curAxisPositions._axisPositionMM._pt[axisIdx];
 			if (deltas[axisIdx] != 0)
 			{
 				isAMove = true;
@@ -126,7 +126,7 @@ public:
 		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 		{
 			// Speed and time
-			double axisDist = fabs(elem._pt2MM._pt[axisIdx] - curAxisPositions._axisPositionMM._pt[axisIdx]);
+			double axisDist = fabs(args.pt._pt[axisIdx] - curAxisPositions._axisPositionMM._pt[axisIdx]);
 			if (axisDist == 0)
 				continue;
 			double axisReqdAcc = axisDist * reciprocalTime;

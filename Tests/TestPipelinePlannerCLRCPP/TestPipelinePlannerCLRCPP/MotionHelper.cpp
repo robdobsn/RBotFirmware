@@ -139,15 +139,12 @@ bool MotionHelper::moveTo(RobotCommandArgs& args)
 	// Handle any motion parameters (such as relative movement, feedrate, etc)
 	setMotionParams(args);
 
-	// Create a motion element for this movement
-	MotionElem elem(_curAxisPosition._axisPositionMM, args.pt);
-
 	// Convert the move to actuator coordinates
 	AxisFloats actuatorCoords;
-	_ptToActuatorFn(elem, actuatorCoords, _axesParams.getAxisParamsArray(), RobotConsts::MAX_AXES);
+	_ptToActuatorFn(args.pt, actuatorCoords, _axesParams.getAxisParamsArray(), RobotConsts::MAX_AXES);
 
 	// Plan the move
-	bool moveOk = _motionPlanner.moveTo(args, elem, actuatorCoords, _curAxisPosition, _axesParams, _motionPipeline);
+	bool moveOk = _motionPlanner.moveTo(args, actuatorCoords, _curAxisPosition, _axesParams, _motionPipeline);
 	if (moveOk)
 	{
 		// Update axisMotion

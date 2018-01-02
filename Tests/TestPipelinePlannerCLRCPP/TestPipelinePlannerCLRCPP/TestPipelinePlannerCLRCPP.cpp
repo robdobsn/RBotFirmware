@@ -18,25 +18,25 @@ static const char* ROBOT_CONFIG_STR_XY =
     " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
     "}";
 
-static bool ptToActuator(MotionElem& motionElem, AxisFloats& actuatorCoords, AxisParams axisParams[], int numAxes)
+static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxisParams axisParams[], int numAxes)
 {
 	bool isValid = true;
 	for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 	{
 		// Axis val from home point
-		float axisValFromHome = motionElem._pt2MM.getVal(i) - axisParams[i]._homeOffsetVal;
+		float axisValFromHome = pt.getVal(i) - axisParams[i]._homeOffsetVal;
 		// Convert to steps and add offset to home in steps
 		actuatorCoords.setVal(i, axisValFromHome * axisParams[i].stepsPerUnit()
 			+ axisParams[i]._homeOffsetSteps);
 
 		// Check machine bounds
 		bool thisAxisValid = true;
-		if (axisParams[i]._minValValid && motionElem._pt2MM.getVal(i) < axisParams[i]._minVal)
+		if (axisParams[i]._minValValid && pt.getVal(i) < axisParams[i]._minVal)
 			thisAxisValid = false;
-		if (axisParams[i]._maxValValid && motionElem._pt2MM.getVal(i) > axisParams[i]._maxVal)
+		if (axisParams[i]._maxValValid && pt.getVal(i) > axisParams[i]._maxVal)
 			thisAxisValid = false;
 		Log.trace("ptToActuator (%s) %f -> %f (homeOffVal %f, homeOffSteps %ld)", thisAxisValid ? "OK" : "INVALID",
-			motionElem._pt2MM.getVal(i), actuatorCoords._pt[i], axisParams[i]._homeOffsetVal, axisParams[i]._homeOffsetSteps);
+			pt.getVal(i), actuatorCoords._pt[i], axisParams[i]._homeOffsetVal, axisParams[i]._homeOffsetSteps);
 		isValid &= thisAxisValid;
 	}
 	return isValid;
