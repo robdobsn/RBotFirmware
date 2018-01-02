@@ -150,7 +150,6 @@
     <ClInclude Include="EndStop.h" />
     <ClInclude Include="jsmnParticleR.h" />
     <ClInclude Include="MotionActuator.h" />
-    <ClInclude Include="MotionElem.h" />
     <ClInclude Include="MotionHelper.h" />
     <ClInclude Include="MotionIO.h" />
     <ClInclude Include="MotionPipeline.h" />

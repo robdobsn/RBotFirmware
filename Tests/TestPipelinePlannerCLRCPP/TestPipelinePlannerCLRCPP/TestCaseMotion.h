@@ -14,12 +14,17 @@ using namespace System::Text::RegularExpressions;
 ref class TestCaseM
 {
 public:
+	String^ _name;
 	List<String^> _listOfIns;
 	List<String^> _listOfOuts;
 	void clear()
 	{
 		_listOfIns.Clear();
 		_listOfOuts.Clear();
+	}
+	void setName(String^ name)
+	{
+		_name = name;
 	}
 	int numIns()
 	{
@@ -115,11 +120,12 @@ public:
 		{
 			return;
 		}
-		else if (line == "TESTCASE")
+		else if (line->StartsWith("TESTCASE"))
 		{
 			//TestCaseM^ testCase = gcnew TestCaseM;
 			testCaseUnderConstruction = gcnew TestCaseM;
 			testCaseUnderConstruction->clear();
+			testCaseUnderConstruction->setName(line->Substring(9));
 		}
 		else if (line == "ENDTESTCASE")
 		{

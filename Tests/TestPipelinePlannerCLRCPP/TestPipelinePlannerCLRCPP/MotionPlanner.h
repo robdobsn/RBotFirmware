@@ -9,9 +9,6 @@ typedef void(*correctStepOverflowFnType) (AxisParams axisParams[], int numAxes);
 
 class MotionPlanner
 {
-public:
-	static constexpr double MINIMUM_MOVE_DIST_MM = 0.0001;
-
 private:
 	// Minimum planner speed mm/s
 	float _minimumPlannerSpeedMMps;
@@ -80,7 +77,7 @@ public:
 		double moveDist = sqrt(squareSum);
 
 		// Ignore if there is no real movement
-		if (!isAMove || moveDist < MINIMUM_MOVE_DIST_MM)
+		if (!isAMove || moveDist < MotionBlock::MINIMUM_MOVE_DIST_MM)
 			return false;
 
 		Log.trace("Moving %0.3f mm", moveDist);
@@ -277,7 +274,7 @@ public:
 		//    if max_entry >= prev_exit
 		//    then we're accel limited. set recalculate to false, work out max exit speed
 
-		Log.trace("------recalculatePipeline");
+		//Log.trace("------recalculatePipeline");
 		// Step 1:
 		// For each block, given the exit speed and acceleration, find the maximum entry speed
 		float entrySpeed = _minimumPlannerSpeedMMps;
@@ -292,7 +289,7 @@ public:
 			{
 				// Get the max entry speed
 				pBlock->calcMaxSpeedReverse(entrySpeed, _motionParams);
-				Log.trace("Backwards pass #%d element %08x, tryEntrySpeed %0.3f, newEntrySpeed %0.3f", elemIdxFromPutPos, pBlock, entrySpeed, pBlock->_entrySpeedMMps);
+				//Log.trace("Backwards pass #%d element %08x, tryEntrySpeed %0.3f, newEntrySpeed %0.3f", elemIdxFromPutPos, pBlock, entrySpeed, pBlock->_entrySpeedMMps);
 				entrySpeed = pBlock->_entrySpeedMMps;
 				// Next elem
 				pNext = motionPipeline.peekNthFromPut(elemIdxFromPutPos + 1);
@@ -318,7 +315,7 @@ public:
 				{
 					// Calculate trapezoid on last element
 					pPrevElem->calculateTrapezoid(_motionParams);
-					Log.trace("Forward pass cur #%d after trapezoid entrySpeed %0.3f, exitSpeed %0.3f", elemIdxFromPutPos, pPrevElem->_entrySpeedMMps, pPrevElem->_exitSpeedMMps);
+					//Log.trace("Forward pass cur #%d after trapezoid entrySpeed %0.3f, exitSpeed %0.3f", elemIdxFromPutPos, pPrevElem->_entrySpeedMMps, pPrevElem->_exitSpeedMMps);
 					break;
 				}
 				elemIdxFromPutPos--;
@@ -328,12 +325,12 @@ public:
 				// Pass the exit speed of the previous block
 				// so this block can decide if it's accel or decel limited and update its fields as appropriate
 				pBlock->calcMaxSpeedForward(pPrevElem->_exitSpeedMMps, _motionParams);
-				Log.trace("Forward pass #%d element %08x, prev En %0.3f Ex %0.3f. cur En %0.3f Ex %0.3f", elemIdxFromPutPos, pBlock,
-					pPrevElem->_entrySpeedMMps, pPrevElem->_exitSpeedMMps, pBlock->_entrySpeedMMps, pBlock->_exitSpeedMMps);
+				//Log.trace("Forward pass #%d element %08x, prev En %0.3f Ex %0.3f. cur En %0.3f Ex %0.3f", elemIdxFromPutPos, pBlock,
+				//	pPrevElem->_entrySpeedMMps, pPrevElem->_exitSpeedMMps, pBlock->_entrySpeedMMps, pBlock->_exitSpeedMMps);
 
 				// Set exit speed and calculate trapezoid on this block
 				pPrevElem->calculateTrapezoid(_motionParams);
-				Log.trace("Forward pass #%d after trapezoid entrySpeed %0.3f, exitSpeed %0.3f", elemIdxFromPutPos+1, pPrevElem->_entrySpeedMMps, pPrevElem->_exitSpeedMMps);
+				//Log.trace("Forward pass #%d after trapezoid entrySpeed %0.3f, exitSpeed %0.3f", elemIdxFromPutPos+1, pPrevElem->_entrySpeedMMps, pPrevElem->_exitSpeedMMps);
 			}
 
 		}

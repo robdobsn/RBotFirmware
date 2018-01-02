@@ -4,17 +4,26 @@
 #pragma once
 
 #include "AxisValues.h"
+#ifdef USE_SMOOTHIE_CODE
 #include <vector>
+#endif
+#ifdef ROB_IMPLEMENT_TESTS
 extern void testCompleted();
+#endif
 
 class MotionBlock
 {
 public:
 	// Step phases of each block: acceleration, plateau, deceleration
+#ifdef USE_SMOOTHIE_CODE
 	static constexpr int MAX_STEP_PHASES = 3;
+#endif
 	static constexpr int STEP_PHASE_ACCEL = 0;
 	static constexpr int STEP_PHASE_PLATEAU = 1;
 	static constexpr int STEP_PHASE_DECEL = 2;
+
+	// Minimum move distance
+	static constexpr double MINIMUM_MOVE_DIST_MM = 0.0001;
 
 	// Number of ticks to accumulate for rate actuation
 	static constexpr uint32_t K_VALUE = 1000000000l;
@@ -90,7 +99,6 @@ public:
 		//uint32_t _curStepCount;
 	};
 	std::vector<tickinfo_t> _tickInfo;
-#endif
 
 	struct axisStepPhase_t
 	{
@@ -103,6 +111,7 @@ public:
 		uint32_t _initialStepIntervalNs;
 	};
 	axisStepInfo_t _axisStepInfo[RobotConsts::MAX_AXES];
+#endif
 
 	struct axisStepData_t
 	{
@@ -336,6 +345,9 @@ public:
 			_axisStepData[axisIdx]._stepsInPlateauPhase = stepsPlateau;
 			_axisStepData[axisIdx]._stepsInDecelPhase = stepsDecel;
 
+
+#ifdef USE_SMOOTHIE_CODE
+
 			// Initial step time this axis
 			float accInStepsPerS2 = motionParams._masterAxisMaxAccMMps2 / motionParams._masterAxisStepDistanceMM;
 			float axisInitialStepTime = (sqrtf(powf(axisInitialStepRatePerSec, 2) + 2 * accInStepsPerS2) - axisInitialStepRatePerSec) / accInStepsPerS2;
@@ -381,9 +393,10 @@ public:
 				double stepIntervalNSChangePerStepDecel = ((1e9 / axisMaxStepRate) - (1e9 / axisFinalStepRate)) / stepsDecel;
 				_axisStepInfo->_stepPhases[STEP_PHASE_DECEL]._stepIntervalChangeNs = (uint32_t)stepIntervalNSChangePerStepDecel;
 			}
+#endif
 		}
 
-
+#ifdef USE_SMOOTHIE_CODE
 		//// Time for this block of movement
 		//float blockTimeS = (sqrtf(_entrySpeedMMps * _entrySpeedMMps + 2 * motionParams._masterAxisMaxAccMMps2 * _moveDistPrimaryAxesMM) - _entrySpeedMMps) /
 		//							motionParams._masterAxisMaxAccMMps2;
@@ -476,6 +489,7 @@ public:
 		// we have a potential race condition here as we could get interrupted anywhere in the middle of this call, we need to lock
 		// the updates to the blocks to get around it
 		_changeInProgress = true;
+#endif
 
 #ifdef USE_SMOOTHIE_CODE
 
@@ -576,7 +590,7 @@ public:
 
 	void debugShowBlkHead()
 	{
-		Log.trace("#idx\tEnSpd\tExitSpd\ttotTik\tInitRt\tAccTo\tAccPer\tDecFr\tDecPer\tX-Rt\tX-Acc\tX-Dec\tX-Plat\tY-Rt\tY-Acc\tY-Dec\tY-Plat");
+		Log.trace("#idx\tEntMMps\tExtMMps\tXSteps\tYSteps\tXStPKtk\tXAcPKms\tXAccSt\tXPlatSt\tXDecSt\tYStPKtk\tYAcPKms\tYAccSt\tYPlatSt\tYDecSt");
 	}
 
 	void debugShowBlock(int elemIdx)
@@ -591,6 +605,13 @@ public:
 				STEPTICKER_FROMFP(_tickInfo[1].deceleration_change)*1e10, STEPTICKER_FROMFP(_tickInfo[1].plateau_rate)*1e3
 			);
 #endif
+		Log.trace("%d\t%0.3f\t%0.3f\t%ld\t%ld\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu   \t%lu   \t%lu   \t%lu", elemIdx,
+			_entrySpeedMMps, _exitSpeedMMps, 
+			_axisStepsToTarget.X(), _axisStepsToTarget.Y(),
+			_axisStepData[0]._initialStepRatePerKTicks, _axisStepData[0]._accStepsPerKTicksPerMS,
+			_axisStepData[0]._stepsInAccPhase, _axisStepData[0]._stepsInPlateauPhase, _axisStepData[0]._stepsInDecelPhase,
+			_axisStepData[1]._initialStepRatePerKTicks, _axisStepData[1]._accStepsPerKTicksPerMS,
+			_axisStepData[1]._stepsInAccPhase, _axisStepData[1]._stepsInPlateauPhase, _axisStepData[1]._stepsInDecelPhase);
 	}
 
 };

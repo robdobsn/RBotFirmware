@@ -188,6 +188,19 @@ void testMotionElemVals(int outIdx, int valIdx, int& errorCount, MotionBlock& el
 		{ false, "idx", false, 0, 0 },
 		{ true, "_entrySpeedMMps", true, elem._entrySpeedMMps, 0},
 		{ true, "_exitSpeedMMps", true, elem._exitSpeedMMps, 0 },
+		{ true, "_axisStepsToTargetX", false, 0, elem._axisStepsToTarget.vals[0] },
+		{ true, "_axisStepsToTargetY", false, 0, elem._axisStepsToTarget.vals[1] },
+		{ true, "_initialStepRatePerKTicksX", false, 0, elem._axisStepData[0]._initialStepRatePerKTicks },
+		{ true, "_accStepsPerKTicksPerMS", false, 0, elem._axisStepData[0]._accStepsPerKTicksPerMS },
+		{ true, "_stepsInAccPhaseX", false, 0, elem._axisStepData[0]._stepsInAccPhase },
+		{ true, "_stepsInPlateauPhaseX", false, 0, elem._axisStepData[0]._stepsInPlateauPhase },
+		{ true, "_stepsInDecelPhaseX", false, 0, elem._axisStepData[0]._stepsInDecelPhase },
+		{ true, "_initialStepRatePerKTicksY", false, 0, elem._axisStepData[1]._initialStepRatePerKTicks },
+		{ true, "_accStepsPerKTicksPerMSY", false, 0, elem._axisStepData[1]._accStepsPerKTicksPerMS },
+		{ true, "_stepsInAccPhaseY", false, 0, elem._axisStepData[1]._stepsInAccPhase },
+		{ true, "_stepsInPlateauPhaseY", false, 0, elem._axisStepData[1]._stepsInPlateauPhase },
+		{ true, "_stepsInDecelPhaseY", false, 0, elem._axisStepData[1]._stepsInDecelPhase },
+
 #ifdef USE_SMOOTHIE_CODE
 		{ true, "_totalMoveTicks", false, 0, elem._totalMoveTicks },
 		{ true, "_initialStepRate", true, elem._initialStepRate, 0 },
@@ -215,7 +228,7 @@ void testMotionElemVals(int outIdx, int valIdx, int& errorCount, MotionBlock& el
 	{
 		if (!isApproxL(__testFields[valIdx].valLong, atol(pRslt), 1))
 		{
-			Log.info("ERROR Out %d field %s mismatch %ld != %s", outIdx, __testFields[valIdx].name, __testFields[valIdx].valLong, pRslt);
+			Log.info("ERROR Out %d field %s mismatch %lld != %s", outIdx, __testFields[valIdx].name, __testFields[valIdx].valLong, pRslt);
 			errorCount++;
 		}
 	}
@@ -233,15 +246,27 @@ int main()
 		exit(1);
 	}
 
+#ifdef USE_SMOOTHIE_CODE
 	Log.trace("Sizeof MotionPipelineElem %d, AxisBools %d, AxisFloat %d, AxisUint32s %d, axisStepInfo_t %d", 
 				sizeof(MotionBlock), sizeof(AxisBools), sizeof(AxisFloats), sizeof(AxisInt32s),
 				sizeof(MotionBlock::axisStepInfo_t));
+#endif
+	Log.trace("Sizeof MotionBlock %d, AxisBools %d, AxisFloat %d, AxisUint32s %d, axisStepData %d",
+		sizeof(MotionBlock), sizeof(AxisBools), sizeof(AxisFloats), sizeof(AxisInt32s),
+		sizeof(MotionBlock::axisStepData_t));
+
+	Log.trace("");
+	Log.trace("##################################################");
+	Log.trace("Starting Tests");
+	Log.trace("##################################################");
 
 	int totalErrorCount = 0;
 
 	// Go through tests
 	for each (TestCaseM^ tc in testCaseHandler.testCases)
 	{
+		Log.trace("");
+		Log.trace("========================== STARTING TEST .... %s", tc->_name);
 		int errorCount = 0;
 
 		MotionHelper _motionHelper;

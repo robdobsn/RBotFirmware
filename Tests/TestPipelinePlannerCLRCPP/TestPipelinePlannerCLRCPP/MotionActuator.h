@@ -98,8 +98,6 @@ public:
 		// New block
 		if (newBlock)
 		{
-			// Debug
-			Log.trace("New Block ...");
 			// Prep each axis separately
 			for (uint8_t axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 			{
@@ -141,10 +139,10 @@ public:
 					// Set direction for the axis
 					_motionIO.stepDirn(axisIdx, pBlock->_axisStepsToTarget.getVal(axisIdx) >= 0);
 
-					Log.trace("BLK axisIdx %d stepsToTarget %ld stepRtPerKTks %ld accStepsPerKTksPerMs %ld stepAcc %ld stepPlat %ld stepDecel %ld",
-								axisIdx, pBlock->_axisStepsToTarget.getVal(axisIdx), 
-								axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS, 
-								axisExecData._stepsAccPhase, axisExecData._stepsPlateauPhase, axisExecData._stepsDecelPhase);
+					//Log.trace("BLK axisIdx %d stepsToTarget %ld stepRtPerKTks %ld accStepsPerKTksPerMs %ld stepAcc %ld stepPlat %ld stepDecel %ld",
+					//			axisIdx, pBlock->_axisStepsToTarget.getVal(axisIdx), 
+					//			axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS, 
+					//			axisExecData._stepsAccPhase, axisExecData._stepsPlateauPhase, axisExecData._stepsDecelPhase);
 				}
 			}
 		}
@@ -170,19 +168,19 @@ public:
 				// Accelerate as required (changing interval between steps)
 				if (axisExecData._axisStepPhaseNum == MotionBlock::STEP_PHASE_ACCEL)
 				{
-					Log.trace("Accel Steps/s %ld Accel %ld", axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS);
+					//Log.trace("Accel Steps/s %ld Accel %ld", axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS);
 					if (axisExecData._curStepRatePerKTicks + axisExecData._accStepsPerKTicksPerMS < MotionBlock::K_VALUE)
 						axisExecData._curStepRatePerKTicks += axisExecData._accStepsPerKTicksPerMS;
-					else
-						Log.trace("Didn't add acceleration");
+					//else
+					//	Log.trace("Didn't add acceleration");
 				}
 				else if (axisExecData._axisStepPhaseNum == MotionBlock::STEP_PHASE_DECEL)
 				{
-					Log.trace("Decel Steps/s %ld Accel %ld", axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS);
+					//Log.trace("Decel Steps/s %ld Accel %ld", axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS);
 					if (axisExecData._curStepRatePerKTicks > axisExecData._accStepsPerKTicksPerMS)
 						axisExecData._curStepRatePerKTicks -= axisExecData._accStepsPerKTicksPerMS;
-					else
-						Log.trace("Didn't sub acceleration");
+					//else
+					//	Log.trace("Didn't sub acceleration");
 				}
 			}
 
@@ -245,6 +243,8 @@ public:
 		}
 
 	}
+
+#ifdef USE_SMOOTHIE_CODE
 
 	void processNSInterval()
 	{
@@ -362,6 +362,8 @@ public:
 		}
 
 	}
+
+#endif
 
 	void processSmoothie()
 	{

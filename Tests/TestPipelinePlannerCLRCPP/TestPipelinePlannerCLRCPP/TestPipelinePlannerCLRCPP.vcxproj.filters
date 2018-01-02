@@ -90,9 +90,6 @@
     <ClInclude Include="RobotConsts.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MotionElem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="MotionBlock.h">
       <Filter>Header Files</Filter>
     </ClInclude>

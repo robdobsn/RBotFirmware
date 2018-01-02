@@ -69,7 +69,7 @@ void testCompleted()
 {
 	if (__outOpen)
 	{
-		printf("================== TEST COMPLETE OUTFILE %s", __outFileName.c_str());
+		Log.trace("================== TEST COMPLETE OUTFILE %s", __outFileName.c_str());
 		__outOpen = false;
 		__outFile.close();
 	}
