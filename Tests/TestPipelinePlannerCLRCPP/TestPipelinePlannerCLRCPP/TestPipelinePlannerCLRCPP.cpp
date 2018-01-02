@@ -297,6 +297,7 @@ int main()
 		Log.info("Test Case error count %d", errorCount);
 
 
+		uint32_t tickCount = 0;
 		while (true)
 		{
 			if (_kbhit())
@@ -304,6 +305,7 @@ int main()
 				_getch();
 				break;
 			}
+			setTickCount(tickCount++);
 			_motionHelper.service(true);
 			if (_motionHelper.isIdle())
 			{

@@ -163,7 +163,7 @@ void MotionHelper::service(bool processPipeline)
 	// Check if we should process the movement pipeline
 	if (processPipeline)
 	{
-		_motionActuator.processSmoothie();
+		_motionActuator.process();
 	}
 }
 

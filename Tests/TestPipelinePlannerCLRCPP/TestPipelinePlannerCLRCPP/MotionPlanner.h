@@ -149,10 +149,13 @@ public:
 		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 		{
 			// Check if any actual steps to perform
-			int steps = int(std::ceil(destActuatorCoords._pt[axisIdx] - curAxisPositions._stepsFromHome._pt[axisIdx]));
+			float stepsFloat = destActuatorCoords._pt[axisIdx] - curAxisPositions._stepsFromHome._pt[axisIdx];
+			int steps = int(std::ceil(std::fabs(stepsFloat)));
 			if (steps != 0)
 				hasSteps = true;
-			// Direction
+			if (stepsFloat < 0)
+				steps = -steps;
+			// Value (and direction)
 			block._axisStepsToTarget.setVal(axisIdx, steps);
 		}
 

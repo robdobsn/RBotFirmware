@@ -16,6 +16,15 @@ public:
 	static constexpr int STEP_PHASE_PLATEAU = 1;
 	static constexpr int STEP_PHASE_DECEL = 2;
 
+	// Number of ticks to accumulate for rate actuation
+	static constexpr uint32_t K_VALUE = 1000000000l;
+
+	// Tick interval in NS
+	static constexpr uint32_t TICK_INTERVAL_NS = 1000;
+
+	// Number of ns in ms
+	static constexpr uint32_t NS_IN_A_MS = 1000000;
+
 	// Struct for moving parameters around while computing block data
 	struct motionParams
 	{
@@ -24,7 +33,6 @@ public:
 		uint32_t _minStepIntervalNS;
 		uint32_t _maxStepIntervalNS;
 	};
-
 
 public:
 	// Max speed set for master axis (maybe reduced by feedrate in a GCode command)
@@ -95,6 +103,16 @@ public:
 		uint32_t _initialStepIntervalNs;
 	};
 	axisStepInfo_t _axisStepInfo[RobotConsts::MAX_AXES];
+
+	struct axisStepData_t
+	{
+		uint32_t _initialStepRatePerKTicks;
+		uint32_t _accStepsPerKTicksPerMS;
+		uint32_t _stepsInAccPhase;
+		uint32_t _stepsInPlateauPhase;
+		uint32_t _stepsInDecelPhase;
+	};
+	axisStepData_t _axisStepData[RobotConsts::MAX_AXES];
 
 public:
 	MotionBlock()
@@ -275,26 +293,57 @@ public:
 		// Max step rate reached
 		float maxStepRateReached = maxSpeedReachedMMps / motionParams._masterAxisStepDistanceMM;
 
-		// Find the axis with max steps and the max number of steps
+		// Find the axisIdx with max steps and the max number of steps
 		uint32_t absMaxStepsForAnyAxis = 0;
 		int axisIdxWithMaxSteps = 0;
 		getAbsMaxStepsForAnyAxis(absMaxStepsForAnyAxis, axisIdxWithMaxSteps);
 		float oneOverAbsMaxStepsAnyAxis = 1.0f / absMaxStepsForAnyAxis;
 
+		// KTicks
+		float ticksPerSec = 1e9 / TICK_INTERVAL_NS;
+
+		// Master axis acceleration in steps per KTicks per millisecond
+		float masterAxisMaxAccStepsPerSec2 = motionParams._masterAxisMaxAccMMps2 / motionParams._masterAxisStepDistanceMM;
+		float masterAxisMaxAccStepsPerKTicksPerSec = (K_VALUE * masterAxisMaxAccStepsPerSec2) / ticksPerSec;
+		float masterAxisMaxAccStepsPerKTicksPerMilliSec = masterAxisMaxAccStepsPerKTicksPerSec / 1000;
+
 		// Now setup the values for the ticker to generate steps
 		for (uint8_t axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 		{
-			// Calculate step rates for axis
+
+			// Calculate scaling factor for this axis
 			uint32_t absStepsThisAxis = labs(_axisStepsToTarget.vals[axisIdx]);
 			float axisFactor = absStepsThisAxis * oneOverAbsMaxStepsAnyAxis;
-			float axisInitialStepRate = initialStepRatePerSec * axisFactor;
+			
+			// Initial step rate for this axis
+			float axisInitialStepRatePerSec = initialStepRatePerSec * axisFactor;
+
+			// Initial step rate for this axis per KTicks
+			float axisInitialStepRatePerKTicksFloat = (K_VALUE * axisInitialStepRatePerSec) / ticksPerSec;
+
+			// Axis max acceleration in units suitable for actuation
+			float axisMaxAccStepsPerKTicksPerMilliSec = masterAxisMaxAccStepsPerKTicksPerMilliSec * axisFactor;
+
+			// Step values
+			uint32_t stepsAccel = uint32_t(std::ceil(absStepsThisAxis * distPropAccelerating));
+			uint32_t stepsPlateau = uint32_t(absStepsThisAxis * distPropPlateau);
+			uint32_t stepsDecel = uint32_t(absStepsThisAxis - stepsAccel - stepsPlateau);
+
+			// Setup actuation data
+			_axisStepData[axisIdx]._initialStepRatePerKTicks = uint32_t(axisInitialStepRatePerKTicksFloat + axisMaxAccStepsPerKTicksPerMilliSec);
+			_axisStepData[axisIdx]._accStepsPerKTicksPerMS = uint32_t(axisMaxAccStepsPerKTicksPerMilliSec);
+			_axisStepData[axisIdx]._stepsInAccPhase = stepsAccel;
+			_axisStepData[axisIdx]._stepsInPlateauPhase = stepsPlateau;
+			_axisStepData[axisIdx]._stepsInDecelPhase = stepsDecel;
+
+			// Initial step time this axis
+			float accInStepsPerS2 = motionParams._masterAxisMaxAccMMps2 / motionParams._masterAxisStepDistanceMM;
+			float axisInitialStepTime = (sqrtf(powf(axisInitialStepRatePerSec, 2) + 2 * accInStepsPerS2) - axisInitialStepRatePerSec) / accInStepsPerS2;
+
 			float axisMaxStepRate = maxStepRateReached * axisFactor;
 			float axisFinalStepRate = finalStepRatePerSec * axisFactor;
 
 			// Step targets for each phase
-			uint32_t stepsAccel = uint32_t(absStepsThisAxis * distPropAccelerating);
-			uint32_t stepsPlateau = uint32_t(absStepsThisAxis * distPropPlateau);
-			uint32_t stepsDecel = uint32_t(absStepsThisAxis - stepsAccel - stepsPlateau);
 			_axisStepInfo->_stepPhases[STEP_PHASE_ACCEL]._stepsInPhase = stepsAccel;
 			_axisStepInfo->_stepPhases[STEP_PHASE_PLATEAU]._stepsInPhase = stepsPlateau;
 			_axisStepInfo->_stepPhases[STEP_PHASE_DECEL]._stepsInPhase = stepsDecel;
@@ -313,9 +362,9 @@ public:
 
 			// Calculate initial step interval (NS)
 			_axisStepInfo->_initialStepIntervalNs = motionParams._maxStepIntervalNS;
-			if (axisInitialStepRate > 1e9f / motionParams._maxStepIntervalNS)
+			if (axisInitialStepRatePerSec > 1e9f / motionParams._maxStepIntervalNS)
 			{
-				_axisStepInfo->_initialStepIntervalNs = uint32_t(1e9f / axisInitialStepRate);
+				_axisStepInfo->_initialStepIntervalNs = uint32_t(1e9f / axisInitialStepRatePerSec);
 			}
 
 			// Acceleration each phase
@@ -324,7 +373,7 @@ public:
 			_axisStepInfo->_stepPhases[STEP_PHASE_DECEL]._stepIntervalChangeNs = 0;
 			if (stepsAccel > 0)
 			{
-				double stepIntervalNSChangePerStepAccel = ((1e9 / axisInitialStepRate) - (1e9 / axisMaxStepRate)) / stepsAccel;
+				double stepIntervalNSChangePerStepAccel = ((1e9 / axisInitialStepRatePerSec) - (1e9 / axisMaxStepRate)) / stepsAccel;
 				_axisStepInfo->_stepPhases[STEP_PHASE_ACCEL]._stepIntervalChangeNs = (uint32_t)stepIntervalNSChangePerStepAccel;
 			}
 			if (stepsDecel > 0)
@@ -333,6 +382,13 @@ public:
 				_axisStepInfo->_stepPhases[STEP_PHASE_DECEL]._stepIntervalChangeNs = (uint32_t)stepIntervalNSChangePerStepDecel;
 			}
 		}
+
+
+		//// Time for this block of movement
+		//float blockTimeS = (sqrtf(_entrySpeedMMps * _entrySpeedMMps + 2 * motionParams._masterAxisMaxAccMMps2 * _moveDistPrimaryAxesMM) - _entrySpeedMMps) /
+		//							motionParams._masterAxisMaxAccMMps2;
+
+		//// 
 
 		// Now calculate the step rate at max parametric speed (might be altered by feedrate demanded)
 		float blockTime = _moveDistPrimaryAxesMM / _maxParamSpeedMMps;

@@ -25,6 +25,11 @@ uint32_t micros()
 	return __curMicros++;
 }
 
+void setTickCount(uint32_t tickCount)
+{
+	__curMicros = tickCount;
+}
+
 void pinMode(int pin, int mode)
 {
 
@@ -37,6 +42,10 @@ bool fexists(const String filename) {
 
 void digitalWrite(int pin, int val)
 {
+	// Ignore if it is a lowering of a step pin (to avoid end of test problem)
+	if ((val == 0) && (pin == 2 || pin == 4))
+		return;
+	// 
 	if (!__outOpen)
 	{
 		int fileCount = 0;
@@ -65,6 +74,7 @@ void testCompleted()
 		__outFile.close();
 	}
 }
+
 bool digitalRead(int pin)
 {
 	return 0;

@@ -107,6 +107,7 @@ public:
 	{}
 };
 
+extern void setTickCount(uint32_t tickCount);
 extern unsigned long millis();
 extern uint32_t micros();
 
