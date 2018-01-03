@@ -88,7 +88,7 @@ public:
 			String dirnPinName = RdJson::getString("dirnPin", "-1", axisJSON);
 			int stepPin = ConfigPinMap::getPinFromName(stepPinName.c_str());
 			int dirnPin = ConfigPinMap::getPinFromName(dirnPinName.c_str());
-			Log.info("Axis%d (step pin %ld, dirn pin %ld)", axisIdx, stepPin, dirnPin);
+			Log.info("Axis%d (step pin %d, dirn pin %d)", axisIdx, stepPin, dirnPin);
 			if ((stepPin != -1 && dirnPin != -1))
 				_stepperMotors[axisIdx] = new StepperMotor(StepperMotor::MOTOR_TYPE_DRIVER, stepPin, dirnPin);
 		}

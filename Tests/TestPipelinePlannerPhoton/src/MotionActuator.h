@@ -1,8 +1,13 @@
 #pragma once
 
+#define USE_SPARK_INTERVAL_TIMER_ISR 1
+
 #include "application.h"
 #include "MotionPipeline.h"
 #include "MotionIO.h"
+#ifdef USE_SPARK_INTERVAL_TIMER_ISR
+#include "SparkIntervalTimer.h"
+#endif
 
 class MotionActuator
 {
@@ -11,9 +16,19 @@ private:
 	MotionPipeline& _motionPipeline;
 	MotionIO& _motionIO;
 
+	static uint32_t _testCount;
+
+#ifdef USE_SPARK_INTERVAL_TIMER_ISR
+	// ISR based interval timer
+	static IntervalTimer _isrMotionTimer;
+	static constexpr uint16_t ISR_TIMER_PERIOD_US = 50;
+#endif
+
 private:
 	struct axisExecData_t
 	{
+		// Enabled flag
+		bool _isEnabled;
 		// True while axis is active - when all false block is complete
 		bool _isActive;
 		// Steps in each phase of motion
@@ -33,12 +48,20 @@ private:
 	};
 	axisExecData_t _axisExecData[RobotConsts::MAX_AXES];
 
+private:
+	#ifdef USE_SPARK_INTERVAL_TIMER_ISR
+		static void _isrStepperMotion(void);
+	#endif
+
 public:
 	MotionActuator(MotionIO& motionIO, MotionPipeline& motionPipeline) :
 		_motionPipeline(motionPipeline),
 		_motionIO(motionIO)
 	{
-		_isPaused = false;
+#ifdef USE_SPARK_INTERVAL_TIMER_ISR
+		_isrMotionTimer.begin(_isrStepperMotion, ISR_TIMER_PERIOD_US, uSec);
+#endif
+		clear();
 	}
 
 	void config()
@@ -48,7 +71,7 @@ public:
 
 	void clear()
 	{
-		_isPaused = false;
+		_isPaused = true;
 	}
 
 	void pause(bool pauseIt)
@@ -57,6 +80,13 @@ public:
 	}
 
 	void process()
+	{
+#ifndef USE_SPARK_INTERVAL_TIMER_ISR
+	procBlock();
+#endif
+	}
+
+	void procBlock()
 	{
 		// Check if paused
 		if (_isPaused)

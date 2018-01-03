@@ -85,7 +85,7 @@ public:
 		int nthPos = _putPos - 1 - N;
 		if (nthPos < 0)
 			nthPos += _bufLen;
-		if ((nthPos+1 == _getPos) || (nthPos+1 == _bufLen && _getPos == 0))
+		if (((unsigned int)(nthPos+1) == _getPos) || ((unsigned int)(nthPos+1) == _bufLen && _getPos == 0))
 			return -1;
 		return nthPos;
 	}

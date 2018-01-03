@@ -98,6 +98,7 @@ void setup()
 
 	_motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
 	_motionHelper.configure(ROBOT_CONFIG_STR_XY);
+	_motionHelper.pause(false);
 
 	RobotCommandArgs cmdArgs;
 	cmdArgs.setAxisValue(0, 1, true);
