@@ -1,25 +1,11 @@
 // RBotFirmware
-// Rob Dobson 2016
+// Rob Dobson 2018
 
 #include "application.h"
 #include "ConfigPinMap.h"
 #include "math.h"
 #include "MotionHelper.h"
 #include "Utils.h"
-
-#ifdef USE_SPARK_INTERVAL_TIMER_ISR
-IntervalTimer MotionActuator::_isrMotionTimer;
-uint32_t MotionActuator::_testCount = 0;
-void MotionActuator::_isrStepperMotion(void)
-{
-	_testCount++;
-	if (_testCount > 10000)
-	{
-		_testCount = 0;
-		digitalWrite(D7, !digitalRead(D7));
-	}
-}
-#endif
 
 MotionHelper::MotionHelper() :
 		_motionActuator(_motionIO, _motionPipeline)

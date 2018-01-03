@@ -21,6 +21,7 @@ private:
 #ifdef USE_SPARK_INTERVAL_TIMER_ISR
 	// ISR based interval timer
 	static IntervalTimer _isrMotionTimer;
+	static MotionActuator* _pMotionActuatorInstance;
 	static constexpr uint16_t ISR_TIMER_PERIOD_US = 50;
 #endif
 
@@ -59,7 +60,11 @@ public:
 		_motionIO(motionIO)
 	{
 #ifdef USE_SPARK_INTERVAL_TIMER_ISR
-		_isrMotionTimer.begin(_isrStepperMotion, ISR_TIMER_PERIOD_US, uSec);
+		if (_pMotionActuatorInstance == NULL)
+		{
+			_pMotionActuatorInstance = this;
+			_isrMotionTimer.begin(_isrStepperMotion, ISR_TIMER_PERIOD_US, uSec);
+		}
 #endif
 		clear();
 	}
