@@ -36,9 +36,6 @@
     <ClInclude Include="application.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ActuatorCoordinates.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="MotionRingBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>

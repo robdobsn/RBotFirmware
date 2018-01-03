@@ -141,7 +141,6 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ActuatorCoordinates.h" />
     <ClInclude Include="application.h" />
     <ClInclude Include="AxesParams.h" />
     <ClInclude Include="AxisPosition.h" />
