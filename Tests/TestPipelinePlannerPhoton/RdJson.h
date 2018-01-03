@@ -7,9 +7,7 @@
 
 #pragma once
 
-#if PLATFORM_ID == 6 // Photon
-#define WiringString String
-#elif PLATFORM_ID == 88 // RedBear Duo
+#ifdef SPARK // Particle Photon / RedBear Duo / etc
 #define WiringString String
 #endif
 
