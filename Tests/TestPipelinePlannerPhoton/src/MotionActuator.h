@@ -1,6 +1,6 @@
 #pragma once
 
-// #define USE_SPARK_INTERVAL_TIMER_ISR 1
+#define USE_SPARK_INTERVAL_TIMER_ISR 1
 #define TEST_OUTPUT_STEP_DATA 1
 
 #include "application.h"
@@ -182,7 +182,7 @@ public:
 #endif
 #ifdef TEST_OUTPUT_STEP_DATA
 	_testOutputStepData.process();
-	digitalWrite(D7, !digitalRead(D7));
+	// digitalWrite(D7, !digitalRead(D7));
 #endif
 	}
 
@@ -257,7 +257,7 @@ public:
 					// Set direction for the axis
 #ifdef TEST_OUTPUT_STEP_DATA
 					// Log.trace("Adding direction");
-					_testOutputStepData.stepDirn(axisIdx, pBlock->_axisStepsToTarget.getVal(axisIdx) >= 0, axisStepData._stepsInAccPhase, axisExecData._curStepRatePerKTicks);
+					_testOutputStepData.stepDirn(axisIdx, pBlock->_axisStepsToTarget.getVal(axisIdx) >= 0, _motionPipeline.count(), axisExecData._curStepRatePerKTicks);
 #else
 					_motionIO.stepDirn(axisIdx, pBlock->_axisStepsToTarget.getVal(axisIdx) >= 0);
 #endif

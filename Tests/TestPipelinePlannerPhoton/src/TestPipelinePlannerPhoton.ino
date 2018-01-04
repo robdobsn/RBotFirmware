@@ -80,9 +80,9 @@ void setup()
 {
 	pinMode(D7, OUTPUT);
 	Serial.begin(115200);
-	delay(5000);
+	delay(2000);
 	Serial.println("STARTING");
-	delay(5000);
+	delay(2000);
 	Log.trace("");
 	Log.trace("========================== STARTING TEST ==========================");
 	int errorCount = 0;
@@ -91,7 +91,6 @@ void setup()
 
 	_motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
 	_motionHelper.configure(ROBOT_CONFIG_STR_XY);
-	_motionHelper.pause(false);
 
 	RobotCommandArgs cmdArgs;
 	cmdArgs.setAxisValue(0, 1, true);
@@ -133,6 +132,8 @@ void setup()
 	    Log.info("-------------ERRORS---------------");
 	}
 	Log.info("Test Case error count %d", errorCount);
+
+	_motionHelper.pause(false);
 
 }
 

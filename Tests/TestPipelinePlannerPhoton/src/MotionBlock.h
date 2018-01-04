@@ -22,7 +22,7 @@ public:
 	static constexpr uint32_t K_VALUE = 1000000000l;
 
 	// Tick interval in NS
-	static constexpr uint32_t TICK_INTERVAL_NS = 1000;
+	static constexpr uint32_t TICK_INTERVAL_NS = 20000;
 
 	// Number of ns in ms
 	static constexpr uint32_t NS_IN_A_MS = 1000000;
