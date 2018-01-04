@@ -1,12 +1,99 @@
 #pragma once
 
-#define USE_SPARK_INTERVAL_TIMER_ISR 1
+// #define USE_SPARK_INTERVAL_TIMER_ISR 1
+#define TEST_OUTPUT_STEP_DATA 1
 
 #include "application.h"
 #include "MotionPipeline.h"
 #include "MotionIO.h"
 #ifdef USE_SPARK_INTERVAL_TIMER_ISR
 #include "SparkIntervalTimer.h"
+#include <vector>
+#endif
+
+#ifdef TEST_OUTPUT_STEP_DATA
+static constexpr int TEST_OUTPUT_STEPS = 1000;
+
+class TestOutputStepData
+{
+public:
+	struct TestOutputStepInf
+	{
+		uint32_t _micros;
+		struct {
+			int _pin : 8;
+			int _val: 1;
+		};
+		uint32_t v2;
+		uint32_t v3;
+	};
+	MotionRingBufferPosn _stepBufPos;
+	std::vector<TestOutputStepInf> _stepBuf;
+
+	TestOutputStepData() :
+		_stepBufPos(TEST_OUTPUT_STEPS)
+	{
+		_stepBuf.reserve(TEST_OUTPUT_STEPS);
+	}
+
+	void stepStart(int axisIdx, uint32_t v2, uint32_t v3)
+	{
+		addToQueue(axisIdx == 0 ? 2 : 4, 1, v2, v3);
+	}
+
+	void stepEnd()
+	{
+	}
+
+	void stepDirn(int axisIdx, int val, uint32_t v2, uint32_t v3)
+	{
+		addToQueue(axisIdx == 0 ? 3 : 5, val, v2, v3);
+	}
+
+	void addToQueue(int pin, int val, uint32_t v2, uint32_t v3)
+	{
+		// Ignore if it is a lowering of a step pin (to avoid end of test problem)
+		if ((val == 0) && (pin == 2 || pin == 4))
+			return;
+		if (_stepBufPos.canPut())
+		{
+			TestOutputStepInf newInf;
+			newInf._micros = micros();
+			newInf._pin = uint8_t(pin);
+			newInf._val = val;
+			newInf.v2 = v2;
+			newInf.v3 = v3;
+			_stepBuf[_stepBufPos._putPos] = newInf;
+			_stepBufPos.hasPut();
+		}
+	}
+
+	TestOutputStepInf getStepInf()
+	{
+		TestOutputStepInf inf = _stepBuf[_stepBufPos._getPos];
+		_stepBufPos.hasGot();
+		return inf;
+	}
+
+	void process()
+	{
+		// Log.trace("StepBuf getPos %d putPos %d count %d", _stepBufPos._getPos, _stepBufPos._putPos, _stepBufPos.count());
+
+		// Get
+		for (int i = 0; i < 5; i++)
+		{
+			// Check if can get
+			if (!_stepBufPos.canGet())
+			{
+				// Log.trace("Process can't get");
+				return;
+			}
+
+			TestOutputStepInf inf = getStepInf();
+			Log.trace("W\t%lu\t%d\t%d\t%lu\t%lu", inf._micros, inf._pin, inf._val ? 1 : 0, inf.v2, inf.v3);
+		}
+	}
+};
 #endif
 
 class MotionActuator
@@ -22,7 +109,11 @@ private:
 	// ISR based interval timer
 	static IntervalTimer _isrMotionTimer;
 	static MotionActuator* _pMotionActuatorInstance;
-	static constexpr uint16_t ISR_TIMER_PERIOD_US = 50;
+	static constexpr uint16_t ISR_TIMER_PERIOD_US = uint16_t(MotionBlock::TICK_INTERVAL_NS / 1000l);
+#endif
+
+#ifdef TEST_OUTPUT_STEP_DATA
+	TestOutputStepData _testOutputStepData;
 #endif
 
 private:
@@ -87,19 +178,27 @@ public:
 	void process()
 	{
 #ifndef USE_SPARK_INTERVAL_TIMER_ISR
-	procBlock();
+		procTick();
+#endif
+#ifdef TEST_OUTPUT_STEP_DATA
+	_testOutputStepData.process();
+	digitalWrite(D7, !digitalRead(D7));
 #endif
 	}
 
-	void procBlock()
+	void procTick()
 	{
 		// Check if paused
 		if (_isPaused)
 			return;
 
 		// Do a step-end for any motor which needs one - return here to avoid too short a pulse
+#ifdef TEST_OUTPUT_STEP_DATA
+		_testOutputStepData.stepEnd();
+#else
 		if (_motionIO.stepEnd())
 			return;
+#endif
 
 		// Peek a MotionPipelineElem from the queue
 		MotionBlock* pBlock = _motionPipeline.peekGet();
@@ -156,7 +255,12 @@ public:
 					// Set active
 					axisExecData._isActive = true;
 					// Set direction for the axis
+#ifdef TEST_OUTPUT_STEP_DATA
+					// Log.trace("Adding direction");
+					_testOutputStepData.stepDirn(axisIdx, pBlock->_axisStepsToTarget.getVal(axisIdx) >= 0, axisStepData._stepsInAccPhase, axisExecData._curStepRatePerKTicks);
+#else
 					_motionIO.stepDirn(axisIdx, pBlock->_axisStepsToTarget.getVal(axisIdx) >= 0);
+#endif
 
 					//Log.trace("BLK axisIdx %d stepsToTarget %ld stepRtPerKTks %ld accStepsPerKTksPerMs %ld stepAcc %ld stepPlat %ld stepDecel %ld",
 					//			axisIdx, pBlock->_axisStepsToTarget.getVal(axisIdx),
@@ -213,7 +317,13 @@ public:
 				axisExecData._curAccumulatorStep -= MotionBlock::K_VALUE;
 
 				// Step
+#ifdef TEST_OUTPUT_STEP_DATA
+				// Log.trace("Adding step");
+				_testOutputStepData.stepStart(axisIdx, axisExecData._curPhaseStepCount,
+							axisExecData._targetStepCount);
+#else
 				_motionIO.stepStart(axisIdx);
+#endif
 				axisExecData._curPhaseStepCount++;
 
 				// Check if phase is done

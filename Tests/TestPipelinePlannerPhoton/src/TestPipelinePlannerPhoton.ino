@@ -79,13 +79,6 @@ MotionHelper _motionHelper;
 void setup()
 {
 	pinMode(D7, OUTPUT);
-	for (int i = 0; i < 8; i++)
-	{
-		digitalWrite(D7,1);
-		delay(500);
-		digitalWrite(D7,0);
-		delay(500);
-	}
 	Serial.begin(115200);
 	delay(5000);
 	Serial.println("STARTING");

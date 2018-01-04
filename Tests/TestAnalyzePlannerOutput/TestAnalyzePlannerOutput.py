@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-f = open("../TestPipelinePlannerCLRCPP/TestPipelinePlannerCLRCPP/testOut/testOut_00236.txt")
+f = open("../TestPipelinePlannerCLRCPP/TestPipelinePlannerCLRCPP/testOut/testOut_fromTeraTerm_001.txt")
 lines = f.readlines()
 
 stepDist = 60 / 3200
@@ -27,7 +27,7 @@ startSet = False
 startUs = 0
 curDist = [0,0]
 for line in lines:
-    fields = line.split("\t")
+    fields = line.split()
     lineUs = int(fields[fieldUs])
     if not startSet or lineUs < startUs:
         startUs = lineUs

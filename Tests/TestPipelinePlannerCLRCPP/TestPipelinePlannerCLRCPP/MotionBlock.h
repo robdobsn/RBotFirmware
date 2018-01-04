@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "math.h"
 #include "AxisValues.h"
 #ifdef USE_SMOOTHIE_CODE
 #include <vector>
@@ -259,9 +260,8 @@ public:
 
 		// At this point we are ready to calculate the phases of motion for this block: acceleration, plateau, deceleration
 
-		// First calculate the step rate (steps per sec) for entry and exit
+		// First calculate the step rate (steps per sec) for entry
 		float initialStepRatePerSec = _entrySpeedMMps / motionParams._masterAxisStepDistanceMM;
-		float finalStepRatePerSec = _exitSpeedMMps / motionParams._masterAxisStepDistanceMM;
 
 		// Calculate the distance accelerating and ensure within bounds
 		// Using the facts for the block ... (assuming max accleration followed by max deceleration):
@@ -275,12 +275,9 @@ public:
 		float distPlateau = 0;
 
 		// Check if max speed is reached
-		float maxSpeedReachedMMps = 0;
 		float distToMaxSpeed = (powf(_maxParamSpeedMMps, 2) - powf(_entrySpeedMMps, 2)) / 2 / motionParams._masterAxisMaxAccMMps2;
 		if (distToMaxSpeed < distAccelerating)
 		{
-			// We hit max speed
-			maxSpeedReachedMMps = _maxParamSpeedMMps;
 			// Max speed reached so we need to plateau
 			distAccelerating = distToMaxSpeed;
 			// Also need to recalculate distance decelerating
@@ -288,19 +285,10 @@ public:
 			// And the plateau
 			distPlateau = _moveDistPrimaryAxesMM - distAccelerating - distDecelerating;
 		}
-		else
-		{
-			// Calculate max speed we do reach
-			maxSpeedReachedMMps = sqrtf(pow(_entrySpeedMMps, 2) + 2 * motionParams._masterAxisMaxAccMMps2 * distAccelerating);
-		}
 
 		// Proportions of distance in each phase (acceleration, plateau, deceleration)
 		float distPropAccelerating = distAccelerating / _moveDistPrimaryAxesMM;
 		float distPropPlateau = distPlateau / _moveDistPrimaryAxesMM;
-		float distPropDecelerating = distDecelerating / _moveDistPrimaryAxesMM;
-
-		// Max step rate reached
-		float maxStepRateReached = maxSpeedReachedMMps / motionParams._masterAxisStepDistanceMM;
 
 		// Find the axisIdx with max steps and the max number of steps
 		uint32_t absMaxStepsForAnyAxis = 0;
@@ -323,7 +311,7 @@ public:
 			// Calculate scaling factor for this axis
 			uint32_t absStepsThisAxis = labs(_axisStepsToTarget.vals[axisIdx]);
 			float axisFactor = absStepsThisAxis * oneOverAbsMaxStepsAnyAxis;
-			
+
 			// Initial step rate for this axis
 			float axisInitialStepRatePerSec = initialStepRatePerSec * axisFactor;
 
@@ -334,7 +322,7 @@ public:
 			float axisMaxAccStepsPerKTicksPerMilliSec = masterAxisMaxAccStepsPerKTicksPerMilliSec * axisFactor;
 
 			// Step values
-			uint32_t stepsAccel = uint32_t(std::ceil(absStepsThisAxis * distPropAccelerating));
+			uint32_t stepsAccel = uint32_t(ceilf(absStepsThisAxis * distPropAccelerating));
 			uint32_t stepsPlateau = uint32_t(absStepsThisAxis * distPropPlateau);
 			uint32_t stepsDecel = uint32_t(absStepsThisAxis - stepsAccel - stepsPlateau);
 

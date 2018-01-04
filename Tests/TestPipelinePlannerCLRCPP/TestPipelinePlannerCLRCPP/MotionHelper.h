@@ -10,7 +10,6 @@
 #include "MotionPlanner.h"
 #include "MotionIO.h"
 #include "MotionActuator.h"
-#include "MotionElem.h"
 
 class MotionHelper
 {
@@ -44,7 +43,7 @@ private:
 	MotionPipeline _motionPipeline;
 	// Motion IO (Motors and end-stops)
 	MotionIO _motionIO;
-	// Motion 
+	// Motion
 	MotionActuator _motionActuator;
 	// Debug
 	unsigned long _debugLastPosDispMs;

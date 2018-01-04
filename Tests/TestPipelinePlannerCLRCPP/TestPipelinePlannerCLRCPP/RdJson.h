@@ -6,7 +6,11 @@
 // / is a separator of nodes
 
 #pragma once
-#include "Particle.h"
+
+#ifdef SPARK // Particle Photon / RedBear Duo / etc
+#define WiringString String
+#endif
+
 #include "jsmnParticleR.h"
 
 // Define this to enable reformatting of JSON

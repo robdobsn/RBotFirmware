@@ -3,8 +3,9 @@
 
 #pragma once
 
-#include "AxisValues.h"
 #include "math.h"
+#include "AxisValues.h"
+
 
 class MotionBlock
 {

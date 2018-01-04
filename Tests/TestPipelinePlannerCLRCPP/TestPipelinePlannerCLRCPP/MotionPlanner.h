@@ -1,7 +1,6 @@
 #pragma once
 
 #include "MotionPipeline.h"
-#include "MotionElem.h"
 
 typedef bool(*ptToActuatorFnType) (AxisFloats& pt, AxisFloats& actuatorCoords, AxisParams axisParams[], int numAxes);
 typedef void(*actuatorToPtFnType) (AxisFloats& actuatorCoords, AxisFloats& pt, AxisParams axisParams[], int numAxes);
@@ -46,8 +45,6 @@ public:
 				AxisPosition& curAxisPositions,
 				AxesParams& axesParams, MotionPipeline& motionPipeline)
 	{
-		//Log.trace("MotionElem distance delta %0.3f", elem.delta());
-
 		// Motion parameters used throughout planner process
 		_motionParams._masterAxisMaxAccMMps2 = axesParams.getMasterMaxAccel();
 		_motionParams._masterAxisStepDistanceMM = axesParams.getMasterStepDistMM();
@@ -142,12 +139,12 @@ public:
 
 		// Find if there are any steps
 		bool hasSteps = false;
-		
+
 		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 		{
 			// Check if any actual steps to perform
 			float stepsFloat = destActuatorCoords._pt[axisIdx] - curAxisPositions._stepsFromHome._pt[axisIdx];
-			int steps = int(std::ceil(std::fabs(stepsFloat)));
+			int steps = int(ceilf(fabs(stepsFloat)));
 			if (steps != 0)
 				hasSteps = true;
 			if (stepsFloat < 0)
@@ -261,14 +258,14 @@ public:
 		//    if max entry speed == current entry speed
 		//    then we can set recalculate to false, since clearly adding another block didn't allow us to enter faster
 		//    and thus we don't need to check entry speed for this block any more
-		//	
+		//
 		// Once we find an accel limited block, we must find the max exit speed and walk the queue forwards
-		//	
+		//
 		// For each block, walking forwards in the queue :
 		//
 		//    given the exit speed of the previous block and our own max entry speed
 		//    we can tell if we're accel or decel limited (or coasting)
-		//	
+		//
 		//    if prev_exit > max_entry
 		//    then we're still decel limited. update previous trapezoid with our max entry for prev exit
 		//    if max_entry >= prev_exit

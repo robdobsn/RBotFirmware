@@ -24,6 +24,12 @@ void MotionActuator::_isrStepperMotion(void)
 		_testCount = 0;
 		digitalWrite(D7, !digitalRead(D7));
 	}
+
+    // Process block
+    if (_pMotionActuatorInstance)
+    {
+        _pMotionActuatorInstance->procTick();
+    }
 }
 
 #endif
