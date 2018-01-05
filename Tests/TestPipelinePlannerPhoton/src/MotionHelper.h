@@ -99,6 +99,7 @@ public:
 	}
 
 	void debugShowBlocks();
+	void debugShowTiming();
 	int testGetPipelineCount();
 	void testGetPipelineBlock(int elIdx, MotionBlock& elem);
 

@@ -1,7 +1,12 @@
+// RBotFirmware
+// Rob Dobson 2016-2018
+
 #pragma once
 
 #ifdef SPARK
 #define USE_SPARK_INTERVAL_TIMER_ISR 1
+//#define DEBUG_TIME_ISR_OVERALL 1
+// #define DEBUG_BLINK_D7_ON_ISR 1
 #endif
 #define TEST_OUTPUT_STEP_DATA 1
 
@@ -105,13 +110,19 @@ private:
 	MotionPipeline& _motionPipeline;
 	MotionIO& _motionIO;
 
+#ifdef DEBUG_BLINK_D7_ON_ISR
 	static uint32_t _testCount;
+#endif
 
 #ifdef USE_SPARK_INTERVAL_TIMER_ISR
 	// ISR based interval timer
 	static IntervalTimer _isrMotionTimer;
 	static MotionActuator* _pMotionActuatorInstance;
 	static constexpr uint16_t ISR_TIMER_PERIOD_US = uint16_t(MotionBlock::TICK_INTERVAL_NS / 1000l);
+#ifdef DEBUG_TIME_ISR_OVERALL
+	static uint32_t __isrDbgTickMin;
+	static uint32_t __isrDbgTickMax;
+#endif
 #endif
 
 #ifdef TEST_OUTPUT_STEP_DATA
@@ -188,8 +199,20 @@ public:
 #endif
 	}
 
+	void showDebug()
+	{
+#ifdef DEBUG_TIME_ISR_OVERALL
+        Log.info("Min/Max ISR exec time %0.2fuS, %0.2fuS",
+                    ((double)__isrDbgTickMin)/System.ticksPerMicrosecond(),
+                    ((double)__isrDbgTickMax)/System.ticksPerMicrosecond());
+        __isrDbgTickMin = 10000000;
+        __isrDbgTickMax = 0;
+#endif
+	}
+
 	void procTick()
 	{
+
 		// Check if paused
 		if (_isPaused)
 			return;
@@ -264,6 +287,10 @@ public:
 					_motionIO.stepDirn(axisIdx, pBlock->_axisStepsToTarget.getVal(axisIdx) >= 0);
 #endif
 
+					// Return here to reduce the maximum time this function takes
+					// Assuming this function is called frequently (<50uS intervals say)
+					// then it will make little difference if we return now and pick up on the next tick
+					return;
 					//Log.trace("BLK axisIdx %d stepsToTarget %ld stepRtPerKTks %ld accStepsPerKTksPerMs %ld stepAcc %ld stepPlat %ld stepDecel %ld",
 					//			axisIdx, pBlock->_axisStepsToTarget.getVal(axisIdx),
 					//			axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS,

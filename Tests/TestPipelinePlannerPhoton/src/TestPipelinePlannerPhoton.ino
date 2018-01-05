@@ -129,6 +129,8 @@ void setup()
 
 	_motionHelper.debugShowBlocks();
 
+	_motionHelper.debugShowTiming();
+
 	if (errorCount != 0)
 	{
 	    Log.info("-------------ERRORS---------------");
