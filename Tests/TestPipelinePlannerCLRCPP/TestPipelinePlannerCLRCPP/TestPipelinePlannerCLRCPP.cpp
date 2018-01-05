@@ -273,6 +273,7 @@ int main()
 
 		_motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
 		_motionHelper.configure(ROBOT_CONFIG_STR_XY);
+		_motionHelper.pause(false);
 
 		for (int i = 0; i < tc->numIns(); i++)
 		{

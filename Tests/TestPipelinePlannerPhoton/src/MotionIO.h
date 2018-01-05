@@ -3,7 +3,9 @@
 #include "StepperMotor.h"
 #include "EndStop.h"
 
-// #define BOUNDS_CHECK_ISR_FUNCTIONS 1
+#ifndef SPARK
+#define BOUNDS_CHECK_ISR_FUNCTIONS 1
+#endif
 
 class MotionIO
 {

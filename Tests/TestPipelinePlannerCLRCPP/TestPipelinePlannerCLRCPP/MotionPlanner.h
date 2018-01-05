@@ -220,20 +220,7 @@ public:
 		float maxAllowableSpeedMMps = sqrtf(_minimumPlannerSpeedMMps * _minimumPlannerSpeedMMps - 2.0F * (-_motionParams._masterAxisMaxAccMMps2) * block._moveDistPrimaryAxesMM);
 		block._entrySpeedMMps = std::min(vmaxJunction, maxAllowableSpeedMMps);
 
-		// Initialize planner efficiency flags
-		// Set flag if block will always reach maximum junction speed regardless of entry/exit speeds.
-		// If a block can de/ac-celerate from nominal speed to zero within the length of the block, then
-		// the current block and next block junction speeds are guaranteed to always be at their maximum
-		// junction speeds in deceleration and acceleration, respectively. This is due to how the current
-		// block nominal speed limits both the current and next maximum junction speeds. Hence, in both
-		// the reverse and forward planners, the corresponding block junction speed will always be at the
-		// the maximum junction speed and may always be ignored for any speed reduction checks.
-		block._nominalLengthFlag = (block._maxParamSpeedMMps <= maxAllowableSpeedMMps);
-
-		Log.trace("MaxAllowableSpeed %0.3f, entrySpeedMMps %0.3f, nominalLengthFlag %d", maxAllowableSpeedMMps, block._entrySpeedMMps, block._nominalLengthFlag);
-
-		// Recalculation required
-		block._recalcFlag = true;
+		Log.trace("MaxAllowableSpeed %0.3f, entrySpeedMMps %0.3f", maxAllowableSpeedMMps, block._entrySpeedMMps);
 
 		// Store the element in the queue and remember previous element
 		motionPipeline.add(block);
@@ -282,7 +269,7 @@ public:
 		if (motionPipeline.peekNthFromPut(elemIdxFromPutPos) != NULL)
 		{
 			pBlock = motionPipeline.peekNthFromPut(elemIdxFromPutPos);
-			while (pBlock && pBlock->_recalcFlag)
+			while (pBlock)
 			{
 				// Get the max entry speed
 				pBlock->calcMaxSpeedReverse(entrySpeed, _motionParams);

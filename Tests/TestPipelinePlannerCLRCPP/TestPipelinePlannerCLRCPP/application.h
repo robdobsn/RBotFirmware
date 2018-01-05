@@ -122,3 +122,5 @@ public:
 };
 
 extern Time_t Time;
+
+extern void testCompleted();

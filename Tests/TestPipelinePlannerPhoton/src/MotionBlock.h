@@ -22,7 +22,7 @@ public:
 	static constexpr uint32_t K_VALUE = 1000000000l;
 
 	// Tick interval in NS
-	static constexpr uint32_t TICK_INTERVAL_NS = 20000;
+	static constexpr uint32_t TICK_INTERVAL_NS = 10000;
 
 	// Number of ns in ms
 	static constexpr uint32_t NS_IN_A_MS = 1000000;
@@ -51,15 +51,10 @@ public:
 	float _exitSpeedMMps;
 	// Unit vectors for movement
 	AxisFloats unitVectors;
-
-	// Flags
-	struct
-	{
-		bool _nominalLengthFlag : 1;
-		bool _recalcFlag : 1;
-		bool _isRunning : 1;
-		bool _changeInProgress : 1;
-	};
+	// Flag indicating the block is currently executing
+	volatile bool _isExecuting;
+	// Flag indicating the block can start executing
+	volatile bool _canExecute;
 
 	struct axisStepData_t
 	{
@@ -85,10 +80,8 @@ public:
 		_maxEntrySpeedMMps = 0;
 		_entrySpeedMMps = 0;
 		_exitSpeedMMps = 0;
-		_isRunning = false;
-		_nominalLengthFlag = false;
-		_recalcFlag = false;
-		_changeInProgress = false;
+		_isExecuting = false;
+		_canExecute = false;
 	}
 
 	void getAbsMaxStepsForAnyAxis(uint32_t& axisAbsMaxSteps, int &axisIdxWithMaxSteps)
@@ -112,9 +105,7 @@ public:
 		// check for maximum allowable speed reductions to ensure maximum possible planned speed.
 		if (_entrySpeedMMps != _maxEntrySpeedMMps)
 		{
-			// If nominal length true, max junction speed is guaranteed to be reached. Only compute
-			// for max allowable speed if block is decelerating and nominal length is false.
-			if ((!_nominalLengthFlag) && (_maxEntrySpeedMMps > exitSpeed))
+			if (_maxEntrySpeedMMps > exitSpeed)
 			{
 				float maxEntrySpeed = maxAllowableSpeed(-motionParams._masterAxisMaxAccMMps2, exitSpeed, this->_moveDistPrimaryAxesMM);
 				_entrySpeedMMps = std::min(maxEntrySpeed, _maxEntrySpeedMMps);
@@ -141,10 +132,6 @@ public:
 		{
 			// We're acceleration limited
 			_entrySpeedMMps = prevMaxExitSpeed;
-			// since we're now acceleration or cruise limited
-			// we don't need to recalculate our entry speed anymore
-			if (_entrySpeedMMps >= _maxParamSpeedMMps)
-				_recalcFlag = false;
 		}
 		// Now max out the exit speed
 		maximizeExitSpeed(motionParams);
@@ -158,13 +145,8 @@ public:
 	void maximizeExitSpeed(MotionBlock::motionParams& motionParams)
 	{
 		// If block is being executed then don't change
-		if (_isRunning)
+		if (_isExecuting)
 			return;
-
-		// If nominalLengthFlag then guaranteed to reach nominal speed regardless of entry
-		// speed so just use nominal speed
-		if (_nominalLengthFlag)
-			_exitSpeedMMps = std::min(_maxParamSpeedMMps, _exitSpeedMMps);
 
 		// Otherwise work out max exit speed based on entry and acceleration
 		float maxExitSpeed = maxAllowableSpeed(-motionParams._masterAxisMaxAccMMps2, _entrySpeedMMps, _moveDistPrimaryAxesMM);
@@ -189,8 +171,8 @@ public:
 	//                                  time -->
 	void calculateTrapezoid(MotionBlock::motionParams& motionParams)
 	{
-		// If block is currently being processed don't change it
-		if (_isRunning)
+		// If block is currently being executed don't change it
+		if (_isExecuting)
 			return;
 
 		// At this point we are ready to calculate the phases of motion for this block: acceleration, plateau, deceleration
@@ -239,6 +221,15 @@ public:
 		float masterAxisMaxAccStepsPerKTicksPerSec = (K_VALUE * masterAxisMaxAccStepsPerSec2) / ticksPerSec;
 		float masterAxisMaxAccStepsPerKTicksPerMilliSec = masterAxisMaxAccStepsPerKTicksPerSec / 1000;
 
+		// We are about to make changes to the block - only do this if the block is not currently executing
+		// So firstly indicate that execution should not start and then check it hasn't started - this avoids a
+		// potential race condition but only in one direction - this code can get interrupted by the ISR but
+		// the ISR will then complete before returning. So if the check indicates it isn't executing then it won't start
+		// executing afterwards until we set the _canExecute flag to true.
+		_canExecute = false;
+		if (_isExecuting)
+			return;
+
 		// Now setup the values for the ticker to generate steps
 		for (uint8_t axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 		{
@@ -269,7 +260,7 @@ public:
 			_axisStepData[axisIdx]._stepsInDecelPhase = stepsDecel;
 		}
 		// No more changes
-		_changeInProgress = false;
+		_canExecute = true;
 	}
 
 	void debugShowBlkHead()

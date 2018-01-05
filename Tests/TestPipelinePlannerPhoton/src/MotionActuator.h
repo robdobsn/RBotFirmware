@@ -1,6 +1,8 @@
 #pragma once
 
+#ifdef SPARK
 #define USE_SPARK_INTERVAL_TIMER_ISR 1
+#endif
 #define TEST_OUTPUT_STEP_DATA 1
 
 #include "application.h"
@@ -8,10 +10,10 @@
 #include "MotionIO.h"
 #ifdef USE_SPARK_INTERVAL_TIMER_ISR
 #include "SparkIntervalTimer.h"
-#include <vector>
 #endif
 
 #ifdef TEST_OUTPUT_STEP_DATA
+#include <vector>
 static constexpr int TEST_OUTPUT_STEPS = 1000;
 
 class TestOutputStepData
@@ -33,7 +35,7 @@ public:
 	TestOutputStepData() :
 		_stepBufPos(TEST_OUTPUT_STEPS)
 	{
-		_stepBuf.reserve(TEST_OUTPUT_STEPS);
+		_stepBuf.resize(TEST_OUTPUT_STEPS);
 	}
 
 	void stepStart(int axisIdx, uint32_t v2, uint32_t v3)
@@ -205,13 +207,13 @@ public:
 		if (!pBlock)
 			return;
 
-		// Check if the element is being changed
-		if (pBlock->_changeInProgress)
+		// Check if the element can be executed
+		if (!pBlock->_canExecute)
 			return;
 
-		// Signal that we are now working on this block
-		bool newBlock = !pBlock->_isRunning;
-		pBlock->_isRunning = true;
+		// See if the block was already executing and set isExecuting if not
+		bool newBlock = !pBlock->_isExecuting;
+		pBlock->_isExecuting = true;
 
 		// New block
 		if (newBlock)
