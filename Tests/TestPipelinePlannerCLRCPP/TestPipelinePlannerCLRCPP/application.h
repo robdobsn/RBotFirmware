@@ -124,3 +124,10 @@ public:
 extern Time_t Time;
 
 extern void testCompleted();
+
+extern void __disable_irq();
+
+extern void __enable_irq();
+
+uint32_t SystemTicks();
+uint32_t SystemTicksPerMicrosecond();

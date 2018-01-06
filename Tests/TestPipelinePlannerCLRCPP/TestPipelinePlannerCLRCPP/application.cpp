@@ -1,6 +1,6 @@
 
 #include "stdafx.h"
-#include "Application.h"
+#include "application.h"
 
 #include <iostream>
 #include <fstream>
@@ -84,3 +84,20 @@ void delayMicroseconds(unsigned long us)
 {
 }
 
+void __disable_irq()
+{
+}
+
+void __enable_irq()
+{
+}
+
+uint32_t SystemTicks()
+{
+	return 0;
+}
+
+uint32_t SystemTicksPerMicrosecond()
+{
+	return 1;
+}

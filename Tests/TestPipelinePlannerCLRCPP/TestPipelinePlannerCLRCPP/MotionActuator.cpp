@@ -11,7 +11,10 @@ IntervalTimer MotionActuator::_isrMotionTimer;
 // Static refrerence to a single MotionActuator instance
 MotionActuator* MotionActuator::_pMotionActuatorInstance = NULL;
 
-uint32_t MotionActuator::_testCount = 0;
+// Test of motion actuator
+#ifdef TEST_MOTION_ACTUATOR_ENABLE
+TestMotionActuator* MotionActuator::_pTestMotionActuator = NULL;
+#endif
 
 void MotionActuator::_isrStepperMotion(void)
 {
@@ -19,9 +22,17 @@ void MotionActuator::_isrStepperMotion(void)
 	if (_pTestMotionActuator)
 		_pTestMotionActuator->blink();
 
+	// Time execution
+	if (_pTestMotionActuator)
+		_pTestMotionActuator->timeStart();
+
     // Process block
     if (_pMotionActuatorInstance)
         _pMotionActuatorInstance->procTick();
+
+	// Time execution
+	if (_pTestMotionActuator)
+		_pTestMotionActuator->timeEnd();
 }
 
 #endif
@@ -34,8 +45,10 @@ void MotionActuator::process()
 #endif
 
 	// Test code if enabled process test data
+#ifdef TEST_MOTION_ACTUATOR_ENABLE
 	if (_pTestMotionActuator)
 		_pTestMotionActuator->process();
+#endif
 }
 
 void MotionActuator::procTick()
@@ -45,8 +58,10 @@ void MotionActuator::procTick()
 		return;
 
 	// Test code
+#ifdef TEST_MOTION_ACTUATOR_ENABLE
 	if (_pTestMotionActuator)
 		_pTestMotionActuator->stepEnd();
+#endif
 
 	// Do a step-end for any motor which needs one - return here to avoid too short a pulse
 	if (_motionIO.stepEnd())
@@ -110,15 +125,22 @@ void MotionActuator::procTick()
 				_motionIO.stepDirn(axisIdx, pBlock->_axisStepsToTarget.getVal(axisIdx) >= 0);
 
 				// Test code
+#ifdef TEST_MOTION_ACTUATOR_ENABLE
 				if (_pTestMotionActuator)
 					_pTestMotionActuator->stepDirn(axisIdx, pBlock->_axisStepsToTarget.getVal(axisIdx) >= 0);
+#endif
 
 				//Log.trace("BLK axisIdx %d stepsToTarget %ld stepRtPerKTks %ld accStepsPerKTksPerMs %ld stepAcc %ld stepPlat %ld stepDecel %ld",
 				//			axisIdx, pBlock->_axisStepsToTarget.getVal(axisIdx),
 				//			axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS,
 				//			axisExecData._stepsAccPhase, axisExecData._stepsPlateauPhase, axisExecData._stepsDecelPhase);
+
 			}
 		}
+		// Return here to reduce the maximum time this function takes
+		// Assuming this function is called frequently (<50uS intervals say)
+		// then it will make little difference if we return now and pick up on the next tick
+		return;
 	}
 
 	// Go through the axes
@@ -172,8 +194,10 @@ void MotionActuator::procTick()
 			axisExecData._curPhaseStepCount++;
 
 			// Test code
+#ifdef TEST_MOTION_ACTUATOR_ENABLE
 			if (_pTestMotionActuator)
 				_pTestMotionActuator->stepStart(axisIdx);
+#endif
 
 			// Check if phase is done
 			if (axisExecData._curPhaseStepCount >= axisExecData._targetStepCount)
@@ -217,4 +241,12 @@ void MotionActuator::procTick()
 		// If not this block is complete
 		_motionPipeline.remove();
 	}
+}
+
+void MotionActuator::showDebug()
+{
+#ifdef TEST_MOTION_ACTUATOR_ENABLE
+	if (_pTestMotionActuator)
+		_pTestMotionActuator->showDebug();
+#endif
 }

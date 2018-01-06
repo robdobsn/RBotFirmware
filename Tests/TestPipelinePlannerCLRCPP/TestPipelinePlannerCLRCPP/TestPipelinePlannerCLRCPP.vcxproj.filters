@@ -94,6 +94,9 @@
     <ClInclude Include="TestMotionActuator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="RdJson.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="app.rc">
@@ -129,6 +132,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MotionActuator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RdJson.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

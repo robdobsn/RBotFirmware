@@ -269,9 +269,7 @@ int main()
 		Log.trace("========================== STARTING TEST .... %s", tc->_name);
 		int errorCount = 0;
 
-		TestMotionActuator testMotionActuator(true, true);
 		MotionHelper _motionHelper;
-		_motionHelper.setTestMotionActuator(&testMotionActuator);
 
 		_motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
 		_motionHelper.configure(ROBOT_CONFIG_STR_XY);

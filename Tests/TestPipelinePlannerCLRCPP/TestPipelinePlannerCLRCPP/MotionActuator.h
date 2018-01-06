@@ -22,8 +22,10 @@ private:
 	MotionPipeline& _motionPipeline;
 	MotionIO& _motionIO;
 
+#ifdef TEST_MOTION_ACTUATOR_ENABLE
 	// Test code
-	TestMotionActuator* _pTestMotionActuator;
+	static TestMotionActuator* _pTestMotionActuator;
+#endif
 
 #ifdef USE_SPARK_INTERVAL_TIMER_ISR
 	// ISR based interval timer
@@ -59,8 +61,7 @@ private:
 public:
 	MotionActuator(MotionIO& motionIO, MotionPipeline& motionPipeline) :
 		_motionPipeline(motionPipeline),
-		_motionIO(motionIO),
-		_pTestMotionActuator(NULL)
+		_motionIO(motionIO)
 	{
 		// Init
 		clear();
@@ -75,9 +76,12 @@ public:
 #endif
 	}
 
-	void setTest(TestMotionActuator* pTestMotionActuator)
+	void setTestMode(const char* testModeStr)
 	{
-		_pTestMotionActuator = pTestMotionActuator;
+#ifdef TEST_MOTION_ACTUATOR_ENABLE
+		_pTestMotionActuator = new TestMotionActuator();
+		_pTestMotionActuator->setTestMode(testModeStr);
+#endif
 	}
 
 	void config()
@@ -87,6 +91,9 @@ public:
 	void clear()
 	{
 		_isPaused = true;
+#ifdef TEST_MOTION_ACTUATOR_ENABLE
+		_pTestMotionActuator = NULL;
+#endif
 	}
 
 	void pause(bool pauseIt)
@@ -96,6 +103,7 @@ public:
 
 	void process();
 
+	void showDebug();
 
 private:
 #ifdef USE_SPARK_INTERVAL_TIMER_ISR

@@ -117,9 +117,9 @@ public:
 	void debugShowTiming();
 	int testGetPipelineCount();
 	void testGetPipelineBlock(int elIdx, MotionBlock& elem);
-	void setTestMotionActuator(TestMotionActuator* pTestMotionActuator)
+	void setTestMode(const char* testModeStr)
 	{
-		_motionActuator.setTest(pTestMotionActuator);
+		_motionActuator.setTestMode(testModeStr);
 	}
 
 private:
