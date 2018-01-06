@@ -4,7 +4,11 @@
 #pragma once
 
 // Comment out these items to enable/disable test code
+#ifdef SPARK
 #define TEST_MOTION_ACTUATOR_ENABLE 1
+#define SystemTicksPerMicrosecond System.ticksPerMicrosecond
+#define SystemTicks System.ticks
+#endif
 
 #include "application.h"
 #include "MotionRingBuffer.h"
@@ -111,6 +115,9 @@ public:
 		__isrDbgTickMin = 100000000;
 		__isrDbgTickMax = 0;
 	}
+	~TestMotionActuator()
+	{
+	}
 #ifdef TEST_MOTION_ACTUATOR_ENABLE
 	TestOutputStepData _testOutputStepData;
 #endif
@@ -162,7 +169,7 @@ public:
 		if (_timeISR)
 		{
 			__disable_irq();
-	    	__startTicks = System.ticks();
+	    	__startTicks = SystemTicks();
 		}
 	}
 
@@ -171,7 +178,7 @@ public:
 		if (_timeISR)
 		{
 		    // Time the ISR over entire execution
-		    uint32_t endTicks = System.ticks();
+		    uint32_t endTicks = SystemTicks();
 		    __enable_irq();
 		    uint32_t elapsedTicks = endTicks - __startTicks;
 		    if (__startTicks < endTicks)
@@ -211,8 +218,8 @@ public:
 	{
 #ifdef TEST_MOTION_ACTUATOR_ENABLE
 		Log.info("Min/Max ISR exec time %0.2fuS, %0.2fuS",
-					((double)__isrDbgTickMin)/System.ticksPerMicrosecond(),
-					((double)__isrDbgTickMax)/System.ticksPerMicrosecond());
+					((double)__isrDbgTickMin)/SystemTicksPerMicrosecond(),
+					((double)__isrDbgTickMax)/SystemTicksPerMicrosecond());
 		__isrDbgTickMin = 10000000;
 		__isrDbgTickMax = 0;
 #endif
