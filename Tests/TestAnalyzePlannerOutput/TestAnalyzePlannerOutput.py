@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-f = open("../TestPipelinePlannerCLRCPP/TestPipelinePlannerCLRCPP/testOut/testOut_00249.txt")
+f = open("../TestPipelinePlannerCLRCPP/TestPipelinePlannerCLRCPP/testOut/testOut_00322.txt")
 lines = f.readlines()
 
 stepDist = 60 / 3200
@@ -22,6 +22,7 @@ axisDirn = [1, 1]
 axisDist = [[],[]]
 axisSpeed = [[],[]]
 axisTimes = [[],[]]
+axisXYLastUs = 0
 axisXY = [[],[]]
 startSet = False
 startUs = 0
@@ -51,11 +52,16 @@ for line in lines:
                 # print(intervalUs)
                 lastAxisUs[axisIdx] = elapsedUs
                 axisSpeed[axisIdx].append(speed)
-                curDist[axisIdx] += axisDirn[axisIdx] * stepDist
-                axisDist[axisIdx].append(curDist[axisIdx])
+            curDist[axisIdx] += axisDirn[axisIdx] * stepDist
+            axisDist[axisIdx].append(curDist[axisIdx])
+            if axisXYLastUs != 0 and axisXYLastUs + 5 > elapsedUs:
+                axisXY[0][len(axisXY[0])-1] = curDist[0]
+                axisXY[1][len(axisXY[1]) - 1] = curDist[1]
+            else:
                 axisXY[0].append(curDist[0])
                 axisXY[1].append(curDist[1])
-                axisTimes[axisIdx].append(elapsedUs)
+                axisXYLastUs = elapsedUs
+            axisTimes[axisIdx].append(elapsedUs)
         if linePin == pinAxis0Dirn or linePin == pinAxis1Dirn:
             axisIdx = 0
             if linePin == pinAxis1Dirn:

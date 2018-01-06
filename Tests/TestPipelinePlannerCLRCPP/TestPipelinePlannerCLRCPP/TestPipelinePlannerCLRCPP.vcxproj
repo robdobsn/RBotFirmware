@@ -164,6 +164,7 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="StepperMotor.h" />
     <ClInclude Include="TestCaseMotion.h" />
+    <ClInclude Include="TestMotionActuator.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>

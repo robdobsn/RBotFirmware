@@ -22,6 +22,8 @@ MotionHelper::MotionHelper() :
 	_ptToActuatorFn = NULL;
 	_actuatorToPtFn = NULL;
 	_correctStepOverflowFn = NULL;
+	// Handling of splitting-up of motion into smaller blocks
+	_blocksToAddTotal = 0;
 }
 
 MotionHelper::~MotionHelper()
@@ -85,8 +87,8 @@ bool MotionHelper::configureRobot(const char* robotConfigJSON)
 #
 bool MotionHelper::canAccept()
 {
-	// Check that at the motion pipeline can accept new data
-	return _motionPipeline.canAccept();
+	// Check that the motion pipeline can accept new data
+	return (_blocksToAddTotal == 0) && _motionPipeline.canAccept();
 }
 
 // Pause (or un-pause) all motion
@@ -139,6 +141,50 @@ bool MotionHelper::moveTo(RobotCommandArgs& args)
 	// Handle any motion parameters (such as relative movement, feedrate, etc)
 	setMotionParams(args);
 
+	// Handle reltative motion and fill in the destPos for axes for
+	// which values not specified
+	// Don't use servo values for computing distance to travel
+	AxisFloats destPos = args.pt;
+	bool includeDist[RobotConsts::MAX_AXES];
+	for (int i = 0; i < RobotConsts::MAX_AXES; i++)
+	{
+		if (!args.pt.isValid(i))
+		{
+			destPos.setVal(i, _curAxisPosition._axisPositionMM.getVal(i));
+		}
+		else
+		{
+			if (_moveRelative)
+				destPos.setVal(i, _curAxisPosition._axisPositionMM.getVal(i) + args.pt.getVal(i));
+		}
+		includeDist[i] = _axesParams.isPrimaryAxis(i);
+	}
+
+	// Split up into blocks of maximum length
+	double lineLen = destPos.distanceTo(_curAxisPosition._axisPositionMM, includeDist);
+
+	// Ensure at least one block
+	int numBlocks = int(lineLen / _blockDistanceMM);
+	if (numBlocks == 0)
+		numBlocks = 1;
+	Log.trace("MotionHelper numBlocks %d (lineLen %0.2f / blockDistMM %02.f)",
+		numBlocks, lineLen, _blockDistanceMM);
+
+	// Setup for adding blocks to the pipe
+	_blocksToAddCommandArgs = args;
+	_blocksToAddStartPos = _curAxisPosition._axisPositionMM;
+	_blocksToAddDelta = (destPos - _curAxisPosition._axisPositionMM) / float(numBlocks);
+	_blocksToAddEndPos = destPos;
+	_blocksToAddCurBlock = 0;
+	_blocksToAddTotal = numBlocks;
+
+	// Process anything that can be done immediately
+	blocksToAddProcess();
+	return true;
+}
+
+bool MotionHelper::addToPlanner(RobotCommandArgs& args)
+{
 	// Convert the move to actuator coordinates
 	AxisFloats actuatorCoords;
 	_ptToActuatorFn(args.pt, actuatorCoords, _axesParams.getAxisParamsArray(), RobotConsts::MAX_AXES);
@@ -148,11 +194,40 @@ bool MotionHelper::moveTo(RobotCommandArgs& args)
 	if (moveOk)
 	{
 		// Update axisMotion
+
 		_curAxisPosition._axisPositionMM = args.pt;
-		_curAxisPosition._stepsFromHome = actuatorCoords;
 	}
 	return moveOk;
+}
 
+void MotionHelper::blocksToAddProcess()
+{
+	// Check if we can add anything to the pipeline
+	while (_motionPipeline.canAccept())
+	{
+
+		// Check if any blocks remain to be expanded out
+		if (_blocksToAddTotal <= 0)
+			return;
+
+		// Add to pipeline any blocks that are waiting to be expanded out
+		AxisFloats nextBlockDest = _blocksToAddStartPos + _blocksToAddDelta * float(_blocksToAddCurBlock + 1);
+
+		// If last block then just use end point coords
+		if (_blocksToAddCurBlock + 1 >= _blocksToAddTotal)
+			nextBlockDest = _blocksToAddEndPos;
+
+		// Bump position
+		_blocksToAddCurBlock++;
+
+		// Check if done
+		if (_blocksToAddCurBlock >= _blocksToAddTotal)
+			_blocksToAddTotal = 0;
+
+		// Add to planner
+		_blocksToAddCommandArgs.pt = nextBlockDest;
+		addToPlanner(_blocksToAddCommandArgs);
+	}
 }
 
 void MotionHelper::service(bool processPipeline)
@@ -162,6 +237,9 @@ void MotionHelper::service(bool processPipeline)
 	{
 		_motionActuator.process();
 	}
+
+	// Process any split-up blocks to be added to the pipeline
+	blocksToAddProcess();
 }
 
 void MotionHelper::debugShowBlocks()

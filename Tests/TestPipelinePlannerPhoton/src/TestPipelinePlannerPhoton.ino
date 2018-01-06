@@ -120,24 +120,9 @@ void setup()
 	    errorCount++;
 	}
 
-	// for (int i = 0; i < TEST_NUM_MOTION_BLOCKS; i++)
-	// {
-	//     MotionBlock elem;
-	//     _motionHelper.testGetPipelineBlock(i, elem);
-    //     testMotionElemVals(errorCount, elem, );
-	// }
-
 	_motionHelper.debugShowBlocks();
 
 	_motionHelper.debugShowTiming();
-
-	if (errorCount != 0)
-	{
-	    Log.info("-------------ERRORS---------------");
-	}
-	Log.info("Test Case error count %d", errorCount);
-
-
 }
 
 void loop()
@@ -145,9 +130,5 @@ void loop()
 	while (true)
 	{
 	    _motionHelper.service(true);
-	    if (_motionHelper.isIdle())
-	    {
-	        // testCompleted();
-	    }
 	}
 }
