@@ -261,6 +261,11 @@ void MotionHelper::debugShowBlocks()
 	}
 }
 
+void MotionHelper::debugShowTiming()
+{
+	_motionActuator.showDebug();
+}
+
 int MotionHelper::testGetPipelineCount()
 {
 	return _motionPipeline.count();

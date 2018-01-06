@@ -1,7 +1,7 @@
 
 #include "MotionHelper.h"
 
-SYSTEM_MODE(MANUAL);
+SYSTEM_MODE(AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 SerialLogHandler logHandler(LOG_LEVEL_TRACE);
 
@@ -78,12 +78,9 @@ MotionHelper _motionHelper;
 
 void setup()
 {
-	pinMode(D7, OUTPUT);
 	Serial.begin(115200);
 	delay(2000);
-	Serial.println("STARTING");
-	delay(2000);
-	Log.trace("");
+	Log.trace(" ");
 	Log.trace("========================== STARTING TEST ==========================");
 	int errorCount = 0;
 
@@ -91,6 +88,7 @@ void setup()
 
 	_motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
 	_motionHelper.configure(ROBOT_CONFIG_STR_XY);
+	_motionHelper.setTestMode("TIMEISR");
 
 	_motionHelper.pause(false);
 
@@ -122,13 +120,22 @@ void setup()
 
 	_motionHelper.debugShowBlocks();
 
-	_motionHelper.debugShowTiming();
 }
+
+bool __debugTimingShown = false;
 
 void loop()
 {
 	while (true)
 	{
 	    _motionHelper.service(true);
+		if (!__debugTimingShown)
+		{
+			if (_motionHelper.isIdle())
+			{
+				_motionHelper.debugShowTiming();
+				__debugTimingShown = true;
+			}
+		}
 	}
 }

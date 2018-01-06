@@ -1,11 +1,10 @@
 // RBotFirmware
-// Rob Dobson 2016
+// Rob Dobson 2016-2018
 
 #pragma once
 
 #include "math.h"
 #include "AxisValues.h"
-
 
 class MotionBlock
 {

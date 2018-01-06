@@ -45,6 +45,20 @@ private:
 	MotionIO _motionIO;
 	// Motion
 	MotionActuator _motionActuator;
+
+	// Split-up movement blocks to be added to pipeline
+	// Number of blocks to add
+	int _blocksToAddTotal;
+	// Current block to be added
+	int _blocksToAddCurBlock;
+	// Start position for block generation
+	AxisFloats _blocksToAddStartPos;
+	// End position for block generation
+	AxisFloats _blocksToAddEndPos;
+	// Deltas for each axis for block generation
+	AxisFloats _blocksToAddDelta;
+	// Command args for block generation
+	RobotCommandArgs _blocksToAddCommandArgs;
 	// Debug
 	unsigned long _debugLastPosDispMs;
 
@@ -98,10 +112,15 @@ public:
 		return _motionIO.getLastActiveUnixTime();
 	}
 
+	// Test code
 	void debugShowBlocks();
 	void debugShowTiming();
 	int testGetPipelineCount();
 	void testGetPipelineBlock(int elIdx, MotionBlock& elem);
+	void setTestMode(const char* testModeStr)
+	{
+		_motionActuator.setTestMode(testModeStr);
+	}
 
 private:
 	bool isInBounds(double v, double b1, double b2)
@@ -112,4 +131,6 @@ private:
 	bool configureRobot(const char* robotConfigJSON);
 	bool configureAxis(const char* robotConfigJSON, int axisIdx);
 	void pipelineService(bool hasBeenPaused);
+	bool addToPlanner(RobotCommandArgs& args);
+	void blocksToAddProcess();
 };

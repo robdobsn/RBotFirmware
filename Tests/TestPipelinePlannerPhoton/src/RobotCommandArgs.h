@@ -46,7 +46,24 @@ public:
 		moveClockwise = moveRapid = false;
 		moveType = RobotMoveTypeArg_None;
 	}
-	void copy(RobotCommandArgs& copyFrom)
+	RobotCommandArgs(const RobotCommandArgs& other)
+	{
+		copy(other);
+	}
+	void operator=(const RobotCommandArgs& other)
+	{
+		copy(other);
+	}
+	void setAxisValue(int axisIdx, float value, bool isValid)
+	{
+		if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
+		{
+			pt.setVal(axisIdx, value);
+			pt.setValid(axisIdx, isValid);
+		}
+	}
+private:
+	void copy(const RobotCommandArgs& copyFrom)
 	{
 		clear();
 		pt = copyFrom.pt;
@@ -58,13 +75,5 @@ public:
 		moveClockwise = copyFrom.moveClockwise;
 		moveRapid = copyFrom.moveRapid;
 		moveType = copyFrom.moveType;
-	}
-	void setAxisValue(int axisIdx, float value, bool isValid)
-	{
-		if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
-		{
-			pt.setVal(axisIdx, value);
-			pt.setValid(axisIdx, isValid);
-		}
 	}
 };

@@ -114,6 +114,7 @@ public:
 
 	// Test code
 	void debugShowBlocks();
+	void debugShowTiming();
 	int testGetPipelineCount();
 	void testGetPipelineBlock(int elIdx, MotionBlock& elem);
 	void setTestMotionActuator(TestMotionActuator* pTestMotionActuator)

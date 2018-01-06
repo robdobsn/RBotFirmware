@@ -144,11 +144,9 @@ public:
 		{
 			// Check if any actual steps to perform
 			float stepsFloat = destActuatorCoords._pt[axisIdx] - curAxisPositions._stepsFromHome._pt[axisIdx];
-			int steps = int(ceilf(fabs(stepsFloat)));
+			int steps = int(ceilf(stepsFloat));
 			if (steps != 0)
 				hasSteps = true;
-			if (stepsFloat < 0)
-				steps = -steps;
 			// Value (and direction)
 			block._axisStepsToTarget.setVal(axisIdx, steps);
 		}
@@ -232,6 +230,10 @@ public:
 
 		// Recalculate the whole queue
 		recalculatePipeline(motionPipeline);
+
+		// Return the actual change in actuator position
+		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+			curAxisPositions._stepsFromHome.setVal(axisIdx, curAxisPositions._stepsFromHome.getVal(axisIdx) + block._axisStepsToTarget.getVal(axisIdx));
 
 		return true;
 	}

@@ -264,12 +264,12 @@ public:
 
 	void debugShowBlkHead()
 	{
-		Log.trace("#idx\tEntMMps\tExtMMps\tXSteps\tYSteps\tXStPKtk\tXAcPKms\tXAccSt\tXPlatSt\tXDecSt\tYStPKtk\tYAcPKms\tYAccSt\tYPlatSt\tYDecSt");
+		Log.trace("#i EntMMps ExtMMps  XSteps  YSteps   XStPKtk XAcPKms  XAccSt XPlatSt  XDecSt   YStPKtk YAcPKms  YAccSt YPlatSt  YDecSt");
 	}
 
 	void debugShowBlock(int elemIdx)
 	{
-		Log.trace("%d\t%0.3f\t%0.3f\t%ld\t%ld\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu   \t%lu   \t%lu   \t%lu", elemIdx,
+		Log.trace("%2d%8.3f%8.3f%8ld%8ld%10lu%8lu%8lu%8lu%8lu%10lu%8lu%8lu%8lu%8lu", elemIdx,
 			_entrySpeedMMps, _exitSpeedMMps,
 			_axisStepsToTarget.X(), _axisStepsToTarget.Y(),
 			_axisStepData[0]._initialStepRatePerKTicks, _axisStepData[0]._accStepsPerKTicksPerMS,

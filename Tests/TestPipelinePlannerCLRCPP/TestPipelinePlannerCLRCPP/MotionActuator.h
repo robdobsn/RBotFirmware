@@ -1,3 +1,6 @@
+// RBotFirmware
+// Rob Dobson 2016-2018
+
 #pragma once
 
 #ifdef SPARK
