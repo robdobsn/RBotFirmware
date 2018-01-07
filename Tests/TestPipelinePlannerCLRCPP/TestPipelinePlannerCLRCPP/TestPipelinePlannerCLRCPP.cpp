@@ -1,11 +1,14 @@
 // TestPipelinePlannerCLRCPP.cpp : main project file.
 
 #include "conio.h"
+#include "Stopwatch.h"
 
 using namespace System;
 
 #include "TestCaseMotion.h"
 #include "MotionHelper.h"
+
+double __maxElapsedMoveToTime = 0;
 
 static const char* ROBOT_CONFIG_STR_XY =
 	"{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
@@ -165,7 +168,14 @@ static bool interpG(String& cmdStr, bool takeAction, MotionHelper& motionHelper)
 		if (takeAction)
 		{
 			cmdArgs.moveRapid = (cmdNum == 0);
+			Stopwatch sw;
+			sw.Start();
 			motionHelper.moveTo(cmdArgs);
+			sw.Stop();
+			double mx = sw.ElapsedMilliseconds();
+			if (__maxElapsedMoveToTime < mx)
+				__maxElapsedMoveToTime = mx;
+
 		}
 		return true;
 	}
@@ -232,6 +242,25 @@ void testMotionElemVals(int outIdx, int valIdx, int& errorCount, MotionBlock& el
 			errorCount++;
 		}
 	}
+}
+
+int mainSpeedTest()
+{
+	MotionHelper _motionHelper;
+	_motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
+	_motionHelper.configure(ROBOT_CONFIG_STR_XY);
+	_motionHelper.pause(true);
+	RobotCommandArgs cmdArgs;
+	cmdArgs.setAxisValue(0, 100, true);
+	cmdArgs.setAxisValue(1, 0, true);
+	Stopwatch sw;
+	sw.Start();
+	_motionHelper.moveTo(cmdArgs);
+	sw.Stop();
+	double mx = sw.ElapsedMilliseconds();
+	Console::WriteLine(mx);
+	_getch();
+	return 0;
 }
 
 int main()
@@ -316,6 +345,8 @@ int main()
 			Log.info("-------------ERRORS---------------");
 		}
 		Log.info("Test Case error count %d", errorCount);
+
+		Log.info("Max elapsed ms %0.3f", __maxElapsedMoveToTime);
 
 
 		uint32_t tickCount = 0;

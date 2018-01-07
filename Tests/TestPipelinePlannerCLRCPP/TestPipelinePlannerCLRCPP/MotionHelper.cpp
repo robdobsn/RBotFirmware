@@ -136,12 +136,10 @@ void MotionHelper::getCurStatus(RobotCommandArgs& args)
 
 bool MotionHelper::moveTo(RobotCommandArgs& args)
 {
-	Log.trace("+++++++MotionHelper moveTo x %0.2f y %0.2f", args.pt._pt[0], args.pt._pt[1]);
-
 	// Handle any motion parameters (such as relative movement, feedrate, etc)
 	setMotionParams(args);
 
-	// Handle reltative motion and fill in the destPos for axes for
+	// Handle relative motion and fill in the destPos for axes for
 	// which values not specified
 	// Don't use servo values for computing distance to travel
 	AxisFloats destPos = args.pt;
@@ -167,8 +165,8 @@ bool MotionHelper::moveTo(RobotCommandArgs& args)
 	int numBlocks = int(lineLen / _blockDistanceMM);
 	if (numBlocks == 0)
 		numBlocks = 1;
-	Log.trace("MotionHelper numBlocks %d (lineLen %0.2f / blockDistMM %02.f)",
-		numBlocks, lineLen, _blockDistanceMM);
+	// Log.trace("MotionHelper numBlocks %d (lineLen %0.2f / blockDistMM %02.f)",
+	// 	numBlocks, lineLen, _blockDistanceMM);
 
 	// Setup for adding blocks to the pipe
 	_blocksToAddCommandArgs = args;
@@ -194,7 +192,6 @@ bool MotionHelper::addToPlanner(RobotCommandArgs& args)
 	if (moveOk)
 	{
 		// Update axisMotion
-
 		_curAxisPosition._axisPositionMM = args.pt;
 	}
 	return moveOk;

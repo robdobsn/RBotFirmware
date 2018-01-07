@@ -4,7 +4,7 @@
 
 SYSTEM_MODE(AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
-SerialLogHandler logHandler(LOG_LEVEL_TRACE);
+SerialLogHandler logHandler(LOG_LEVEL_INFO);
 
 static const char* ROBOT_CONFIG_STR_XY =
 	"{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
@@ -34,8 +34,8 @@ static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxisParams 
 			thisAxisValid = false;
 		if (axisParams[i]._maxValValid && pt.getVal(i) > axisParams[i]._maxVal)
 			thisAxisValid = false;
-		Log.trace("ptToActuator (%s) %f -> %f (homeOffVal %f, homeOffSteps %ld)", thisAxisValid ? "OK" : "INVALID",
-			pt.getVal(i), actuatorCoords._pt[i], axisParams[i]._homeOffsetVal, axisParams[i]._homeOffsetSteps);
+		// Log.trace("ptToActuator (%s) %f -> %f (homeOffVal %f, homeOffSteps %ld)", thisAxisValid ? "OK" : "INVALID",
+		// 	pt.getVal(i), actuatorCoords._pt[i], axisParams[i]._homeOffsetVal, axisParams[i]._homeOffsetSteps);
 		isValid &= thisAxisValid;
 	}
 	return isValid;
@@ -52,7 +52,7 @@ static void actuatorToPt(AxisFloats& actuatorCoords, AxisFloats& pt, AxisParams 
 		if (axisParams[i]._maxValValid && ptVal > axisParams[i]._maxVal)
 			ptVal = axisParams[i]._maxVal;
 		pt.setVal(i, ptVal);
-		Log.trace("actuatorToPt %d %f -> %f (perunit %f)", i, actuatorCoords.getVal(i), ptVal, axisParams[i].stepsPerUnit());
+		// Log.trace("actuatorToPt %d %f -> %f (perunit %f)", i, actuatorCoords.getVal(i), ptVal, axisParams[i].stepsPerUnit());
 	}
 }
 
@@ -85,7 +85,7 @@ int __testSquareDiagonal [__testSquareDiagonalLen][2] =
 				{ {1,0}, {1,1}, {0,1}, {0,0}, {1,1}, {0,0} };
 const int __testOneBigMoveLen = 1;
 int __testOneBigMove [__testOneBigMoveLen][2] =
-				{ {10,0} };
+				{ {100,0} };
 
 bool setupNextTest()
 {
@@ -93,6 +93,8 @@ bool setupNextTest()
 	if (__curTestNum < __numTests)
 	{
 		RobotCommandArgs cmdArgs;
+		Log.info("========================== STARTING TEST %d ==========================",
+					__curTestNum);
 		if (__curTestNum == 0)
 		{
 			for (int i = 0; i < __testSquareDiagonalLen; i++)
@@ -113,11 +115,16 @@ bool setupNextTest()
 		}
 		else if (__curTestNum == 1)
 		{
+			unsigned long maxMoveToMicros = 0;
 			for (int i = 0; i < __testOneBigMoveLen; i++)
 			{
 				cmdArgs.setAxisValue(0, __testOneBigMove[i][0], true);
 				cmdArgs.setAxisValue(1, __testOneBigMove[i][1], true);
+				unsigned long curMicros = micros();
 				_motionHelper.moveTo(cmdArgs);
+				unsigned long elapsedMicros = micros() - curMicros;
+				if (maxMoveToMicros < elapsedMicros)
+					maxMoveToMicros = elapsedMicros;
 			}
 
 			if (_motionHelper.testGetPipelineCount() != __testOneBigMoveLen)
@@ -127,11 +134,11 @@ bool setupNextTest()
 			}
 
 			_motionHelper.debugShowBlocks();
+
+			Log.info("Max elapsed uS in moveTo() %lu", maxMoveToMicros);
 			testSet = true;
 		}
 
-		Log.trace("========================== STARTING TEST %d ==========================",
-					__curTestNum);
 		__curTestNum++;
 	}
 	return testSet;
@@ -141,8 +148,8 @@ void setup()
 {
 	Serial.begin(115200);
 	delay(2000);
-	Log.trace(" ");
-	Log.trace("========================== TESTING PIPELINE ==========================");
+	Log.info(" ");
+	Log.info("========================== TESTING PIPELINE ==========================");
 
 	_motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
 	_motionHelper.configure(ROBOT_CONFIG_STR_XY);
@@ -173,7 +180,7 @@ void loop()
 			}
 			else
 			{
-				if (Utils::isTimeout(millis(), __idleTime, 10000) || (__curTestNum == 0))
+				if (Utils::isTimeout(millis(), __idleTime, 5000) || (__curTestNum == 0))
 				{
 					_motionHelper.pause(true);
 					if (setupNextTest())

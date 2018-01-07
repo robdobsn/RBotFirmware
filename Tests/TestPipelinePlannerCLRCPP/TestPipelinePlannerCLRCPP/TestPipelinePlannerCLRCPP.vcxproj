@@ -163,6 +163,7 @@
     <ClInclude Include="spark_wiring_string_mod.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="StepperMotor.h" />
+    <ClInclude Include="Stopwatch.h" />
     <ClInclude Include="TestCaseMotion.h" />
     <ClInclude Include="TestMotionActuator.h" />
     <ClInclude Include="Utils.h" />

@@ -10,6 +10,9 @@
 //#define USE_SMOOTHIE_CODE 1
 #define ROB_IMPLEMENT_TESTS 1
 
+#define SHOW_TRACE 1
+#define SHOW_INFO 1
+
 #define TEST_IN_GCPP
 
 #define STEP_TICKER_FREQUENCY 1000000.0f
@@ -36,6 +39,7 @@ public:
 #pragma warning(disable: 4996)
 	void info(const char * format, ...)
 	{
+#ifdef SHOW_INFO
 		char buffer[1000];
 		va_list args;
 		va_start(args, format);
@@ -44,9 +48,11 @@ public:
 		printf("\n");
 		//System::Console::WriteLine(buffer);
 		va_end(args);
+#endif
 	}
 	void trace(const char * format, ...)
 	{
+#ifdef SHOW_TRACE
 		char buffer[1000];
 		va_list args;
 		va_start(args, format);
@@ -55,6 +61,7 @@ public:
 		printf("\n");
 		//System::Console::WriteLine(buffer);
 		va_end(args);
+#endif
 	}
 	void error(const char * format, ...)
 	{

@@ -16,7 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
-    <Text Include="TestCaseMotionFile.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -94,7 +93,7 @@
     <ClInclude Include="TestMotionActuator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="RdJson.h">
+    <ClInclude Include="Stopwatch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -132,9 +131,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MotionActuator.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="RdJson.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -125,7 +125,7 @@ public:
 private:
 	bool isInBounds(double v, double b1, double b2)
 	{
-		return (v > std::min(b1, b2) && v < std::max(b1, b2));
+		return (v > fmin(b1, b2) && v < fmax(b1, b2));
 	}
 
 	bool configureRobot(const char* robotConfigJSON);

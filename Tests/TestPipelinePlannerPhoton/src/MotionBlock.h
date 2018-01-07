@@ -5,6 +5,7 @@
 
 #include "math.h"
 #include "AxisValues.h"
+#include "AxesParams.h"
 
 class MotionBlock
 {
@@ -27,15 +28,6 @@ public:
 	// Number of ns in ms
 	static constexpr uint32_t NS_IN_A_MS = 1000000;
 
-	// Struct for moving parameters around while computing block data
-	struct motionParams
-	{
-		float _masterAxisMaxAccMMps2;
-		float _masterAxisStepDistanceMM;
-		AxisFloats _maxStepRatePerSec;
-		AxisFloats _minStepRatePerSec;
-	};
-
 public:
 	// Max speed set for master axis (maybe reduced by feedrate in a GCode command)
 	float _maxParamSpeedMMps;
@@ -51,10 +43,19 @@ public:
 	float _exitSpeedMMps;
 	// Unit vectors for movement
 	AxisFloats unitVectors;
+
+	// Flags
+	struct
+	{
 	// Flag indicating the block is currently executing
-	volatile bool _isExecuting;
+		volatile bool _isExecuting : 1;
 	// Flag indicating the block can start executing
-	volatile bool _canExecute;
+		volatile bool _canExecute : 1;
+		// Flag indicating that this block need not be recalculated
+		bool _recalculateFlag : 1;
+		// Block can reach junction max speed regardless of entry/exit speed
+		bool _canReachJnMax : 1;
+	};
 
 	struct axisStepData_t
 	{
@@ -83,6 +84,8 @@ public:
 		_exitSpeedMMps = 0;
 		_isExecuting = false;
 		_canExecute = false;
+		_recalculateFlag = true;
+		_canReachJnMax = false;
 	}
 
 	void getAbsMaxStepsForAnyAxis(uint32_t& axisAbsMaxSteps, int &axisIdxWithMaxSteps)
@@ -99,17 +102,17 @@ public:
 		}
 	}
 
-	float calcMaxSpeedReverse(float exitSpeed, MotionBlock::motionParams& motionParams)
+	float calcMaxSpeedReverse(float exitSpeed, AxesParams& axesParams)
 	{
 		// If entry speed is already at the maximum entry speed, no need to recheck. Block is cruising.
 		// If not, block in state of acceleration or deceleration. Reset entry speed to maximum and
 		// check for maximum allowable speed reductions to ensure maximum possible planned speed.
 		if (_entrySpeedMMps != _maxEntrySpeedMMps)
 		{
-			if (_maxEntrySpeedMMps > exitSpeed)
+			if (!_canReachJnMax  && (_maxEntrySpeedMMps > exitSpeed))
 			{
-				float maxEntrySpeed = maxAllowableSpeed(-motionParams._masterAxisMaxAccMMps2, exitSpeed, this->_moveDistPrimaryAxesMM);
-				_entrySpeedMMps = std::min(maxEntrySpeed, _maxEntrySpeedMMps);
+				float maxEntrySpeed = maxAllowableSpeed(axesParams._masterAxisMaxAccMMps2, exitSpeed, this->_moveDistPrimaryAxesMM);
+				_entrySpeedMMps = fminf(maxEntrySpeed, _maxEntrySpeedMMps);
 			}
 			else
 			{
@@ -119,7 +122,7 @@ public:
 		return _entrySpeedMMps;
 	}
 
-	void calcMaxSpeedForward(float prevMaxExitSpeed, MotionBlock::motionParams& motionParams)
+	void calcMaxSpeedForward(float prevMaxExitSpeed, AxesParams& axesParams)
 	{
 		// If the previous block is an acceleration block, but it is not long enough to complete the
 		// full speed change within the block, we need to adjust the entry speed accordingly. Entry
@@ -133,25 +136,33 @@ public:
 		{
 			// We're acceleration limited
 			_entrySpeedMMps = prevMaxExitSpeed;
+			_recalculateFlag = false;
 		}
 		// Now max out the exit speed
-		maximizeExitSpeed(motionParams);
+		maximizeExitSpeed(axesParams);
 	}
 
 	float maxAllowableSpeed(float acceleration, float target_velocity, float distance)
 	{
-		return sqrtf(target_velocity * target_velocity - 2.0F * acceleration * distance);
+		return sqrtf(target_velocity * target_velocity + 2.0F * acceleration * distance);
 	}
 
-	void maximizeExitSpeed(MotionBlock::motionParams& motionParams)
+	void maximizeExitSpeed(AxesParams& axesParams)
 	{
 		// If block is being executed then don't change
 		if (_isExecuting)
 			return;
 
+		// If the flag is set showing that max junction speed can be reached regardless of entry/exit speed
+		if (_canReachJnMax)
+		{
+			//_exitSpeedMMps = _maxParamSpeedMMps;
+			return;
+		}
+
 		// Otherwise work out max exit speed based on entry and acceleration
-		float maxExitSpeed = maxAllowableSpeed(-motionParams._masterAxisMaxAccMMps2, _entrySpeedMMps, _moveDistPrimaryAxesMM);
-		_exitSpeedMMps = std::min(maxExitSpeed, _exitSpeedMMps);
+		float maxExitSpeed = maxAllowableSpeed(axesParams._masterAxisMaxAccMMps2, _entrySpeedMMps, _moveDistPrimaryAxesMM);
+		_exitSpeedMMps = fminf(maxExitSpeed, _exitSpeedMMps);
 	}
 
 	void forceInBounds(float& val, float lowBound, float highBound)
@@ -170,7 +181,7 @@ public:
 	//                              |             + <- nominal_rate*exit_factor
 	//                              +-------------+
 	//                                  time -->
-	void calculateTrapezoid(MotionBlock::motionParams& motionParams)
+	void calculateTrapezoid(AxesParams& axesParams)
 	{
 		// If block is currently being executed don't change it
 		if (_isExecuting)
@@ -179,7 +190,7 @@ public:
 		// At this point we are ready to calculate the phases of motion for this block: acceleration, plateau, deceleration
 
 		// First calculate the step rate (steps per sec) for entry
-		float initialStepRatePerSec = _entrySpeedMMps / motionParams._masterAxisStepDistanceMM;
+		float initialStepRatePerSec = _entrySpeedMMps / axesParams._masterAxisStepDistanceMM;
 
 		// Calculate the distance accelerating and ensure within bounds
 		// Using the facts for the block ... (assuming max accleration followed by max deceleration):
@@ -187,19 +198,19 @@ public:
 		//		Vexit * Vexit = Vmax * Vmax - 2 * Amax * Sdecelerating
 		//      Stotal = Saccelerating + Sdecelerating
 		// And solving for Saccelerating (distance accelerating)
-		float distAccelerating = (powf(_exitSpeedMMps, 2) - powf(_entrySpeedMMps, 2)) / 4 / motionParams._masterAxisMaxAccMMps2 + _moveDistPrimaryAxesMM / 2;
+		float distAccelerating = (powf(_exitSpeedMMps, 2) - powf(_entrySpeedMMps, 2)) / 4 / axesParams._masterAxisMaxAccMMps2 + _moveDistPrimaryAxesMM / 2;
 		forceInBounds(distAccelerating, 0, _moveDistPrimaryAxesMM);
 		float distDecelerating = _moveDistPrimaryAxesMM - distAccelerating;
 		float distPlateau = 0;
 
 		// Check if max speed is reached
-		float distToMaxSpeed = (powf(_maxParamSpeedMMps, 2) - powf(_entrySpeedMMps, 2)) / 2 / motionParams._masterAxisMaxAccMMps2;
+		float distToMaxSpeed = (powf(_maxParamSpeedMMps, 2) - powf(_entrySpeedMMps, 2)) / 2 / axesParams._masterAxisMaxAccMMps2;
 		if (distToMaxSpeed < distAccelerating)
 		{
 			// Max speed reached so we need to plateau
 			distAccelerating = distToMaxSpeed;
 			// Also need to recalculate distance decelerating
-			distDecelerating = (powf(_maxParamSpeedMMps, 2) - powf(_exitSpeedMMps, 2)) / 2 / motionParams._masterAxisMaxAccMMps2;
+			distDecelerating = (powf(_maxParamSpeedMMps, 2) - powf(_exitSpeedMMps, 2)) / 2 / axesParams._masterAxisMaxAccMMps2;
 			// And the plateau
 			distPlateau = _moveDistPrimaryAxesMM - distAccelerating - distDecelerating;
 		}
@@ -218,7 +229,7 @@ public:
 		float ticksPerSec = 1e9 / TICK_INTERVAL_NS;
 
 		// Master axis acceleration in steps per KTicks per millisecond
-		float masterAxisMaxAccStepsPerSec2 = motionParams._masterAxisMaxAccMMps2 / motionParams._masterAxisStepDistanceMM;
+		float masterAxisMaxAccStepsPerSec2 = axesParams._masterAxisMaxAccMMps2 / axesParams._masterAxisStepDistanceMM;
 		float masterAxisMaxAccStepsPerKTicksPerSec = (K_VALUE * masterAxisMaxAccStepsPerSec2) / ticksPerSec;
 		float masterAxisMaxAccStepsPerKTicksPerMilliSec = masterAxisMaxAccStepsPerKTicksPerSec / 1000;
 
@@ -257,9 +268,9 @@ public:
 			float axisInitialStepRatePerSec = initialStepRatePerSec * axisFactor;
 
 			// Minimum step rate for this axis per KTicks
-			float axisMinStepRatePerKTicks = (K_VALUE * motionParams._minStepRatePerSec.getVal(axisIdx)) / ticksPerSec;
+			float axisMinStepRatePerKTicks = (K_VALUE * axesParams._minStepRatesPerSec.getVal(axisIdx)) / ticksPerSec;
 
-			// Don't allow the step rate to go below the acceleration achieved in 10ms 
+			// Don't allow the step rate to go below the acceleration achieved in 10ms
 			if (axisMinStepRatePerKTicks < axisMaxAccStepsPerKTicksPerMilliSec * 10)
 				axisMinStepRatePerKTicks = axisMaxAccStepsPerKTicksPerMilliSec * 10;
 

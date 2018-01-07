@@ -12,6 +12,13 @@ private:
 	// Master axis
 	int _masterAxisIdx;
 
+public:
+	// Cache values for master axis as they are used frequently in the planner
+	float _masterAxisMaxAccMMps2;
+	float _masterAxisStepDistanceMM;
+	// Cache max and min step rates
+	AxisFloats _maxStepRatesPerSec;
+	AxisFloats _minStepRatesPerSec;
 
 public:
 
@@ -23,6 +30,8 @@ public:
 	void clearAxes()
 	{
 		_masterAxisIdx = -1;
+		_masterAxisMaxAccMMps2 = AxisParams::acceleration_default;
+		_masterAxisStepDistanceMM = AxisParams::unitsPerRotation_default / AxisParams::stepsPerRotation_default;
 		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 			_axisParams[axisIdx].clear();
 	}
@@ -95,45 +104,20 @@ public:
 		return _axisParams[axisIdx]._isPrimaryAxis;
 	}
 
-	float getMasterMaxAccel()
-	{
-		return getMaxAccel(_masterAxisIdx);
-	}
-
-	float getMasterStepDistMM()
-	{
-		return getStepDistMM(_masterAxisIdx);
-	}
-
-	uint32_t getMinStepIntervalNS()
-	{
-		if (_masterAxisIdx < 0 || _masterAxisIdx >= RobotConsts::MAX_AXES)
-			return uint32_t((1e9 * getMasterStepDistMM()) / AxisParams::maxSpeed_default);
-		return uint32_t((1e9 * getMasterStepDistMM()) / getMaxSpeed(_masterAxisIdx));
-	}
-
-	uint32_t getMaxStepIntervalNS()
-	{
-		if (_masterAxisIdx < 0 || _masterAxisIdx >= RobotConsts::MAX_AXES)
-			return uint32_t((1e9 * getMasterStepDistMM()) / AxisParams::minSpeedMMps_default);
-		return uint32_t((1e9 * getMasterStepDistMM()) / getMinSpeed(_masterAxisIdx));
-	}
-
-	void getMaxStepRatesPerSec(AxisFloats& rates)
-	{
-		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
-		{
-			rates.setVal(axisIdx, getMaxSpeed(axisIdx) / getStepDistMM(axisIdx));
-		}
-	}
-
-	void getMinStepRatesPerSec(AxisFloats& rates)
-	{
-		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
-		{
-			rates.setVal(axisIdx, getMinSpeed(axisIdx) / getStepDistMM(axisIdx));
-		}
-	}
+	// uint32_t getMinStepIntervalNS()
+	// {
+	// 	if (_masterAxisIdx < 0 || _masterAxisIdx >= RobotConsts::MAX_AXES)
+	// 		return uint32_t((1e9 * getMasterStepDistMM()) / AxisParams::maxSpeed_default);
+	// 	return uint32_t((1e9 * getMasterStepDistMM()) / getMaxSpeed(_masterAxisIdx));
+	// }
+	//
+	// uint32_t getMaxStepIntervalNS()
+	// {
+	// 	if (_masterAxisIdx < 0 || _masterAxisIdx >= RobotConsts::MAX_AXES)
+	// 		return uint32_t((1e9 * getMasterStepDistMM()) / AxisParams::minSpeedMMps_default);
+	// 	return uint32_t((1e9 * getMasterStepDistMM()) / getMinSpeed(_masterAxisIdx));
+	// }
+	//
 
 	bool configureAxis(const char* robotConfigJSON, int axisIdx, String& axisJSON)
 	{
@@ -153,6 +137,12 @@ public:
 		// Find the master axis (dominant one, or first primary - or just first)
 		setMasterAxis(axisIdx);
 
+		// Cache axis max and min step rates
+		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+		{
+			_maxStepRatesPerSec.setVal(axisIdx, getMaxSpeed(axisIdx) / getStepDistMM(axisIdx));
+			_minStepRatesPerSec.setVal(axisIdx, getMinSpeed(axisIdx) / getStepDistMM(axisIdx));
+		}
 		return true;
 	}
 
@@ -180,5 +170,9 @@ public:
 			_masterAxisIdx = firstPrimaryIdx;
 		else if (_masterAxisIdx == -1)
 			_masterAxisIdx = fallbackAxisIdx;
+
+		// Cache values for master axis
+		_masterAxisMaxAccMMps2 = getMaxAccel(_masterAxisIdx);
+		_masterAxisStepDistanceMM = getStepDistMM(_masterAxisIdx);
 	}
 };
