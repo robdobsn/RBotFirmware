@@ -48,8 +48,8 @@ public:
 		// Motion parameters used throughout planner process
 		_motionParams._masterAxisMaxAccMMps2 = axesParams.getMasterMaxAccel();
 		_motionParams._masterAxisStepDistanceMM = axesParams.getMasterStepDistMM();
-		_motionParams._minStepIntervalNS = axesParams.getMinStepIntervalNS();
-		_motionParams._maxStepIntervalNS = axesParams.getMaxStepIntervalNS();
+		axesParams.getMaxStepRatesPerSec(_motionParams._maxStepRatePerSec);
+		axesParams.getMinStepRatesPerSec(_motionParams._minStepRatePerSec);
 
 		// Find axis deltas and sum of squares of motion on primary axes
 		double deltas[RobotConsts::MAX_AXES];

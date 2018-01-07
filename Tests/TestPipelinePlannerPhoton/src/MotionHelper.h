@@ -116,7 +116,7 @@ public:
 	void debugShowBlocks();
 	void debugShowTiming();
 	int testGetPipelineCount();
-	void testGetPipelineBlock(int elIdx, MotionBlock& elem);
+	bool testGetPipelineBlock(int elIdx, MotionBlock& elem);
 	void setTestMode(const char* testModeStr)
 	{
 		_motionActuator.setTestMode(testModeStr);

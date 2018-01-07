@@ -95,6 +95,7 @@ void MotionActuator::procTick()
 			if (axisStepData._stepsInAccPhase + axisStepData._stepsInPlateauPhase + axisStepData._stepsInDecelPhase != 0)
 			{
 				// Initialse accumulators and other vars
+				axisExecData._minStepRatePerKTicks = axisStepData._minStepRatePerKTicks;
 				axisExecData._curStepRatePerKTicks = axisStepData._initialStepRatePerKTicks;
 				axisExecData._accStepsPerKTicksPerMS = axisStepData._accStepsPerKTicksPerMS;
 				axisExecData._stepsAccPhase = axisStepData._stepsInAccPhase;
@@ -173,7 +174,7 @@ void MotionActuator::procTick()
 			else if (axisExecData._axisStepPhaseNum == MotionBlock::STEP_PHASE_DECEL)
     		{
 				//Log.trace("Decel Steps/s %ld Accel %ld", axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS);
-				if (axisExecData._curStepRatePerKTicks > axisExecData._accStepsPerKTicksPerMS)
+				if (axisExecData._curStepRatePerKTicks > axisExecData._minStepRatePerKTicks * 2)
 					axisExecData._curStepRatePerKTicks -= axisExecData._accStepsPerKTicksPerMS;
 				//else
 				//	Log.trace("Didn't sub acceleration");

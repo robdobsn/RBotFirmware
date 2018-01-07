@@ -270,7 +270,10 @@ int MotionHelper::testGetPipelineCount()
 {
 	return _motionPipeline.count();
 }
-void MotionHelper::testGetPipelineBlock(int elIdx, MotionBlock& block)
+bool MotionHelper::testGetPipelineBlock(int elIdx, MotionBlock& block)
 {
+	if ((int)_motionPipeline.count() <= elIdx)
+		return false;
 	block = *_motionPipeline.peekNthFromPut(_motionPipeline.count() - 1 - elIdx);
+	return true;
 }
