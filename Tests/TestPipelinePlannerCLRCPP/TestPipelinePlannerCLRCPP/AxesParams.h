@@ -2,6 +2,7 @@
 
 #include "RobotConsts.h"
 #include "AxisParams.h"
+#include "AxisValues.h"
 
 class AxesParams
 {
@@ -73,6 +74,13 @@ public:
 		return _axisParams[axisIdx]._minSpeedMMps;
 	}
 
+	float getStepDistMM(int axisIdx)
+	{
+		if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
+			return AxisParams::unitsPerRotation_default / AxisParams::stepsPerRotation_default;
+		return _axisParams[axisIdx]._unitsPerRotation / _axisParams[axisIdx]._stepsPerRotation;
+	}
+
 	float getMaxAccel(int axisIdx)
 	{
 		if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
@@ -89,16 +97,12 @@ public:
 
 	float getMasterMaxAccel()
 	{
-		if (_masterAxisIdx < 0 || _masterAxisIdx >= RobotConsts::MAX_AXES)
-			return AxisParams::acceleration_default;
-		return _axisParams[_masterAxisIdx]._maxAccelMMps2;
+		return getMaxAccel(_masterAxisIdx);
 	}
 
 	float getMasterStepDistMM()
 	{
-		if (_masterAxisIdx < 0 || _masterAxisIdx >= RobotConsts::MAX_AXES)
-			return AxisParams::unitsPerRotation_default / AxisParams::stepsPerRotation_default;
-		return _axisParams[_masterAxisIdx]._unitsPerRotation / _axisParams[_masterAxisIdx]._stepsPerRotation;
+		return getStepDistMM(_masterAxisIdx);
 	}
 
 	uint32_t getMinStepIntervalNS()
@@ -113,6 +117,22 @@ public:
 		if (_masterAxisIdx < 0 || _masterAxisIdx >= RobotConsts::MAX_AXES)
 			return uint32_t((1e9 * getMasterStepDistMM()) / AxisParams::minSpeedMMps_default);
 		return uint32_t((1e9 * getMasterStepDistMM()) / getMinSpeed(_masterAxisIdx));
+	}
+
+	void getMaxStepRatesPerSec(AxisFloats& rates)
+	{
+		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+		{
+			rates.setVal(axisIdx, getMaxSpeed(axisIdx) / getStepDistMM(axisIdx));
+		}
+	}
+
+	void getMinStepRatesPerSec(AxisFloats& rates)
+	{
+		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+		{
+			rates.setVal(axisIdx, getMinSpeed(axisIdx) / getStepDistMM(axisIdx));
+		}
 	}
 
 	bool configureAxis(const char* robotConfigJSON, int axisIdx, String& axisJSON)

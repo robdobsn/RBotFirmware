@@ -45,6 +45,8 @@ private:
 		uint32_t _stepsAccPhase;
 		uint32_t _stepsPlateauPhase;
 		uint32_t _stepsDecelPhase;
+		// Min step rate
+		uint32_t _minStepRatePerKTicks;
 		// Current step rate (in steps per K ticks) and count of steps made in this block
 		uint32_t _curStepRatePerKTicks;
 		uint32_t _curPhaseStepCount;

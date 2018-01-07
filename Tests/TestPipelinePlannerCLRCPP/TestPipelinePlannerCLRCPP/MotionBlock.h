@@ -21,7 +21,8 @@ public:
 	static constexpr uint32_t K_VALUE = 1000000000l;
 
 	// Tick interval in NS
-	static constexpr uint32_t TICK_INTERVAL_NS = 10000;
+	// 20000NS means max of 50k steps per second
+	static constexpr uint32_t TICK_INTERVAL_NS = 20000;
 
 	// Number of ns in ms
 	static constexpr uint32_t NS_IN_A_MS = 1000000;
@@ -31,8 +32,8 @@ public:
 	{
 		float _masterAxisMaxAccMMps2;
 		float _masterAxisStepDistanceMM;
-		uint32_t _minStepIntervalNS;
-		uint32_t _maxStepIntervalNS;
+		AxisFloats _maxStepRatePerSec;
+		AxisFloats _minStepRatePerSec;
 	};
 
 public:
@@ -57,6 +58,7 @@ public:
 
 	struct axisStepData_t
 	{
+		uint32_t _minStepRatePerKTicks;
 		uint32_t _initialStepRatePerKTicks;
 		uint32_t _accStepsPerKTicksPerMS;
 		uint32_t _stepsInAccPhase;
@@ -237,22 +239,38 @@ public:
 			uint32_t absStepsThisAxis = labs(_axisStepsToTarget.vals[axisIdx]);
 			float axisFactor = absStepsThisAxis * oneOverAbsMaxStepsAnyAxis;
 
-			// Initial step rate for this axis
-			float axisInitialStepRatePerSec = initialStepRatePerSec * axisFactor;
-
-			// Initial step rate for this axis per KTicks
-			float axisInitialStepRatePerKTicksFloat = (K_VALUE * axisInitialStepRatePerSec) / ticksPerSec;
-
-			// Axis max acceleration in units suitable for actuation
-			float axisMaxAccStepsPerKTicksPerMilliSec = masterAxisMaxAccStepsPerKTicksPerMilliSec * axisFactor;
-
 			// Step values
 			uint32_t stepsAccel = uint32_t(ceilf(absStepsThisAxis * distPropAccelerating));
 			uint32_t stepsPlateau = uint32_t(absStepsThisAxis * distPropPlateau);
 			uint32_t stepsDecel = uint32_t(absStepsThisAxis - stepsAccel - stepsPlateau);
 
+			// Axis max acceleration in units suitable for actuation
+			float axisMaxAccStepsPerKTicksPerMilliSec = masterAxisMaxAccStepsPerKTicksPerMilliSec * axisFactor;
+
+			// If there is a deceleration phase and this isn't the dominant axis then correct acceleration to compensate for step number rounding
+			if (stepsDecel > 0 && axisFactor < 0.3f)
+			{
+				axisMaxAccStepsPerKTicksPerMilliSec *= (float(stepsDecel) / (stepsDecel + 1));
+			}
+
+			// Initial step rate for this axis
+			float axisInitialStepRatePerSec = initialStepRatePerSec * axisFactor;
+
+			// Minimum step rate for this axis per KTicks
+			float axisMinStepRatePerKTicks = (K_VALUE * motionParams._minStepRatePerSec.getVal(axisIdx)) / ticksPerSec;
+
+			// Don't allow the step rate to go below the acceleration achieved in 10ms 
+			if (axisMinStepRatePerKTicks < axisMaxAccStepsPerKTicksPerMilliSec * 10)
+				axisMinStepRatePerKTicks = axisMaxAccStepsPerKTicksPerMilliSec * 10;
+
+			// Initial step rate for this axis per KTicks
+			float axisInitialStepRatePerKTicksFloat = (K_VALUE * axisInitialStepRatePerSec) / ticksPerSec;
+			if (axisInitialStepRatePerKTicksFloat < axisMinStepRatePerKTicks)
+				axisInitialStepRatePerKTicksFloat = axisMinStepRatePerKTicks;
+
 			// Setup actuation data
-			_axisStepData[axisIdx]._initialStepRatePerKTicks = uint32_t(axisInitialStepRatePerKTicksFloat + axisMaxAccStepsPerKTicksPerMilliSec);
+			_axisStepData[axisIdx]._minStepRatePerKTicks = uint32_t(axisMinStepRatePerKTicks);
+			_axisStepData[axisIdx]._initialStepRatePerKTicks = uint32_t(axisInitialStepRatePerKTicksFloat);
 			_axisStepData[axisIdx]._accStepsPerKTicksPerMS = uint32_t(axisMaxAccStepsPerKTicksPerMilliSec);
 			_axisStepData[axisIdx]._stepsInAccPhase = stepsAccel;
 			_axisStepData[axisIdx]._stepsInPlateauPhase = stepsPlateau;
@@ -264,12 +282,12 @@ public:
 
 	void debugShowBlkHead()
 	{
-		Log.trace("#i EntMMps ExtMMps  XSteps  YSteps   XStPKtk XAcPKms  XAccSt XPlatSt  XDecSt   YStPKtk YAcPKms  YAccSt YPlatSt  YDecSt");
+		Log.trace("#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt");
 	}
 
 	void debugShowBlock(int elemIdx)
 	{
-		Log.trace("%2d%8.3f%8.3f%8ld%8ld%10lu%8lu%8lu%8lu%8lu%10lu%8lu%8lu%8lu%8lu", elemIdx,
+		Log.trace("%2d%8.3f%8.3f%6ld%6ld%10lu%8lu%6lu%6lu%6lu%10lu%8lu%6lu%6lu%6lu", elemIdx,
 			_entrySpeedMMps, _exitSpeedMMps,
 			_axisStepsToTarget.X(), _axisStepsToTarget.Y(),
 			_axisStepData[0]._initialStepRatePerKTicks, _axisStepData[0]._accStepsPerKTicksPerMS,

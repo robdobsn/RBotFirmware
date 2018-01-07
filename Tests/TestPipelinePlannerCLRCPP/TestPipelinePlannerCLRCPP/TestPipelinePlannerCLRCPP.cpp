@@ -11,9 +11,9 @@ static const char* ROBOT_CONFIG_STR_XY =
 	"{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
     " \"cmdsAtStart\":\"\", "
-    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":100.0, \"maxAcc\":100.0,"
+    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":10.0, \"maxAcc\":100.0,"
     " \"stepsPerRotation\":3200, \"unitsPerRotation\":60 },"
-    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":100.0, \"maxAcc\":100.0,"
+    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":10.0, \"maxAcc\":100.0,"
     " \"stepsPerRotation\":3200, \"unitsPerRotation\":60 },"
     " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
     "}";
@@ -295,7 +295,8 @@ int main()
 			char* pStr = NULL;
 			tc->getOut(i, pStr);
 			MotionBlock elem;
-			_motionHelper.testGetPipelineBlock(i, elem);
+			if (!_motionHelper.testGetPipelineBlock(i, elem))
+				break;
 			char toks[] = " ";
 			char *pRslt;
 			pRslt = strtok(pStr, toks);

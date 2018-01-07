@@ -6,6 +6,8 @@
 // Comment out these items to enable/disable test code
 #ifdef SPARK
 #define TEST_MOTION_ACTUATOR_ENABLE 1
+#define SystemTicksPerMicrosecond System.ticksPerMicrosecond
+#define SystemTicks System.ticks
 #endif
 
 #include "application.h"

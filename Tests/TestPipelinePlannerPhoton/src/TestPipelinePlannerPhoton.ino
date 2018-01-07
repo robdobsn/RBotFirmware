@@ -1,5 +1,6 @@
 
 #include "MotionHelper.h"
+#include "Utils.h"
 
 SYSTEM_MODE(AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
@@ -76,65 +77,112 @@ bool isApproxL(int64_t a, int64_t b, int64_t epsilon = 1)
 
 MotionHelper _motionHelper;
 
+int __curTestNum = 0;
+const int __numTests = 2;
+int __curTestErrorCount = 0;
+const int __testSquareDiagonalLen = 6;
+int __testSquareDiagonal [__testSquareDiagonalLen][2] =
+				{ {1,0}, {1,1}, {0,1}, {0,0}, {1,1}, {0,0} };
+const int __testOneBigMoveLen = 1;
+int __testOneBigMove [__testOneBigMoveLen][2] =
+				{ {100,0} };
+
+bool setupNextTest()
+{
+	bool testSet = false;
+	if (__curTestNum < __numTests)
+	{
+		RobotCommandArgs cmdArgs;
+		if (__curTestNum == 0)
+		{
+			for (int i = 0; i < __testSquareDiagonalLen; i++)
+			{
+				cmdArgs.setAxisValue(0, __testSquareDiagonal[i][0], true);
+				cmdArgs.setAxisValue(1, __testSquareDiagonal[i][1], true);
+				_motionHelper.moveTo(cmdArgs);
+			}
+
+			if (_motionHelper.testGetPipelineCount() != __testSquareDiagonalLen)
+			{
+			    Log.info("ERROR Pipeline len != cmd count\n");
+				__curTestErrorCount++;
+			}
+
+			_motionHelper.debugShowBlocks();
+			testSet = true;
+		}
+		else if (__curTestNum == 1)
+		{
+			for (int i = 0; i < __testOneBigMoveLen; i++)
+			{
+				cmdArgs.setAxisValue(0, __testOneBigMove[i][0], true);
+				cmdArgs.setAxisValue(1, __testOneBigMove[i][1], true);
+				_motionHelper.moveTo(cmdArgs);
+			}
+
+			if (_motionHelper.testGetPipelineCount() != __testOneBigMoveLen)
+			{
+				Log.info("ERROR Pipeline len != cmd count\n");
+				__curTestErrorCount++;
+			}
+
+			_motionHelper.debugShowBlocks();
+			testSet = true;
+		}
+
+		Log.trace("========================== STARTING TEST %d ==========================",
+					__curTestNum);
+		__curTestNum++;
+	}
+	return testSet;
+}
+
 void setup()
 {
 	Serial.begin(115200);
 	delay(2000);
 	Log.trace(" ");
-	Log.trace("========================== STARTING TEST ==========================");
-	int errorCount = 0;
-
-	const int TEST_NUM_MOTION_BLOCKS = 6;
+	Log.trace("========================== TESTING PIPELINE ==========================");
 
 	_motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
 	_motionHelper.configure(ROBOT_CONFIG_STR_XY);
 	_motionHelper.setTestMode("TIMEISR");
-
 	_motionHelper.pause(false);
-
-	RobotCommandArgs cmdArgs;
-	cmdArgs.setAxisValue(0, 1, true);
-	cmdArgs.setAxisValue(1, 0, true);
-	_motionHelper.moveTo(cmdArgs);
-	cmdArgs.setAxisValue(0, 1, true);
-	cmdArgs.setAxisValue(1, 1, true);
-	_motionHelper.moveTo(cmdArgs);
-	cmdArgs.setAxisValue(0, 0, true);
-	cmdArgs.setAxisValue(1, 1, true);
-	_motionHelper.moveTo(cmdArgs);
-	cmdArgs.setAxisValue(0, 0, true);
-	cmdArgs.setAxisValue(1, 0, true);
-	_motionHelper.moveTo(cmdArgs);
-	cmdArgs.setAxisValue(0, 1, true);
-	cmdArgs.setAxisValue(1, 1, true);
-	_motionHelper.moveTo(cmdArgs);
-	cmdArgs.setAxisValue(0, 0, true);
-	cmdArgs.setAxisValue(1, 0, true);
-	_motionHelper.moveTo(cmdArgs);
-
-	if (_motionHelper.testGetPipelineCount() != TEST_NUM_MOTION_BLOCKS)
-	{
-	    Log.info("ERROR Pipeline len != Gcode count\n");
-	    errorCount++;
-	}
-
-	_motionHelper.debugShowBlocks();
-
 }
 
-bool __debugTimingShown = false;
+bool __debugTimingShown = true;
+bool __wasIdle = false;
+unsigned long __idleTime = 0;
 
 void loop()
 {
 	while (true)
 	{
 	    _motionHelper.service(true);
-		if (!__debugTimingShown)
+		if (_motionHelper.isIdle())
 		{
-			if (_motionHelper.isIdle())
+			if (!__debugTimingShown)
 			{
 				_motionHelper.debugShowTiming();
 				__debugTimingShown = true;
+			}
+			if (!__wasIdle)
+			{
+				__idleTime = millis();
+				__wasIdle = true;
+			}
+			else
+			{
+				if (Utils::isTimeout(millis(), __idleTime, 10000) || (__curTestNum == 0))
+				{
+					_motionHelper.pause(true);
+					if (setupNextTest())
+					{
+						__debugTimingShown = false;
+					}
+					__wasIdle = false;
+					_motionHelper.pause(false);
+				}
 			}
 		}
 	}
