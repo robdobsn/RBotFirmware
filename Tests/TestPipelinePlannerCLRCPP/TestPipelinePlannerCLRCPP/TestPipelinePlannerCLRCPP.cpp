@@ -10,13 +10,24 @@ using namespace System;
 
 double __maxElapsedMoveToTime = 0;
 
+static const char* ROBOT_CONFIG_STR_MUGBOT =
+"{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
+" \"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
+" \"cmdsAtStart\":\"\", "
+" \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":10.0, \"maxAcc\":10.0,"
+" \"stepsPerRotation\":6400, \"unitsPerRotation\":360 },"
+" \"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":10.0, \"maxAcc\":10.0,"
+" \"stepsPerRotation\":1600, \"unitsPerRotation\":1 },"
+" \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
+"}";
+
 static const char* ROBOT_CONFIG_STR_XY =
 	"{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
     " \"cmdsAtStart\":\"\", "
-    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":10.0, \"maxAcc\":100.0,"
+    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":10.0, \"maxAcc\":10.0,"
     " \"stepsPerRotation\":3200, \"unitsPerRotation\":60 },"
-    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":10.0, \"maxAcc\":100.0,"
+    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":10.0, \"maxAcc\":10.0,"
     " \"stepsPerRotation\":3200, \"unitsPerRotation\":60 },"
     " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
     "}";
@@ -301,7 +312,7 @@ int main()
 		MotionHelper _motionHelper;
 
 		_motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
-		_motionHelper.configure(ROBOT_CONFIG_STR_XY);
+		_motionHelper.configure(ROBOT_CONFIG_STR_MUGBOT);
 		_motionHelper.pause(false);
 
 		for (int i = 0; i < tc->numIns(); i++)

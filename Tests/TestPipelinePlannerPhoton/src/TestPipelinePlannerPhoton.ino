@@ -6,6 +6,17 @@ SYSTEM_MODE(AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 SerialLogHandler logHandler(LOG_LEVEL_INFO);
 
+static const char* ROBOT_CONFIG_STR_MUGBOT =
+	"{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
+    " \"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
+    " \"cmdsAtStart\":\"\", "
+    " \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":10.0, \"maxAcc\":100.0,"
+    " \"stepsPerRotation\":6400, \"unitsPerRotation\":360 },"
+    " \"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":10.0, \"maxAcc\":100.0,"
+    " \"stepsPerRotation\":1600, \"unitsPerRotation\":1 },"
+    " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
+    "}";
+
 static const char* ROBOT_CONFIG_STR_XY =
 	"{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
@@ -85,7 +96,7 @@ int __testSquareDiagonal [__testSquareDiagonalLen][2] =
 				{ {1,0}, {1,1}, {0,1}, {0,0}, {1,1}, {0,0} };
 const int __testOneBigMoveLen = 1;
 int __testOneBigMove [__testOneBigMoveLen][2] =
-				{ {100,0} };
+				{ {100,100} };
 
 bool setupNextTest()
 {
@@ -152,8 +163,8 @@ void setup()
 	Log.info("========================== TESTING PIPELINE ==========================");
 
 	_motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
-	_motionHelper.configure(ROBOT_CONFIG_STR_XY);
-	_motionHelper.setTestMode("TIMEISR");
+	_motionHelper.configure(ROBOT_CONFIG_STR_MUGBOT);
+	_motionHelper.setTestMode("OUTPUTSTEPDATA");
 	_motionHelper.pause(false);
 }
 

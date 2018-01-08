@@ -90,7 +90,7 @@ public:
 			}
 
 			TestOutputStepInf inf = getStepInf();
-			Log.trace("W\t%lu\t%d\t%d", inf._micros, inf._pin, inf._val ? 1 : 0);
+			Log.info("W\t%lu\t%d\t%d", inf._micros, inf._pin, inf._val ? 1 : 0);
 		}
 	}
 };
@@ -134,7 +134,7 @@ public:
 		_timeISR = false;
 		if (strstr(pTestModeStr, "TIMEISR") != NULL)
 			_timeISR = true;
-		Log.trace("TestMotionActuator: blink %d, outputStepData %d, timeISR %d",
+		Log.info("TestMotionActuator: blink %d, outputStepData %d, timeISR %d",
 				_blinkD7OnISR, _outputStepData, _timeISR);
 		if (_blinkD7OnISR)
 		{

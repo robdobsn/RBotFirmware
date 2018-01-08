@@ -3,6 +3,11 @@
 
 #include "MotionActuator.h"
 
+// Test of motion actuator
+#ifdef TEST_MOTION_ACTUATOR_ENABLE
+TestMotionActuator* MotionActuator::_pTestMotionActuator = NULL;
+#endif
+
 #ifdef USE_SPARK_INTERVAL_TIMER_ISR
 
 // Static interval timer
@@ -11,28 +16,27 @@ IntervalTimer MotionActuator::_isrMotionTimer;
 // Static refrerence to a single MotionActuator instance
 MotionActuator* MotionActuator::_pMotionActuatorInstance = NULL;
 
-// Test of motion actuator
-#ifdef TEST_MOTION_ACTUATOR_ENABLE
-TestMotionActuator* MotionActuator::_pTestMotionActuator = NULL;
-#endif
-
 void MotionActuator::_isrStepperMotion(void)
 {
 	// Test code if enabled
+#ifdef TEST_MOTION_ACTUATOR_ENABLE
 	if (_pTestMotionActuator)
+	{
 		_pTestMotionActuator->blink();
-
-	// Time execution
-	if (_pTestMotionActuator)
+		// Time execution
 		_pTestMotionActuator->timeStart();
+	}
+#endif
 
     // Process block
     if (_pMotionActuatorInstance)
         _pMotionActuatorInstance->procTick();
 
+#ifdef TEST_MOTION_ACTUATOR_ENABLE
 	// Time execution
 	if (_pTestMotionActuator)
 		_pTestMotionActuator->timeEnd();
+#endif
 }
 
 #endif

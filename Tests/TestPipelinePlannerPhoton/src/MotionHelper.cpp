@@ -65,8 +65,6 @@ void MotionHelper::configure(const char* robotConfigJSON)
 
 bool MotionHelper::configureRobot(const char* robotConfigJSON)
 {
-	// Get motor enable info
-	String stepEnablePinName = RdJson::getString("stepEnablePin", "-1", robotConfigJSON);
 	_xMaxMM = float(RdJson::getDouble("xMaxMM", 0, robotConfigJSON));
 	_yMaxMM = float(RdJson::getDouble("yMaxMM", 0, robotConfigJSON));
 
@@ -75,7 +73,7 @@ bool MotionHelper::configureRobot(const char* robotConfigJSON)
 	float junctionDeviation = float(RdJson::getDouble("junctionDeviation", junctionDeviation_default, robotConfigJSON));
 	int pipelineLen = int(RdJson::getLong("pipelineLen", pipelineLen_default, robotConfigJSON));
 	// Pipeline length and block size
-	Log.trace("MotionHelper configMotionPipeline len %d, _blockDistanceMM %0.2f",
+	Log.info("MotionHelper configMotionPipeline len %d, _blockDistanceMM %0.2f",
 					pipelineLen, _blockDistanceMM);
 	_motionPipeline.init(pipelineLen);
 	_motionPlanner.configure(junctionDeviation);
@@ -139,7 +137,7 @@ bool MotionHelper::moveTo(RobotCommandArgs& args)
 	// Handle any motion parameters (such as relative movement, feedrate, etc)
 	setMotionParams(args);
 
-	// Handle relative motion and fill in the destPos for axes for
+	// Handle relatative motion and fill in the destPos for axes for
 	// which values not specified
 	// Don't use servo values for computing distance to travel
 	AxisFloats destPos = args.pt;
@@ -224,6 +222,9 @@ void MotionHelper::blocksToAddProcess()
 		// Add to planner
 		_blocksToAddCommandArgs.pt = nextBlockDest;
 		addToPlanner(_blocksToAddCommandArgs);
+
+		// Enable motors
+		_motionIO.enableMotors(true, false);
 	}
 }
 
