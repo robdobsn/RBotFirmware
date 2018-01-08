@@ -47,7 +47,9 @@ public:
 		_stepsPerRotation = stepsPerRotation_default;
 		_unitsPerRotation = unitsPerRotation_default;
 		_minValValid = false;
+		_minVal = 0;
 		_maxValValid = false;
+		_maxVal = 0;
 		_isPrimaryAxis = true;
 		_isDominantAxis = false;
 		_isServoAxis = false;

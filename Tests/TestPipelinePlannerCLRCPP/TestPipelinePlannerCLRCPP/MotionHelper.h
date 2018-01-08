@@ -45,7 +45,7 @@ private:
 	MotionIO _motionIO;
 	// Motion
 	MotionActuator _motionActuator;
-	
+
 	// Split-up movement blocks to be added to pipeline
 	// Number of blocks to add
 	int _blocksToAddTotal;

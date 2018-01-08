@@ -206,7 +206,7 @@ public:
 		// Calculate max achievable speed using v^2 = u^2 - 2as
 		// float maxAchievableSpeedMMps = sqrtf(_minimumPlannerSpeedMMps * _minimumPlannerSpeedMMps + 2.0F * (axesParams._masterAxisMaxAccMMps2) * block._moveDistPrimaryAxesMM);
 		// block._entrySpeedMMps = fminf(vmaxJunction, maxAchievableSpeedMMps);
-		
+
 		// Log.trace("MaxAchievableSpeed %0.3f, entrySpeedMMps %0.3f", maxAchievableSpeedMMps, block._entrySpeedMMps);
 
 		// Initialize planner efficiency flags

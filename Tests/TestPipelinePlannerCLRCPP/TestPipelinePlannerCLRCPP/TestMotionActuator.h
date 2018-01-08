@@ -8,6 +8,8 @@
 #define TEST_MOTION_ACTUATOR_ENABLE 1
 #define SystemTicksPerMicrosecond System.ticksPerMicrosecond
 #define SystemTicks System.ticks
+#else
+#define TEST_MOTION_ACTUATOR_ENABLE 1
 #endif
 
 #include "application.h"
@@ -54,6 +56,10 @@ public:
 
 	void addToQueue(int pin, int val)
 	{
+		if (pin == 17) pin = 2;
+		if (pin == 16) pin = 3;
+		if (pin == 15) pin = 4;
+		if (pin == 14) pin = 5;
 		// Ignore if it is a lowering of a step pin (to avoid end of test problem)
 		if ((val == 0) && (pin == 2 || pin == 4))
 			return;
@@ -90,7 +96,7 @@ public:
 			}
 
 			TestOutputStepInf inf = getStepInf();
-			Log.trace("W\t%lu\t%d\t%d", inf._micros, inf._pin, inf._val ? 1 : 0);
+			Log.info("W\t%lu\t%d\t%d", inf._micros, inf._pin, inf._val ? 1 : 0);
 		}
 	}
 };
@@ -134,7 +140,7 @@ public:
 		_timeISR = false;
 		if (strstr(pTestModeStr, "TIMEISR") != NULL)
 			_timeISR = true;
-		Log.trace("TestMotionActuator: blink %d, outputStepData %d, timeISR %d",
+		Log.info("TestMotionActuator: blink %d, outputStepData %d, timeISR %d",
 				_blinkD7OnISR, _outputStepData, _timeISR);
 		if (_blinkD7OnISR)
 		{

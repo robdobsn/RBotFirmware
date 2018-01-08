@@ -147,11 +147,13 @@ public:
 	}
 
 	// Set the master axis either to the dominant axis (if there is one)
-	// or from the first primary axis (if one is specified) or just the first one found
+	// or from the primary axis with highest steps per unit
+	// or just the first one found
 	void setMasterAxis(int fallbackAxisIdx)
 	{
 		int dominantIdx = -1;
-		int firstPrimaryIdx = -1;
+		int primaryIdx = -1;
+		int primaryAxisMaxStepsPerUnit = 0;
 		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 		{
 			if (_axisParams[i]._isDominantAxis)
@@ -159,15 +161,19 @@ public:
 				dominantIdx = i;
 				break;
 			}
-			if (firstPrimaryIdx == -1 && _axisParams[i]._isPrimaryAxis)
+			if (_axisParams[i]._isPrimaryAxis)
 			{
-				firstPrimaryIdx = i;
+				if (primaryIdx == -1 || primaryAxisMaxStepsPerUnit < getStepsPerUnit(i))
+				{
+					primaryIdx = i;
+					primaryAxisMaxStepsPerUnit = getStepsPerUnit(i);
+				}
 			}
 		}
 		if (dominantIdx != -1)
 			_masterAxisIdx = dominantIdx;
-		else if (firstPrimaryIdx != -1)
-			_masterAxisIdx = firstPrimaryIdx;
+		else if (primaryIdx != -1)
+			_masterAxisIdx = primaryIdx;
 		else if (_masterAxisIdx == -1)
 			_masterAxisIdx = fallbackAxisIdx;
 

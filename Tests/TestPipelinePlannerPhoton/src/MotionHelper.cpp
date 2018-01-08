@@ -137,7 +137,7 @@ bool MotionHelper::moveTo(RobotCommandArgs& args)
 	// Handle any motion parameters (such as relative movement, feedrate, etc)
 	setMotionParams(args);
 
-	// Handle relatative motion and fill in the destPos for axes for
+	// Handle relative motion and fill in the destPos for axes for
 	// which values not specified
 	// Don't use servo values for computing distance to travel
 	AxisFloats destPos = args.pt;

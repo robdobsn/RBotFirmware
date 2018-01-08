@@ -7,7 +7,6 @@
 #include "spark_wiring_string_mod.h"
 #include <ctype.h>
 
-//#define USE_SMOOTHIE_CODE 1
 #define ROB_IMPLEMENT_TESTS 1
 
 #define SHOW_TRACE 1

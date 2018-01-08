@@ -139,6 +139,7 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
+    <Text Include="TestCaseMotionFile.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="application.h" />
@@ -186,6 +187,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="TestCaseMotion.cpp" />
+    <ClCompile Include="TestMotionActuator.cpp" />
     <ClCompile Include="TestPipelinePlannerCLRCPP.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -1,6 +1,6 @@
 TESTCASE One Large Movement
 IN
-G0 X10 Y0
+G0 X10 Y10
 OUT
 #i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
  0   0.000  10.000    54     0   1066666  106666    27    27     0     10666       0     0     0     0

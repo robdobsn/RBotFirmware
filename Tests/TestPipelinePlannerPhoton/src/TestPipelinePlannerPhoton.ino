@@ -10,9 +10,9 @@ static const char* ROBOT_CONFIG_STR_MUGBOT =
 	"{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
     " \"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
     " \"cmdsAtStart\":\"\", "
-    " \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":10.0, \"maxAcc\":100.0,"
+    " \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":10.0, \"maxAcc\":10.0,"
     " \"stepsPerRotation\":6400, \"unitsPerRotation\":360 },"
-    " \"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":10.0, \"maxAcc\":100.0,"
+    " \"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":10.0, \"maxAcc\":10.0,"
     " \"stepsPerRotation\":1600, \"unitsPerRotation\":1 },"
     " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
     "}";
@@ -96,7 +96,7 @@ int __testSquareDiagonal [__testSquareDiagonalLen][2] =
 				{ {1,0}, {1,1}, {0,1}, {0,0}, {1,1}, {0,0} };
 const int __testOneBigMoveLen = 1;
 int __testOneBigMove [__testOneBigMoveLen][2] =
-				{ {100,100} };
+				{ {10,10} };
 
 bool setupNextTest()
 {

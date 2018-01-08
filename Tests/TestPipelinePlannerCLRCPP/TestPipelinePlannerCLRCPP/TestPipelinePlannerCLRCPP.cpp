@@ -12,7 +12,7 @@ double __maxElapsedMoveToTime = 0;
 
 static const char* ROBOT_CONFIG_STR_MUGBOT =
 "{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
-" \"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
+" \"stepEnablePin\":\"D7\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
 " \"cmdsAtStart\":\"\", "
 " \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":10.0, \"maxAcc\":10.0,"
 " \"stepsPerRotation\":6400, \"unitsPerRotation\":360 },"

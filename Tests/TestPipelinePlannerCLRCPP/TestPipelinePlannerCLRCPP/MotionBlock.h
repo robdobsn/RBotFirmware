@@ -137,7 +137,7 @@ public:
 		{
 			// We're acceleration limited
 			_entrySpeedMMps = prevMaxExitSpeed;
-			_recalculateFlag = false;
+			//_recalculateFlag = false;
 		}
 		// Now max out the exit speed
 		maximizeExitSpeed(axesParams);
@@ -270,7 +270,7 @@ public:
 			// Minimum step rate for this axis per KTicks
 			float axisMinStepRatePerKTicks = (K_VALUE * axesParams._minStepRatesPerSec.getVal(axisIdx)) / TICKS_PER_SEC;
 
-			// Don't allow the step rate to go below the acceleration achieved in 10ms 
+			// Don't allow the step rate to go below the acceleration achieved in 10ms
 			if (axisMinStepRatePerKTicks < axisMaxAccStepsPerKTicksPerMilliSec * 10)
 				axisMinStepRatePerKTicks = axisMaxAccStepsPerKTicksPerMilliSec * 10;
 
@@ -293,12 +293,12 @@ public:
 
 	void debugShowBlkHead()
 	{
-		Log.trace("#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt");
+		Log.info("#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt");
 	}
 
 	void debugShowBlock(int elemIdx)
 	{
-		Log.trace("%2d%8.3f%8.3f%6ld%6ld%10lu%8lu%6lu%6lu%6lu%10lu%8lu%6lu%6lu%6lu", elemIdx,
+		Log.info("%2d%8.3f%8.3f%6ld%6ld%10lu%8lu%6lu%6lu%6lu%10lu%8lu%6lu%6lu%6lu", elemIdx,
 			_entrySpeedMMps, _exitSpeedMMps,
 			_axisStepsToTarget.X(), _axisStepsToTarget.Y(),
 			_axisStepData[0]._initialStepRatePerKTicks, _axisStepData[0]._accStepsPerKTicksPerMS,

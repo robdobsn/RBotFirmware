@@ -24,6 +24,7 @@ public:
 	// Tick interval in NS
 	// 20000NS means max of 50k steps per second
 	static constexpr uint32_t TICK_INTERVAL_NS = 20000;
+	static constexpr float TICKS_PER_SEC = (1e9f / TICK_INTERVAL_NS);
 
 	// Number of ns in ms
 	static constexpr uint32_t NS_IN_A_MS = 1000000;
@@ -136,7 +137,7 @@ public:
 		{
 			// We're acceleration limited
 			_entrySpeedMMps = prevMaxExitSpeed;
-			_recalculateFlag = false;
+			//_recalculateFlag = false;
 		}
 		// Now max out the exit speed
 		maximizeExitSpeed(axesParams);
@@ -154,11 +155,11 @@ public:
 			return;
 
 		// If the flag is set showing that max junction speed can be reached regardless of entry/exit speed
-		if (_canReachJnMax)
-		{
-			//_exitSpeedMMps = _maxParamSpeedMMps;
-			return;
-		}
+		//if (_canReachJnMax)
+		//{
+		//	_exitSpeedMMps = _maxParamSpeedMMps;
+		//	return;
+		//}
 
 		// Otherwise work out max exit speed based on entry and acceleration
 		float maxExitSpeed = maxAllowableSpeed(axesParams._masterAxisMaxAccMMps2, _entrySpeedMMps, _moveDistPrimaryAxesMM);
@@ -199,6 +200,8 @@ public:
 		//      Stotal = Saccelerating + Sdecelerating
 		// And solving for Saccelerating (distance accelerating)
 		float distAccelerating = (powf(_exitSpeedMMps, 2) - powf(_entrySpeedMMps, 2)) / 4 / axesParams._masterAxisMaxAccMMps2 + _moveDistPrimaryAxesMM / 2;
+		if (distAccelerating < 0.0001f)
+			distAccelerating = 0;
 		forceInBounds(distAccelerating, 0, _moveDistPrimaryAxesMM);
 		float distDecelerating = _moveDistPrimaryAxesMM - distAccelerating;
 		float distPlateau = 0;
@@ -225,12 +228,9 @@ public:
 		getAbsMaxStepsForAnyAxis(absMaxStepsForAnyAxis, axisIdxWithMaxSteps);
 		float oneOverAbsMaxStepsAnyAxis = 1.0f / absMaxStepsForAnyAxis;
 
-		// KTicks
-		float ticksPerSec = 1e9 / TICK_INTERVAL_NS;
-
 		// Master axis acceleration in steps per KTicks per millisecond
 		float masterAxisMaxAccStepsPerSec2 = axesParams._masterAxisMaxAccMMps2 / axesParams._masterAxisStepDistanceMM;
-		float masterAxisMaxAccStepsPerKTicksPerSec = (K_VALUE * masterAxisMaxAccStepsPerSec2) / ticksPerSec;
+		float masterAxisMaxAccStepsPerKTicksPerSec = (K_VALUE * masterAxisMaxAccStepsPerSec2) / TICKS_PER_SEC;
 		float masterAxisMaxAccStepsPerKTicksPerMilliSec = masterAxisMaxAccStepsPerKTicksPerSec / 1000;
 
 		// We are about to make changes to the block - only do this if the block is not currently executing
@@ -268,14 +268,14 @@ public:
 			float axisInitialStepRatePerSec = initialStepRatePerSec * axisFactor;
 
 			// Minimum step rate for this axis per KTicks
-			float axisMinStepRatePerKTicks = (K_VALUE * axesParams._minStepRatesPerSec.getVal(axisIdx)) / ticksPerSec;
+			float axisMinStepRatePerKTicks = (K_VALUE * axesParams._minStepRatesPerSec.getVal(axisIdx)) / TICKS_PER_SEC;
 
 			// Don't allow the step rate to go below the acceleration achieved in 10ms
 			if (axisMinStepRatePerKTicks < axisMaxAccStepsPerKTicksPerMilliSec * 10)
 				axisMinStepRatePerKTicks = axisMaxAccStepsPerKTicksPerMilliSec * 10;
 
 			// Initial step rate for this axis per KTicks
-			float axisInitialStepRatePerKTicksFloat = (K_VALUE * axisInitialStepRatePerSec) / ticksPerSec;
+			float axisInitialStepRatePerKTicksFloat = (K_VALUE * axisInitialStepRatePerSec) / TICKS_PER_SEC;
 			if (axisInitialStepRatePerKTicksFloat < axisMinStepRatePerKTicks)
 				axisInitialStepRatePerKTicksFloat = axisMinStepRatePerKTicks;
 
