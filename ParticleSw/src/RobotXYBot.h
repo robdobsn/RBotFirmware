@@ -13,46 +13,41 @@ class RobotXYBot : public RobotBase
 {
 public:
 
-    static bool ptToActuator(MotionPipelineElem& motionElem, PointND& actuatorCoords, AxisParams axisParams[], int numAxes)
+    static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams)
     {
-        bool isValid = true;
-        for (int i = 0; i < MAX_AXES; i++)
+        // Check machine bounds and fix the value if required
+        bool ptWasValid = axesParams.ptInBounds(pt, true);
+
+        // Perform conversion
+        for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
         {
             // Axis val from home point
-            double axisValFromHome = motionElem._pt2MM.getVal(i) - axisParams[i]._homeOffsetVal;
+            float axisValFromHome = pt.getVal(axisIdx) - axesParams.getHomeOffsetVal(axisIdx);
             // Convert to steps and add offset to home in steps
-            actuatorCoords.setVal(i, axisValFromHome * axisParams[i].stepsPerUnit()
-                            + axisParams[i]._homeOffsetSteps);
+            actuatorCoords.setVal(axisIdx, axisValFromHome * axesParams.getStepsPerUnit(axisIdx)
+                            + axesParams.getHomeOffsetSteps(axisIdx));
 
-            // Check machine bounds
-            bool thisAxisValid = true;
-            if (axisParams[i]._minValValid && motionElem._pt2MM.getVal(i) < axisParams[i]._minVal)
-                thisAxisValid = false;
-            if (axisParams[i]._maxValValid && motionElem._pt2MM.getVal(i) > axisParams[i]._maxVal)
-                thisAxisValid = false;
-            Log.trace("ptToActuator (%s) %f -> %f (homeOffVal %f, homeOffSteps %ld)", thisAxisValid ? "OK" : "INVALID",
-                motionElem._pt2MM.getVal(i), actuatorCoords._pt[i], axisParams[i]._homeOffsetVal, axisParams[i]._homeOffsetSteps);
-            isValid &= thisAxisValid;
+            Log.trace("ptToActuator %f -> %f (homeOffVal %f, homeOffSteps %ld)",
+                    pt.getVal(axisIdx), actuatorCoords._pt[axisIdx],
+                    axesParams.getHomeOffsetVal(axisIdx), axesParams.getHomeOffsetSteps(axisIdx));
         }
-        return isValid;
+        return ptWasValid;
     }
 
-    static void actuatorToPt(PointND& actuatorCoords, PointND& pt, AxisParams axisParams[], int numAxes)
+    static void actuatorToPt(AxisFloats& actuatorCoords, AxisFloats& pt, AxesParams& axesParams)
     {
-        for (int i = 0; i < MAX_AXES; i++)
+        // Perform conversion
+        for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
         {
-            double ptVal = actuatorCoords.getVal(i) - axisParams[i]._homeOffsetSteps;
-            ptVal = ptVal / axisParams[i].stepsPerUnit() + axisParams[i]._homeOffsetVal;
-            if (axisParams[i]._minValValid && ptVal < axisParams[i]._minVal)
-                ptVal = axisParams[i]._minVal;
-            if (axisParams[i]._maxValValid && ptVal > axisParams[i]._maxVal)
-                ptVal = axisParams[i]._maxVal;
-            pt.setVal(i, ptVal);
-            Log.trace("actuatorToPt %d %f -> %f (perunit %f)", i, actuatorCoords.getVal(i), ptVal, axisParams[i].stepsPerUnit());
+            float ptVal = actuatorCoords.getVal(axisIdx) - axesParams.getHomeOffsetSteps(axisIdx);
+            ptVal = ptVal / axesParams.getStepsPerUnit(axisIdx) + axesParams.getHomeOffsetVal(axisIdx);
+            pt.setVal(axisIdx, ptVal);
+            Log.trace("actuatorToPt %d %f -> %f (perunit %f)", axisIdx, actuatorCoords.getVal(axisIdx),
+                            ptVal, axesParams.getStepsPerUnit(axisIdx));
         }
     }
 
-    static void correctStepOverflow(AxisParams axisParams[], int numAxes)
+    static void correctStepOverflow(AxesParams& axesParams)
     {
         // Not necessary for a non-continuous rotation bot
     }
@@ -75,7 +70,7 @@ public:
         // Log.info("Constructing %s from %s", _robotTypeName.c_str(), robotConfigStr);
 
         // Init motion controller from config
-        _motionHelper.setAxisParams(robotConfigStr);
+        _motionHelper.configure(robotConfigStr);
 
         return true;
     }
@@ -83,7 +78,7 @@ public:
     bool canAcceptCommand()
     {
         // Check if motionHelper is can accept a command
-        return _motionHelper.canAcceptCommand();
+        return _motionHelper.canAccept();
     }
 
     void moveTo(RobotCommandArgs& args)

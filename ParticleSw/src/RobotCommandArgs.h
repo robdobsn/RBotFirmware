@@ -3,7 +3,8 @@
 
 #pragma once
 
-#include "PointND.h"
+#include "application.h"
+#include "AxisValues.h"
 
 enum RobotEndstopArg
 {
@@ -22,12 +23,11 @@ enum RobotMoveTypeArg
 class RobotCommandArgs
 {
 public:
-    PointND pt;
-    PointNDValid valid;
+	AxisFloats pt;
     bool extrudeValid;
-    double extrudeVal;
+	float extrudeVal;
     bool feedrateValid;
-    double feedrateVal;
+	float feedrateVal;
     RobotEndstopArg endstopEnum;
     bool moveClockwise;
     bool moveRapid;
@@ -46,28 +46,22 @@ public:
         moveClockwise = moveRapid = false;
         moveType = RobotMoveTypeArg_None;
     }
-    void copy(RobotCommandArgs& copyFrom)
-    {
-        clear();
-        pt = copyFrom.pt;
-        valid = copyFrom.valid;
-        extrudeValid = copyFrom.extrudeValid;
-        extrudeVal = copyFrom.extrudeVal;
-        feedrateValid = copyFrom.feedrateValid;
-        feedrateVal = copyFrom.feedrateVal;
-        endstopEnum = copyFrom.endstopEnum;
-        moveClockwise = copyFrom.moveClockwise;
-        moveRapid = copyFrom.moveRapid;
-        moveType = copyFrom.moveType;
-    }
-    void setAxisValue(int axisIdx, double value, bool isValid)
-    {
-        if (axisIdx >= 0 && axisIdx < MAX_AXES)
-        {
-            pt.setVal(axisIdx, value);
-            valid.setVal(axisIdx, isValid);
-        }
-    }
+	RobotCommandArgs(const RobotCommandArgs& other)
+	{
+		copy(other);
+	}
+	void operator=(const RobotCommandArgs& other)
+	{
+		copy(other);
+	}
+	void setAxisValue(int axisIdx, float value, bool isValid)
+	{
+		if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
+		{
+			pt.setVal(axisIdx, value);
+			pt.setValid(axisIdx, isValid);
+		}
+	}
 
     String toJSON()
     {
@@ -80,5 +74,20 @@ public:
             jsonStr += "\"abs\"";
         jsonStr += "}";
         return jsonStr;
+    }
+
+private:
+	void copy(const RobotCommandArgs& copyFrom)
+    {
+        clear();
+        pt = copyFrom.pt;
+        extrudeValid = copyFrom.extrudeValid;
+        extrudeVal = copyFrom.extrudeVal;
+        feedrateValid = copyFrom.feedrateValid;
+        feedrateVal = copyFrom.feedrateVal;
+        endstopEnum = copyFrom.endstopEnum;
+        moveClockwise = copyFrom.moveClockwise;
+        moveRapid = copyFrom.moveRapid;
+        moveType = copyFrom.moveType;
     }
 };

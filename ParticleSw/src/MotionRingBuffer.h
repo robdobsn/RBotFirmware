@@ -72,10 +72,6 @@ public:
 		return _bufLen - getPos + _putPos;
 	}
 
-	unsigned int slotsEmpty()
-	{
-		return _bufLen - count();
-	}
 	// Get Nth element prior to the put position
 	// 0 is the last element put in the queue
 	// 1 is the one put in before that
@@ -89,7 +85,7 @@ public:
 		int nthPos = _putPos - 1 - N;
 		if (nthPos < 0)
 			nthPos += _bufLen;
-		if ((nthPos+1 == _getPos) || (nthPos+1 == _bufLen && _getPos == 0))
+		if (((unsigned int)(nthPos+1) == _getPos) || ((unsigned int)(nthPos+1) == _bufLen && _getPos == 0))
 			return -1;
 		return nthPos;
 	}

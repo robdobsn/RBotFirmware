@@ -1,5 +1,5 @@
 // RBotFirmware
-// Rob Dobson 2016-8
+// Rob Dobson 2016-18
 
 #include "application.h"
 #include "ConfigPinMap.h"
@@ -183,7 +183,7 @@ bool MotionHelper::addToPlanner(RobotCommandArgs& args)
 {
 	// Convert the move to actuator coordinates
 	AxisFloats actuatorCoords;
-	_ptToActuatorFn(args.pt, actuatorCoords, _axesParams.getAxisParamsArray(), RobotConsts::MAX_AXES);
+	_ptToActuatorFn(args.pt, actuatorCoords, _axesParams);
 
 	// Plan the move
 	bool moveOk = _motionPlanner.moveTo(args, actuatorCoords, _curAxisPosition, _axesParams, _motionPipeline);
@@ -238,6 +238,17 @@ void MotionHelper::service(bool processPipeline)
 
 	// Process any split-up blocks to be added to the pipeline
 	blocksToAddProcess();
+}
+
+void MotionHelper::setCurPositionAsHome(AxisFloats& pt)
+{
+	_axesParams.setHomePosition(pt, _curAxisPosition._stepsFromHome);
+}
+
+void MotionHelper::setCurPositionAsHome(bool xIsHome, bool yIsHome, bool zIsHome)
+{
+	AxisFloats pt(0,0,0,xIsHome,yIsHome,zIsHome);
+	_axesParams.setHomePosition(pt, _curAxisPosition._stepsFromHome);
 }
 
 void MotionHelper::debugShowBlocks()

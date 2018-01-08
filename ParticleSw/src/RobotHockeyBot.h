@@ -13,52 +13,52 @@ class RobotHockeyBot : public RobotBase
 {
 public:
 
-    static bool ptToActuator(MotionPipelineElem& motionElem, PointND& actuatorCoords, AxisParams axisParams[], int numAxes)
+    static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams)
     {
-        // Simple scaling from one domain to another
-        bool isValid = true;
-        double aStepper = (motionElem._pt2MM.getVal(0) + motionElem._pt2MM.getVal(1)) * axisParams[0].stepsPerUnit();
-        actuatorCoords.setVal(0, aStepper);
-        double bStepper = (motionElem._pt2MM.getVal(0) - motionElem._pt2MM.getVal(1)) * axisParams[1].stepsPerUnit();
-        actuatorCoords.setVal(1, bStepper);
-
-
-            // Check machine bounds
-            // bool thisAxisValid = true;
-            // if (axisParams[i]._minValValid && motionElem._pt2MM.getVal(i) < axisParams[i]._minVal)
-            //     thisAxisValid = false;
-            // if (axisParams[i]._maxValValid && motionElem._pt2MM.getVal(i) > axisParams[i]._maxVal)
-            //     thisAxisValid = false;
-        bool axis0Valid = true;
-        bool axis1Valid = true;
-        Log.trace("ptToActuator X (%s) %f -> %f Y (%s) %f -> %f",
-            axis0Valid ? "OK" : "INVALID",
-            motionElem._pt2MM.getVal(0), actuatorCoords._pt[0],
-            axis1Valid ? "OK" : "INVALID",
-            motionElem._pt2MM.getVal(1), actuatorCoords._pt[1]);
-            // isValid &= thisAxisValid;
-        // }
-        return isValid;
+        // // Simple scaling from one domain to another
+        // bool isValid = true;
+        // double aStepper = (motionElem._pt2MM.getVal(0) + motionElem._pt2MM.getVal(1)) * axisParams[0].stepsPerUnit();
+        // actuatorCoords.setVal(0, aStepper);
+        // double bStepper = (motionElem._pt2MM.getVal(0) - motionElem._pt2MM.getVal(1)) * axisParams[1].stepsPerUnit();
+        // actuatorCoords.setVal(1, bStepper);
+        //
+        //
+        //     // Check machine bounds
+        //     // bool thisAxisValid = true;
+        //     // if (axisParams[i]._minValValid && motionElem._pt2MM.getVal(i) < axisParams[i]._minVal)
+        //     //     thisAxisValid = false;
+        //     // if (axisParams[i]._maxValValid && motionElem._pt2MM.getVal(i) > axisParams[i]._maxVal)
+        //     //     thisAxisValid = false;
+        // bool axis0Valid = true;
+        // bool axis1Valid = true;
+        // Log.trace("ptToActuator X (%s) %f -> %f Y (%s) %f -> %f",
+        //     axis0Valid ? "OK" : "INVALID",
+        //     motionElem._pt2MM.getVal(0), actuatorCoords._pt[0],
+        //     axis1Valid ? "OK" : "INVALID",
+        //     motionElem._pt2MM.getVal(1), actuatorCoords._pt[1]);
+        //     // isValid &= thisAxisValid;
+        // // }
+        return true;
     }
 
-    static void actuatorToPt(PointND& actuatorCoords, PointND& pt, AxisParams axisParams[], int numAxes)
+    static void actuatorToPt(AxisFloats& actuatorCoords, AxisFloats& pt, AxesParams& axesParams)
     {
-        double x = (actuatorCoords.getVal(0) + actuatorCoords.getVal(1)) / 2 / axisParams[0].stepsPerUnit();
-        double y = (actuatorCoords.getVal(0) - actuatorCoords.getVal(1)) / 2 / axisParams[1].stepsPerUnit();
-
-            // if (axisParams[i]._minValValid && ptVal < axisParams[i]._minVal)
-            //     ptVal = axisParams[i]._minVal;
-            // if (axisParams[i]._maxValValid && ptVal > axisParams[i]._maxVal)
-            //     ptVal = axisParams[i]._maxVal;
-        pt.setVal(0, x);
-        pt.setVal(1, y);
-
-        Log.trace("actuatorToPt 0 %f -> %f (perunit %f) 1 %f -> %f (perunit %f)",
-                actuatorCoords.getVal(0), x, axisParams[0].stepsPerUnit(),
-                actuatorCoords.getVal(1), y, axisParams[1].stepsPerUnit());
+        // double x = (actuatorCoords.getVal(0) + actuatorCoords.getVal(1)) / 2 / axisParams[0].stepsPerUnit();
+        // double y = (actuatorCoords.getVal(0) - actuatorCoords.getVal(1)) / 2 / axisParams[1].stepsPerUnit();
+        //
+        //     // if (axisParams[i]._minValValid && ptVal < axisParams[i]._minVal)
+        //     //     ptVal = axisParams[i]._minVal;
+        //     // if (axisParams[i]._maxValValid && ptVal > axisParams[i]._maxVal)
+        //     //     ptVal = axisParams[i]._maxVal;
+        // pt.setVal(0, x);
+        // pt.setVal(1, y);
+        //
+        // Log.trace("actuatorToPt 0 %f -> %f (perunit %f) 1 %f -> %f (perunit %f)",
+        //         actuatorCoords.getVal(0), x, axisParams[0].stepsPerUnit(),
+        //         actuatorCoords.getVal(1), y, axisParams[1].stepsPerUnit());
     }
 
-    static void correctStepOverflow(AxisParams axisParams[], int numAxes)
+    static void correctStepOverflow(AxesParams& axesParams)
     {
     }
 
@@ -80,7 +80,7 @@ public:
         // Log.info("Constructing %s from %s", _robotTypeName.c_str(), robotConfigStr);
 
         // Init motion controller from config
-        _motionHelper.setAxisParams(robotConfigStr);
+        _motionHelper.configure(robotConfigStr);
 
         return true;
     }
@@ -88,7 +88,7 @@ public:
     bool canAcceptCommand()
     {
         // Check if motionHelper is can accept a command
-        return _motionHelper.canAcceptCommand();
+        return _motionHelper.canAccept();
     }
 
     void moveTo(RobotCommandArgs& args)

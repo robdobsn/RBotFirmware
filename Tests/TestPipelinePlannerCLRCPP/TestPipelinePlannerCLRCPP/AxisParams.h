@@ -1,5 +1,5 @@
 // RBotFirmware
-// Rob Dobson 2017
+// Rob Dobson 2016-18
 
 #pragma once
 
@@ -62,6 +62,30 @@ public:
 		if (_unitsPerRotation != 0)
 			return _stepsPerRotation / _unitsPerRotation;
 		return 1;
+	}
+
+	bool ptInBounds(float& val, bool correctValueInPlace)
+	{
+		bool wasValid = true;
+		if (_minValValid && val < _minVal)
+		{
+			wasValid = false;
+			if (correctValueInPlace)
+				val = _minVal;
+		}
+		if (_maxValValid && val > _maxVal)
+		{
+			wasValid = false;
+			if (correctValueInPlace)
+				val = _maxVal;
+		}
+		return wasValid;
+	}
+
+	void setHomePosition(float val, long steps)
+	{
+		_homeOffsetVal = val;
+		_homeOffsetSteps = steps;
 	}
 
     void setFromJSON(const char* axisJSON)

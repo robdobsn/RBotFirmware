@@ -1,6 +1,3 @@
-// RBotFirmware
-// Rob Dobson 2016-18
-
 #pragma once
 
 #include "RobotConsts.h"

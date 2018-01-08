@@ -26,124 +26,126 @@ private:
 
 public:
 
-    static bool ptToActuator(MotionPipelineElem& motionElem, PointND& actuatorCoords, AxisParams axisParams[], int numAxes)
+    static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams)
     {
-        // Trig for required position (azimuth is measured clockwise from North)
-        PointND& pt = motionElem._pt2MM;
-        double reqAlphaRads = atan2(pt._pt[0], pt._pt[1]);
-        if (reqAlphaRads < 0)
-            reqAlphaRads = 2 * M_PI + reqAlphaRads;
-        double reqLinearMM = sqrt(pt._pt[0] * pt._pt[0] + pt._pt[1] * pt._pt[1]);
-
-        // Log.trace("xyToActuator x %0.2f y %0.2f ax0StNow %d ax1StNow %d rqAlphaD %0.2f rqLinMM %0.2f",
-        //         xy[0], xy[1], axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome,
-        //         reqAlphaRads * 180 / M_PI, reqLinearMM);
-
-        // Get current position
-        PointND axisPosns;
-        for (int i = 0; i < MAX_AXES; i++)
-            axisPosns._pt[i] = axisParams[i]._stepsFromHome;
-        double currentPolar[NUM_ROBOT_AXES];
-        actuatorToPolar(axisPosns, currentPolar, axisParams, 2);
-
-        // Calculate shortest azimuth distance
-        double alphaDiffRads = reqAlphaRads - currentPolar[0];
-        bool alphaRotateCw = alphaDiffRads > 0;
-        if (fabs(alphaDiffRads) > M_PI)
-        {
-            alphaDiffRads = 2 * M_PI - fabs(alphaDiffRads);
-            alphaRotateCw = !alphaRotateCw;
-        }
-        double alphaDiffDegs = fabs(alphaDiffRads) * 180 / M_PI;
-
-        // Linear distance
-        double linearDiffMM = reqLinearMM - currentPolar[1];
-
-        // Convert to steps - note that to keep the linear position constant the linear stepper needs to step one step in the same
-        // direction as the arm rotation stepper - so the linear stepper steps required is the sum of the rotation and linear steps
-        double actuator0Diff = alphaDiffDegs * axisParams[0].stepsPerUnit() * (alphaRotateCw ? 1 : -1);
-        double actuator1Diff = linearDiffMM * axisParams[1].stepsPerUnit() + actuator0Diff;
-        actuatorCoords._pt[0] = axisParams[0]._stepsFromHome + actuator0Diff;
-        actuatorCoords._pt[1] = axisParams[1]._stepsFromHome + actuator1Diff;
-
-        // Log.trace("xyToActuator reqAlphaD %0.2f curAlphaD %0.2f alphaDiffD %0.2f aRotCw %d linDiffMM %0.2f ax0Diff %0.2f ax1Diff %0.2f ax0Tgt %0.2f ax1Tgt %0.2f",
-        //                 reqAlphaRads * 180 / M_PI, currentPolar[0] * 180 / M_PI, alphaDiffDegs, alphaRotateCw,
-        //                 linearDiffMM, actuator0Diff, actuator1Diff, actuatorCoords[0], actuatorCoords[1]);
+        // // Trig for required position (azimuth is measured clockwise from North)
+        // PointND& pt = motionElem._pt2MM;
+        // double reqAlphaRads = atan2(pt._pt[0], pt._pt[1]);
+        // if (reqAlphaRads < 0)
+        //     reqAlphaRads = 2 * M_PI + reqAlphaRads;
+        // double reqLinearMM = sqrt(pt._pt[0] * pt._pt[0] + pt._pt[1] * pt._pt[1]);
         //
-        // Log.trace("bounds check X (En%d) %d, Y (En%d) %d", axisParams[1]._minValValid, reqLinearMM < axisParams[1]._minVal,
-        //             axisParams[1]._maxValValid, reqLinearMM > axisParams[1]._maxVal);
-
-        // Cross check
-        double checkPolarCoords[NUM_ROBOT_AXES];
-        actuatorToPolar(actuatorCoords, checkPolarCoords, axisParams, 2);
-        double checkX = checkPolarCoords[1] * sin(checkPolarCoords[0]);
-        double checkY = checkPolarCoords[1] * cos(checkPolarCoords[0]);
-        double checkErr = sqrt((checkX-pt._pt[0]) * (checkX-pt._pt[0]) + (checkY-pt._pt[1]) * (checkY-pt._pt[1]));
-        if (checkErr > 0.1)
-            Log.trace("check reqX %02.f checkX %0.2f, reqY %0.2f checkY %0.2f, error %0.2f, %s", pt._pt[0], checkX, pt._pt[1], checkY,
-                            checkErr, (checkErr>0.1) ? "****** FAILED ERROR CHECK" : "");
-
-        // Check machine bounds for linear axis
-        if (axisParams[1]._minValValid && reqLinearMM < axisParams[1]._minVal)
-            return false;
-        if (axisParams[1]._maxValValid && reqLinearMM > axisParams[1]._maxVal)
-            return false;
+        // // Log.trace("xyToActuator x %0.2f y %0.2f ax0StNow %d ax1StNow %d rqAlphaD %0.2f rqLinMM %0.2f",
+        // //         xy[0], xy[1], axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome,
+        // //         reqAlphaRads * 180 / M_PI, reqLinearMM);
+        //
+        // // Get current position
+        // PointND axisPosns;
+        // for (int i = 0; i < MAX_AXES; i++)
+        //     axisPosns._pt[i] = axisParams[i]._stepsFromHome;
+        // double currentPolar[NUM_ROBOT_AXES];
+        // actuatorToPolar(axisPosns, currentPolar, axisParams, 2);
+        //
+        // // Calculate shortest azimuth distance
+        // double alphaDiffRads = reqAlphaRads - currentPolar[0];
+        // bool alphaRotateCw = alphaDiffRads > 0;
+        // if (fabs(alphaDiffRads) > M_PI)
+        // {
+        //     alphaDiffRads = 2 * M_PI - fabs(alphaDiffRads);
+        //     alphaRotateCw = !alphaRotateCw;
+        // }
+        // double alphaDiffDegs = fabs(alphaDiffRads) * 180 / M_PI;
+        //
+        // // Linear distance
+        // double linearDiffMM = reqLinearMM - currentPolar[1];
+        //
+        // // Convert to steps - note that to keep the linear position constant the linear stepper needs to step one step in the same
+        // // direction as the arm rotation stepper - so the linear stepper steps required is the sum of the rotation and linear steps
+        // double actuator0Diff = alphaDiffDegs * axisParams[0].stepsPerUnit() * (alphaRotateCw ? 1 : -1);
+        // double actuator1Diff = linearDiffMM * axisParams[1].stepsPerUnit() + actuator0Diff;
+        // actuatorCoords._pt[0] = axisParams[0]._stepsFromHome + actuator0Diff;
+        // actuatorCoords._pt[1] = axisParams[1]._stepsFromHome + actuator1Diff;
+        //
+        // // Log.trace("xyToActuator reqAlphaD %0.2f curAlphaD %0.2f alphaDiffD %0.2f aRotCw %d linDiffMM %0.2f ax0Diff %0.2f ax1Diff %0.2f ax0Tgt %0.2f ax1Tgt %0.2f",
+        // //                 reqAlphaRads * 180 / M_PI, currentPolar[0] * 180 / M_PI, alphaDiffDegs, alphaRotateCw,
+        // //                 linearDiffMM, actuator0Diff, actuator1Diff, actuatorCoords[0], actuatorCoords[1]);
+        // //
+        // // Log.trace("bounds check X (En%d) %d, Y (En%d) %d", axisParams[1]._minValValid, reqLinearMM < axisParams[1]._minVal,
+        // //             axisParams[1]._maxValValid, reqLinearMM > axisParams[1]._maxVal);
+        //
+        // // Cross check
+        // double checkPolarCoords[NUM_ROBOT_AXES];
+        // actuatorToPolar(actuatorCoords, checkPolarCoords, axisParams, 2);
+        // double checkX = checkPolarCoords[1] * sin(checkPolarCoords[0]);
+        // double checkY = checkPolarCoords[1] * cos(checkPolarCoords[0]);
+        // double checkErr = sqrt((checkX-pt._pt[0]) * (checkX-pt._pt[0]) + (checkY-pt._pt[1]) * (checkY-pt._pt[1]));
+        // if (checkErr > 0.1)
+        //     Log.trace("check reqX %02.f checkX %0.2f, reqY %0.2f checkY %0.2f, error %0.2f, %s", pt._pt[0], checkX, pt._pt[1], checkY,
+        //                     checkErr, (checkErr>0.1) ? "****** FAILED ERROR CHECK" : "");
+        //
+        // // Check machine bounds for linear axis
+        // if (axisParams[1]._minValValid && reqLinearMM < axisParams[1]._minVal)
+        //     return false;
+        // if (axisParams[1]._maxValValid && reqLinearMM > axisParams[1]._maxVal)
+        //     return false;
         return true;
     }
 
-    static void actuatorToPolar(PointND& actuatorCoords, double polarCoordsAzFirst[], AxisParams axisParams[], int numAxes)
+    static void actuatorToPolar(AxisFloats& actuatorCoords, float polarCoordsAzFirst[], AxesParams& axesParams)
     {
         // Calculate azimuth
-        int alphaSteps = (abs(int(actuatorCoords._pt[0])) % (int)(axisParams[0]._stepsPerRotation));
-        double alphaDegs = alphaSteps / axisParams[0].stepsPerUnit();
+        int alphaSteps = (abs(int(actuatorCoords._pt[0])) % (int)(axesParams.getStepsPerRotation(0)));
+        double alphaDegs = alphaSteps / axesParams.getStepsPerUnit(0);
         if (actuatorCoords._pt[0] < 0)
-            alphaDegs = axisParams[0]._unitsPerRotation-alphaDegs;
+            alphaDegs = axesParams.getUnitsPerRotation(0)-alphaDegs;
         polarCoordsAzFirst[0] = alphaDegs * M_PI / 180;
 
         // Calculate linear position (note that this robot has interaction between azimuth and linear motion as the rack moves
         // if the pinion gear remains still and the arm assembly moves around it) - so the required linear calculation uses the
         // difference in linear and arm rotation steps
         long linearStepsFromHome = actuatorCoords._pt[1] - actuatorCoords._pt[0];
-        polarCoordsAzFirst[1] = linearStepsFromHome / axisParams[1].stepsPerUnit();
+        polarCoordsAzFirst[1] = linearStepsFromHome / axesParams.getStepsPerUnit(1);
 
         // Log.trace("actuatorToPolar c0 %0.2f c1 %0.2f alphaSteps %d alphaDegs %0.2f linStpHm %d rotD %0.2f lin %0.2f", actuatorCoords[0], actuatorCoords[1],
         //     alphaSteps, alphaDegs, linearStepsFromHome, polarCoordsAzFirst[0] * 180 / M_PI, polarCoordsAzFirst[1]);
     }
 
-    static void actuatorToPt(PointND& actuatorCoords, PointND& pt, AxisParams axisParams[], int numAxes)
+    static void actuatorToPt(AxisFloats& actuatorCoords, AxisFloats& pt, AxesParams& axesParams)
     {
-        double polarCoords[NUM_ROBOT_AXES];
-        actuatorToPolar(actuatorCoords, polarCoords, axisParams, numAxes);
+        float polarCoords[NUM_ROBOT_AXES];
+        actuatorToPolar(actuatorCoords, polarCoords, axesParams);
 
         // Trig
-        pt._pt[0] = polarCoords[1] * sin(polarCoords[0]);
-        pt._pt[1] = polarCoords[1] * cos(polarCoords[0]);
+        pt._pt[0] = polarCoords[1] * sinf(polarCoords[0]);
+        pt._pt[1] = polarCoords[1] * cosf(polarCoords[0]);
         // Log.trace("actuatorToXy curX %0.2f curY %0.2f", xy[0], xy[1]);
     }
 
-    static void correctStepOverflow(AxisParams axisParams[], int numAxes)
+    static void correctStepOverflow(AxesParams& axesParams)
     {
-        int rotationSteps = (int)(axisParams[0]._stepsPerRotation);
+        int rotationSteps = (int)(axesParams.getStepsPerRotation(0));
         // Debug
         bool showDebug = false;
-        if (axisParams[0]._stepsFromHome > rotationSteps || axisParams[0]._stepsFromHome <= -rotationSteps)
+        if (axesParams.getHomeOffsetSteps(0) > rotationSteps || axesParams.getHomeOffsetSteps(0) <= -rotationSteps)
         {
-            Log.trace("CORRECTING ax0 %ld ax1 %ld", axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome);
+            Log.trace("CORRECTING ax0 %ld ax1 %ld",
+                            axesParams.getHomeOffsetSteps(0), axesParams.getHomeOffsetSteps(1));
             showDebug = true;
         }
         // Bring steps from home values back within a single rotation
-        while (axisParams[0]._stepsFromHome > rotationSteps)
+        while (axesParams.getHomeOffsetSteps(0) > rotationSteps)
         {
-            axisParams[0]._stepsFromHome -= rotationSteps;
-            axisParams[1]._stepsFromHome -= rotationSteps;
+            axesParams.setHomeOffsetSteps(0, axesParams.getHomeOffsetSteps(0) - rotationSteps);
+            axesParams.setHomeOffsetSteps(1, axesParams.getHomeOffsetSteps(1) - rotationSteps);
         }
-        while (axisParams[0]._stepsFromHome <= -rotationSteps)
+        while (axesParams.getHomeOffsetSteps(0) <= -rotationSteps)
         {
-            axisParams[0]._stepsFromHome += rotationSteps;
-            axisParams[1]._stepsFromHome += rotationSteps;
+            axesParams.setHomeOffsetSteps(0, axesParams.getHomeOffsetSteps(0) + rotationSteps);
+            axesParams.setHomeOffsetSteps(1, axesParams.getHomeOffsetSteps(1) + rotationSteps);
         }
         if (showDebug)
-            Log.trace("CORRECTED ax0 %ld ax1 %ld", axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome);
+            Log.trace("CORRECTED ax0 %ld ax1 %ld",
+                            axesParams.getHomeOffsetSteps(0), axesParams.getHomeOffsetSteps(1));
     }
 
 private:
@@ -208,7 +210,7 @@ public:
         // Log.info("Constructing %s from %s", _robotTypeName.c_str(), robotConfigStr);
 
         // Init motion controller from config
-        _motionHelper.setAxisParams(robotConfigStr);
+        _motionHelper.configure(robotConfigStr);
 
         // Get params specific to this robot
         _maxHomingSecs = RdJson::getLong("maxHomingSecs", maxHomingSecs_default, robotConfigStr);
@@ -226,7 +228,7 @@ public:
     void goHome(RobotCommandArgs& args)
     {
         // GeistBot can only home X & Y axes together so ignore params
-        Log.info("%s home x%d, y%d, z%d", _robotTypeName.c_str(), args.valid.X(), args.valid.Y(), args.valid.Z());
+        Log.info("%s goHome", _robotTypeName.c_str());
 
         // Set homing state
         homingSetNewState(HOMING_STATE_INIT);
@@ -239,7 +241,7 @@ public:
             return false;
 
         // Check if motionHelper can accept a command
-        return _motionHelper.canAcceptCommand();
+        return _motionHelper.canAccept();
     }
 
     void moveTo(RobotCommandArgs& args)
@@ -325,7 +327,7 @@ private:
             case ROTATE_TO_LINEAR_SEEK_ANGLE:
             {
                 _homingStateNext = LINEAR_SEEK_ENDSTOP;
-                _motionHelper.axisSetHome(0);
+                _motionHelper.setCurPositionAsHome(true,false,false);
                 _homingStepsLimit = _homingLinOffsetDegs * _motionHelper.getStepsPerUnit(0);
                 _homingApplyStepLimit = true;
                 // To purely rotate both steppers must turn in the same direction
@@ -401,7 +403,7 @@ private:
             case ROTATE_TO_HOME:
             {
                 _homingStateNext = HOMING_STATE_COMPLETE;
-                _homingStepsLimit = abs(_motionHelper.getAxisStepsFromHome(0));
+                _homingStepsLimit = abs(_motionHelper.getHomeOffsetSteps(0));
                 _homingApplyStepLimit = true;
                 // To purely rotate both steppers must turn in the same direction
                 _homingAxis0Step = HSTEP_BACKWARDS;
@@ -411,7 +413,7 @@ private:
             }
             case HOMING_STATE_COMPLETE:
             {
-                _motionHelper.axisSetHome(1);
+                _motionHelper.setCurPositionAsHome(false,true,false);
                 _homingState = HOMING_STATE_IDLE;
                 Log.info("Homing - complete");
                 break;
@@ -421,85 +423,85 @@ private:
 
     bool homingService()
     {
-        // Check for idle
-        if (_homingState == HOMING_STATE_IDLE)
-            return false;
-
-        // Check for timeout
-        if (millis() > _homeReqMillis + (_maxHomingSecs * 1000))
-        {
-            Log.info("Homing Timed Out");
-            homingSetNewState(HOMING_STATE_IDLE);
-        }
-
-        // Check for endstop if seeking them
-        bool endstop0Val = _motionHelper.isAtEndStop(0,0);
-        bool endstop1Val = _motionHelper.isAtEndStop(1,0);
-        if (((_homingSeekAxis0Endstop0 == HSEEK_ON) && endstop0Val) || ((_homingSeekAxis0Endstop0 == HSEEK_OFF) && !endstop0Val))
-        {
-            homingSetNewState(_homingStateNext);
-        }
-        if (((_homingSeekAxis1Endstop0 == HSEEK_ON) && endstop1Val) || ((_homingSeekAxis1Endstop0 == HSEEK_OFF) && !endstop1Val))
-        {
-            homingSetNewState(_homingStateNext);
-        }
-
-        // Check if we are ready for the next step
-        unsigned long lastStepMicros = _motionHelper.getAxisLastStepMicros(0);
-        unsigned long lastStepMicros1 = _motionHelper.getAxisLastStepMicros(1);
-        if (lastStepMicros < lastStepMicros1)
-            lastStepMicros = lastStepMicros1;
-        if (Utils::isTimeout(micros(), lastStepMicros, _timeBetweenHomingStepsUs))
-        {
-            // Axis 0
-            if (_homingAxis0Step != HSTEP_NONE)
-                _motionHelper.step(0, _homingAxis0Step == HSTEP_FORWARDS);
-
-            // Axis 1
-            if (_homingAxis1Step != HSTEP_NONE)
-                _motionHelper.step(1, _homingAxis1Step == HSTEP_FORWARDS);
-
-            // Count homing steps in this stage
-            _homingStepsDone++;
-
-            // Check for step limit in this stage
-            if (_homingApplyStepLimit && (_homingStepsDone >= _homingStepsLimit))
-                homingSetNewState(_homingStateNext);
-
-            // // Debug
-            // if (_homingStepsDone % 250 == 0)
-            // {
-            //     const char* pStr = "ROT_ACW";
-            //     if (_homingAxis0Step == HSTEP_NONE)
-            //     {
-            //         if (_homingAxis1Step == HSTEP_NONE)
-            //             pStr = "NONE";
-            //         else if (_homingAxis1Step == HSTEP_FORWARDS)
-            //             pStr = "LIN_FOR";
-            //         else
-            //             pStr = "LIN_BAK";
-            //     }
-            //     else if (_homingAxis0Step == HSTEP_FORWARDS)
-            //     {
-            //         pStr = "ROT_CW";
-            //     }
-            //     Log.trace("HomingSteps %d %s", _homingStepsDone, pStr);
-            // }
-        }
-
-        // // Check for linear endstop if seeking it
-        // if (_homingState == LINEAR_TO_ENDSTOP)
+        // // Check for idle
+        // if (_homingState == HOMING_STATE_IDLE)
+        //     return false;
+        //
+        // // Check for timeout
+        // if (millis() > _homeReqMillis + (_maxHomingSecs * 1000))
         // {
-        //     if (_motionHelper.isAtEndStop(1,0))
-        //     {
-        //         _homingState = OFFSET_TO_CENTRE;
-        //         _homingStepsLimit = _homingCentreOffsetMM * _motionHelper.getAxisParams(1)._stepsPerUnit;
-        //         _homingStepsDone = 0;
-        //         Log.info("Homing - %d steps to centre", _homingStepsLimit);
-        //         break;
-        //     }
+        //     Log.info("Homing Timed Out");
+        //     homingSetNewState(HOMING_STATE_IDLE);
         // }
-
+        //
+        // // Check for endstop if seeking them
+        // bool endstop0Val = _motionHelper.isAtEndStop(0,0);
+        // bool endstop1Val = _motionHelper.isAtEndStop(1,0);
+        // if (((_homingSeekAxis0Endstop0 == HSEEK_ON) && endstop0Val) || ((_homingSeekAxis0Endstop0 == HSEEK_OFF) && !endstop0Val))
+        // {
+        //     homingSetNewState(_homingStateNext);
+        // }
+        // if (((_homingSeekAxis1Endstop0 == HSEEK_ON) && endstop1Val) || ((_homingSeekAxis1Endstop0 == HSEEK_OFF) && !endstop1Val))
+        // {
+        //     homingSetNewState(_homingStateNext);
+        // }
+        //
+        // // Check if we are ready for the next step
+        // unsigned long lastStepMicros = _motionHelper.getAxisLastStepMicros(0);
+        // unsigned long lastStepMicros1 = _motionHelper.getAxisLastStepMicros(1);
+        // if (lastStepMicros < lastStepMicros1)
+        //     lastStepMicros = lastStepMicros1;
+        // if (Utils::isTimeout(micros(), lastStepMicros, _timeBetweenHomingStepsUs))
+        // {
+        //     // Axis 0
+        //     if (_homingAxis0Step != HSTEP_NONE)
+        //         _motionHelper.step(0, _homingAxis0Step == HSTEP_FORWARDS);
+        //
+        //     // Axis 1
+        //     if (_homingAxis1Step != HSTEP_NONE)
+        //         _motionHelper.step(1, _homingAxis1Step == HSTEP_FORWARDS);
+        //
+        //     // Count homing steps in this stage
+        //     _homingStepsDone++;
+        //
+        //     // Check for step limit in this stage
+        //     if (_homingApplyStepLimit && (_homingStepsDone >= _homingStepsLimit))
+        //         homingSetNewState(_homingStateNext);
+        //
+        //     // // Debug
+        //     // if (_homingStepsDone % 250 == 0)
+        //     // {
+        //     //     const char* pStr = "ROT_ACW";
+        //     //     if (_homingAxis0Step == HSTEP_NONE)
+        //     //     {
+        //     //         if (_homingAxis1Step == HSTEP_NONE)
+        //     //             pStr = "NONE";
+        //     //         else if (_homingAxis1Step == HSTEP_FORWARDS)
+        //     //             pStr = "LIN_FOR";
+        //     //         else
+        //     //             pStr = "LIN_BAK";
+        //     //     }
+        //     //     else if (_homingAxis0Step == HSTEP_FORWARDS)
+        //     //     {
+        //     //         pStr = "ROT_CW";
+        //     //     }
+        //     //     Log.trace("HomingSteps %d %s", _homingStepsDone, pStr);
+        //     // }
+        // }
+        //
+        // // // Check for linear endstop if seeking it
+        // // if (_homingState == LINEAR_TO_ENDSTOP)
+        // // {
+        // //     if (_motionHelper.isAtEndStop(1,0))
+        // //     {
+        // //         _homingState = OFFSET_TO_CENTRE;
+        // //         _homingStepsLimit = _homingCentreOffsetMM * _motionHelper.getAxisParams(1)._stepsPerUnit;
+        // //         _homingStepsDone = 0;
+        // //         Log.info("Homing - %d steps to centre", _homingStepsLimit);
+        // //         break;
+        // //     }
+        // // }
+        //
         return true;
 
     }

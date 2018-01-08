@@ -124,7 +124,7 @@ public:
 
     // Get XY coordinates of point
     // Return false if invalid
-    bool getPoint(PointND &pt)
+    bool getPoint(AxisFloats &pt)
     {
         bool xValid = false;
         bool yValid = false;
@@ -166,7 +166,7 @@ public:
         evalExpressions(false, true);
 
         // Get next point and send to commandInterpreter
-        PointND pt;
+        AxisFloats pt;
         bool isValid = getPoint(pt);
         if (!isValid)
         {

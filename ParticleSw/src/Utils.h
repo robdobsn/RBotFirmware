@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "application.h"
 #include "limits.h"
 
 class Utils

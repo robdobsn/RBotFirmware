@@ -1,3 +1,6 @@
+// RBotFirmware
+// Rob Dobson 2016-18
+
 #pragma once
 
 #include "RobotConsts.h"
@@ -64,6 +67,20 @@ public:
 		return _axisParams[axisIdx]._homeOffsetSteps;
 	}
 
+	void setHomeOffsetSteps(int axisIdx, long newVal)
+	{
+		if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
+			return;
+		_axisParams[axisIdx]._homeOffsetSteps = newVal;
+	}
+
+	float getHomeOffsetVal(int axisIdx)
+	{
+		if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
+			return 0;
+		return _axisParams[axisIdx]._homeOffsetVal;
+	}
+
 	AxisParams* getAxisParamsArray()
 	{
 		return _axisParams;
@@ -104,20 +121,20 @@ public:
 		return _axisParams[axisIdx]._isPrimaryAxis;
 	}
 
-	// uint32_t getMinStepIntervalNS()
-	// {
-	// 	if (_masterAxisIdx < 0 || _masterAxisIdx >= RobotConsts::MAX_AXES)
-	// 		return uint32_t((1e9 * getMasterStepDistMM()) / AxisParams::maxSpeed_default);
-	// 	return uint32_t((1e9 * getMasterStepDistMM()) / getMaxSpeed(_masterAxisIdx));
-	// }
-	//
-	// uint32_t getMaxStepIntervalNS()
-	// {
-	// 	if (_masterAxisIdx < 0 || _masterAxisIdx >= RobotConsts::MAX_AXES)
-	// 		return uint32_t((1e9 * getMasterStepDistMM()) / AxisParams::minSpeedMMps_default);
-	// 	return uint32_t((1e9 * getMasterStepDistMM()) / getMinSpeed(_masterAxisIdx));
-	// }
-	//
+	bool ptInBounds(AxisFloats& pt, bool correctValueInPlace)
+	{
+		bool wasValid = true;
+		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+			wasValid = wasValid && _axisParams[axisIdx].ptInBounds(pt._pt[axisIdx], correctValueInPlace);
+		return wasValid;
+	}
+
+	void setHomePosition(AxisFloats& pt, AxisInt32s& steps)
+	{
+		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+			if (pt.isValid(axisIdx))
+				_axisParams[axisIdx].setHomePosition(pt.getVal(axisIdx), steps.getVal(axisIdx));
+	}
 
 	bool configureAxis(const char* robotConfigJSON, int axisIdx, String& axisJSON)
 	{
@@ -153,7 +170,7 @@ public:
 	{
 		int dominantIdx = -1;
 		int primaryIdx = -1;
-		int primaryAxisMaxStepsPerUnit = 0;
+		float primaryAxisMaxStepsPerUnit = 0;
 		for (int i = 0; i < RobotConsts::MAX_AXES; i++)
 		{
 			if (_axisParams[i]._isDominantAxis)

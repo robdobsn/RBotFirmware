@@ -62,6 +62,20 @@ public:
 			pt.setValid(axisIdx, isValid);
 		}
 	}
+
+    String toJSON()
+    {
+        String jsonStr;
+        jsonStr = "{\"pos\":" + pt.toJSON();
+        jsonStr += ", \"mvTyp\":";
+        if (moveType == RobotMoveTypeArg_Relative)
+            jsonStr += "\"rel\"";
+        else
+            jsonStr += "\"abs\"";
+        jsonStr += "}";
+        return jsonStr;
+    }
+
 private:
 	void copy(const RobotCommandArgs& copyFrom)
 	{

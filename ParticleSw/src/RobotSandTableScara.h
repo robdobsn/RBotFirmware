@@ -30,24 +30,24 @@ public:
     // Angles of lower arm are calculated anticlockwise from home posiiton (i.e. anticlockwise from West)
 
     // Convert a cartesian point to actuator coordinates
-    static bool ptToActuator(MotionPipelineElem& motionElem, PointND& actuatorCoords, AxisParams axisParams[], int numAxes)
+    static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams)
     {
         // Target axis rotations
-        PointND rot1Degrees, rot2Degrees;
-        ROTATION_TYPE rotationResult = ptToRotations(motionElem._pt2MM, rot1Degrees, rot2Degrees, axisParams);
+        AxisFloats rot1Degrees, rot2Degrees;
+        ROTATION_TYPE rotationResult = ptToRotations(pt, rot1Degrees, rot2Degrees, axesParams);
         if (rotationResult == ROTATION_OUT_OF_BOUNDS)
             return false;
 
         // Get current rotation
-        PointND curRotation;
-        getCurrentRotation(curRotation, axisParams);
+        AxisFloats curRotation;
+        getCurrentRotation(curRotation, axesParams);
 
         // Find best geometry solution for movement from current position to new one
-        PointND reqdRotation;
+        AxisFloats reqdRotation;
         getBestMovement(rot1Degrees, rot2Degrees, curRotation, rotationResult, reqdRotation);
 
         // Convert to actuatorCoords
-        rotationToActuator(reqdRotation, actuatorCoords, axisParams);
+        rotationToActuator(reqdRotation, actuatorCoords, axesParams);
 
 //        testCoordTransforms(axisParams);
 
@@ -77,31 +77,31 @@ public:
         return true;
     }
 
-    static void actuatorToPt(PointND& actuatorCoords, PointND& pt, AxisParams axisParams[], int numAxes)
+    static void actuatorToPt(AxisFloats& actuatorCoords, AxisFloats& pt, AxesParams& axesParams)
     {
         // Convert to rotations
-        PointND rotDegrees;
-        actuatorToRotation(actuatorCoords, rotDegrees, axisParams);
+        AxisFloats rotDegrees;
+        actuatorToRotation(actuatorCoords, rotDegrees, axesParams);
 
         // Convert rotations to point
-        rotatonsToPoint(rotDegrees, pt, axisParams);
+        rotatonsToPoint(rotDegrees, pt, axesParams);
 
     }
 
-    static void correctStepOverflow(AxisParams axisParams[], int numAxes)
+    static void correctStepOverflow(AxesParams& axesParams)
     {
         Log.trace("correctStepOverflow - currently unimplemented");
     }
 
 private:
 
-    static ROTATION_TYPE ptToRotations(PointND& pt, PointND& rot1Degrees, PointND& rot2Degrees, AxisParams axisParams[])
+    static ROTATION_TYPE ptToRotations(AxisFloats& pt, AxisFloats& rot1Degrees, AxisFloats& rot2Degrees, AxesParams& axesParams)
     {
         // Calculate arm lengths
         // The _unitsPerRotation values in the axisParams indicate the circumference of the circle
         // formed by moving each arm through 360 degrees
-        double shoulderElbowMM = axisParams[0]._unitsPerRotation / M_PI / 2;
-        double elbowHandMM = axisParams[1]._unitsPerRotation / M_PI / 2;
+        double shoulderElbowMM = axesParams.getUnitsPerRotation(0) / M_PI / 2;
+        double elbowHandMM = axesParams.getUnitsPerRotation(1) / M_PI / 2;
 
         // Calculate the two different configurations of upper and lower arm that can by used to reach any point
         // with the exception of the centre of the machine (many solutions to this) and points on perimeter of working
@@ -157,13 +157,13 @@ private:
         return ROTATION_NORMAL;
     }
 
-    static void rotatonsToPoint(PointND& rotDegrees, PointND& pt, AxisParams axisParams[])
+    static void rotatonsToPoint(AxisFloats& rotDegrees, AxisFloats& pt, AxesParams& axesParams)
     {
         // Calculate arm lengths
         // The _unitsPerRotation values in the axisParams indicate the circumference of the circle
         // formed by moving each arm through 360 degrees
-        double shoulderElbowMM = axisParams[0]._unitsPerRotation / M_PI / 2;
-        double elbowHandMM = axisParams[1]._unitsPerRotation / M_PI / 2;
+        double shoulderElbowMM = axesParams.getUnitsPerRotation(0) / M_PI / 2;
+        double elbowHandMM = axesParams.getUnitsPerRotation(1) / M_PI / 2;
 
         // Trig to get elbow location - alpha is clockwise from North
         double alpha = d2r(rotDegrees._pt[0]);
@@ -185,45 +185,45 @@ private:
 
     }
 
-    static void rotationToActuator(PointND& rotationDegrees, PointND& actuatorCoords, AxisParams axisParams[])
+    static void rotationToActuator(AxisFloats& rotationDegrees, AxisFloats& actuatorCoords, AxesParams& axesParams)
     {
         // Axis 0 positive steps clockwise, axis 1 postive steps are anticlockwise
         // Axis 0 zero steps is at 0 degrees, axis 1 zero steps is at 180 degrees
-        actuatorCoords._pt[0] = - rotationDegrees._pt[0] * axisParams[0]._stepsPerRotation / 360;
-        actuatorCoords._pt[1] = (rotationDegrees._pt[1] - 180) * axisParams[1]._stepsPerRotation / 360;
+        actuatorCoords._pt[0] = - rotationDegrees._pt[0] * axesParams.getStepsPerRotation(0) / 360;
+        actuatorCoords._pt[1] = (rotationDegrees._pt[1] - 180) * axesParams.getStepsPerRotation(1) / 360;
         Log.trace("rotationToActuator a %0.2fD b %0.2fD ax1Steps %0.2f ax1Steps %0.2f",
                 rotationDegrees._pt[0], rotationDegrees._pt[1], actuatorCoords._pt[0], actuatorCoords._pt[1]);
     }
 
-    static void actuatorToRotation(PointND& actuatorCoords, PointND& rotationDegrees, AxisParams axisParams[])
+    static void actuatorToRotation(AxisFloats& actuatorCoords, AxisFloats& rotationDegrees, AxesParams& axesParams)
     {
         // Axis 0 positive steps clockwise, axis 1 postive steps are anticlockwise
         // Axis 0 zero steps is at 0 degrees, axis 1 zero steps is at 180 degrees
         // All angles returned are in degrees anticlockwise from East
-        double axis0Degrees = actuatorCoords._pt[0] * 360 / axisParams[0]._stepsPerRotation;
+        double axis0Degrees = actuatorCoords._pt[0] * 360 / axesParams.getStepsPerRotation(0);
         double alpha = -axis0Degrees;
-        double axis1Degrees = actuatorCoords._pt[1] * 360 / axisParams[1]._stepsPerRotation;
+        double axis1Degrees = actuatorCoords._pt[1] * 360 / axesParams.getStepsPerRotation(1);
         double beta = 180 + axis1Degrees;
         rotationDegrees.set(alpha, beta);
         Log.trace("actuatorToRotation ax0Steps %0.2f ax1Steps %0.2f a %0.2fD b %0.2fD",
                 actuatorCoords._pt[0], actuatorCoords._pt[1], rotationDegrees._pt[0], rotationDegrees._pt[1]);
     }
 
-    static void getCurrentRotation(PointND& rotationDegrees, AxisParams axisParams[])
+    static void getCurrentRotation(AxisFloats& rotationDegrees, AxesParams& axesParams)
     {
         // Get current steps from home
-        PointND actuatorCoords;
-        actuatorCoords._pt[0] = axisParams[0]._stepsFromHome;
-        actuatorCoords._pt[1] = axisParams[1]._stepsFromHome;
+        AxisFloats actuatorCoords;
+        actuatorCoords.X(axesParams.getHomeOffsetSteps(0));
+        actuatorCoords.Y(axesParams.getHomeOffsetSteps(1));
 
-        actuatorToRotation(actuatorCoords, rotationDegrees, axisParams);
+        actuatorToRotation(actuatorCoords, rotationDegrees, axesParams);
 
         Log.trace("getCurrentRotation ax0FromHome %ld ax1FromHome %ld alpha %0.2fD beta %02.fD",
-                    axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome,
+                    axesParams.getHomeOffsetSteps(0), axesParams.getHomeOffsetSteps(1),
                     rotationDegrees._pt[0], rotationDegrees._pt[1]);
     }
 
-    static double calcMinAngleDiff(double target, double& finalAngle, double current)
+    static double calcMinAngleDiff(double target, float& finalAngle, double current)
     {
         // Wrap angles to 0 <= angle < 360
         double wrapTarget = wrapDegrees(target);
@@ -259,8 +259,8 @@ private:
         return minDiff;
     }
 
-    static void getBestMovement(PointND& option1, PointND& option2, PointND& curRotation,
-                    ROTATION_TYPE rotType, PointND& outSolution)
+    static void getBestMovement(AxisFloats& option1, AxisFloats& option2, AxisFloats& curRotation,
+                    ROTATION_TYPE rotType, AxisFloats& outSolution)
     {
         // Check for point near centre
         if (rotType == ROTATION_IS_NEAR_CENTRE)
@@ -282,7 +282,7 @@ private:
 
         // Option 1 and Option 2 are two solutions to the position required
         // Calculate the total angle differences for each axis in each case
-        PointND newOption1, newOption2;
+        AxisFloats newOption1, newOption2;
         double ax0Opt1Diff = calcMinAngleDiff(option1._pt[0], newOption1._pt[0], curRotation._pt[0]);
         double ax1Opt1Diff = calcMinAngleDiff(option1._pt[1], newOption1._pt[1], curRotation._pt[1]);
         double ax0Opt2Diff = calcMinAngleDiff(option2._pt[0], newOption2._pt[0], curRotation._pt[0]);
@@ -487,7 +487,7 @@ public:
         // Log.info("Constructing %s from %s", _robotTypeName.c_str(), robotConfigStr);
 
         // Init motion controller from config
-        _motionHelper.setAxisParams(robotConfigStr);
+        _motionHelper.configure(robotConfigStr);
 
         // Get params specific to this robot
         _maxHomingSecs = RdJson::getLong("maxHomingSecs", maxHomingSecs_default, robotConfigStr);
@@ -502,7 +502,7 @@ public:
     void goHome(RobotCommandArgs& args)
     {
         // Info
-        Log.info("%s home x%d, y%d, z%d", _robotTypeName.c_str(), args.valid.X(), args.valid.Y(), args.valid.Z());
+        Log.info("%s goHome", _robotTypeName.c_str());
 
         // Set homing state
         homingSetNewState(HOMING_STATE_INIT);
@@ -515,7 +515,7 @@ public:
             return false;
 
         // Check if motionHelper can accept a command
-        return _motionHelper.canAcceptCommand();
+        return _motionHelper.canAccept();
     }
 
     void moveTo(RobotCommandArgs& args)
@@ -603,7 +603,7 @@ public:
             }
             case AXIS0_HOMED:
             {
-                _motionHelper.axisSetHome(0);
+                _motionHelper.setCurPositionAsHome(true,false,false);
                 // Rotate from endstop if needed
                 _homingStateNext = AXIS1_TO_ENDSTOP;
                 _homingSeekAxis1Endstop0 = HSEEK_OFF;
@@ -647,7 +647,7 @@ public:
             }
             case AXIS1_HOMED:
             {
-                _motionHelper.axisSetHome(1);
+                _motionHelper.setCurPositionAsHome(false,true,false);
                 _homingState = HOMING_STATE_IDLE;
                 Log.info("Homing - complete");
                 break;
@@ -657,84 +657,84 @@ public:
 
     bool homingService()
     {
-        // Check for idle
-        if (_homingState == HOMING_STATE_IDLE)
-            return false;
-
-        // Check for timeout
-        if (millis() > _homeReqMillis + (_maxHomingSecs * 1000))
-        {
-            Log.info("Homing Timed Out");
-            homingSetNewState(HOMING_STATE_IDLE);
-        }
-
-        // Check for endstop if seeking them
-        bool endstop0Val = _motionHelper.isAtEndStop(0,0);
-        bool endstop1Val = _motionHelper.isAtEndStop(1,0);
-        if (((_homingSeekAxis0Endstop0 == HSEEK_ON) && endstop0Val) || ((_homingSeekAxis0Endstop0 == HSEEK_OFF) && !endstop0Val))
-        {
-            homingSetNewState(_homingStateNext);
-        }
-        if (((_homingSeekAxis1Endstop0 == HSEEK_ON) && endstop1Val) || ((_homingSeekAxis1Endstop0 == HSEEK_OFF) && !endstop1Val))
-        {
-            homingSetNewState(_homingStateNext);
-        }
-
-        // Check if we are ready for the next step
-        unsigned long lastStepMicros = _motionHelper.getAxisLastStepMicros(0);
-        unsigned long lastStepMicros1 = _motionHelper.getAxisLastStepMicros(1);
-        if (lastStepMicros < lastStepMicros1)
-            lastStepMicros = lastStepMicros1;
-        if (Utils::isTimeout(micros(), lastStepMicros, _timeBetweenHomingStepsUs))
-        {
-            // Axis 0
-            if (_homingAxis0Step != HSTEP_NONE)
-                _motionHelper.step(0, _homingAxis0Step == HSTEP_FORWARDS);
-
-            // Axis 1
-            if (_homingAxis1Step != HSTEP_NONE)
-                _motionHelper.step(1, _homingAxis1Step == HSTEP_FORWARDS);
-
-            // Count homing steps in this stage
-            _homingStepsDone++;
-
-            // Check for step limit in this stage
-            if (_homingApplyStepLimit && (_homingStepsDone >= _homingStepsLimit))
-                homingSetNewState(_homingStateNext);
-
-            // // Debug
-            // if (_homingStepsDone % 250 == 0)
-            // {
-            //     const char* pStr = "ROT_ACW";
-            //     if (_homingAxis0Step == HSTEP_NONE)
-            //     {
-            //         if (_homingAxis1Step == HSTEP_NONE)
-            //             pStr = "NONE";
-            //         else if (_homingAxis1Step == HSTEP_FORWARDS)
-            //             pStr = "LIN_FOR";
-            //         else
-            //             pStr = "LIN_BAK";
-            //     }
-            //     else if (_homingAxis0Step == HSTEP_FORWARDS)
-            //     {
-            //         pStr = "ROT_CW";
-            //     }
-            //     Log.trace("HomingSteps %d %s", _homingStepsDone, pStr);
-            // }
-        }
-
-        // // Check for linear endstop if seeking it
-        // if (_homingState == LINEAR_TO_ENDSTOP)
+        // // Check for idle
+        // if (_homingState == HOMING_STATE_IDLE)
+        //     return false;
+        //
+        // // Check for timeout
+        // if (millis() > _homeReqMillis + (_maxHomingSecs * 1000))
         // {
-        //     if (_motionHelper.isAtEndStop(1,0))
-        //     {
-        //         _homingState = OFFSET_TO_CENTRE;
-        //         _homingStepsLimit = _homingCentreOffsetMM * _motionHelper.getAxisParams(1)._stepsPerUnit;
-        //         _homingStepsDone = 0;
-        //         Log.info("Homing - %d steps to centre", _homingStepsLimit);
-        //         break;
-        //     }
+        //     Log.info("Homing Timed Out");
+        //     homingSetNewState(HOMING_STATE_IDLE);
         // }
+        //
+        // // Check for endstop if seeking them
+        // bool endstop0Val = _motionHelper.isAtEndStop(0,0);
+        // bool endstop1Val = _motionHelper.isAtEndStop(1,0);
+        // if (((_homingSeekAxis0Endstop0 == HSEEK_ON) && endstop0Val) || ((_homingSeekAxis0Endstop0 == HSEEK_OFF) && !endstop0Val))
+        // {
+        //     homingSetNewState(_homingStateNext);
+        // }
+        // if (((_homingSeekAxis1Endstop0 == HSEEK_ON) && endstop1Val) || ((_homingSeekAxis1Endstop0 == HSEEK_OFF) && !endstop1Val))
+        // {
+        //     homingSetNewState(_homingStateNext);
+        // }
+        //
+        // // Check if we are ready for the next step
+        // unsigned long lastStepMicros = _motionHelper.getAxisLastStepMicros(0);
+        // unsigned long lastStepMicros1 = _motionHelper.getAxisLastStepMicros(1);
+        // if (lastStepMicros < lastStepMicros1)
+        //     lastStepMicros = lastStepMicros1;
+        // if (Utils::isTimeout(micros(), lastStepMicros, _timeBetweenHomingStepsUs))
+        // {
+        //     // Axis 0
+        //     if (_homingAxis0Step != HSTEP_NONE)
+        //         _motionHelper.step(0, _homingAxis0Step == HSTEP_FORWARDS);
+        //
+        //     // Axis 1
+        //     if (_homingAxis1Step != HSTEP_NONE)
+        //         _motionHelper.step(1, _homingAxis1Step == HSTEP_FORWARDS);
+        //
+        //     // Count homing steps in this stage
+        //     _homingStepsDone++;
+        //
+        //     // Check for step limit in this stage
+        //     if (_homingApplyStepLimit && (_homingStepsDone >= _homingStepsLimit))
+        //         homingSetNewState(_homingStateNext);
+        //
+        //     // // Debug
+        //     // if (_homingStepsDone % 250 == 0)
+        //     // {
+        //     //     const char* pStr = "ROT_ACW";
+        //     //     if (_homingAxis0Step == HSTEP_NONE)
+        //     //     {
+        //     //         if (_homingAxis1Step == HSTEP_NONE)
+        //     //             pStr = "NONE";
+        //     //         else if (_homingAxis1Step == HSTEP_FORWARDS)
+        //     //             pStr = "LIN_FOR";
+        //     //         else
+        //     //             pStr = "LIN_BAK";
+        //     //     }
+        //     //     else if (_homingAxis0Step == HSTEP_FORWARDS)
+        //     //     {
+        //     //         pStr = "ROT_CW";
+        //     //     }
+        //     //     Log.trace("HomingSteps %d %s", _homingStepsDone, pStr);
+        //     // }
+        // }
+        //
+        // // // Check for linear endstop if seeking it
+        // // if (_homingState == LINEAR_TO_ENDSTOP)
+        // // {
+        // //     if (_motionHelper.isAtEndStop(1,0))
+        // //     {
+        // //         _homingState = OFFSET_TO_CENTRE;
+        // //         _homingStepsLimit = _homingCentreOffsetMM * _motionHelper.getAxisParams(1)._stepsPerUnit;
+        // //         _homingStepsDone = 0;
+        // //         Log.info("Homing - %d steps to centre", _homingStepsLimit);
+        // //         break;
+        // //     }
+        // // }
         return true;
 
     }

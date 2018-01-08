@@ -1,3 +1,6 @@
+// RBotFirmware
+// Rob Dobson 2016-18
+
 #pragma once
 
 #include "AxisValues.h"
@@ -6,7 +9,7 @@ class AxisPosition
 {
 public:
 	AxisFloats _axisPositionMM;
-	AxisFloats _stepsFromHome;
+	AxisInt32s _stepsFromHome;
 
 	void clear()
 	{

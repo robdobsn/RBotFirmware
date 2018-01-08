@@ -25,6 +25,9 @@ private:
     int _pinStep;
     int _pinDirection;
 
+	// Current step pin level
+	bool _pinStepLevel;
+
 public:
     // For MOTOR_TYPE_DRIVER two pins are used step & direction
     StepperMotor(MOTOR_TYPE motorType, uint8_t pinStep, uint8_t pinDirection)
@@ -41,6 +44,7 @@ public:
                 _pinStep = pinStep;
                 pinMode(pinDirection, OUTPUT);
                 _pinDirection = pinDirection;
+				_pinStepLevel = 0;
             }
         }
         else
@@ -64,7 +68,28 @@ public:
             pinMode(_pinDirection, INPUT);
     }
 
-    void step(bool direction)
+	// Set direction
+	void stepDirn(bool dirn)
+	{
+		digitalWrite(_pinDirection, _motorDirectionReversed ? dirn : !dirn);
+	}
+
+	bool stepEnd()
+	{
+		if (!_pinStepLevel)
+			return false;
+		digitalWrite(_pinStep, false);
+		_pinStepLevel = false;
+		return true;
+	}
+
+	void stepStart()
+	{
+		digitalWrite(_pinStep, true);
+		_pinStepLevel = true;
+	}
+
+    void stepSync(bool direction)
     {
         // Set direction
         digitalWrite(_pinDirection, _motorDirectionReversed ? direction : !direction);
@@ -74,5 +99,11 @@ public:
         delayMicroseconds(_minPulseWidthUs);
         digitalWrite(_pinStep, false);
     }
+
+	void getPins(int& stepPin, int& dirnPin)
+	{
+		stepPin = _pinStep;
+		dirnPin = _pinDirection;
+	}
 
 };

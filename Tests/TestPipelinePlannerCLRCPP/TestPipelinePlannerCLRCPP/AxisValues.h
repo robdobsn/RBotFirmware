@@ -1,5 +1,5 @@
 // RBotFirmware
-// Rob Dobson 2017
+// Rob Dobson 2016-18
 
 #pragma once
 
@@ -30,14 +30,23 @@ public:
 		_pt[0] = x;
 		_pt[1] = y;
 		_pt[2] = 0;
-		_validityFlags = 0xff;
+		_validityFlags = 0x03;
 	}
 	AxisFloats(float x, float y, float z)
 	{
 		_pt[0] = x;
 		_pt[1] = y;
 		_pt[2] = z;
-		_validityFlags = 0xff;
+		_validityFlags = 0x07;
+	}
+	AxisFloats(float x, float y, float z, bool xValid, bool yValid, bool zValid)
+	{
+		_pt[0] = x;
+		_pt[1] = y;
+		_pt[2] = z;
+		_validityFlags = xValid ? 0x01 : 0;
+		_validityFlags |= yValid ? 0x02 : 0;
+		_validityFlags |= zValid ? 0x04 : 0;
 	}
 	float getVal(int axisIdx)
 	{
@@ -59,7 +68,7 @@ public:
 		_pt[0] = val0;
 		_pt[1] = val1;
 		_pt[2] = val2;
-		_validityFlags = 0xff;
+		_validityFlags = 0x07;
 	}
 	void setValid(int axisIdx, bool isValid)
 	{
@@ -85,13 +94,28 @@ public:
 	{
 		return _pt[0];
 	}
+	void X(float val)
+	{
+		_pt[0] = val;
+		_validityFlags |= 0x01;
+	}
 	float Y()
 	{
 		return _pt[1];
 	}
+	void Y(float val)
+	{
+		_pt[1] = val;
+		_validityFlags |= 0x02;
+	}
 	float Z()
 	{
 		return _pt[2];
+	}
+	void Z(float val)
+	{
+		_pt[2] = val;
+		_validityFlags |= 0x04;
 	}
 	void operator=(const AxisFloats& other)
 	{
@@ -173,7 +197,7 @@ public:
 			if ((includeDist == NULL) || includeDist[i])
 			{
 				float sq = _pt[i] - pt._pt[i];
-				sq = sq*sq;
+				sq = sq * sq;
 				distSum += sq;
 			}
 		}
@@ -182,6 +206,20 @@ public:
 	void logDebugStr(const char* prefixStr)
 	{
 		Log.trace("%s X %0.2f Y %0.2f Z %0.2f", prefixStr, _pt[0], _pt[1], _pt[2]);
+	}
+	String toJSON()
+	{
+		String jsonStr;
+		if (RobotConsts::MAX_AXES >= 2)
+		{
+			jsonStr = "\"X\":" + String::format("%0.5f", _pt[0]) +
+				",\"Y\":" + String::format("%0.5f", _pt[1]);
+		}
+		if (RobotConsts::MAX_AXES >= 3)
+		{
+			jsonStr += ",\"Z\":" + String::format("%0.5f", _pt[2]);
+		}
+		return "{" + jsonStr + "}";
 	}
 };
 
@@ -301,6 +339,12 @@ public:
 		vals[0] = xVal;
 		vals[1] = yVal;
 		vals[2] = zVal;
+	}
+	void set(int32_t val0, int32_t val1, int32_t val2 = 0)
+	{
+		vals[0] = val0;
+		vals[1] = val1;
+		vals[2] = val2;
 	}
 	int32_t X()
 	{

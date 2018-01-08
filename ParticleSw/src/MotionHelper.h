@@ -1,154 +1,128 @@
 // RBotFirmware
-// Rob Dobson 2016
+// Rob Dobson 2016-18
 
 #pragma once
 
-#include "StepperMotor.h"
-#include "AxisParams.h"
-#include "EndStop.h"
-#include "MotionPipeline.h"
+#include "application.h"
+#include "AxesParams.h"
+#include "AxisPosition.h"
 #include "RobotCommandArgs.h"
-
-typedef bool (*ptToActuatorFnType) (MotionPipelineElem& motionElem, PointND& actuatorCoords, AxisParams axisParams[], int numAxes);
-typedef void (*actuatorToPtFnType) (PointND& actuatorCoords, PointND& xy, AxisParams axisParams[], int numAxes);
-typedef void (*correctStepOverflowFnType) (AxisParams axisParams[], int numAxes);
+#include "MotionPlanner.h"
+#include "MotionIO.h"
+#include "MotionActuator.h"
 
 class MotionHelper
 {
 public:
-    static const int MAX_ENDSTOPS_PER_AXIS = 2;
-    static constexpr double stepDisableSecs_default = 60.0;
-    static constexpr double blockDistanceMM_default = 1.0;
-    static constexpr double distToTravelMM_ignoreBelow = 0.01;
+	static constexpr float blockDistanceMM_default = 1.0f;
+	static constexpr float junctionDeviation_default = 0.05f;
+	static constexpr float distToTravelMM_ignoreBelow = 0.01f;
+	static constexpr int pipelineLen_default = 100;
 
 private:
     // Pause
     bool _isPaused;
-    bool _wasPaused;
     // Robot dimensions
-    double _xMaxMM;
-    double _yMaxMM;
-    double _maxMotionDistanceMM;
-    // Stepper motors
-    StepperMotor* _stepperMotors[MAX_AXES];
-    // Servo motors
-    Servo* _servoMotors[MAX_AXES];
-    // Axis parameters
-    AxisParams _axisParams[MAX_AXES];
-    // Step enable
-    int _stepEnablePin;
-    bool _stepEnableActiveLevel = true;
-    // Motor enable
-    double _stepDisableSecs;
-    bool _motorsAreEnabled;
-    unsigned long _motorEnLastMillis;
-    unsigned long _motorEnLastUnixTime;
-    // End stops
-    EndStop* _endStops[MAX_AXES][MAX_ENDSTOPS_PER_AXIS];
+    float _xMaxMM;
+    float _yMaxMM;
+	// Block distance
+	float _blockDistanceMM;
+	// Axes parameters
+	AxesParams _axesParams;
     // Callbacks for coordinate conversion etc
     ptToActuatorFnType _ptToActuatorFn;
     actuatorToPtFnType _actuatorToPtFn;
     correctStepOverflowFnType _correctStepOverflowFn;
-    // Number of actual axes of motion
-    int _numRobotAxes;
+	// Relative motion
+	bool _moveRelative;
+	// Planner used to plan the pipeline of motion
+	MotionPlanner _motionPlanner;
+	// Axis Current Motion
+	AxisPosition _curAxisPosition;
     // Motion pipeline
     MotionPipeline _motionPipeline;
-    // Block distance
-    double _blockDistanceMM;
-    // Relative motion
-    bool _moveRelative;
+	// Motion IO (Motors and end-stops)
+	MotionIO _motionIO;
+	// Motion
+	MotionActuator _motionActuator;
+
+	// Split-up movement blocks to be added to pipeline
+	// Number of blocks to add
+	int _blocksToAddTotal;
+	// Current block to be added
+	int _blocksToAddCurBlock;
+	// Start position for block generation
+	AxisFloats _blocksToAddStartPos;
+	// End position for block generation
+	AxisFloats _blocksToAddEndPos;
+	// Deltas for each axis for block generation
+	AxisFloats _blocksToAddDelta;
+	// Command args for block generation
+	RobotCommandArgs _blocksToAddCommandArgs;
 
     // Debug
     unsigned long _debugLastPosDispMs;
 
-private:
-    bool isInBounds(double v, double b1, double b2)
-    {
-        return (v > std::min(b1, b2) && v < std::max(b1,b2));
-    }
-
-    bool configure(const char* robotConfigJSON);
-    bool configureAxis(const char* robotConfigJSON, int axisIdx);
-    void pipelineService(bool hasBeenPaused);
-
 public:
-    bool isMoving();
-    bool canAcceptCommand();
+	MotionHelper();
+	~MotionHelper();
 
+	void setTransforms(ptToActuatorFnType ptToActuatorFn, actuatorToPtFnType actuatorToPtFn,
+		correctStepOverflowFnType correctStepOverflowFn);
+
+	void configure(const char* robotConfigJSON);
+
+	// Can accept
+	bool canAccept();
     // Pause (or un-pause) all motion
-    void pause(bool pauseIt)
-    {
-        _isPaused = pauseIt;
-    }
-
+	void pause(bool pauseIt);
     // Check if paused
-    bool isPaused()
-    {
-        return _isPaused;
-    }
-
+	bool isPaused();
     // Stop
     void stop();
+	// Check if idle
+	bool isIdle();
 
-    void configMotionPipeline();
+	void jumpHome(int axisIdx)
+	{
+		Log.info("JUMP HOME IS NO LONGER IMPLEMENTED");
+	}
 
-    MotionHelper();
-    ~MotionHelper();
+	bool isEndStopValid(int axisIdx, int endStopIdx)
+	{
+		Log.info("isEndStopValid IS NO LONGER IMPLEMENTED");
+		return true;
+	}
 
-    void setTransforms(ptToActuatorFnType ptToActuatorFn, actuatorToPtFnType actuatorToPtFn,
-             correctStepOverflowFnType correctStepOverflowFn);
+	bool isAtEndStop(int axisIdx, int endStopIdx)
+	{
+		Log.info("isAtEndStop IS NO LONGER IMPLEMENTED");
+		return true;
+	}
 
-    void deinit();
-    void enableMotors(bool en, bool timeout);
-    void setAxisParams(const char* robotConfigJSON);
-    void axisSetHome(int axisIdx);
-    void step(int axisIdx, bool direction);
-    void jump (int axisIdx, long targetStepsFromHome);
-    void jumpHome(int axisIdx);
-    long getAxisStepsFromHome(int axisIdx);
     double getStepsPerUnit(int axisIdx)
     {
-        if (axisIdx < 0 || axisIdx >= MAX_AXES)
-            return 0;
-        return _axisParams[axisIdx].stepsPerUnit();
+		return _axesParams.getStepsPerUnit(axisIdx);
     }
 
     double getStepsPerRotation(int axisIdx)
     {
-        if (axisIdx < 0 || axisIdx >= MAX_AXES)
-            return 0;
-        return _axisParams[axisIdx]._stepsPerRotation;
+		return _axesParams.getStepsPerRotation(axisIdx);
     }
 
     double getUnitsPerRotation(int axisIdx)
     {
-        if (axisIdx < 0 || axisIdx >= MAX_AXES)
-            return 0;
-        return _axisParams[axisIdx]._unitsPerRotation;
-    }
-
-    unsigned long getAxisLastStepMicros(int axisIdx)
-    {
-        if (axisIdx < 0 || axisIdx >= MAX_AXES)
-            return 0;
-        return _axisParams[axisIdx]._lastStepMicros;
+		return _axesParams.getUnitsPerRotation(axisIdx);
     }
 
     long getHomeOffsetSteps(int axisIdx)
     {
-        if (axisIdx < 0 || axisIdx >= MAX_AXES)
-            return 0;
-        return _axisParams[axisIdx]._homeOffsetSteps;
+		return _axesParams.getHomeOffsetSteps(axisIdx);
     }
 
-    AxisParams* getAxisParamsArray()
-    {
-        return _axisParams;
-    }
+	void setCurPositionAsHome(AxisFloats& pt);
+	void setCurPositionAsHome(bool xIsHome, bool yIsHome, bool zIsHome);
 
-    // Endstops
-    bool isEndStopValid(int axisIdx, int endStopIdx);
-    bool isAtEndStop(int axisIdx, int endStopIdx);
     bool moveTo(RobotCommandArgs& args);
     void setMotionParams(RobotCommandArgs& args);
     void getCurStatus(RobotCommandArgs& args);
@@ -156,6 +130,28 @@ public:
 
     unsigned long getLastActiveUnixTime()
     {
-        return _motorEnLastUnixTime;
+		return _motionIO.getLastActiveUnixTime();
     }
+
+	// Test code
+	void debugShowBlocks();
+	void debugShowTiming();
+	int testGetPipelineCount();
+	bool testGetPipelineBlock(int elIdx, MotionBlock& elem);
+	void setTestMode(const char* testModeStr)
+	{
+		_motionActuator.setTestMode(testModeStr);
+	}
+
+private:
+	bool isInBounds(double v, double b1, double b2)
+	{
+		return (v > fmin(b1, b2) && v < fmax(b1, b2));
+	}
+
+	bool configureRobot(const char* robotConfigJSON);
+	bool configureAxis(const char* robotConfigJSON, int axisIdx);
+	void pipelineService(bool hasBeenPaused);
+	bool addToPlanner(RobotCommandArgs& args);
+	void blocksToAddProcess();
 };

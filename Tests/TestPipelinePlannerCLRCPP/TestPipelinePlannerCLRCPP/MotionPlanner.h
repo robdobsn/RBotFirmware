@@ -1,10 +1,13 @@
+// RBotFirmware
+// Rob Dobson 2016-18
+
 #pragma once
 
 #include "MotionPipeline.h"
 
-typedef bool(*ptToActuatorFnType) (AxisFloats& pt, AxisFloats& actuatorCoords, AxisParams axisParams[], int numAxes);
-typedef void(*actuatorToPtFnType) (AxisFloats& actuatorCoords, AxisFloats& pt, AxisParams axisParams[], int numAxes);
-typedef void(*correctStepOverflowFnType) (AxisParams axisParams[], int numAxes);
+typedef bool(*ptToActuatorFnType) (AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams);
+typedef void(*actuatorToPtFnType) (AxisFloats& actuatorCoords, AxisFloats& pt, AxesParams& axesParams);
+typedef void(*correctStepOverflowFnType) (AxesParams& axesParams);
 
 class MotionPlanner
 {
@@ -133,7 +136,7 @@ public:
 		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 		{
 			// Check if any actual steps to perform
-			float stepsFloat = destActuatorCoords._pt[axisIdx] - curAxisPositions._stepsFromHome._pt[axisIdx];
+			float stepsFloat = destActuatorCoords._pt[axisIdx] - curAxisPositions._stepsFromHome.vals[axisIdx];
 			int steps = int(ceilf(stepsFloat));
 			if (steps != 0)
 				hasSteps = true;

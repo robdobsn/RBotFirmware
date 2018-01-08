@@ -1,5 +1,5 @@
 // RBotFirmware
-// Rob Dobson 2016
+// Rob Dobson 2016-18
 
 #pragma once
 
@@ -59,6 +59,7 @@ private:
 	AxisFloats _blocksToAddDelta;
 	// Command args for block generation
 	RobotCommandArgs _blocksToAddCommandArgs;
+
 	// Debug
 	unsigned long _debugLastPosDispMs;
 
@@ -82,6 +83,23 @@ public:
 	// Check if idle
 	bool isIdle();
 
+	void jumpHome(int axisIdx)
+	{
+		Log.info("JUMP HOME IS NO LONGER IMPLEMENTED");
+	}
+
+	bool isEndStopValid(int axisIdx, int endStopIdx)
+	{
+		Log.info("isEndStopValid IS NO LONGER IMPLEMENTED");
+		return true;
+	}
+
+	bool isAtEndStop(int axisIdx, int endStopIdx)
+	{
+		Log.info("isAtEndStop IS NO LONGER IMPLEMENTED");
+		return true;
+	}
+
 	double getStepsPerUnit(int axisIdx)
 	{
 		return _axesParams.getStepsPerUnit(axisIdx);
@@ -101,6 +119,9 @@ public:
 	{
 		return _axesParams.getHomeOffsetSteps(axisIdx);
 	}
+
+	void setCurPositionAsHome(AxisFloats& pt);
+	void setCurPositionAsHome(bool xIsHome, bool yIsHome, bool zIsHome);
 
 	bool moveTo(RobotCommandArgs& args);
 	void setMotionParams(RobotCommandArgs& args);

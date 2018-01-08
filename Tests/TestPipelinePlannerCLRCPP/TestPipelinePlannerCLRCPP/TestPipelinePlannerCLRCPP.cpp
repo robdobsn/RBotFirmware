@@ -32,48 +32,42 @@ static const char* ROBOT_CONFIG_STR_XY =
     " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
     "}";
 
-static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxisParams axisParams[], int numAxes)
+static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams)
 {
-	bool isValid = true;
-	for (int i = 0; i < RobotConsts::MAX_AXES; i++)
+	// Check machine bounds and fix the value if required
+	bool ptWasValid = axesParams.ptInBounds(pt, true);
+
+	// Perform conversion
+	for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 	{
 		// Axis val from home point
-		float axisValFromHome = pt.getVal(i) - axisParams[i]._homeOffsetVal;
+		float axisValFromHome = pt.getVal(axisIdx) - axesParams.getHomeOffsetVal(axisIdx);
 		// Convert to steps and add offset to home in steps
-		actuatorCoords.setVal(i, axisValFromHome * axisParams[i].stepsPerUnit()
-			+ axisParams[i]._homeOffsetSteps);
+		actuatorCoords.setVal(axisIdx, axisValFromHome * axesParams.getStepsPerUnit(axisIdx)
+			+ axesParams.getHomeOffsetSteps(axisIdx));
 
-		// Check machine bounds
-		bool thisAxisValid = true;
-		if (axisParams[i]._minValValid && pt.getVal(i) < axisParams[i]._minVal)
-			thisAxisValid = false;
-		if (axisParams[i]._maxValValid && pt.getVal(i) > axisParams[i]._maxVal)
-			thisAxisValid = false;
-		Log.trace("ptToActuator (%s) %f -> %f (homeOffVal %f, homeOffSteps %ld)", thisAxisValid ? "OK" : "INVALID",
-			pt.getVal(i), actuatorCoords._pt[i], axisParams[i]._homeOffsetVal, axisParams[i]._homeOffsetSteps);
-		isValid &= thisAxisValid;
+		Log.trace("ptToActuator %f -> %f (homeOffVal %f, homeOffSteps %ld)",
+			pt.getVal(axisIdx), actuatorCoords._pt[axisIdx],
+			axesParams.getHomeOffsetVal(axisIdx), axesParams.getHomeOffsetSteps(axisIdx));
 	}
-	return isValid;
+	return ptWasValid;
 }
 
-static void actuatorToPt(AxisFloats& actuatorCoords, AxisFloats& pt, AxisParams axisParams[], int numAxes)
+static void actuatorToPt(AxisFloats& actuatorCoords, AxisFloats& pt, AxesParams& axesParams)
 {
-	for (int i = 0; i < RobotConsts::MAX_AXES; i++)
+	// Perform conversion
+	for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 	{
-		float ptVal = actuatorCoords.getVal(i) - axisParams[i]._homeOffsetSteps;
-		ptVal = ptVal / axisParams[i].stepsPerUnit() + axisParams[i]._homeOffsetVal;
-		if (axisParams[i]._minValValid && ptVal < axisParams[i]._minVal)
-			ptVal = axisParams[i]._minVal;
-		if (axisParams[i]._maxValValid && ptVal > axisParams[i]._maxVal)
-			ptVal = axisParams[i]._maxVal;
-		pt.setVal(i, ptVal);
-		Log.trace("actuatorToPt %d %f -> %f (perunit %f)", i, actuatorCoords.getVal(i), ptVal, axisParams[i].stepsPerUnit());
+		float ptVal = actuatorCoords.getVal(axisIdx) - axesParams.getHomeOffsetSteps(axisIdx);
+		ptVal = ptVal / axesParams.getStepsPerUnit(axisIdx) + axesParams.getHomeOffsetVal(axisIdx);
+		pt.setVal(axisIdx, ptVal);
+		Log.trace("actuatorToPt %d %f -> %f (perunit %f)", axisIdx, actuatorCoords.getVal(axisIdx),
+			ptVal, axesParams.getStepsPerUnit(axisIdx));
 	}
 }
 
-static void correctStepOverflow(AxisParams axisParams[], int numAxes)
+static void correctStepOverflow(AxesParams& axesParams)
 {
-	// Not necessary for a non-continuous rotation bot
 }
 
 bool isApproxF(double a, double b, double epsilon = 0.001)
@@ -312,7 +306,7 @@ int main()
 		MotionHelper _motionHelper;
 
 		_motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
-		_motionHelper.configure(ROBOT_CONFIG_STR_MUGBOT);
+		_motionHelper.configure(ROBOT_CONFIG_STR_XY);
 		_motionHelper.pause(false);
 
 		for (int i = 0; i < tc->numIns(); i++)
