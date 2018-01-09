@@ -2,7 +2,7 @@
 
 #include "conio.h"
 #include "Stopwatch.h"
-
+using namespace System::Runtime::InteropServices;
 using namespace System;
 
 #include "TestCaseMotion.h"
@@ -31,6 +31,8 @@ static const char* ROBOT_CONFIG_STR_XY =
     " \"stepsPerRotation\":3200, \"unitsPerRotation\":60 },"
     " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
     "}";
+
+#define ROBOT_CONFIG_STR ROBOT_CONFIG_STR_XY
 
 static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams)
 {
@@ -253,7 +255,7 @@ int mainSpeedTest()
 {
 	MotionHelper _motionHelper;
 	_motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
-	_motionHelper.configure(ROBOT_CONFIG_STR_XY);
+	_motionHelper.configure(ROBOT_CONFIG_STR);
 	_motionHelper.pause(true);
 	RobotCommandArgs cmdArgs;
 	cmdArgs.setAxisValue(0, 100, true);
@@ -306,7 +308,7 @@ int main()
 		MotionHelper _motionHelper;
 
 		_motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
-		_motionHelper.configure(ROBOT_CONFIG_STR_XY);
+		_motionHelper.configure(ROBOT_CONFIG_STR);
 		_motionHelper.pause(false);
 
 		for (int i = 0; i < tc->numIns(); i++)
@@ -353,6 +355,8 @@ int main()
 
 		Log.info("Max elapsed ms %0.3f", __maxElapsedMoveToTime);
 
+		const char* pTestName = tc->getName();
+		testStarting(pTestName, ROBOT_CONFIG_STR);
 
 		uint32_t tickCount = 0;
 		while (true)
@@ -362,7 +366,7 @@ int main()
 				_getch();
 				break;
 			}
-			setTickCount(tickCount++);
+			setTickCount(tickCount+=20);
 			_motionHelper.service(true);
 			if (_motionHelper.isIdle())
 			{

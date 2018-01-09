@@ -1,10 +1,25 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import json
 
-f = open("../TestPipelinePlannerCLRCPP/TestPipelinePlannerCLRCPP/testOut/testOut_00516.txt")
+f = open("../TestPipelinePlannerCLRCPP/TestPipelinePlannerCLRCPP/testOut/testOut_SquareAndDiagonal_00001.txt")
 lines = f.readlines()
 
-stepDist = 60 / 3200
+# Find JSON
+jsonStr = ""
+lineIdx = 0
+while lineIdx < len(lines):
+    if lines[lineIdx].strip() == "":
+        break
+    jsonStr += lines[lineIdx]
+    lineIdx+=1
+
+configJson = json.loads(jsonStr)
+
+lines = lines[lineIdx+1:]
+
+stepDists = [configJson["axis0"]['unitsPerRotation']/configJson["axis0"]['stepsPerRotation'],
+             configJson["axis1"]['unitsPerRotation']/configJson["axis1"]['stepsPerRotation']]
 
 fieldCmd = 0
 fieldUs = 1
@@ -48,11 +63,11 @@ for line in lines:
                 axisIdx = 1
             intervalUs = elapsedUs - lastAxisUs[axisIdx]
             if intervalUs != 0:
-                speed = axisDirn[axisIdx] * stepDist * 1e6 / intervalUs
+                speed = axisDirn[axisIdx] * stepDists[axisIdx] * 1e6 / intervalUs
                 # print(intervalUs)
                 lastAxisUs[axisIdx] = elapsedUs
                 axisSpeed[axisIdx].append(speed)
-            curDist[axisIdx] += axisDirn[axisIdx] * stepDist
+            curDist[axisIdx] += axisDirn[axisIdx] * stepDists[axisIdx]
             axisDist[axisIdx].append(curDist[axisIdx])
             if axisXYLastUs != 0 and axisXYLastUs + 5 > elapsedUs:
                 axisXY[0][len(axisXY[0])-1] = curDist[0]

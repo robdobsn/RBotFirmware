@@ -40,6 +40,23 @@ bool fexists(const String filename) {
 	return (bool)ifile;
 }
 
+void openDebugFileIfReqd(const char* testName)
+{
+	if (!__outOpen)
+	{
+		int fileCount = 0;
+		while (true)
+		{
+			__outFileName = __outFileBase + testName + "_" + String::format("%05d", fileCount) + ".txt";
+			if (!fexists(__outFileName))
+				break;
+			fileCount++;
+		}
+		__outFile.open(__outFileName);
+		__outOpen = true;
+	}
+}
+
 void digitalWrite(int pin, int val)
 {
 	if (pin == 17) pin = 2;
@@ -49,24 +66,20 @@ void digitalWrite(int pin, int val)
 	// Ignore if it is a lowering of a step pin (to avoid end of test problem)
 	if ((val == 0) && (pin == 2 || pin == 4))
 		return;
-	// 
-	if (!__outOpen)
-	{
-		int fileCount = 0;
-		while (true)
-		{
-			__outFileName = __outFileBase + String::format("%05d", fileCount) + ".txt";
-			if (!fexists(__outFileName))
-				break;
-			fileCount++;
-		}
-		__outFile.open(__outFileName);
-		__outOpen = true;
-	}
+	// Ignore motor enable
+	if (pin == 12)
+		return;
+	// Dump
 	if (__outFile.is_open())
 	{
 		__outFile << "W\t" << __curMicros << "\t" << pin << "\t" << val << "\n";
 	}
+}
+
+void testStarting(const char* testName, const char* debugParams)
+{
+	openDebugFileIfReqd(testName);
+	__outFile << debugParams << "\n\n";
 }
 
 void testCompleted()

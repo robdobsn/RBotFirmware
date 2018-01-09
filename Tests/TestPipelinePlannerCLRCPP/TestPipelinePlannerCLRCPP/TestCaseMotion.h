@@ -26,6 +26,17 @@ public:
 	{
 		_name = name;
 	}
+	const char* getName()
+	{
+		static char buf[1000];
+		int i = 0;
+		for each (char c in _name)
+		{
+			buf[i++] = c;
+		}
+		buf[i] = 0;
+		return buf;
+	}
 	int numIns()
 	{
 		return _listOfIns.Count;

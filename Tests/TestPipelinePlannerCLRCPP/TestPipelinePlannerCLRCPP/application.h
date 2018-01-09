@@ -101,6 +101,8 @@ extern bool digitalRead(int pin);
 
 typedef int PinMode;
 
+extern void testStarting(const char* testName, const char* debugParams);
+
 extern void delayMicroseconds(unsigned long us);
 
 class Servo

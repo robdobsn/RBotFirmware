@@ -1,3 +1,6 @@
+// RBotFirmware
+// Rob Dobson 2016-18
+
 #pragma once
 
 #include "RobotConsts.h"
@@ -19,6 +22,10 @@ public:
 	// Cache max and min step rates
 	AxisFloats _maxStepRatesPerSec;
 	AxisFloats _minStepRatesPerSec;
+	// Cache MaxAccStepsPerTTicksPerMs
+	AxisFloats _maxAccStepsPerTTicksPerMs;
+	float _cacheLastTickRatePerSec;
+
 
 public:
 
@@ -34,6 +41,7 @@ public:
 		_masterAxisStepDistanceMM = AxisParams::unitsPerRotation_default / AxisParams::stepsPerRotation_default;
 		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 			_axisParams[axisIdx].clear();
+		_cacheLastTickRatePerSec = 0;
 	}
 
 	float getStepsPerUnit(int axisIdx)
@@ -109,6 +117,22 @@ public:
 		if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
 			return AxisParams::acceleration_default;
 		return _axisParams[axisIdx]._maxAccelMMps2;
+	}
+
+	float getMaxAccStepsPerTTicksPerMs(int axisIdx, uint32_t T_VALUE, float tickRatePerSec)
+	{
+		if (_cacheLastTickRatePerSec != tickRatePerSec)
+		{
+			// Recalculate based on new tickRate
+			for (int i = 0; i < RobotConsts::MAX_AXES; i++)
+			{
+				float maxAccStepsPerSec2 = getMaxAccel(i) / getStepDistMM(i);
+				float maxAccStepsPerTTicksPerMs = (T_VALUE * maxAccStepsPerSec2) / tickRatePerSec / 1000;
+				_maxAccStepsPerTTicksPerMs.setVal(i, maxAccStepsPerTTicksPerMs);
+			}
+			_cacheLastTickRatePerSec = tickRatePerSec;
+		}
+		return _maxAccStepsPerTTicksPerMs.getVal(axisIdx);
 	}
 
 	bool isPrimaryAxis(int axisIdx)

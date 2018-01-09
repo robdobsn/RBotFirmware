@@ -170,7 +170,7 @@ void MotionActuator::procTick()
 			if (axisExecData._axisStepPhaseNum == MotionBlock::STEP_PHASE_ACCEL)
 			{
 				//Log.trace("Accel Steps/s %ld Accel %ld", axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS);
-				if (axisExecData._curStepRatePerKTicks + axisExecData._accStepsPerKTicksPerMS < MotionBlock::K_VALUE)
+				if (axisExecData._curStepRatePerKTicks + axisExecData._accStepsPerKTicksPerMS < MotionBlock::TTICKS_VALUE)
 					axisExecData._curStepRatePerKTicks += axisExecData._accStepsPerKTicksPerMS;
 				//else
 				//	Log.trace("Didn't add acceleration");
@@ -189,10 +189,10 @@ void MotionActuator::procTick()
 		axisExecData._curAccumulatorStep += axisExecData._curStepRatePerKTicks;
 
 		// Check for step accumulator overflow
-		if (axisExecData._curAccumulatorStep >= MotionBlock::K_VALUE)
+		if (axisExecData._curAccumulatorStep >= MotionBlock::TTICKS_VALUE)
 		{
 			// Subtract from accumulator leaving remainder
-			axisExecData._curAccumulatorStep -= MotionBlock::K_VALUE;
+			axisExecData._curAccumulatorStep -= MotionBlock::TTICKS_VALUE;
 
 			// Step
 			_motionIO.stepStart(axisIdx);

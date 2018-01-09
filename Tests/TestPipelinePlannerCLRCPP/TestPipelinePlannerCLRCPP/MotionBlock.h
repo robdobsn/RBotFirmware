@@ -19,7 +19,7 @@ public:
 	static constexpr double MINIMUM_MOVE_DIST_MM = 0.0001;
 
 	// Number of ticks to accumulate for rate actuation
-	static constexpr uint32_t K_VALUE = 1000000000l;
+	static constexpr uint32_t TTICKS_VALUE = 1000000000l;
 
 	// Tick interval in NS
 	// 20000NS means max of 50k steps per second
@@ -228,11 +228,6 @@ public:
 		getAbsMaxStepsForAnyAxis(absMaxStepsForAnyAxis, axisIdxWithMaxSteps);
 		float oneOverAbsMaxStepsAnyAxis = 1.0f / absMaxStepsForAnyAxis;
 
-		// Master axis acceleration in steps per KTicks per millisecond
-		float masterAxisMaxAccStepsPerSec2 = axesParams._masterAxisMaxAccMMps2 / axesParams._masterAxisStepDistanceMM;
-		float masterAxisMaxAccStepsPerKTicksPerSec = (K_VALUE * masterAxisMaxAccStepsPerSec2) / TICKS_PER_SEC;
-		float masterAxisMaxAccStepsPerKTicksPerMilliSec = masterAxisMaxAccStepsPerKTicksPerSec / 1000;
-
 		// We are about to make changes to the block - only do this if the block is not currently executing
 		// So firstly indicate that execution should not start and then check it hasn't started - this avoids a
 		// potential race condition but only in one direction - this code can get interrupted by the ISR but
@@ -256,7 +251,7 @@ public:
 			uint32_t stepsDecel = uint32_t(absStepsThisAxis - stepsAccel - stepsPlateau);
 
 			// Axis max acceleration in units suitable for actuation
-			float axisMaxAccStepsPerKTicksPerMilliSec = masterAxisMaxAccStepsPerKTicksPerMilliSec * axisFactor;
+			float axisMaxAccStepsPerKTicksPerMilliSec = axesParams.getMaxAccStepsPerTTicksPerMs(axisIdx, TTICKS_VALUE, TICKS_PER_SEC);
 
 			// If there is a deceleration phase and this isn't the dominant axis then correct acceleration to compensate for step number rounding
 			if (stepsDecel > 0 && axisFactor < 0.3f)
@@ -268,14 +263,14 @@ public:
 			float axisInitialStepRatePerSec = initialStepRatePerSec * axisFactor;
 
 			// Minimum step rate for this axis per KTicks
-			float axisMinStepRatePerKTicks = (K_VALUE * axesParams._minStepRatesPerSec.getVal(axisIdx)) / TICKS_PER_SEC;
+			float axisMinStepRatePerKTicks = (TTICKS_VALUE * axesParams._minStepRatesPerSec.getVal(axisIdx)) / TICKS_PER_SEC;
 
 			// Don't allow the step rate to go below the acceleration achieved in 10ms
 			if (axisMinStepRatePerKTicks < axisMaxAccStepsPerKTicksPerMilliSec * 10)
 				axisMinStepRatePerKTicks = axisMaxAccStepsPerKTicksPerMilliSec * 10;
 
 			// Initial step rate for this axis per KTicks
-			float axisInitialStepRatePerKTicksFloat = (K_VALUE * axisInitialStepRatePerSec) / TICKS_PER_SEC;
+			float axisInitialStepRatePerKTicksFloat = (TTICKS_VALUE * axisInitialStepRatePerSec) / TICKS_PER_SEC;
 			if (axisInitialStepRatePerKTicksFloat < axisMinStepRatePerKTicks)
 				axisInitialStepRatePerKTicksFloat = axisMinStepRatePerKTicks;
 
