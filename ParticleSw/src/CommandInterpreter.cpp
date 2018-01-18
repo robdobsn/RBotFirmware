@@ -81,18 +81,26 @@ bool CommandInterpreter::setWifi(const char* pCmdStr)
 
 void CommandInterpreter::processSingle(const char* pCmdStr, String& retStr)
 {
-    retStr = "{\"rslt\":\"ok\"}";
+    const char* okRslt = "{\"rslt\":\"ok\"}";
+    const char* failRslt = "{\"rslt\":\"fail\"}";
+    retStr = "{\"rslt\":\"none\"}";
 
     // Check if this is an immediate command
     if (strcasecmp(pCmdStr, "pause") == 0)
     {
         if (_pRobotController)
+        {
             _pRobotController->pause(true);
+            retStr = okRslt;
+        }
     }
     else if (strcasecmp(pCmdStr, "resume") == 0)
     {
         if (_pRobotController)
+        {
             _pRobotController->pause(false);
+            retStr = okRslt;
+        }
     }
     else if (strcasecmp(pCmdStr, "stop") == 0)
     {
@@ -102,15 +110,20 @@ void CommandInterpreter::processSingle(const char* pCmdStr, String& retStr)
             _pWorkflowManager->clear();
         if (_pCommandExtender)
             _pCommandExtender->stop();
+        retStr = okRslt;
     }
     else if (strstr(pCmdStr, "setwifi") == pCmdStr)
     {
-        setWifi(pCmdStr);
+        if (setWifi(pCmdStr))
+            retStr = okRslt;
+        else
+            retStr = failRslt;
     }
     else if (strstr(pCmdStr, "clearwifi") == pCmdStr)
     {
         WiFi.clearCredentials();
         Log.info("CmdInterp: WiFi Credentials Cleared");
+        retStr = okRslt;
     }
     else if (_pWorkflowManager)
     {
@@ -120,6 +133,8 @@ void CommandInterpreter::processSingle(const char* pCmdStr, String& retStr)
             bool rslt = _pWorkflowManager->add(pCmdStr);
             if (!rslt)
                 retStr = "{\"rslt\":\"busy\"}";
+            else
+                retStr = okRslt;
         }
     }
     Log.trace("CmdInterp procSingle rslt %s", retStr.c_str());

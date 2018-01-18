@@ -147,8 +147,8 @@ public:
     bool canAcceptCommand()
     {
         // Check if homing
-        if (_homingState != HOMING_STATE_IDLE)
-            return false;
+        // if (_homingState != HOMING_STATE_IDLE)
+        //     return false;
 
         // Check if motionHelper is can accept a command
         return _motionHelper.canAccept();

@@ -84,6 +84,12 @@ public:
         {
             Log.info("Cannot determine robotType %s", robotType.c_str());
         }
+
+        if (_pRobot)
+        {
+            _pRobot->pause(false);
+        }
+
         return true;
     }
 
@@ -142,7 +148,7 @@ public:
 
     void moveTo(RobotCommandArgs& args)
     {
-//        Log.trace("RobotController moveTo");
+        Log.trace("RobotController moveTo");
         if (!_pRobot)
             return;
         _pRobot->moveTo(args);
