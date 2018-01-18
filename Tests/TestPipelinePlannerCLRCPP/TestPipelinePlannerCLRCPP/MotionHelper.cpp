@@ -73,7 +73,7 @@ bool MotionHelper::configureRobot(const char* robotConfigJSON)
 	float junctionDeviation = float(RdJson::getDouble("junctionDeviation", junctionDeviation_default, robotConfigJSON));
 	int pipelineLen = int(RdJson::getLong("pipelineLen", pipelineLen_default, robotConfigJSON));
 	// Pipeline length and block size
-	Log.info("MotionHelper configMotionPipeline len %d, _blockDistanceMM %0.2f",
+	Log.info("MotionHelper configMotionPipeline len %d, _blockDistanceMM %0.2f (0=no-max)",
 					pipelineLen, _blockDistanceMM);
 	_motionPipeline.init(pipelineLen);
 	_motionPlanner.configure(junctionDeviation);
@@ -160,7 +160,9 @@ bool MotionHelper::moveTo(RobotCommandArgs& args)
 	double lineLen = destPos.distanceTo(_curAxisPosition._axisPositionMM, includeDist);
 
 	// Ensure at least one block
-	int numBlocks = int(lineLen / _blockDistanceMM);
+	int numBlocks = 1;
+	if (_blockDistanceMM > 0.01f)
+		numBlocks = int(lineLen / _blockDistanceMM);
 	if (numBlocks == 0)
 		numBlocks = 1;
 	// Log.trace("MotionHelper numBlocks %d (lineLen %0.2f / blockDistMM %02.f)",

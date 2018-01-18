@@ -1,3 +1,96 @@
+TESTCASE MicroWord
+IN
+G0 Z2
+G0 X0 Y0
+G1 Z-1
+G1 X0 Y30
+G1 X10 Y13.333
+G1 X20 Y30
+G1 X20 Y0
+G0 Z2
+G0 X31.667 Y0
+G1 Z-1
+G1 X31.667 Y20
+G0 Z2
+G0 X31.667 Y30
+G1 Z-1
+G1 X31.667 Y28.333
+G0 Z2
+G0 X53.333 Y20
+G1 Z-1
+G1 X50 Y20
+G1 X43.333 Y13.333
+G1 X43.333 Y6.667
+G1 X50 Y0 I6.667
+G1 X53.333 Y0
+G0 Z2
+G0 X63.333 Y0
+G1 Z-1
+G1 X63.333 Y20
+G1 X68.333 Y20
+G1 X73.333 Y15 I0
+G0 Z2
+G0 X83.333 Y13.333
+G1 Z-1
+G1 X96.667 Y13.333
+G1 X96.667 Y6.667
+G1 X83.333 Y6.667
+G1 X83.333 Y13.333
+OUT
+#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
+ENDTESTCASE
+TESTCASE MoreComplex
+IN
+G1 X0.0000 Y0.2078
+G1 X5.1953 Y0.2078
+G1 X10.3906 Y0.2078 
+G1 X15.5859 Y0.2078 
+G1 X20.7812 Y0.2078 
+G1 X25.9766 Y0.2078 
+G1 X31.1719 Y0.2078 
+G1 X36.3672 Y0.2078 
+G1 X41.5625 Y0.2078 
+G1 X46.7578 Y0.2078 
+G1 X51.9531 Y0.2078 
+G1 X57.1484 Y0.2078 
+G1 X62.3438 Y0.2078 
+G1 X67.5391 Y0.2078 
+G1 X72.7344 Y0.2078 
+G1 X77.9297 Y0.2078 
+G1 X83.1250 Y0.2078 
+G1 X88.3203 Y0.2078 
+G1 X93.5156 Y0.2078 
+G1 X98.7109 Y0.2078 
+G1 X103.9062 Y0.2078
+G1 X109.1016 Y0.2078
+G1 X114.2969 Y0.2078
+G1 X119.4922 Y0.2078
+G1 X124.6875 Y0.2078
+G1 X129.8828 Y0.2078
+OUT
+#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
+ENDTESTCASE
+TESTCASE StraightLineInXWith8Segments
+IN
+G0 X1 Y0
+G0 X2 Y0
+G0 X3 Y0
+G0 X4 Y0
+G0 X5 Y0
+G0 X6 Y0
+G0 X7 Y0
+G0 X8 Y0
+OUT
+#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
+ 0   0.000   4.472    54     0    106666   10666    54     0     0    106666   10666     0     0     0
+ 1   4.472   6.325    53     0   4770278   10666    53     0     0    106666   10666     0     0     0
+ 2   6.325   7.746    53     0   6746192   10666    53     0     0    106666   10666     0     0     0
+ 3   7.746   8.944    54     0   8262364   10666    54     0     0    106666   10666     0     0     0
+ 4   8.944   7.746    53     0   9540557   10666     0     0    53    106666   10666     0     0     0
+ 5   7.746   6.325    53     0   8262364   10666     0     0    53    106666   10666     0     0     0
+ 6   6.325   4.472    54     0   6746192   10666     0     0    54    106666   10666     0     0     0
+ 7   4.472   0.000    53     0   4770278   10666     0     0    53    106666   10666     0     0     0
+ENDTESTCASE
 TESTCASE RightAngle
 IN
 G0 X1 Y0
@@ -60,24 +153,4 @@ OUT
  0   0.000   4.483    54     6    106666   10666    54     0     0    106666   10666     6     0     0
  1   4.483   0.000    53     5   4782159   10666     0     0    53    451147    8888     0     0     5
 ENDTESTCASE
-TESTCASE StraightLineInXWith8Segments
-IN
-G0 X1 Y0
-G0 X2 Y0
-G0 X3 Y0
-G0 X4 Y0
-G0 X5 Y0
-G0 X6 Y0
-G0 X7 Y0
-G0 X8 Y0
-OUT
-#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
- 0   0.000   4.472    54     0    106666   10666    54     0     0    106666   10666     0     0     0
- 1   4.472   6.325    53     0   4770278   10666    53     0     0    106666   10666     0     0     0
- 2   6.325   7.746    53     0   6746192   10666    53     0     0    106666   10666     0     0     0
- 3   7.746   8.944    54     0   8262364   10666    54     0     0    106666   10666     0     0     0
- 4   8.944   7.746    53     0   9540557   10666     0     0    53    106666   10666     0     0     0
- 5   7.746   6.325    53     0   8262364   10666     0     0    53    106666   10666     0     0     0
- 6   6.325   4.472    54     0   6746192   10666     0     0    54    106666   10666     0     0     0
- 7   4.472   0.000    53     0   4770278   10666     0     0    53    106666   10666     0     0     0
-ENDTESTCASE
+

@@ -25,9 +25,9 @@ static const char* ROBOT_CONFIG_STR_XY =
 	"{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
     " \"cmdsAtStart\":\"\", "
-    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":10.0, \"maxAcc\":10.0,"
+    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":100.0, \"maxAcc\":10.0,"
     " \"stepsPerRotation\":3200, \"unitsPerRotation\":60 },"
-    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":10.0, \"maxAcc\":10.0,"
+    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":100.0, \"maxAcc\":10.0,"
     " \"stepsPerRotation\":3200, \"unitsPerRotation\":60 },"
     " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
     "}";
@@ -174,6 +174,8 @@ static bool interpG(String& cmdStr, bool takeAction, MotionHelper& motionHelper)
 	case 1: // Move
 		if (takeAction)
 		{
+			if (cmdArgs.pt.getVal(0) == 0 && cmdArgs.pt.getVal(1) == 0)
+				break;
 			cmdArgs.moveRapid = (cmdNum == 0);
 			Stopwatch sw;
 			sw.Start();
@@ -205,8 +207,8 @@ void testMotionElemVals(int outIdx, int valIdx, int& errorCount, MotionBlock& el
 		{ false, "idx", false, 0, 0 },
 		{ true, "_entrySpeedMMps", true, elem._entrySpeedMMps, 0},
 		{ true, "_exitSpeedMMps", true, elem._exitSpeedMMps, 0 },
-		{ true, "_axisStepsToTargetX", false, 0, elem._axisStepsToTarget.vals[0] },
-		{ true, "_axisStepsToTargetY", false, 0, elem._axisStepsToTarget.vals[1] },
+		{ true, "_axisStepsToTargetX", false, 0, elem.getStepsToTarget(0) },
+		{ true, "_axisStepsToTargetY", false, 0, elem.getStepsToTarget(1) },
 		{ true, "_initialStepRatePerKTicksX", false, 0, elem._axisStepData[0]._initialStepRatePerKTicks },
 		{ true, "_accStepsPerKTicksPerMS", false, 0, elem._axisStepData[0]._accStepsPerKTicksPerMS },
 		{ true, "_stepsInAccPhaseX", false, 0, elem._axisStepData[0]._stepsInAccPhase },
@@ -309,7 +311,6 @@ int main()
 
 		_motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
 		_motionHelper.configure(ROBOT_CONFIG_STR);
-		_motionHelper.pause(false);
 
 		for (int i = 0; i < tc->numIns(); i++)
 		{
@@ -325,6 +326,9 @@ int main()
 			Log.info("ERROR Pipeline len != Output check count (%d vs %d)\n", _motionHelper.testGetPipelineCount(), tc->numOuts());
 			errorCount++;
 		}
+
+		// Unpause the pipeline - only do this now for testing as it makes debug simpler
+		_motionHelper.pause(false);
 
 		for (int i = 0; i < tc->numOuts(); i++)
 		{

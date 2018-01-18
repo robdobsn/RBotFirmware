@@ -14,7 +14,7 @@
 class MotionHelper
 {
 public:
-	static constexpr float blockDistanceMM_default = 1.0f;
+	static constexpr float blockDistanceMM_default = 0.0f;
 	static constexpr float junctionDeviation_default = 0.05f;
 	static constexpr float distToTravelMM_ignoreBelow = 0.01f;
 	static constexpr int pipelineLen_default = 100;

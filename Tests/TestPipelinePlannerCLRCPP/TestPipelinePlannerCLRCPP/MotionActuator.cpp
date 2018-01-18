@@ -127,12 +127,12 @@ void MotionActuator::procTick()
 				// Set active
 				axisExecData._isActive = true;
 				// Set direction for the axis
-				_motionIO.stepDirn(axisIdx, pBlock->_axisStepsToTarget.getVal(axisIdx) >= 0);
+				_motionIO.stepDirn(axisIdx, pBlock->getStepsToTarget(axisIdx) >= 0);
 
 				// Test code
 #ifdef TEST_MOTION_ACTUATOR_ENABLE
 				if (_pTestMotionActuator)
-					_pTestMotionActuator->stepDirn(axisIdx, pBlock->_axisStepsToTarget.getVal(axisIdx) >= 0);
+					_pTestMotionActuator->stepDirn(axisIdx, pBlock->getStepsToTarget(axisIdx) >= 0);
 #endif
 
 				//Log.trace("BLK axisIdx %d stepsToTarget %ld stepRtPerKTks %ld accStepsPerKTksPerMs %ld stepAcc %ld stepPlat %ld stepDecel %ld",

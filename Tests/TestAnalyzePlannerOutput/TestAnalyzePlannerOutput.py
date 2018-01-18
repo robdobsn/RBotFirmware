@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json
 
-f = open("../TestPipelinePlannerCLRCPP/TestPipelinePlannerCLRCPP/testOut/testOut_SquareAndDiagonal_00001.txt")
+f = open("../TestPipelinePlannerCLRCPP/TestPipelinePlannerCLRCPP/testOut/testOut_RightAngle_00016.txt")
 lines = f.readlines()
 
 # Find JSON

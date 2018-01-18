@@ -119,6 +119,11 @@ public:
 		return _axisParams[axisIdx]._maxAccelMMps2;
 	}
 
+	float getMaxAccStepsPerSecPerSec(int axisIdx)
+	{
+		return getMaxAccel(axisIdx) / getStepDistMM(axisIdx);
+	}
+
 	float getMaxAccStepsPerTTicksPerMs(int axisIdx, uint32_t T_VALUE, float tickRatePerSec)
 	{
 		if (_cacheLastTickRatePerSec != tickRatePerSec)
