@@ -103,10 +103,10 @@ void MotionActuator::procTick()
 			{
 				axisExecData._stepsBeforeDecel = axisStepData._stepsBeforeDecel;
 				axisExecData._curStepCount = 0;
-				axisExecData._maxStepRatePerKTicks = axisStepData._maxStepRatePerKTicks;
-				axisExecData._minStepRatePerKTicks = axisStepData._minStepRatePerKTicks;
-				axisExecData._curStepRatePerKTicks = axisStepData._initialStepRatePerKTicks;
-				axisExecData._accStepsPerKTicksPerMS = axisStepData._accStepsPerKTicksPerMS;
+				axisExecData._maxStepRatePerTTicks = axisStepData._maxStepRatePerTTicks;
+				axisExecData._finalStepRatePerTTicks = axisStepData._finalStepRatePerTTicks;
+				axisExecData._curStepRatePerTTicks = axisStepData._initialStepRatePerTTicks;
+				axisExecData._accStepsPerTTicksPerMS = axisStepData._accStepsPerTTicksPerMS;
 				axisExecData._curAccumulatorStep = 0;
 				axisExecData._curAccumulatorNS = 0;
 				// Set active
@@ -155,24 +155,24 @@ void MotionActuator::procTick()
 			if (axisExecData._curStepCount >= axisExecData._stepsBeforeDecel)
 			{
 				//Log.trace("Decel Steps/s %ld Accel %ld", axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS);
-				if (axisExecData._curStepRatePerKTicks > ((MIN_STEP_RATE_PER_TTICKS > axisExecData._minStepRatePerKTicks * 2) ? MIN_STEP_RATE_PER_TTICKS : axisExecData._minStepRatePerKTicks * 2))
-					axisExecData._curStepRatePerKTicks -= axisExecData._accStepsPerKTicksPerMS;
+				if (axisExecData._curStepRatePerTTicks > std::max(MIN_STEP_RATE_PER_TTICKS + axisExecData._accStepsPerTTicksPerMS, axisExecData._finalStepRatePerTTicks + axisExecData._accStepsPerTTicksPerMS))
+					axisExecData._curStepRatePerTTicks -= axisExecData._accStepsPerTTicksPerMS;
 				//else
 				//	Log.trace("Didn't sub acceleration");
 
 			}
-			else if (axisExecData._curStepRatePerKTicks < axisExecData._maxStepRatePerKTicks)
+			else if (axisExecData._curStepRatePerTTicks < axisExecData._maxStepRatePerTTicks)
 			{
 				//Log.trace("Accel Steps/s %ld Accel %ld", axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS);
-				if (axisExecData._curStepRatePerKTicks + axisExecData._accStepsPerKTicksPerMS < MotionBlock::TTICKS_VALUE)
-					axisExecData._curStepRatePerKTicks += axisExecData._accStepsPerKTicksPerMS;
+				if (axisExecData._curStepRatePerTTicks + axisExecData._accStepsPerTTicksPerMS < MotionBlock::TTICKS_VALUE)
+					axisExecData._curStepRatePerTTicks += axisExecData._accStepsPerTTicksPerMS;
 				//else
 				//	Log.trace("Didn't add acceleration");
 			}
 		}
 
 		// Bump the step accumulator
-		axisExecData._curAccumulatorStep += axisExecData._curStepRatePerKTicks;
+		axisExecData._curAccumulatorStep += axisExecData._curStepRatePerTTicks;
 
 		// Check for step accumulator overflow
 		if (axisExecData._curAccumulatorStep >= MotionBlock::TTICKS_VALUE)

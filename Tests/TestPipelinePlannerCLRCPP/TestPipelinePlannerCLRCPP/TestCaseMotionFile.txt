@@ -1,3 +1,28 @@
+TESTCASE OneBlockXOnly
+IN
+G0 X100 Y0
+OUT
+#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
+ 0   0.000   0.000    54     0    106666   10666    27     0    27    106666   10666     0     0     0
+ENDTESTCASE
+TESTCASE TwoBlocksXMajor
+IN
+G0 X10 Y1
+G0 X20 Y2
+OUT
+#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
+ 0   0.000   4.483    54     6    106666   10666    54     0     0    106666   10666     6     0     0
+ 1   4.483   0.000    53     5   4782159   10666     0     0    53    451147    8888     0     0     5
+ENDTESTCASE
+TESTCASE RightAngle
+IN
+G0 X1 Y0
+G0 X1 Y1
+OUT
+#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
+ 0   0.000   1.099    54     0    106666   10666    29     0    25    106666   10666     0     0     0
+ 1   1.099   0.000     0    54    106666   10666     0     0     0   1171929   10666    26     0    28
+ENDTESTCASE
 TESTCASE StraightLineInXWith8Segments
 IN
 G0 X1 Y0
@@ -19,21 +44,73 @@ OUT
  6   6.325   4.472    54     0   6746192   10666     0     0    54    106666   10666     0     0     0
  7   4.472   0.000    53     0   4770278   10666     0     0    53    106666   10666     0     0     0
 ENDTESTCASE
-TESTCASE OneBlockXOnly
+TESTCASE OneLargeMovement
+IN
+G0 X10 Y10
+OUT
+#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
+ 0   0.000   4.495    39    39    106666   10666    39     0     0    106666   10666    39     0     0
+ 1   4.495   6.357    38    38   4794432   10666    38     0     0   4794432   10666    38     0     0
+ 2   6.357   7.785    38    38   6780351   10666    38     0     0   6780351   10666    38     0     0
+ 3   7.785   8.990    38    38   8304200   10666    38     0     0   8304200   10666    38     0     0
+ 4   8.990  10.000    38    38   9588865   10666    37     1     0   9588865   10666    37     1     0
+ 5  10.000  10.000    38    38  10666666   10666     0    38     0  10666666   10666     0    38     0
+ 6  10.000  10.000    38    38  10666666   10666     0    38     0  10666666   10666     0    38     0
+ 7  10.000  10.000    38    38  10666666   10666     0    38     0  10666666   10666     0    38     0
+ 8  10.000  10.000    38    38  10666666   10666     0    38     0  10666666   10666     0    38     0
+ 9  10.000   8.990    38    38  10666666   10666     0     1    37  10666666   10666     0     1    37
+10   8.990   7.785    39    39   9588864   10666     0     0    39   9588864   10666     0     0    39
+11   7.785   6.357    38    38   8304200   10666     0     0    38   8304200   10666     0     0    38
+12   6.357   4.495    38    38   6780351   10666     0     0    38   6780351   10666     0     0    38
+13   4.495   0.000    38    38   4794433   10666     0     0    38   4794433   10666     0     0    38
+ENDTESTCASE
+TESTCASE SquareAndDiagonal
 IN
 G0 X100 Y0
+G0 X100 Y100
+G0 X0 Y100
+G0 X0 Y0
+G0 X100 Y100
+G0 X0 Y0
 OUT
 #i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
- 0   0.000   0.000    54     0    106666   10666    27     0    27    106666   10666     0     0     0
+ 0   0.000   1.099    54     0    106666   10666    29     0    25    106666   10666     0     0     0
+ 1   1.099   1.099     0    54    106666   10666     0     0     0   1171929   10666    27     0    27
+ 2   1.099   1.099   -54     0   1171929   10666    27     0    27    106666   10666     0     0     0
+ 3   1.099   0.557     0   -54    106666   10666     0     0     0   1171929   10666    26     0    28
+ 4   0.557   0.000    54    54    593853   10666    27     0    27    593853   10666    27     0    27
+ 5   0.000   0.000   -54   -54    106666   10666    27     0    27    106666   10666    27     0    27
 ENDTESTCASE
-TESTCASE TwoBlocksXMajor
+TESTCASE MoreComplex
 IN
-G0 X1 Y0.1
-G0 X2 Y0.2
+G1 X0.0000 Y0.2078
+G1 X5.1953 Y0.2078
+G1 X10.3906 Y0.2078 
+G1 X15.5859 Y0.2078 
+G1 X20.7812 Y0.2078 
+G1 X25.9766 Y0.2078 
+G1 X31.1719 Y0.2078 
+G1 X36.3672 Y0.2078 
+G1 X41.5625 Y0.2078 
+G1 X46.7578 Y0.2078 
+G1 X51.9531 Y0.2078 
+G1 X57.1484 Y0.2078 
+G1 X62.3438 Y0.2078 
+G1 X67.5391 Y0.2078 
+G1 X72.7344 Y0.2078 
+G1 X77.9297 Y0.2078 
+G1 X83.1250 Y0.2078 
+G1 X88.3203 Y0.2078 
+G1 X93.5156 Y0.2078 
+G1 X98.7109 Y0.2078 
+G1 X103.9062 Y0.2078
+G1 X109.1016 Y0.2078
+G1 X114.2969 Y0.2078
+G1 X119.4922 Y0.2078
+G1 X124.6875 Y0.2078
+G1 X129.8828 Y0.2078
 OUT
 #i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
- 0   0.000   4.483    54     6    106666   10666    54     0     0    106666   10666     6     0     0
- 1   4.483   0.000    53     5   4782159   10666     0     0    53    451147    8888     0     0     5
 ENDTESTCASE
 TESTCASE MicroWord
 IN
@@ -76,80 +153,4 @@ G1 X83.333 Y13.333
 OUT
 #i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
 ENDTESTCASE
-TESTCASE MoreComplex
-IN
-G1 X0.0000 Y0.2078
-G1 X5.1953 Y0.2078
-G1 X10.3906 Y0.2078 
-G1 X15.5859 Y0.2078 
-G1 X20.7812 Y0.2078 
-G1 X25.9766 Y0.2078 
-G1 X31.1719 Y0.2078 
-G1 X36.3672 Y0.2078 
-G1 X41.5625 Y0.2078 
-G1 X46.7578 Y0.2078 
-G1 X51.9531 Y0.2078 
-G1 X57.1484 Y0.2078 
-G1 X62.3438 Y0.2078 
-G1 X67.5391 Y0.2078 
-G1 X72.7344 Y0.2078 
-G1 X77.9297 Y0.2078 
-G1 X83.1250 Y0.2078 
-G1 X88.3203 Y0.2078 
-G1 X93.5156 Y0.2078 
-G1 X98.7109 Y0.2078 
-G1 X103.9062 Y0.2078
-G1 X109.1016 Y0.2078
-G1 X114.2969 Y0.2078
-G1 X119.4922 Y0.2078
-G1 X124.6875 Y0.2078
-G1 X129.8828 Y0.2078
-OUT
-#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
-ENDTESTCASE
-TESTCASE RightAngle
-IN
-G0 X1 Y0
-G0 X1 Y1
-OUT
-#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
- 0   0.000   1.099    54     0    106666   10666    29     0    25    106666   10666     0     0     0
- 1   1.099   0.000     0    54    106666   10666     0     0     0   1171929   10666    26     0    28
-ENDTESTCASE
-TESTCASE OneLargeMovement
-IN
-G0 X10 Y10
-OUT
-#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
- 0   0.000   4.495    39    39    106666   10666    39     0     0    106666   10666    39     0     0
- 1   4.495   6.357    38    38   4794432   10666    38     0     0   4794432   10666    38     0     0
- 2   6.357   7.785    38    38   6780351   10666    38     0     0   6780351   10666    38     0     0
- 3   7.785   8.990    38    38   8304200   10666    38     0     0   8304200   10666    38     0     0
- 4   8.990  10.000    38    38   9588865   10666    37     1     0   9588865   10666    37     1     0
- 5  10.000  10.000    38    38  10666666   10666     0    38     0  10666666   10666     0    38     0
- 6  10.000  10.000    38    38  10666666   10666     0    38     0  10666666   10666     0    38     0
- 7  10.000  10.000    38    38  10666666   10666     0    38     0  10666666   10666     0    38     0
- 8  10.000  10.000    38    38  10666666   10666     0    38     0  10666666   10666     0    38     0
- 9  10.000   8.990    38    38  10666666   10666     0     1    37  10666666   10666     0     1    37
-10   8.990   7.785    39    39   9588864   10666     0     0    39   9588864   10666     0     0    39
-11   7.785   6.357    38    38   8304200   10666     0     0    38   8304200   10666     0     0    38
-12   6.357   4.495    38    38   6780351   10666     0     0    38   6780351   10666     0     0    38
-13   4.495   0.000    38    38   4794433   10666     0     0    38   4794433   10666     0     0    38
-ENDTESTCASE
-TESTCASE SquareAndDiagonal
-IN
-G0 X1 Y0
-G0 X1 Y1
-G0 X0 Y1
-G0 X0 Y0
-G0 X1 Y1
-G0 X0 Y0
-OUT
-#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
- 0   0.000   1.099    54     0    106666   10666    29     0    25    106666   10666     0     0     0
- 1   1.099   1.099     0    54    106666   10666     0     0     0   1171929   10666    27     0    27
- 2   1.099   1.099   -54     0   1171929   10666    27     0    27    106666   10666     0     0     0
- 3   1.099   0.557     0   -54    106666   10666     0     0     0   1171929   10666    26     0    28
- 4   0.557   0.000    54    54    593853   10666    27     0    27    593853   10666    27     0    27
- 5   0.000   0.000   -54   -54    106666   10666    27     0    27    106666   10666    27     0    27
-ENDTESTCASE
+

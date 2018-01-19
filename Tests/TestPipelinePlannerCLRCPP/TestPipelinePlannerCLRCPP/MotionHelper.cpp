@@ -267,7 +267,7 @@ void MotionHelper::debugShowBlocks()
 				pBlock->debugShowBlkHead();
 				headShown = true;
 			}
-			pBlock->debugShowBlock(elIdx++);
+			pBlock->debugShowBlock(elIdx++, _axesParams);
 		}
 	}
 }

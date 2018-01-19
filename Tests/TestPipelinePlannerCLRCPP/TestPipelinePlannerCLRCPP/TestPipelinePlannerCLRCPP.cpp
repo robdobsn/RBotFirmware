@@ -36,9 +36,9 @@ static const char* ROBOT_CONFIG_STR_XY_UNIT =
 "{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
 " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
 " \"cmdsAtStart\":\"\", "
-" \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":50.0, \"maxAcc\":100.0,"
+" \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":50.0, \"maxAcc\":10.0,"
 " \"stepsPerRotation\":100, \"unitsPerRotation\":1 },"
-" \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":50.0, \"maxAcc\":100.0,"
+" \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":50.0, \"maxAcc\":10.0,"
 " \"stepsPerRotation\":100, \"unitsPerRotation\":1 },"
 " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
 "}";
@@ -185,7 +185,7 @@ static bool interpG(String& cmdStr, bool takeAction, MotionHelper& motionHelper)
 	case 1: // Move
 		if (takeAction)
 		{
-			if (cmdArgs.pt.getVal(0) == 0 && cmdArgs.pt.getVal(1) == 0)
+			if (!cmdArgs.pt.isValid(0) && !cmdArgs.pt.isValid(1))
 				break;
 			cmdArgs.moveRapid = (cmdNum == 0);
 			Stopwatch sw;
@@ -220,8 +220,8 @@ void testMotionElemVals(int outIdx, int valIdx, int& errorCount, MotionBlock& el
 		{ true, "_exitSpeedMMps", true, elem._exitSpeedMMps, 0 },
 		{ true, "_axisStepsToTargetX", false, 0, elem.getStepsToTarget(0) },
 		{ true, "_axisStepsToTargetY", false, 0, elem.getStepsToTarget(1) },
-		{ true, "_initialStepRatePerKTicksX", false, 0, elem._axisStepData[0]._initialStepRatePerKTicks },
-		{ true, "_accStepsPerKTicksPerMS", false, 0, elem._axisStepData[0]._accStepsPerKTicksPerMS },
+		{ true, "_initialStepRatePerKTicksX", false, 0, elem._axisStepData[0]._initialStepRatePerTTicks },
+		{ true, "_accStepsPerKTicksPerMS", false, 0, elem._axisStepData[0]._accStepsPerTTicksPerMS },
 		//{ true, "_stepsInAccPhaseX", false, 0, elem._axisStepData[0]._stepsInAccPhase },
 		//{ true, "_stepsInPlateauPhaseX", false, 0, elem._axisStepData[0]._stepsInPlateauPhase },
 		//{ true, "_stepsInDecelPhaseX", false, 0, elem._axisStepData[0]._stepsInDecelPhase },

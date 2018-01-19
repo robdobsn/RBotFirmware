@@ -49,13 +49,13 @@ private:
 		uint32_t _stepsTotalAbs;
 		uint32_t _stepsBeforeDecel;
 		uint32_t _curStepCount;
-		// Min and max step rates
-		uint32_t _minStepRatePerKTicks;
-		uint32_t _maxStepRatePerKTicks;
+		// Max and final step rates
+		uint32_t _maxStepRatePerTTicks;
+		uint32_t _finalStepRatePerTTicks;
 		// Current step rate (in steps per K ticks)
-		uint32_t _curStepRatePerKTicks;
+		uint32_t _curStepRatePerTTicks;
 		// Acceleration rate
-		uint32_t _accStepsPerKTicksPerMS;
+		uint32_t _accStepsPerTTicksPerMS;
 		// Accumulators for stepping and acceleration increments
 		uint32_t _curAccumulatorStep;
 		uint32_t _curAccumulatorNS;

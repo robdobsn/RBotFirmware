@@ -3,11 +3,11 @@
 
 #pragma once
 
-//#define USE_OLD_PLANNER_CODE 1
-//#define DEBUG_TEST_AB 1
-//#define DEBUG_TEST_DUMP 1
-//#define DEBUG_BLOCK_TO_DUMP_OR_MINUS1_FOR_ALL 15
-//#define SHOW_DEBUG_INFO 1
+#define USE_OLD_PLANNER_CODE 1
+#define DEBUG_TEST_AB 1
+#define DEBUG_TEST_DUMP 1
+#define DEBUG_BLOCK_TO_DUMP_OR_MINUS1_FOR_ALL -1
+#define SHOW_DEBUG_INFO 1
 
 #include "MotionPipeline.h"
 
@@ -181,7 +181,7 @@ public:
 		}
 		block._maxEntrySpeedMMps = vmaxJunction;
 
-		 Log.trace("PrevMoveInQueue %d, JunctionDeviation %0.3f, VmaxJunction %0.3f", motionPipeline.canGet(), junctionDeviation, vmaxJunction);
+		Log.trace("PrevMoveInQueue %d, JunctionDeviation %0.3f, VmaxJunction %0.3f", motionPipeline.canGet(), junctionDeviation, vmaxJunction);
 
 		// Calculate max achievable speed using v^2 = u^2 - 2as
 		// float maxAchievableSpeedMMps = sqrtf(_minimumPlannerSpeedMMps * _minimumPlannerSpeedMMps + 2.0F * (axesParams._masterAxisMaxAccMMps2) * block._moveDistPrimaryAxesMM);
@@ -282,35 +282,52 @@ public:
 
 		// Iterate the block queue in backwards time order stopping at the first block that has its recalculateFlag false
 		int blockIdx = 0;
-		float followingBlockExitSpeed = 0;
+		int earliestBlockToReprocess = -1;
+		float previousBlockExitSpeed = 0;
+		float followingBlockEntrySpeed = 0;
+		AxisInt32s previousBlockExitStepRatePerTTicks;
 		MotionBlock* pBlock = NULL;
-		while (pBlock = motionPipeline.peekNthFromPut(blockIdx))
+		while (true)
 		{
-			// Stop if we don't need to recalculate beyond here or if this block is already executing
-			if (pBlock->_isExecuting)
+			// Get the block at current index
+			pBlock = motionPipeline.peekNthFromPut(blockIdx);
+			if (pBlock == NULL)
 				break;
 
+			// Stop if we don't need to recalculate beyond here or if this block is already executing
+			if (pBlock->_isExecuting)
+			{
+				// Get the exit speed from this executing block to use as the entry speed when going forwards
+				previousBlockExitSpeed = pBlock->_exitSpeedMMps;
+				pBlock->getExitStepRatesPerTTicks(previousBlockExitStepRatePerTTicks);
+				break;
+			}
+
 			// Set the block's exit speed to the entry speed of the block after this one
-			pBlock->_exitSpeedMMps = followingBlockExitSpeed;
+			pBlock->_exitSpeedMMps = followingBlockEntrySpeed;
 
 			// If entry speed is already at the maximum entry speed then we can stop here as no further changes are
 			// going to be made by going back further
-			if (pBlock->_entrySpeedMMps == pBlock->_maxEntrySpeedMMps)
-			{
-#ifdef SHOW_DEBUG_INFO
-				Log.trace("++++++++++++++++++++++++++++++ Breaking %d", blockIdx);
-#endif				
-				blockIdx++;
-				break;
-			}
+//			if (pBlock->_entrySpeedMMps == pBlock->_maxEntrySpeedMMps)
+//			{
+//#ifdef SHOW_DEBUG_INFO
+//				Log.trace("++++++++++++++++++++++++++++++ Breaking %d", blockIdx);
+//#endif
+//				//Get the exit speed from this block to use as the entry speed when going forwards
+//				previousBlockExitSpeed = pBlock->_exitSpeedMMps;
+//				break;
+//			}
+
+			// Remember this as the earliest block to reprocess when going forwards
+			earliestBlockToReprocess = blockIdx;
 
 			// Assume for now that that whole block will be deceleration and calculate the max speed we can enter to be able to slow
 			// to the exit speed required
 			float maxEntrySpeed = pBlock->maxAchievableSpeed(axesParams._masterAxisMaxAccMMps2, pBlock->_exitSpeedMMps, pBlock->_moveDistPrimaryAxesMM);
 			pBlock->_entrySpeedMMps = fminf(maxEntrySpeed, pBlock->_maxEntrySpeedMMps);
 
-			// Remember exit speed for next loop
-			followingBlockExitSpeed = pBlock->_entrySpeedMMps;
+			// Remember entry speed (to use as exit speed in the next loop)
+			followingBlockEntrySpeed = pBlock->_entrySpeedMMps;
 
 			// Next
 			blockIdx++;
@@ -320,46 +337,35 @@ public:
 		dumpQueue("NEWMid", motionPipeline, DEBUG_BLOCK_TO_DUMP_OR_MINUS1_FOR_ALL);
 #endif
 
-		// Get the exit speed for the block just before our forward calculation starts
-		// This is either 0 if there are no blocks at all, or the value of the first
-		// block we don't need to recalculate
-		float prevBlockExitSpeed = 0;
-		if (pBlock != NULL)
-			prevBlockExitSpeed = pBlock->_exitSpeedMMps;
-		int earliestBlockIdx = blockIdx;
-
 #ifdef SHOW_DEBUG_INFO
-		Log.trace("=================================EarliestBlockIdx %d", earliestBlockIdx);
+		Log.trace("=================================EarliestBlockToReprocess %d", earliestBlockToReprocess);
 #endif
 		// Now iterate in forward time order
-		for (blockIdx = earliestBlockIdx - 1; blockIdx >= 0; blockIdx--)
+		for (blockIdx = earliestBlockToReprocess; blockIdx >= 0; blockIdx--)
 		{
 			// Get the block to calculate for
 			pBlock = motionPipeline.peekNthFromPut(blockIdx);
 			if (!pBlock)
 				break;
 
-			// Set the entry speed to the previous block exit speed if it is higher
-			if (pBlock->_entrySpeedMMps > prevBlockExitSpeed)
-				pBlock->_entrySpeedMMps = prevBlockExitSpeed;
+			// Set the entry speed to the previous block exit speed
+			// if (pBlock->_entrySpeedMMps > previousBlockExitSpeed)
+			pBlock->_entrySpeedMMps = previousBlockExitSpeed;
 
 			// Calculate maximum speed possible for the block - based on acceleration at the best rate
 			float maxExitSpeed = pBlock->maxAchievableSpeed(axesParams._masterAxisMaxAccMMps2, pBlock->_entrySpeedMMps, pBlock->_moveDistPrimaryAxesMM);
 			pBlock->_exitSpeedMMps = fminf(maxExitSpeed, pBlock->_exitSpeedMMps);
 
 			// Remember for next block
-			prevBlockExitSpeed = pBlock->_exitSpeedMMps;
+			previousBlockExitSpeed = pBlock->_exitSpeedMMps;
 
 			//Log.trace("Forward pass #%d element %08x, prev En %0.3f Ex %0.3f. cur En %0.3f Ex %0.3f", blockBeingProcessedIdx, pCurBlock,
 			//	pPrevElem->_entrySpeedMMps, pPrevElem->_exitSpeedMMps, pBlock->_entrySpeedMMps, pBlock->_exitSpeedMMps);
 
 		}
 
-		// Get the previous block (or NULL if none)
-		MotionBlock* pPrevBlockForStepParams = motionPipeline.peekNthFromPut(earliestBlockIdx);
-
 		// Recalculate trapezoid for blocks that need it
-		for (blockIdx = earliestBlockIdx - 1; blockIdx >= 0; blockIdx--)
+		for (blockIdx = earliestBlockToReprocess; blockIdx >= 0; blockIdx--)
 		{
 			// Get the block to calculate for
 			pBlock = motionPipeline.peekNthFromPut(blockIdx);
@@ -367,8 +373,8 @@ public:
 				break;
 
 			// Calculate trapezoid on this block
-			pBlock->prepareForStepping(axesParams, pPrevBlockForStepParams);
-			pPrevBlockForStepParams = pBlock;
+			pBlock->prepareForStepping(axesParams, previousBlockExitStepRatePerTTicks);
+			pBlock->getExitStepRatesPerTTicks(previousBlockExitStepRatePerTTicks);
 
 			//Log.trace("Forward pass #%d after trapezoid entrySpeed %0.3f, exitSpeed %0.3f", blockBeingProcessedIdx +1, 
 			//				pPrevElem->_entrySpeedMMps, pPrevElem->_exitSpeedMMps);
@@ -457,7 +463,6 @@ public:
 				if (elemIdxFromPutPos == 0)
 				{
 					// Calculate trapezoid on last element
-					pPrevElem->calculateStepParams(axesParams);
 					//Log.trace("Forward pass cur #%d after trapezoid entrySpeed %0.3f, exitSpeed %0.3f", elemIdxFromPutPos, pPrevElem->_entrySpeedMMps, pPrevElem->_exitSpeedMMps);
 					break;
 				}
@@ -472,7 +477,7 @@ public:
 				//	pPrevElem->_entrySpeedMMps, pPrevElem->_exitSpeedMMps, pBlock->_entrySpeedMMps, pBlock->_exitSpeedMMps);
 
 				// Set exit speed and calculate trapezoid on this block
-				pPrevElem->calculateStepParams(axesParams);
+				//pPrevElem->calculateTrapezoid(axesParams);
 				//Log.trace("Forward pass #%d after trapezoid entrySpeed %0.3f, exitSpeed %0.3f", elemIdxFromPutPos+1, pPrevElem->_entrySpeedMMps, pPrevElem->_exitSpeedMMps);
 			}
 			dumpQueue("OLDEnd", motionPipeline, DEBUG_BLOCK_TO_DUMP_OR_MINUS1_FOR_ALL);
