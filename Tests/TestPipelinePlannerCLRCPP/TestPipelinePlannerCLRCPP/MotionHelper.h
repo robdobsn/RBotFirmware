@@ -155,8 +155,6 @@ private:
 	}
 
 	bool configureRobot(const char* robotConfigJSON);
-	bool configureAxis(const char* robotConfigJSON, int axisIdx);
-	void pipelineService(bool hasBeenPaused);
 	bool addToPlanner(RobotCommandArgs& args);
 	void blocksToAddProcess();
 };
