@@ -96,7 +96,7 @@ public:
 			}
 
 			TestOutputStepInf inf = getStepInf();
-			Log.info("W\t%lu\t%d\t%d", inf._micros, inf._pin, inf._val ? 1 : 0);
+			//Log.info("W\t%lu\t%d\t%d", inf._micros, inf._pin, inf._val ? 1 : 0);
 		}
 	}
 };

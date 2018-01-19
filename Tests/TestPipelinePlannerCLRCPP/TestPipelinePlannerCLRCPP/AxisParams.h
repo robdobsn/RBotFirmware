@@ -14,7 +14,7 @@ public:
 	static constexpr float unitsPerRotation_default = 1.0f;
 	static constexpr float homeOffsetVal_default = 0.0f;
 	static constexpr long homeOffsetSteps_default = 0;
-	static constexpr float minSpeedMMps_default = 0.01f;
+	static constexpr float minSpeedMMps_default = 0.0f;
 
 	// Parameters
 	float _maxSpeedMMps;

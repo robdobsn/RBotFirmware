@@ -1,3 +1,40 @@
+TESTCASE StraightLineInXWith8Segments
+IN
+G0 X1 Y0
+G0 X2 Y0
+G0 X3 Y0
+G0 X4 Y0
+G0 X5 Y0
+G0 X6 Y0
+G0 X7 Y0
+G0 X8 Y0
+OUT
+#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
+ 0   0.000   4.472    54     0    106666   10666    54     0     0    106666   10666     0     0     0
+ 1   4.472   6.325    53     0   4770278   10666    53     0     0    106666   10666     0     0     0
+ 2   6.325   7.746    53     0   6746192   10666    53     0     0    106666   10666     0     0     0
+ 3   7.746   8.944    54     0   8262364   10666    54     0     0    106666   10666     0     0     0
+ 4   8.944   7.746    53     0   9540557   10666     0     0    53    106666   10666     0     0     0
+ 5   7.746   6.325    53     0   8262364   10666     0     0    53    106666   10666     0     0     0
+ 6   6.325   4.472    54     0   6746192   10666     0     0    54    106666   10666     0     0     0
+ 7   4.472   0.000    53     0   4770278   10666     0     0    53    106666   10666     0     0     0
+ENDTESTCASE
+TESTCASE OneBlockXOnly
+IN
+G0 X100 Y0
+OUT
+#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
+ 0   0.000   0.000    54     0    106666   10666    27     0    27    106666   10666     0     0     0
+ENDTESTCASE
+TESTCASE TwoBlocksXMajor
+IN
+G0 X1 Y0.1
+G0 X2 Y0.2
+OUT
+#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
+ 0   0.000   4.483    54     6    106666   10666    54     0     0    106666   10666     6     0     0
+ 1   4.483   0.000    53     5   4782159   10666     0     0    53    451147    8888     0     0     5
+ENDTESTCASE
 TESTCASE MicroWord
 IN
 G0 Z2
@@ -70,27 +107,6 @@ G1 X129.8828 Y0.2078
 OUT
 #i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
 ENDTESTCASE
-TESTCASE StraightLineInXWith8Segments
-IN
-G0 X1 Y0
-G0 X2 Y0
-G0 X3 Y0
-G0 X4 Y0
-G0 X5 Y0
-G0 X6 Y0
-G0 X7 Y0
-G0 X8 Y0
-OUT
-#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
- 0   0.000   4.472    54     0    106666   10666    54     0     0    106666   10666     0     0     0
- 1   4.472   6.325    53     0   4770278   10666    53     0     0    106666   10666     0     0     0
- 2   6.325   7.746    53     0   6746192   10666    53     0     0    106666   10666     0     0     0
- 3   7.746   8.944    54     0   8262364   10666    54     0     0    106666   10666     0     0     0
- 4   8.944   7.746    53     0   9540557   10666     0     0    53    106666   10666     0     0     0
- 5   7.746   6.325    53     0   8262364   10666     0     0    53    106666   10666     0     0     0
- 6   6.325   4.472    54     0   6746192   10666     0     0    54    106666   10666     0     0     0
- 7   4.472   0.000    53     0   4770278   10666     0     0    53    106666   10666     0     0     0
-ENDTESTCASE
 TESTCASE RightAngle
 IN
 G0 X1 Y0
@@ -137,20 +153,3 @@ OUT
  4   0.557   0.000    54    54    593853   10666    27     0    27    593853   10666    27     0    27
  5   0.000   0.000   -54   -54    106666   10666    27     0    27    106666   10666    27     0    27
 ENDTESTCASE
-TESTCASE OneBlockXOnly
-IN
-G0 X1 Y0
-OUT
-#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
- 0   0.000   0.000    54     0    106666   10666    27     0    27    106666   10666     0     0     0
-ENDTESTCASE
-TESTCASE TwoBlocksXMajor
-IN
-G0 X1 Y0.1
-G0 X2 Y0.2
-OUT
-#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt
- 0   0.000   4.483    54     6    106666   10666    54     0     0    106666   10666     6     0     0
- 1   4.483   0.000    53     5   4782159   10666     0     0    53    451147    8888     0     0     5
-ENDTESTCASE
-

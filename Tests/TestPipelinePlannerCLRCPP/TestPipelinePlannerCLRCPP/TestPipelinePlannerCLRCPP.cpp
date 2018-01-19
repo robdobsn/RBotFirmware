@@ -32,7 +32,18 @@ static const char* ROBOT_CONFIG_STR_XY =
     " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
     "}";
 
-#define ROBOT_CONFIG_STR ROBOT_CONFIG_STR_XY
+static const char* ROBOT_CONFIG_STR_XY_UNIT =
+"{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
+" \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
+" \"cmdsAtStart\":\"\", "
+" \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":50.0, \"maxAcc\":100.0,"
+" \"stepsPerRotation\":100, \"unitsPerRotation\":1 },"
+" \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":50.0, \"maxAcc\":100.0,"
+" \"stepsPerRotation\":100, \"unitsPerRotation\":1 },"
+" \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
+"}";
+
+#define ROBOT_CONFIG_STR ROBOT_CONFIG_STR_XY_UNIT
 
 static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams)
 {
@@ -211,14 +222,14 @@ void testMotionElemVals(int outIdx, int valIdx, int& errorCount, MotionBlock& el
 		{ true, "_axisStepsToTargetY", false, 0, elem.getStepsToTarget(1) },
 		{ true, "_initialStepRatePerKTicksX", false, 0, elem._axisStepData[0]._initialStepRatePerKTicks },
 		{ true, "_accStepsPerKTicksPerMS", false, 0, elem._axisStepData[0]._accStepsPerKTicksPerMS },
-		{ true, "_stepsInAccPhaseX", false, 0, elem._axisStepData[0]._stepsInAccPhase },
-		{ true, "_stepsInPlateauPhaseX", false, 0, elem._axisStepData[0]._stepsInPlateauPhase },
-		{ true, "_stepsInDecelPhaseX", false, 0, elem._axisStepData[0]._stepsInDecelPhase },
-		{ true, "_initialStepRatePerKTicksY", false, 0, elem._axisStepData[1]._initialStepRatePerKTicks },
-		{ true, "_accStepsPerKTicksPerMSY", false, 0, elem._axisStepData[1]._accStepsPerKTicksPerMS },
-		{ true, "_stepsInAccPhaseY", false, 0, elem._axisStepData[1]._stepsInAccPhase },
-		{ true, "_stepsInPlateauPhaseY", false, 0, elem._axisStepData[1]._stepsInPlateauPhase },
-		{ true, "_stepsInDecelPhaseY", false, 0, elem._axisStepData[1]._stepsInDecelPhase },
+		//{ true, "_stepsInAccPhaseX", false, 0, elem._axisStepData[0]._stepsInAccPhase },
+		//{ true, "_stepsInPlateauPhaseX", false, 0, elem._axisStepData[0]._stepsInPlateauPhase },
+		//{ true, "_stepsInDecelPhaseX", false, 0, elem._axisStepData[0]._stepsInDecelPhase },
+		//{ true, "_initialStepRatePerKTicksY", false, 0, elem._axisStepData[1]._initialStepRatePerKTicks },
+		//{ true, "_accStepsPerKTicksPerMSY", false, 0, elem._axisStepData[1]._accStepsPerKTicksPerMS },
+		//{ true, "_stepsInAccPhaseY", false, 0, elem._axisStepData[1]._stepsInAccPhase },
+		//{ true, "_stepsInPlateauPhaseY", false, 0, elem._axisStepData[1]._stepsInPlateauPhase },
+		//{ true, "_stepsInDecelPhaseY", false, 0, elem._axisStepData[1]._stepsInDecelPhase },
 
 #ifdef USE_SMOOTHIE_CODE
 		{ true, "_totalMoveTicks", false, 0, elem._totalMoveTicks },
@@ -308,7 +319,7 @@ int main()
 		int errorCount = 0;
 
 		MotionHelper _motionHelper;
-
+		_motionHelper.setTestMode("OUTPUTSTEPDATA");
 		_motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
 		_motionHelper.configure(ROBOT_CONFIG_STR);
 

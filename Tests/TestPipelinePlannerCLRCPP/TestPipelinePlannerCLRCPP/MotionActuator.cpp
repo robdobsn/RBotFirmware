@@ -96,6 +96,157 @@ void MotionActuator::procTick()
 
 			// Find first phase with steps
 			MotionBlock::axisStepData_t& axisStepData = pBlock->_axisStepData[axisIdx];
+
+			// Initialise
+			axisExecData._stepsTotalAbs = abs(axisStepData._stepsTotalMaybeNeg);
+			if (axisExecData._stepsTotalAbs != 0)
+			{
+				axisExecData._stepsBeforeDecel = axisStepData._stepsBeforeDecel;
+				axisExecData._curStepCount = 0;
+				axisExecData._maxStepRatePerKTicks = axisStepData._maxStepRatePerKTicks;
+				axisExecData._minStepRatePerKTicks = axisStepData._minStepRatePerKTicks;
+				axisExecData._curStepRatePerKTicks = axisStepData._initialStepRatePerKTicks;
+				axisExecData._accStepsPerKTicksPerMS = axisStepData._accStepsPerKTicksPerMS;
+				axisExecData._curAccumulatorStep = 0;
+				axisExecData._curAccumulatorNS = 0;
+				// Set active
+				axisExecData._isActive = true;
+				// Set direction for the axis
+				_motionIO.stepDirn(axisIdx, axisStepData._stepsTotalMaybeNeg >= 0);
+
+				// Test code
+#ifdef TEST_MOTION_ACTUATOR_ENABLE
+				if (_pTestMotionActuator)
+					_pTestMotionActuator->stepDirn(axisIdx, axisStepData._stepsTotalMaybeNeg >= 0);
+#endif
+
+				//Log.trace("BLK axisIdx %d stepsToTarget %ld stepRtPerKTks %ld accStepsPerKTksPerMs %ld stepAcc %ld stepPlat %ld stepDecel %ld",
+				//			axisIdx, pBlock->_axisStepsToTarget.getVal(axisIdx),
+				//			axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS,
+				//			axisExecData._stepsAccPhase, axisExecData._stepsPlateauPhase, axisExecData._stepsDecelPhase);
+
+			}
+		}
+		// Return here to reduce the maximum time this function takes
+		// Assuming this function is called frequently (<50uS intervals say)
+		// then it will make little difference if we return now and pick up on the next tick
+		return;
+	}
+
+	// Go through the axes
+	bool anyAxisMoving = false;
+	for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+	{
+		// Check if there is any motion left for this axis
+		axisExecData_t& axisExecData = _axisExecData[axisIdx];
+		if (!axisExecData._isActive)
+			continue;
+
+		// Bump the millisec accumulator
+		axisExecData._curAccumulatorNS += MotionBlock::TICK_INTERVAL_NS;
+
+		// Check for millisec accumulator overflow
+		if (axisExecData._curAccumulatorNS >= MotionBlock::NS_IN_A_MS)
+		{
+			// Subtract from accumulator leaving remainder to combat rounding errors
+			axisExecData._curAccumulatorNS -= MotionBlock::NS_IN_A_MS;
+
+			// Check if decelerating
+			if (axisExecData._curStepCount >= axisExecData._stepsBeforeDecel)
+			{
+				//Log.trace("Decel Steps/s %ld Accel %ld", axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS);
+				if (axisExecData._curStepRatePerKTicks > ((MIN_STEP_RATE_PER_TTICKS > axisExecData._minStepRatePerKTicks * 2) ? MIN_STEP_RATE_PER_TTICKS : axisExecData._minStepRatePerKTicks * 2))
+					axisExecData._curStepRatePerKTicks -= axisExecData._accStepsPerKTicksPerMS;
+				//else
+				//	Log.trace("Didn't sub acceleration");
+
+			}
+			else if (axisExecData._curStepRatePerKTicks < axisExecData._maxStepRatePerKTicks)
+			{
+				//Log.trace("Accel Steps/s %ld Accel %ld", axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS);
+				if (axisExecData._curStepRatePerKTicks + axisExecData._accStepsPerKTicksPerMS < MotionBlock::TTICKS_VALUE)
+					axisExecData._curStepRatePerKTicks += axisExecData._accStepsPerKTicksPerMS;
+				//else
+				//	Log.trace("Didn't add acceleration");
+			}
+		}
+
+		// Bump the step accumulator
+		axisExecData._curAccumulatorStep += axisExecData._curStepRatePerKTicks;
+
+		// Check for step accumulator overflow
+		if (axisExecData._curAccumulatorStep >= MotionBlock::TTICKS_VALUE)
+		{
+			// Subtract from accumulator leaving remainder
+			axisExecData._curAccumulatorStep -= MotionBlock::TTICKS_VALUE;
+
+			// Step
+			_motionIO.stepStart(axisIdx);
+			axisExecData._curStepCount++;
+
+			// Test code
+#ifdef TEST_MOTION_ACTUATOR_ENABLE
+			if (_pTestMotionActuator)
+				_pTestMotionActuator->stepStart(axisIdx);
+#endif
+
+			// Check if done
+			if (axisExecData._curStepCount >= axisExecData._stepsTotalAbs)
+				axisExecData._isActive = false;
+		}
+		// Check if axis is moving
+		anyAxisMoving |= axisExecData._isActive;
+	}
+
+	// Any axes still moving?
+	if (!anyAxisMoving)
+	{
+		// If not this block is complete
+		_motionPipeline.remove();
+	}
+
+
+
+
+
+
+#ifdef USE_CODE_THAT_IS_CURRENTLY_NOT_WORKING
+
+	// Test code
+#ifdef TEST_MOTION_ACTUATOR_ENABLE
+	if (_pTestMotionActuator)
+		_pTestMotionActuator->stepEnd();
+#endif
+
+	// Do a step-end for any motor which needs one - return here to avoid too short a pulse
+	if (_motionIO.stepEnd())
+		return;
+
+	// Peek a MotionPipelineElem from the queue
+	MotionBlock* pBlock = _motionPipeline.peekGet();
+	if (!pBlock)
+		return;
+
+	// Check if the element can be executed
+	if (!pBlock->_canExecute)
+		return;
+
+	// See if the block was already executing and set isExecuting if not
+	bool newBlock = !pBlock->_isExecuting;
+	pBlock->_isExecuting = true;
+
+	// New block
+	if (newBlock)
+	{
+		// Prep each axis separately
+		for (uint8_t axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+		{
+			// Set inactive for now
+			axisExecData_t& axisExecData = _axisExecData[axisIdx];
+			axisExecData._isActive = false;
+
+			// Find first phase with steps
+			MotionBlock::axisStepData_t& axisStepData = pBlock->_axisStepData[axisIdx];
 			if (axisStepData._stepsInAccPhase + axisStepData._stepsInPlateauPhase + axisStepData._stepsInDecelPhase != 0)
 			{
 				// Initialse accumulators and other vars
@@ -246,6 +397,8 @@ void MotionActuator::procTick()
 		// If not this block is complete
 		_motionPipeline.remove();
 	}
+
+#endif
 }
 
 void MotionActuator::showDebug()

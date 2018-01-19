@@ -50,16 +50,14 @@ public:
 		volatile bool _canExecute : 1;
 	};
 
-	class axisStepData_t
+	struct axisStepData_t
 	{
-	public:
-		uint32_t _minStepRatePerKTicks;
 		uint32_t _initialStepRatePerKTicks;
+		uint32_t _maxStepRatePerKTicks;
+		uint32_t _minStepRatePerKTicks;
 		uint32_t _accStepsPerKTicksPerMS;
-		uint32_t _stepsInAccPhase;
-		uint32_t _stepsInPlateauPhase;
-		uint32_t _stepsInDecelPhase;
-		uint32_t _stepsTotal;
+		uint32_t _stepsBeforeDecel;
+		int32_t _stepsTotalMaybeNeg;
 	};
 	axisStepData_t _axisStepData[RobotConsts::MAX_AXES];
 
@@ -81,20 +79,29 @@ public:
 		_canExecute = false;
 	}
 
-	uint32_t getStepsToTarget(int axisIdx)
+	int32_t getStepsToTarget(int axisIdx)
 	{
 		if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
 		{
-			return _axisStepData[axisIdx]._stepsTotal;
+			return _axisStepData[axisIdx]._stepsTotalMaybeNeg;
 		}
 		return 0;
 	}
 
-	void setStepsToTarget(int axisIdx, uint32_t steps)
+	int32_t getAbsStepsToTarget(int axisIdx)
 	{
 		if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
 		{
-			_axisStepData[axisIdx]._stepsTotal = steps;
+			return abs(_axisStepData[axisIdx]._stepsTotalMaybeNeg);
+		}
+		return 0;
+	}
+
+	void setStepsToTarget(int axisIdx, int32_t steps)
+	{
+		if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
+		{
+			_axisStepData[axisIdx]._stepsTotalMaybeNeg = steps;
 		}
 	}
 
@@ -104,9 +111,9 @@ public:
 		axisIdxWithMaxSteps = 0;
 		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 		{
-			if (axisAbsMaxSteps < uint32_t(labs(getStepsToTarget(axisIdx))))
+			if (axisAbsMaxSteps < uint32_t(getAbsStepsToTarget(axisIdx)))
 			{
-				axisAbsMaxSteps = labs(getStepsToTarget(axisIdx));
+				axisAbsMaxSteps = getAbsStepsToTarget(axisIdx);
 				axisIdxWithMaxSteps = axisIdx;
 			}
 		}
@@ -193,45 +200,11 @@ public:
 	// The block's entry and exit speed are now known
 	// The block can accelerate and decelerate as required as long as these criteria are met
 	// We now compute the stepping parameters to make motion happen
-	void calculateStepParams(AxesParams& axesParams)
+	void prepareForStepping(AxesParams& axesParams, MotionBlock* pPrevBlock)
 	{
 		// If block is currently being executed don't change it
 		if (_isExecuting)
 			return;
-
-		// At this point we are ready to calculate the phases of motion for this block: acceleration, plateau, deceleration
-
-		// First calculate the step rate (steps per sec) for entry
-		float initialStepRatePerSec = _entrySpeedMMps / axesParams._masterAxisStepDistanceMM;
-
-		// Calculate the distance accelerating and ensure within bounds
-		// Using the facts for the block ... (assuming max accleration followed by max deceleration):
-		//		Vmax * Vmax = Ventry * Ventry + 2 * Amax * Saccelerating
-		//		Vexit * Vexit = Vmax * Vmax - 2 * Amax * Sdecelerating
-		//      Stotal = Saccelerating + Sdecelerating
-		// And solving for Saccelerating (distance accelerating)
-		float distAccelerating = (powf(_exitSpeedMMps, 2) - powf(_entrySpeedMMps, 2)) / 4 / axesParams._masterAxisMaxAccMMps2 + _moveDistPrimaryAxesMM / 2;
-		if (distAccelerating < 0.0001f)
-			distAccelerating = 0;
-		forceInBounds(distAccelerating, 0, _moveDistPrimaryAxesMM);
-		float distDecelerating = _moveDistPrimaryAxesMM - distAccelerating;
-		float distPlateau = 0;
-
-		// Check if max speed is reached
-		float distToMaxSpeed = (powf(_feedrateMMps, 2) - powf(_entrySpeedMMps, 2)) / 2 / axesParams._masterAxisMaxAccMMps2;
-		if (distToMaxSpeed < distAccelerating)
-		{
-			// Max speed reached so we need to plateau
-			distAccelerating = distToMaxSpeed;
-			// Also need to recalculate distance decelerating
-			distDecelerating = (powf(_feedrateMMps, 2) - powf(_exitSpeedMMps, 2)) / 2 / axesParams._masterAxisMaxAccMMps2;
-			// And the plateau
-			distPlateau = _moveDistPrimaryAxesMM - distAccelerating - distDecelerating;
-		}
-
-		// Proportions of distance in each phase (acceleration, plateau, deceleration)
-		float distPropAccelerating = distAccelerating / _moveDistPrimaryAxesMM;
-		float distPropPlateau = distPlateau / _moveDistPrimaryAxesMM;
 
 		// Find the axisIdx with max steps and the max number of steps
 		uint32_t absMaxStepsForAnyAxis = 0;
@@ -239,73 +212,174 @@ public:
 		getAbsMaxStepsForAnyAxis(absMaxStepsForAnyAxis, axisIdxWithMaxSteps);
 		float oneOverAbsMaxStepsAnyAxis = 1.0f / absMaxStepsForAnyAxis;
 
-		// We are about to make changes to the block - only do this if the block is not currently executing
-		// So firstly indicate that execution should not start and then check it hasn't started - this avoids a
-		// potential race condition but only in one direction - this code can get interrupted by the ISR but
-		// the ISR will then complete before returning. So if the check indicates it isn't executing then it won't start
-		// executing afterwards until we set the _canExecute flag to true.
-		_canExecute = false;
-		if (_isExecuting)
-			return;
-
-		// Now setup the values for the ticker to generate steps
+		// Generate values for each axis
 		for (uint8_t axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 		{
-
 			// Calculate scaling factor for this axis
-			uint32_t absStepsThisAxis = labs(getStepsToTarget(axisIdx));
-			float axisFactor = absStepsThisAxis * oneOverAbsMaxStepsAnyAxis;
+			uint32_t axisStepsTotal = getAbsStepsToTarget(axisIdx);
+			float axisFactor = axisStepsTotal * oneOverAbsMaxStepsAnyAxis;
 
-			// Step values
-			uint32_t stepsAccel = uint32_t(ceilf(absStepsThisAxis * distPropAccelerating));
-			uint32_t stepsPlateau = uint32_t(absStepsThisAxis * distPropPlateau);
-			uint32_t stepsDecel = uint32_t(absStepsThisAxis - stepsAccel - stepsPlateau);
+			// Start with the values from the previous block if there are any
+			if (pPrevBlock)
+				_axisStepData[axisIdx]._initialStepRatePerKTicks = pPrevBlock->_axisStepData[axisIdx]._initialStepRatePerKTicks;
+			else
+				_axisStepData[axisIdx]._initialStepRatePerKTicks = 0;
 
-			// Axis max acceleration in units suitable for actuation
-			float axisMaxAccStepsPerKTicksPerMilliSec = axesParams.getMaxAccStepsPerTTicksPerMs(axisIdx, TTICKS_VALUE, TICKS_PER_SEC);
+			// Reused values
+			float axisAccStepsPerSec2 = axesParams.getMaxAccStepsPerSec2(axisIdx) * axisFactor;
 
-			// If there is a deceleration phase and this isn't the dominant axis then correct acceleration to compensate for step number rounding
-			if (stepsDecel > 0 && axisFactor < 0.3f)
+			// Initial step rate per sec
+			float initialStepRatePerSec = ((_axisStepData[axisIdx]._initialStepRatePerKTicks  * 1.0f) * TICKS_PER_SEC) / TTICKS_VALUE;
+
+			// Calculate final tick rate
+			float finalStepRatePerSec = _exitSpeedMMps * axisFactor / axesParams.getStepDistMM(axisIdx);
+
+			// Calculate the distance decelerating and ensure within bounds
+			// Using the facts for the block ... (assuming max accleration followed by max deceleration):
+			//		Vmax * Vmax = Ventry * Ventry + 2 * Amax * Saccelerating
+			//		Vexit * Vexit = Vmax * Vmax - 2 * Amax * Sdecelerating
+			//      Stotal = Saccelerating + Sdecelerating
+			// And solving for Saccelerating (distance accelerating)
+			uint32_t stepsAccelerating = uint32_t(ceilf((powf(finalStepRatePerSec, 2) - powf(initialStepRatePerSec, 2)) / 4 / axisAccStepsPerSec2 + axisStepsTotal / 2));
+
+			// Decelerating steps
+			uint32_t stepsDecelerating = axisStepsTotal - uint32_t(stepsAccelerating);
+
+			// Find max possible rate for this axis
+			float axisMaxStepRatePerSec = _feedrateMMps * axisFactor / axesParams.getStepDistMM(axisIdx);
+
+			// See if max speed will be reached
+			uint32_t stepsToMaxSpeed = uint32_t(ceilf((powf(axisMaxStepRatePerSec,2) - powf(initialStepRatePerSec, 2)) / 2 / axisAccStepsPerSec2));
+			if (stepsAccelerating > stepsToMaxSpeed)
 			{
-				axisMaxAccStepsPerKTicksPerMilliSec *= (float(stepsDecel) / (stepsDecel + 1));
+				// Max speed will be reached
+				stepsAccelerating = stepsToMaxSpeed;
+
+				// Decelerating steps
+				stepsDecelerating = uint32_t((powf(axisMaxStepRatePerSec, 2) - powf(finalStepRatePerSec, 2)) / 2 / axisAccStepsPerSec2);
 			}
 
-			// Initial step rate for this axis
-			float axisInitialStepRatePerSec = initialStepRatePerSec * axisFactor;
-
-			// Minimum step rate for this axis per KTicks
-			float axisMinStepRatePerKTicks = (TTICKS_VALUE * axesParams._minStepRatesPerSec.getVal(axisIdx)) / TICKS_PER_SEC;
-
-			// Don't allow the step rate to go below the acceleration achieved in 10ms
-			if (axisMinStepRatePerKTicks < axisMaxAccStepsPerKTicksPerMilliSec * 10)
-				axisMinStepRatePerKTicks = axisMaxAccStepsPerKTicksPerMilliSec * 10;
-
-			// Initial step rate for this axis per KTicks
-			float axisInitialStepRatePerKTicksFloat = (TTICKS_VALUE * axisInitialStepRatePerSec) / TICKS_PER_SEC;
-			if (axisInitialStepRatePerKTicksFloat < axisMinStepRatePerKTicks)
-				axisInitialStepRatePerKTicksFloat = axisMinStepRatePerKTicks;
-
-			// Setup actuation data
-			_axisStepData[axisIdx]._minStepRatePerKTicks = uint32_t(axisMinStepRatePerKTicks);
-			_axisStepData[axisIdx]._initialStepRatePerKTicks = uint32_t(axisInitialStepRatePerKTicksFloat);
-			_axisStepData[axisIdx]._accStepsPerKTicksPerMS = uint32_t(axisMaxAccStepsPerKTicksPerMilliSec);
-			_axisStepData[axisIdx]._stepsInAccPhase = stepsAccel;
-			_axisStepData[axisIdx]._stepsInPlateauPhase = stepsPlateau;
-			_axisStepData[axisIdx]._stepsInDecelPhase = stepsDecel;
+			// Fill in the step values for this axis
+			_axisStepData[axisIdx]._maxStepRatePerKTicks = uint32_t((axisMaxStepRatePerSec * TTICKS_VALUE) / TICKS_PER_SEC);
+			_axisStepData[axisIdx]._minStepRatePerKTicks = uint32_t((axesParams._minStepRatesPerSec.getVal(axisIdx) * TTICKS_VALUE) / TICKS_PER_SEC);
+			_axisStepData[axisIdx]._accStepsPerKTicksPerMS = uint32_t(axesParams.getMaxAccStepsPerTTicksPerMs(axisIdx, TTICKS_VALUE, TICKS_PER_SEC) * axisFactor);
+			_axisStepData[axisIdx]._stepsBeforeDecel = axisStepsTotal - stepsDecelerating;
 		}
+
+
+
+		//	// Calculate the distance accelerating and ensure within bounds
+		//	// Using the facts for the block ... (assuming max accleration followed by max deceleration):
+		//	//		Vmax * Vmax = Ventry * Ventry + 2 * Amax * Saccelerating
+		//	//		Vexit * Vexit = Vmax * Vmax - 2 * Amax * Sdecelerating
+		//	//      Stotal = Saccelerating + Sdecelerating
+		//	// And solving for Saccelerating (distance accelerating)
+		//	float distAccelerating = (powf(_exitSpeedMMps, 2) - powf(_entrySpeedMMps, 2)) / 4 / axesParams._masterAxisMaxAccMMps2 + _moveDistPrimaryAxesMM / 2;
+		//	if (distAccelerating < 0.0001f)
+		//		distAccelerating = 0;
+		//	forceInBounds(distAccelerating, 0, _moveDistPrimaryAxesMM);
+		//	float distDecelerating = _moveDistPrimaryAxesMM - distAccelerating;
+		//	float distPlateau = 0;
+
+		//	// Check if max speed is reached
+		//	float maxSpeedReachedMMps = _feedrateMMps;
+		//	float distToMaxSpeed = (powf(_feedrateMMps, 2) - powf(_entrySpeedMMps, 2)) / 2 / axesParams._masterAxisMaxAccMMps2;
+		//	if (distToMaxSpeed < distAccelerating)
+		//	{
+		//		// Max speed reached so we need to plateau
+		//		distAccelerating = distToMaxSpeed;
+		//		// Also need to recalculate distance decelerating
+		//		distDecelerating = (powf(_feedrateMMps, 2) - powf(_exitSpeedMMps, 2)) / 2 / axesParams._masterAxisMaxAccMMps2;
+		//		// And the plateau
+		//		distPlateau = _moveDistPrimaryAxesMM - distAccelerating - distDecelerating;
+		//	}
+		//	else
+		//	{
+		//		maxSpeedReachedMMps = powf(_entrySpeedMMps, 2) + 2 * axesParams._masterAxisMaxAccMMps2
+		//	}
+
+		//// Calculate the initial step rate in steps per sec
+		//float initialStepRatePerSec = _entrySpeedMMps / axesParams._masterAxisStepDistanceMM;
+
+		//// Proportions of distance in each phase (acceleration, plateau, deceleration)
+		//float distPropAccelerating = distAccelerating / _moveDistPrimaryAxesMM;
+		//float distPropPlateau = distPlateau / _moveDistPrimaryAxesMM;
+
+		//// Find the axisIdx with max steps and the max number of steps
+		//uint32_t absMaxStepsForAnyAxis = 0;
+		//int axisIdxWithMaxSteps = 0;
+		//getAbsMaxStepsForAnyAxis(absMaxStepsForAnyAxis, axisIdxWithMaxSteps);
+		//float oneOverAbsMaxStepsAnyAxis = 1.0f / absMaxStepsForAnyAxis;
+
+		//// We are about to make changes to the block - only do this if the block is not currently executing
+		//// So firstly indicate that execution should not start and then check it hasn't started - this avoids a
+		//// potential race condition but only in one direction - this code can get interrupted by the ISR but
+		//// the ISR will then complete before returning. So if the check indicates it isn't executing then it won't start
+		//// executing afterwards until we set the _canExecute flag to true.
+		//_canExecute = false;
+		//if (_isExecuting)
+		//	return;
+
+		//// Now setup the values for the ticker to generate steps
+		//for (uint8_t axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+		//{
+
+		//	// Calculate scaling factor for this axis
+		//	uint32_t absStepsThisAxis = labs(getStepsToTarget(axisIdx));
+		//	float axisFactor = absStepsThisAxis * oneOverAbsMaxStepsAnyAxis;
+
+		//	// Step values
+		//	uint32_t stepsAccel = uint32_t(ceilf(absStepsThisAxis * distPropAccelerating));
+		//	uint32_t stepsPlateau = uint32_t(absStepsThisAxis * distPropPlateau);
+		//	uint32_t stepsDecel = uint32_t(absStepsThisAxis - stepsAccel - stepsPlateau);
+
+		//	// Axis max acceleration in units suitable for actuation
+		//	float axisMaxAccStepsPerKTicksPerMilliSec = axesParams.getMaxAccStepsPerTTicksPerMs(axisIdx, TTICKS_VALUE, TICKS_PER_SEC);
+
+		//	// If there is a deceleration phase and this isn't the dominant axis then correct acceleration to compensate for step number rounding
+		//	if (stepsDecel > 0 && axisFactor < 0.3f)
+		//	{
+		//		axisMaxAccStepsPerKTicksPerMilliSec *= (float(stepsDecel) / (stepsDecel + 1));
+		//	}
+
+		//	// Initial step rate for this axis
+		//	float axisInitialStepRatePerSec = initialStepRatePerSec * axisFactor;
+
+		//	// Minimum step rate for this axis per KTicks
+		//	float axisMinStepRatePerKTicks = (TTICKS_VALUE * axesParams._minStepRatesPerSec.getVal(axisIdx)) / TICKS_PER_SEC;
+
+		//	// Don't allow the step rate to go below the acceleration achieved in 10ms
+		//	if (axisMinStepRatePerKTicks < axisMaxAccStepsPerKTicksPerMilliSec * 10)
+		//		axisMinStepRatePerKTicks = axisMaxAccStepsPerKTicksPerMilliSec * 10;
+
+		//	// Initial step rate for this axis per KTicks
+		//	float axisInitialStepRatePerKTicksFloat = (TTICKS_VALUE * axisInitialStepRatePerSec) / TICKS_PER_SEC;
+		//	if (axisInitialStepRatePerKTicksFloat < axisMinStepRatePerKTicks)
+		//		axisInitialStepRatePerKTicksFloat = axisMinStepRatePerKTicks;
+
+		//	// Setup actuation data
+		//	_axisStepData[axisIdx]._minStepRatePerKTicks = uint32_t(axisMinStepRatePerKTicks);
+		//	_axisStepData[axisIdx]._initialStepRatePerKTicks = uint32_t(axisInitialStepRatePerKTicksFloat);
+		//	_axisStepData[axisIdx]._accStepsPerKTicksPerMS = uint32_t(axisMaxAccStepsPerKTicksPerMilliSec);
+		//	_axisStepData[axisIdx]._stepsInAccPhase = stepsAccel;
+		//	_axisStepData[axisIdx]._stepsInPlateauPhase = stepsPlateau;
+		//	_axisStepData[axisIdx]._stepsInDecelPhase = stepsDecel;
+		//}
+
 		// No more changes
 		_canExecute = true;
 	}
 
+#ifdef USE_OLD_STEP_CALCS
 
 	// Calculate trapezoid parameters so that the entry- and exit-speed is compensated by the provided factors.
 	// The factors represent a factor of braking and must be in the range 0.0-1.0.
 	//                                +--------+ <- nominal_rate
 	//                               /          \
-		// nominal_rate*entry_factor -> +            \
+	// nominal_rate*entry_factor -> +            \
 	//                              |             + <- nominal_rate*exit_factor
-//                              +-------------+
-//                                  time -->
+	//                              +-------------+
+	//                                  time -->
 	void calculateTrapezoidOLD(AxesParams& axesParams)
 	{
 		// If block is currently being executed don't change it
@@ -409,14 +483,16 @@ public:
 		// No more changes
 		_canExecute = true;
 	}
+#endif
 
 	void debugShowBlkHead()
 	{
-		Log.info("#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XAcSt XPlSt XDcSt   YStPKtk YAcPKms YAcSt YPlSt YDcSt");
+		Log.info("#i EntMMps ExtMMps XStps YStps   XStPKtk XAcPKms XDySt   XMxRt XMnRt   YStPKtk YAcPKms YDySt   YMxRt YMnRt");
 	}
 
 	void debugShowBlock(int elemIdx)
 	{
+#ifdef USE_OLD_STEP_CALCS
 		Log.info("%2d%8.3f%8.3f%6ld%6ld%10lu%8lu%6lu%6lu%6lu%10lu%8lu%6lu%6lu%6lu", elemIdx,
 			_entrySpeedMMps, _exitSpeedMMps,
 			getStepsToTarget(0), getStepsToTarget(1),
@@ -424,6 +500,15 @@ public:
 			_axisStepData[0]._stepsInAccPhase, _axisStepData[0]._stepsInPlateauPhase, _axisStepData[0]._stepsInDecelPhase,
 			_axisStepData[1]._initialStepRatePerKTicks, _axisStepData[1]._accStepsPerKTicksPerMS,
 			_axisStepData[1]._stepsInAccPhase, _axisStepData[1]._stepsInPlateauPhase, _axisStepData[1]._stepsInDecelPhase);
+#else
+		Log.info("%2d%8.3f%8.3f%6ld%6ld%10lu%8lu%6lu%8lu%6lu%10lu%8lu%6lu%8lu%6lu", elemIdx,
+			_entrySpeedMMps, _exitSpeedMMps,
+			getStepsToTarget(0), getStepsToTarget(1),
+			_axisStepData[0]._initialStepRatePerKTicks, _axisStepData[0]._accStepsPerKTicksPerMS,
+			_axisStepData[0]._stepsBeforeDecel, _axisStepData[0]._maxStepRatePerKTicks, _axisStepData[0]._minStepRatePerKTicks,
+			_axisStepData[1]._initialStepRatePerKTicks, _axisStepData[1]._accStepsPerKTicksPerMS,
+			_axisStepData[1]._stepsBeforeDecel, _axisStepData[1]._maxStepRatePerKTicks, _axisStepData[1]._minStepRatePerKTicks);
+#endif
 	}
 
 };

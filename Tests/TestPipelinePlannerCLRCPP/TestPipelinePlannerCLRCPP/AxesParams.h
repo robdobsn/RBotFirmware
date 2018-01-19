@@ -21,6 +21,7 @@ public:
 	float _masterAxisStepDistanceMM;
 	// Cache max and min step rates
 	AxisFloats _maxStepRatesPerSec;
+	AxisFloats _maxStepRatesPerSecSquared;
 	AxisFloats _minStepRatesPerSec;
 	// Cache MaxAccStepsPerTTicksPerMs
 	AxisFloats _maxAccStepsPerTTicksPerMs;
@@ -119,7 +120,7 @@ public:
 		return _axisParams[axisIdx]._maxAccelMMps2;
 	}
 
-	float getMaxAccStepsPerSecPerSec(int axisIdx)
+	float getMaxAccStepsPerSec2(int axisIdx)
 	{
 		return getMaxAccel(axisIdx) / getStepDistMM(axisIdx);
 	}
@@ -184,6 +185,7 @@ public:
 		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 		{
 			_maxStepRatesPerSec.setVal(axisIdx, getMaxSpeed(axisIdx) / getStepDistMM(axisIdx));
+			_maxStepRatesPerSecSquared.setVal(axisIdx, pow(getMaxSpeed(axisIdx) / getStepDistMM(axisIdx), 2));
 			_minStepRatesPerSec.setVal(axisIdx, getMinSpeed(axisIdx) / getStepDistMM(axisIdx));
 		}
 		return true;

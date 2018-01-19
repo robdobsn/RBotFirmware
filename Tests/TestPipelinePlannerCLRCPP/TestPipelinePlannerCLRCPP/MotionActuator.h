@@ -21,6 +21,10 @@ private:
 	volatile bool _isPaused;
 	MotionPipeline& _motionPipeline;
 	MotionIO& _motionIO;
+	// This is to ensure that the robot never goes to 0 tick rate - which would leave it
+	// immobile forever
+	static constexpr uint32_t MIN_STEP_RATE_PER_SEC = 100;
+	static constexpr uint32_t MIN_STEP_RATE_PER_TTICKS = uint32_t((MIN_STEP_RATE_PER_SEC * 1.0 * MotionBlock::TTICKS_VALUE) / MotionBlock::TICKS_PER_SEC);
 
 #ifdef TEST_MOTION_ACTUATOR_ENABLE
 	// Test code
@@ -41,18 +45,16 @@ private:
 		bool _isEnabled;
 		// True while axis is active - when all false block is complete
 		bool _isActive;
-		// Steps in each phase of motion
-		uint32_t _stepsAccPhase;
-		uint32_t _stepsPlateauPhase;
-		uint32_t _stepsDecelPhase;
-		// Min step rate
+		// Steps
+		uint32_t _stepsTotalAbs;
+		uint32_t _stepsBeforeDecel;
+		uint32_t _curStepCount;
+		// Min and max step rates
 		uint32_t _minStepRatePerKTicks;
-		// Current step rate (in steps per K ticks) and count of steps made in this block
+		uint32_t _maxStepRatePerKTicks;
+		// Current step rate (in steps per K ticks)
 		uint32_t _curStepRatePerKTicks;
-		uint32_t _curPhaseStepCount;
-		uint32_t _targetStepCount;
-		// Phase number (accel/plateau/decel) and acceleration rate
-		int _axisStepPhaseNum;
+		// Acceleration rate
 		uint32_t _accStepsPerKTicksPerMS;
 		// Accumulators for stepping and acceleration increments
 		uint32_t _curAccumulatorStep;

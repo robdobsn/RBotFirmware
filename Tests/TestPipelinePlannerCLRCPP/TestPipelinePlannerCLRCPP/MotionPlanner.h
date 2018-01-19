@@ -3,10 +3,11 @@
 
 #pragma once
 
-#define USE_OLD_PLANNER_CODE 1
-#define DEBUG_TEST_AB 1
-#define DEBUG_TEST_DUMP 1
-#define DEBUG_BLOCK_TO_DUMP_OR_MINUS1_FOR_ALL 15
+//#define USE_OLD_PLANNER_CODE 1
+//#define DEBUG_TEST_AB 1
+//#define DEBUG_TEST_DUMP 1
+//#define DEBUG_BLOCK_TO_DUMP_OR_MINUS1_FOR_ALL 15
+//#define SHOW_DEBUG_INFO 1
 
 #include "MotionPipeline.h"
 
@@ -116,7 +117,7 @@ public:
 		{
 			// Check if any steps to perform
 			float stepsFloat = destActuatorCoords._pt[axisIdx] - curAxisPositions._stepsFromHome.vals[axisIdx];
-			int steps = int(ceilf(stepsFloat));
+			int32_t steps = int32_t(ceilf(stepsFloat));
 			if (steps != 0)
 				hasSteps = true;
 			// Value (and direction)
@@ -245,6 +246,7 @@ public:
 			}
 		}
 	}
+#endif
 
 	void dumpQueue(const char* comStr, MotionPipeline& motionPipeline, unsigned int minQLen)
 	{
@@ -262,7 +264,7 @@ public:
 		}
 #endif
 	}
-#endif
+
 
 	void recalculatePipeline(MotionPipeline& motionPipeline, AxesParams& axesParams)
 	{
@@ -272,9 +274,11 @@ public:
 		//    If the entry speed is already at maximum value then we can set recalculate to false
 		//    since clearly adding another block didn't allow us to enter faster
 		//    and thus we don't need to check entry speed for this block any more
-		
+
+#ifdef SHOW_DEBUG_INFO
 		Log.trace("\n++++++++++++RECALCULATE PIPELINE\n");
 		dumpQueue("NEW", motionPipeline, DEBUG_BLOCK_TO_DUMP_OR_MINUS1_FOR_ALL);
+#endif
 
 		// Iterate the block queue in backwards time order stopping at the first block that has its recalculateFlag false
 		int blockIdx = 0;
@@ -293,7 +297,9 @@ public:
 			// going to be made by going back further
 			if (pBlock->_entrySpeedMMps == pBlock->_maxEntrySpeedMMps)
 			{
+#ifdef SHOW_DEBUG_INFO
 				Log.trace("++++++++++++++++++++++++++++++ Breaking %d", blockIdx);
+#endif				
 				blockIdx++;
 				break;
 			}
@@ -310,7 +316,9 @@ public:
 			blockIdx++;
 		}
 
+#ifdef SHOW_DEBUG_INFO
 		dumpQueue("NEWMid", motionPipeline, DEBUG_BLOCK_TO_DUMP_OR_MINUS1_FOR_ALL);
+#endif
 
 		// Get the exit speed for the block just before our forward calculation starts
 		// This is either 0 if there are no blocks at all, or the value of the first
@@ -319,8 +327,10 @@ public:
 		if (pBlock != NULL)
 			prevBlockExitSpeed = pBlock->_exitSpeedMMps;
 		int earliestBlockIdx = blockIdx;
-		Log.trace("=================================EarliestBlockIdx %d", earliestBlockIdx);
 
+#ifdef SHOW_DEBUG_INFO
+		Log.trace("=================================EarliestBlockIdx %d", earliestBlockIdx);
+#endif
 		// Now iterate in forward time order
 		for (blockIdx = earliestBlockIdx - 1; blockIdx >= 0; blockIdx--)
 		{
@@ -345,8 +355,11 @@ public:
 
 		}
 
+		// Get the previous block (or NULL if none)
+		MotionBlock* pPrevBlockForStepParams = motionPipeline.peekNthFromPut(earliestBlockIdx);
+
 		// Recalculate trapezoid for blocks that need it
-		for (blockIdx = earliestBlockIdx; blockIdx >= 0; blockIdx--)
+		for (blockIdx = earliestBlockIdx - 1; blockIdx >= 0; blockIdx--)
 		{
 			// Get the block to calculate for
 			pBlock = motionPipeline.peekNthFromPut(blockIdx);
@@ -354,15 +367,17 @@ public:
 				break;
 
 			// Calculate trapezoid on this block
-			pBlock->calculateStepParams(axesParams);
+			pBlock->prepareForStepping(axesParams, pPrevBlockForStepParams);
+			pPrevBlockForStepParams = pBlock;
 
 			//Log.trace("Forward pass #%d after trapezoid entrySpeed %0.3f, exitSpeed %0.3f", blockBeingProcessedIdx +1, 
 			//				pPrevElem->_entrySpeedMMps, pPrevElem->_exitSpeedMMps);
 		}
 
 
+#ifdef SHOW_DEBUG_INFO
 		dumpQueue("NEW Done", motionPipeline, DEBUG_BLOCK_TO_DUMP_OR_MINUS1_FOR_ALL);
-
+#endif
 
 #ifdef USE_OLD_PLANNER_CODE
 

@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json
 
-f = open("../TestPipelinePlannerCLRCPP/TestPipelinePlannerCLRCPP/testOut/testOut_RightAngle_00016.txt")
+f = open("../TestPipelinePlannerCLRCPP/TestPipelinePlannerCLRCPP/testOut/testOut_MoreComplex_00009.txt")
 lines = f.readlines()
 
 # Find JSON
@@ -83,19 +83,19 @@ for line in lines:
                 axisIdx = 1
             axisDirn[axisIdx] = -1 if lineLevel else 1
 
-#for ax in axisSpeed:
+# for ax in axisSpeed:
 #    print(ax)
 
 fig = plt.figure()
 ax1 = fig.add_subplot(311)
 ax2 = fig.add_subplot(312)
 ax3 = fig.add_subplot(313)
-print("axisSpeed[0]", axisSpeed[0])
-print("axisTimes[0]", axisTimes[0])
-print("axisDist[0]", len(axisDist[0]), axisDist[0])
-print("axisSpeed[1]", axisSpeed[1])
-print("axisTimes[1]", axisTimes[1])
-print("axisDist[1]", len(axisDist[1]), axisDist[1])
+# print("axisSpeed[0]", axisSpeed[0])
+# print("axisTimes[0]", axisTimes[0])
+# print("axisDist[0]", len(axisDist[0]), axisDist[0])
+# print("axisSpeed[1]", axisSpeed[1])
+# print("axisTimes[1]", axisTimes[1])
+# print("axisDist[1]", len(axisDist[1]), axisDist[1])
 ax1.scatter(axisTimes[0], axisDist[0], c="b", label="s vs t #1")
 ax1.scatter(axisTimes[1], axisDist[1], c="r", label="s vs t #2")
 
