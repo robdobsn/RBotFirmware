@@ -120,6 +120,11 @@ public:
 		return _axesParams.getHomeOffsetSteps(axisIdx);
 	}
 
+	AxesParams& getAxesParams()
+	{
+		return _axesParams;
+	}
+
 	void setCurPositionAsHome(AxisFloats& pt);
 	void setCurPositionAsHome(bool xIsHome, bool yIsHome, bool zIsHome);
 

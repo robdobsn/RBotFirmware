@@ -4,10 +4,14 @@
 #pragma once
 
 // #define USE_OLD_STEP_CALCS 1
+#define USE_OLD_WAY_FOR_ENTRY_SPEED 1
+#define USE_OLD_WAY_FOR_AXIS_FACTORS 1
 
 #include "math.h"
 #include "AxisValues.h"
 #include "AxesParams.h"
+
+#define MB_STEP_TTICKS_TO_MMPS(val, axesParams, axisIdx) (((val * 1.0) * MotionBlock::TICKS_PER_SEC) / MotionBlock::TTICKS_VALUE) * axesParams.getStepDistMM(axisIdx)
 
 class MotionBlock
 {
@@ -227,24 +231,30 @@ public:
 		{
 			// Check for no steps - but need to be careful to set final step rate to 0 as it is used as entry value for next block
 			uint32_t axisStepsTotal = abs(_axisStepData[axisIdx]._stepsTotalMaybeNeg);
+#ifndef USE_OLD_WAY_FOR_ENTRY_SPEED
 			_axisStepData[axisIdx]._finalStepRatePerTTicks = 0;
+#endif
 			if (axisStepsTotal == 0)
 				continue;
 
 			// Calculate scaling factor for this axis
 			float axisFactor = axisStepsTotal * oneOverAbsMaxStepsAnyAxis;
 
+#ifndef USE_OLD_WAY_FOR_ENTRY_SPEED
 			// Start with the values from the previous block if there are any
 			_axisStepData[axisIdx]._initialStepRatePerTTicks = prevBlockExitStepRatesPerTTicks.vals[axisIdx];
 
-			// Reused values
-			float axisAccStepsPerSec2 = axesParams.getMaxAccStepsPerSec2(axisIdx) * axisFactor;
-
 			// Initial step rate per sec
 			float initialStepRatePerSec = ((_axisStepData[axisIdx]._initialStepRatePerTTicks * 1.0f) * TICKS_PER_SEC) / TTICKS_VALUE;
+#else
+			float initialStepRatePerSec = _entrySpeedMMps * axisFactor / axesParams.getStepDistMM(axisIdx);
+#endif
 
 			// Calculate final tick rate
 			float finalStepRatePerSec = _exitSpeedMMps * axisFactor / axesParams.getStepDistMM(axisIdx);
+
+			// Reused values
+			float axisAccStepsPerSec2 = axesParams.getMaxAccStepsPerSec2(axisIdx) * axisFactor;
 
 			// Calculate the distance decelerating and ensure within bounds
 			// Using the facts for the block ... (assuming max accleration followed by max deceleration):
@@ -253,7 +263,7 @@ public:
 			//      Stotal = Saccelerating + Sdecelerating
 			// And solving for Saccelerating (distance accelerating)
 			uint32_t stepsAccelerating = 0;
-			float stepsAcceleratingFloat = (powf(finalStepRatePerSec, 2) - powf(initialStepRatePerSec, 2)) / 4 / axisAccStepsPerSec2 + axisStepsTotal / 2;
+			float stepsAcceleratingFloat = ceilf((powf(finalStepRatePerSec, 2) - powf(initialStepRatePerSec, 2)) / 4 / axisAccStepsPerSec2 + axisStepsTotal / 2);
 			if (stepsAcceleratingFloat > 0)
 			{
 				stepsAccelerating = uint32_t(stepsAcceleratingFloat);
@@ -284,12 +294,13 @@ public:
 			}
 
 			// Fill in the step values for this axis
+#ifdef USE_OLD_WAY_FOR_ENTRY_SPEED
+			_axisStepData[axisIdx]._initialStepRatePerTTicks = uint32_t((initialStepRatePerSec * TTICKS_VALUE) / TICKS_PER_SEC);
+#endif
 			_axisStepData[axisIdx]._maxStepRatePerTTicks = uint32_t((axisMaxStepRatePerSec * TTICKS_VALUE) / TICKS_PER_SEC);
 			_axisStepData[axisIdx]._finalStepRatePerTTicks = uint32_t((fmax(axesParams._minStepRatesPerSec.getVal(axisIdx), finalStepRatePerSec) * TTICKS_VALUE) / TICKS_PER_SEC);
 			_axisStepData[axisIdx]._accStepsPerTTicksPerMS = uint32_t(axesParams.getMaxAccStepsPerTTicksPerMs(axisIdx, TTICKS_VALUE, TICKS_PER_SEC) * axisFactor);
 			_axisStepData[axisIdx]._stepsBeforeDecel = axisStepsTotal - stepsDecelerating;
-
-			int a = 1;
 		}
 
 
@@ -517,6 +528,19 @@ public:
 		Log.info("#i EntMMps ExtMMps  StTot  StDec    Init      Pk     Fin     Acc  StTot  StDec    Init      Pk     Fin     Acc");
 	}
 
+	void debugGetAxisStepInfoCleaned(axisStepData_t axisStepData[RobotConsts::MAX_AXES], AxesParams& axesParams)
+	{
+		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+		{
+			int32_t axSt = getStepsToTarget(axisIdx);
+			axisStepData[axisIdx]._stepsTotalMaybeNeg = _axisStepData[axisIdx]._stepsTotalMaybeNeg;
+			axisStepData[axisIdx]._stepsBeforeDecel = (axSt != 0) ? _axisStepData[axisIdx]._stepsBeforeDecel : 0;
+			axisStepData[axisIdx]._initialStepRatePerTTicks = (axSt != 0) ? _axisStepData[axisIdx]._initialStepRatePerTTicks : 0;
+			axisStepData[axisIdx]._maxStepRatePerTTicks = (axSt != 0) ? _axisStepData[axisIdx]._maxStepRatePerTTicks : 0;
+			axisStepData[axisIdx]._finalStepRatePerTTicks = (axSt != 0) ? _axisStepData[axisIdx]._finalStepRatePerTTicks : 0;
+			axisStepData[axisIdx]._accStepsPerTTicksPerMS = (axSt != 0) ? _axisStepData[axisIdx]._accStepsPerTTicksPerMS : 0;
+		}
+	}
 	void debugShowBlock(int elemIdx, AxesParams& axesParams)
 	{
 #ifdef USE_OLD_STEP_CALCS
@@ -528,22 +552,22 @@ public:
 			_axisStepData[1]._initialStepRatePerKTicks, _axisStepData[1]._accStepsPerKTicksPerMS,
 			_axisStepData[1]._stepsInAccPhase, _axisStepData[1]._stepsInPlateauPhase, _axisStepData[1]._stepsInDecelPhase);
 #else
-		int32_t ax0St = getStepsToTarget(0);
-		int32_t ax1St = getStepsToTarget(1);
+		axisStepData_t axisStepData[RobotConsts::MAX_AXES];
+		debugGetAxisStepInfoCleaned(axisStepData, axesParams);
 		Log.info("%2d%8.3f%8.3f%7ld%7lu%8.3f%8.3f%8.3f%8lu%7ld%7lu%8.3f%8.3f%8.3f%8lu", elemIdx,
 			_entrySpeedMMps, _exitSpeedMMps,
-			ax0St, 
-			(ax0St != 0) ? _axisStepData[0]._stepsBeforeDecel : 0,
-			(ax0St != 0) ? (((_axisStepData[0]._initialStepRatePerTTicks * 1.0) * TICKS_PER_SEC) / TTICKS_VALUE) * axesParams.getStepDistMM(0) : 0,
-			(ax0St != 0) ? (((_axisStepData[0]._maxStepRatePerTTicks * 1.0) * TICKS_PER_SEC) / TTICKS_VALUE) * axesParams.getStepDistMM(0) : 0,
-			(ax0St != 0) ? (((_axisStepData[0]._finalStepRatePerTTicks * 1.0) * TICKS_PER_SEC) / TTICKS_VALUE) * axesParams.getStepDistMM(0) : 0,
-			(ax0St != 0) ? _axisStepData[0]._accStepsPerTTicksPerMS : 0,
-			ax1St,
-			(ax1St != 0) ? _axisStepData[1]._stepsBeforeDecel : 0,
-			(ax1St != 0) ? (((_axisStepData[1]._initialStepRatePerTTicks * 1.0) * TICKS_PER_SEC) / TTICKS_VALUE) * axesParams.getStepDistMM(0) : 0,
-			(ax1St != 0) ? (((_axisStepData[1]._maxStepRatePerTTicks * 1.0) * TICKS_PER_SEC) / TTICKS_VALUE) * axesParams.getStepDistMM(0) : 0,
-			(ax1St != 0) ? (((_axisStepData[1]._finalStepRatePerTTicks * 1.0) * TICKS_PER_SEC) / TTICKS_VALUE) * axesParams.getStepDistMM(0) : 0,
-			(ax1St != 0) ? _axisStepData[1]._accStepsPerTTicksPerMS : 0);
+			getStepsToTarget(0),
+			axisStepData[0]._stepsBeforeDecel,
+			(((axisStepData[0]._initialStepRatePerTTicks * 1.0) * TICKS_PER_SEC) / TTICKS_VALUE) * axesParams.getStepDistMM(0),
+			(((axisStepData[0]._maxStepRatePerTTicks * 1.0) * TICKS_PER_SEC) / TTICKS_VALUE) * axesParams.getStepDistMM(0),
+			(((axisStepData[0]._finalStepRatePerTTicks * 1.0) * TICKS_PER_SEC) / TTICKS_VALUE) * axesParams.getStepDistMM(0),
+			axisStepData[0]._accStepsPerTTicksPerMS,
+			getStepsToTarget(1),
+			axisStepData[1]._stepsBeforeDecel,
+			(((axisStepData[1]._initialStepRatePerTTicks * 1.0) * TICKS_PER_SEC) / TTICKS_VALUE) * axesParams.getStepDistMM(1),
+			(((axisStepData[1]._maxStepRatePerTTicks * 1.0) * TICKS_PER_SEC) / TTICKS_VALUE) * axesParams.getStepDistMM(1),
+			(((axisStepData[1]._finalStepRatePerTTicks * 1.0) * TICKS_PER_SEC) / TTICKS_VALUE) * axesParams.getStepDistMM(1),
+			axisStepData[1]._accStepsPerTTicksPerMS);
 #endif
 	}
 

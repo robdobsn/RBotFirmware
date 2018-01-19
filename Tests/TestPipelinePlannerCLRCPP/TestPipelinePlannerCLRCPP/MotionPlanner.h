@@ -306,6 +306,8 @@ public:
 			// Set the block's exit speed to the entry speed of the block after this one
 			pBlock->_exitSpeedMMps = followingBlockEntrySpeed;
 
+			// TODO - check this optimization!!!!
+
 			// If entry speed is already at the maximum entry speed then we can stop here as no further changes are
 			// going to be made by going back further
 //			if (pBlock->_entrySpeedMMps == pBlock->_maxEntrySpeedMMps)

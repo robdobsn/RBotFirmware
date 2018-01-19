@@ -152,7 +152,7 @@ void MotionActuator::procTick()
 			axisExecData._curAccumulatorNS -= MotionBlock::NS_IN_A_MS;
 
 			// Check if decelerating
-			if (axisExecData._curStepCount >= axisExecData._stepsBeforeDecel)
+			if (axisExecData._curStepCount > axisExecData._stepsBeforeDecel)
 			{
 				//Log.trace("Decel Steps/s %ld Accel %ld", axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS);
 				if (axisExecData._curStepRatePerTTicks > std::max(MIN_STEP_RATE_PER_TTICKS + axisExecData._accStepsPerTTicksPerMS, axisExecData._finalStepRatePerTTicks + axisExecData._accStepsPerTTicksPerMS))

@@ -212,24 +212,27 @@ struct TEST_FIELD
 };
 
 
-void testMotionElemVals(int outIdx, int valIdx, int& errorCount, MotionBlock& elem, const char* pRslt)
+void testMotionElemVals(int outIdx, int valIdx, int& errorCount, MotionBlock& elem, const char* pRslt, AxesParams& axesParams)
 {
+	MotionBlock::axisStepData_t axisStepData[RobotConsts::MAX_AXES];
+	elem.debugGetAxisStepInfoCleaned(axisStepData, axesParams);
+
 	TEST_FIELD __testFields[] = {
 		{ false, "idx", false, 0, 0 },
 		{ true, "_entrySpeedMMps", true, elem._entrySpeedMMps, 0},
 		{ true, "_exitSpeedMMps", true, elem._exitSpeedMMps, 0 },
 		{ true, "_axisStepsToTargetX", false, 0, elem.getStepsToTarget(0) },
+		{ true, "_stepsBeforeDecelX", false, 0, axisStepData[0]._stepsBeforeDecel },
+		{ true, "_initialStepRatePerKTicksX", true, MB_STEP_TTICKS_TO_MMPS(axisStepData[0]._initialStepRatePerTTicks, axesParams, 0), 0 },
+		{ true, "_maxStepRatePerTTicksX", true, MB_STEP_TTICKS_TO_MMPS(axisStepData[0]._maxStepRatePerTTicks, axesParams, 0), 0 },
+		{ true, "_finalStepRatePerTTicksX", true, MB_STEP_TTICKS_TO_MMPS(axisStepData[0]._finalStepRatePerTTicks, axesParams, 0), 0 },
+		{ true, "_accStepsPerKTicksPerMSX", false, 0, axisStepData[0]._accStepsPerTTicksPerMS },
 		{ true, "_axisStepsToTargetY", false, 0, elem.getStepsToTarget(1) },
-		{ true, "_initialStepRatePerKTicksX", false, 0, elem._axisStepData[0]._initialStepRatePerTTicks },
-		{ true, "_accStepsPerKTicksPerMS", false, 0, elem._axisStepData[0]._accStepsPerTTicksPerMS },
-		//{ true, "_stepsInAccPhaseX", false, 0, elem._axisStepData[0]._stepsInAccPhase },
-		//{ true, "_stepsInPlateauPhaseX", false, 0, elem._axisStepData[0]._stepsInPlateauPhase },
-		//{ true, "_stepsInDecelPhaseX", false, 0, elem._axisStepData[0]._stepsInDecelPhase },
-		//{ true, "_initialStepRatePerKTicksY", false, 0, elem._axisStepData[1]._initialStepRatePerKTicks },
-		//{ true, "_accStepsPerKTicksPerMSY", false, 0, elem._axisStepData[1]._accStepsPerKTicksPerMS },
-		//{ true, "_stepsInAccPhaseY", false, 0, elem._axisStepData[1]._stepsInAccPhase },
-		//{ true, "_stepsInPlateauPhaseY", false, 0, elem._axisStepData[1]._stepsInPlateauPhase },
-		//{ true, "_stepsInDecelPhaseY", false, 0, elem._axisStepData[1]._stepsInDecelPhase },
+		{ true, "_stepsBeforeDecelY", false, 0, axisStepData[1]._stepsBeforeDecel },
+		{ true, "_initialStepRatePerKTicksY", true, MB_STEP_TTICKS_TO_MMPS(axisStepData[1]._initialStepRatePerTTicks, axesParams, 1), 0 },
+		{ true, "_maxStepRatePerTTicksY", true, MB_STEP_TTICKS_TO_MMPS(axisStepData[1]._maxStepRatePerTTicks, axesParams, 1), 0 },
+		{ true, "_finalStepRatePerTTicksY", true, MB_STEP_TTICKS_TO_MMPS(axisStepData[1]._finalStepRatePerTTicks, axesParams, 1), 0 },
+		{ true, "_accStepsPerKTicksPerMSY", false, 0, axisStepData[1]._accStepsPerTTicksPerMS },
 
 #ifdef USE_SMOOTHIE_CODE
 		{ true, "_totalMoveTicks", false, 0, elem._totalMoveTicks },
@@ -248,7 +251,7 @@ void testMotionElemVals(int outIdx, int valIdx, int& errorCount, MotionBlock& el
 
 	if (__testFields[valIdx].isFloat)
 	{
-		if (!isApproxF(__testFields[valIdx].valFloat, atof(pRslt), fabs(__testFields[valIdx].valFloat)/1000))
+		if (!isApproxF(__testFields[valIdx].valFloat, atof(pRslt), fabs(__testFields[valIdx].valFloat)/100))
 		{
 			Log.info("ERROR Out %d field %s mismatch %f != %s", outIdx, __testFields[valIdx].name, __testFields[valIdx].valFloat, pRslt);
 			errorCount++;
@@ -354,7 +357,7 @@ int main()
 			int valIdx = 0;
 			while (pRslt != NULL)
 			{
-				testMotionElemVals(i, valIdx, errorCount, elem, pRslt);
+				testMotionElemVals(i, valIdx, errorCount, elem, pRslt, _motionHelper.getAxesParams());
 				valIdx++;
 				pRslt = strtok(NULL, toks);
 			}
