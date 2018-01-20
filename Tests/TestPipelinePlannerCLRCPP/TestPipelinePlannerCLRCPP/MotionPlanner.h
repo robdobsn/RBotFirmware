@@ -4,8 +4,8 @@
 #pragma once
 
 //#define DEBUG_TEST_DUMP 1
-#define SHOW_DEBUG_INFO 1
-#ifdef SHOW_DEBUG_INFO
+//#define DEBUG_MOTIONPLANNER_INFO 1
+#ifdef DEBUG_MOTIONPLANNER_INFO
 #define DEBUG_BLOCK_TO_DUMP_OR_MINUS1_FOR_ALL -1
 #endif
 
@@ -107,7 +107,7 @@ public:
 		// Calculate move time
 		double reciprocalTime = validFeedrateMMps / moveDist;
 	
-#ifdef SHOW_DEBUG_INFO
+#ifdef DEBUG_MOTIONPLANNER_INFO
 		Log.trace("ValidatedFeedrate %0.3f, reciprocalTime %0.3f", validFeedrateMMps, reciprocalTime);
 #endif
 
@@ -167,7 +167,7 @@ public:
 		}
 		block._maxEntrySpeedMMps = vmaxJunction;
 
-#ifdef SHOW_DEBUG_INFO
+#ifdef DEBUG_MOTIONPLANNER_INFO
 		Log.trace("PrevMoveInQueue %d, JunctionDeviation %0.3f, VmaxJunction %0.3f", motionPipeline.canGet(), junctionDeviation, vmaxJunction);
 #endif
 
@@ -218,6 +218,11 @@ public:
 		//    Set the entry speed for the next block using this exit speed
 		// Finally prepare the block for stepper motor actuation
 
+#ifdef DEBUG_MOTIONPLANNER_INFO
+		Log.trace("^^^^^^^^^^^^^^^^^^^^^^^BEFORE RECALC^^^^^^^^^^^^^^^^^^^^^^^^");
+		motionPipeline.debugShowBlocks(axesParams);
+#endif
+
 		// Iterate the block queue in backwards time order stopping at the first block that has its recalculateFlag false
 		int blockIdx = 0;
 		int earliestBlockToReprocess = -1;
@@ -225,6 +230,7 @@ public:
 		float followingBlockEntrySpeed = 0;
 		AxisInt32s previousBlockExitStepRatePerTTicks;
 		MotionBlock* pBlock = NULL;
+		MotionBlock* pFollowingBlock = NULL;
 		while (true)
 		{
 			// Get the block at current index
@@ -241,33 +247,40 @@ public:
 				break;
 			}
 
+			// If entry speed is already at the maximum entry speed then we can stop here as no further changes are
+			// going to be made by going back further
+			if (pBlock->_entrySpeedMMps == pBlock->_maxEntrySpeedMMps && blockIdx > 1)
+			{
+#ifdef DEBUG_MOTIONPLANNER_INFO
+				Log.trace("++++++++++++++++++++++++++++++ Optimizing block %d, prevSpeed %0.3f", blockIdx, pBlock->_exitSpeedMMps);
+#endif
+				//Get the exit speed from this block to use as the entry speed when going forwards
+				previousBlockExitSpeed = pBlock->_exitSpeedMMps;
+				pBlock->getExitStepRatesPerTTicks(previousBlockExitStepRatePerTTicks);
+				break;
+			}
+
+			// If there was a following block (remember we're working backwards) then now set the entry speed
+			if (pFollowingBlock)
+			{
+				
+				// Assume for now that that whole block will be deceleration and calculate the max speed we can enter to be able to slow
+				// to the exit speed required
+				float maxEntrySpeed = MotionBlock::maxAchievableSpeed(axesParams._masterAxisMaxAccMMps2, pFollowingBlock->_exitSpeedMMps, pFollowingBlock->_moveDistPrimaryAxesMM);
+				pFollowingBlock->_entrySpeedMMps = fminf(maxEntrySpeed, pFollowingBlock->_maxEntrySpeedMMps);
+
+				// Remember entry speed (to use as exit speed in the next loop)
+				followingBlockEntrySpeed = pFollowingBlock->_entrySpeedMMps;
+			}
+
+			// Remember the following block for the next pass
+			pFollowingBlock = pBlock;
+
 			// Set the block's exit speed to the entry speed of the block after this one
 			pBlock->_exitSpeedMMps = followingBlockEntrySpeed;
 
-			// TODO - check this optimization!!!!
-
-			// If entry speed is already at the maximum entry speed then we can stop here as no further changes are
-			// going to be made by going back further
-//			if (pBlock->_entrySpeedMMps == pBlock->_maxEntrySpeedMMps)
-//			{
-//#ifdef SHOW_DEBUG_INFO
-//				Log.trace("++++++++++++++++++++++++++++++ Breaking %d", blockIdx);
-//#endif
-//				//Get the exit speed from this block to use as the entry speed when going forwards
-//				previousBlockExitSpeed = pBlock->_exitSpeedMMps;
-//				break;
-//			}
-
 			// Remember this as the earliest block to reprocess when going forwards
 			earliestBlockToReprocess = blockIdx;
-
-			// Assume for now that that whole block will be deceleration and calculate the max speed we can enter to be able to slow
-			// to the exit speed required
-			float maxEntrySpeed = pBlock->maxAchievableSpeed(axesParams._masterAxisMaxAccMMps2, pBlock->_exitSpeedMMps, pBlock->_moveDistPrimaryAxesMM);
-			pBlock->_entrySpeedMMps = fminf(maxEntrySpeed, pBlock->_maxEntrySpeedMMps);
-
-			// Remember entry speed (to use as exit speed in the next loop)
-			followingBlockEntrySpeed = pBlock->_entrySpeedMMps;
 
 			// Next
 			blockIdx++;
@@ -306,6 +319,10 @@ public:
 			pBlock->getExitStepRatesPerTTicks(previousBlockExitStepRatePerTTicks);
 		}
 
+#ifdef DEBUG_MOTIONPLANNER_INFO
+			Log.trace(".................AFTER RECALC.......................");
+			motionPipeline.debugShowBlocks(axesParams);
+#endif
 
 	}
 };

@@ -4,6 +4,9 @@
 #pragma once
 
 //#define USE_OLD_WAY_FOR_ENTRY_SPEED 1
+#ifdef _DEBUG
+#define DEBUG_CLEAR_BLOCK_FOR_CLARITY 1
+#endif
 
 #include "math.h"
 #include "AxisValues.h"
@@ -76,6 +79,17 @@ public:
 		_exitSpeedMMps = 0;
 		_isExecuting = false;
 		_canExecute = false;
+#ifdef DEBUG_CLEAR_BLOCK_FOR_CLARITY
+		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+		{
+			_axisStepData[axisIdx]._accStepsPerTTicksPerMS = 0;
+			_axisStepData[axisIdx]._finalStepRatePerTTicks = 0;
+			_axisStepData[axisIdx]._initialStepRatePerTTicks = 0;
+			_axisStepData[axisIdx]._maxStepRatePerTTicks = 0;
+			_axisStepData[axisIdx]._stepsBeforeDecel = 0;
+			_axisStepData[axisIdx]._stepsTotalMaybeNeg = 0;
+		}
+#endif
 	}
 
 	int32_t getStepsToTarget(int axisIdx)
@@ -126,10 +140,11 @@ public:
 		}
 	}
 
-	float maxAchievableSpeed(float acceleration, float target_velocity, float distance)
+	static float maxAchievableSpeed(float acceleration, float target_velocity, float distance)
 	{
 		return sqrtf(target_velocity * target_velocity + 2.0F * acceleration * distance);
 	}
+
 	void forceInBounds(float& val, float lowBound, float highBound)
 	{
 		if (val < lowBound)

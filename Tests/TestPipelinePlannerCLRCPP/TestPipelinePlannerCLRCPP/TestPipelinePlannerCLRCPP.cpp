@@ -59,9 +59,9 @@ static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams&
 		actuatorCoords.setVal(axisIdx, axisValFromHome * axesParams.getStepsPerUnit(axisIdx)
 			+ axesParams.getHomeOffsetSteps(axisIdx));
 
-		Log.trace("ptToActuator %f -> %f (homeOffVal %f, homeOffSteps %ld)",
-			pt.getVal(axisIdx), actuatorCoords._pt[axisIdx],
-			axesParams.getHomeOffsetVal(axisIdx), axesParams.getHomeOffsetSteps(axisIdx));
+		//Log.trace("ptToActuator %f -> %f (homeOffVal %f, homeOffSteps %ld)",
+		//	pt.getVal(axisIdx), actuatorCoords._pt[axisIdx],
+		//	axesParams.getHomeOffsetVal(axisIdx), axesParams.getHomeOffsetSteps(axisIdx));
 	}
 	return ptWasValid;
 }
@@ -74,8 +74,8 @@ static void actuatorToPt(AxisFloats& actuatorCoords, AxisFloats& pt, AxesParams&
 		float ptVal = actuatorCoords.getVal(axisIdx) - axesParams.getHomeOffsetSteps(axisIdx);
 		ptVal = ptVal / axesParams.getStepsPerUnit(axisIdx) + axesParams.getHomeOffsetVal(axisIdx);
 		pt.setVal(axisIdx, ptVal);
-		Log.trace("actuatorToPt %d %f -> %f (perunit %f)", axisIdx, actuatorCoords.getVal(axisIdx),
-			ptVal, axesParams.getStepsPerUnit(axisIdx));
+		//Log.trace("actuatorToPt %d %f -> %f (perunit %f)", axisIdx, actuatorCoords.getVal(axisIdx),
+		//	ptVal, axesParams.getStepsPerUnit(axisIdx));
 	}
 }
 
@@ -332,6 +332,7 @@ int main()
 			const char* pStr = NULL;
 			tc->getIn(i, pStr);
 			String cmdStr = pStr;
+			Log.trace("Adding Block %s", cmdStr);
 			interpG(cmdStr, true, _motionHelper);
 		}
 

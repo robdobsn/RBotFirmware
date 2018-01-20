@@ -255,21 +255,7 @@ void MotionHelper::setCurPositionAsHome(bool xIsHome, bool yIsHome, bool zIsHome
 
 void MotionHelper::debugShowBlocks()
 {
-	int elIdx = 0;
-	bool headShown = false;
-	for (int i = _motionPipeline.count() - 1; i >= 0; i--)
-	{
-		MotionBlock* pBlock = _motionPipeline.peekNthFromPut(i);
-		if (pBlock)
-		{
-			if (!headShown)
-			{
-				pBlock->debugShowBlkHead();
-				headShown = true;
-			}
-			pBlock->debugShowBlock(elIdx++, _axesParams);
-		}
-	}
+	_motionPipeline.debugShowBlocks(_axesParams);
 }
 
 void MotionHelper::debugShowTiming()
