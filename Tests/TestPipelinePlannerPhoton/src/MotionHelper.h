@@ -14,7 +14,7 @@
 class MotionHelper
 {
 public:
-	static constexpr float blockDistanceMM_default = 1.0f;
+	static constexpr float blockDistanceMM_default = 0.0f;
 	static constexpr float junctionDeviation_default = 0.05f;
 	static constexpr float distToTravelMM_ignoreBelow = 0.01f;
 	static constexpr int pipelineLen_default = 100;
@@ -120,6 +120,11 @@ public:
 		return _axesParams.getHomeOffsetSteps(axisIdx);
 	}
 
+	AxesParams& getAxesParams()
+	{
+		return _axesParams;
+	}
+
 	void setCurPositionAsHome(AxisFloats& pt);
 	void setCurPositionAsHome(bool xIsHome, bool yIsHome, bool zIsHome);
 
@@ -150,8 +155,6 @@ private:
 	}
 
 	bool configureRobot(const char* robotConfigJSON);
-	bool configureAxis(const char* robotConfigJSON, int axisIdx);
-	void pipelineService(bool hasBeenPaused);
 	bool addToPlanner(RobotCommandArgs& args);
 	void blocksToAddProcess();
 };

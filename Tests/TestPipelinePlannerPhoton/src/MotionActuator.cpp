@@ -96,50 +96,29 @@ void MotionActuator::procTick()
 
 			// Find first phase with steps
 			MotionBlock::axisStepData_t& axisStepData = pBlock->_axisStepData[axisIdx];
-			if (axisStepData._stepsInAccPhase + axisStepData._stepsInPlateauPhase + axisStepData._stepsInDecelPhase != 0)
+
+			// Initialise
+			axisExecData._stepsTotalAbs = abs(axisStepData._stepsTotalMaybeNeg);
+			if (axisExecData._stepsTotalAbs != 0)
 			{
-				// Initialse accumulators and other vars
-				axisExecData._minStepRatePerKTicks = axisStepData._minStepRatePerKTicks;
-				axisExecData._curStepRatePerKTicks = axisStepData._initialStepRatePerKTicks;
-				axisExecData._accStepsPerKTicksPerMS = axisStepData._accStepsPerKTicksPerMS;
-				axisExecData._stepsAccPhase = axisStepData._stepsInAccPhase;
-				axisExecData._stepsPlateauPhase = axisStepData._stepsInPlateauPhase;
-				axisExecData._stepsDecelPhase = axisStepData._stepsInDecelPhase;
+				axisExecData._stepsBeforeDecel = axisStepData._stepsBeforeDecel;
+				axisExecData._curStepCount = 0;
+				axisExecData._maxStepRatePerTTicks = axisStepData._maxStepRatePerTTicks;
+				axisExecData._finalStepRatePerTTicks = axisStepData._finalStepRatePerTTicks;
+				axisExecData._curStepRatePerTTicks = axisStepData._initialStepRatePerTTicks;
+				axisExecData._accStepsPerTTicksPerMS = axisStepData._accStepsPerTTicksPerMS;
 				axisExecData._curAccumulatorStep = 0;
 				axisExecData._curAccumulatorNS = 0;
-				axisExecData._curPhaseStepCount = 0;
-				// Find the phase and target count
-				axisExecData._axisStepPhaseNum = MotionBlock::STEP_PHASE_ACCEL;
-				axisExecData._targetStepCount = axisExecData._stepsAccPhase;
-				if (axisExecData._stepsAccPhase == 0)
-				{
-					if (axisExecData._stepsPlateauPhase != 0)
-					{
-						axisExecData._axisStepPhaseNum = MotionBlock::STEP_PHASE_PLATEAU;
-						axisExecData._targetStepCount = axisExecData._stepsPlateauPhase;
-					}
-					else
-					{
-						axisExecData._axisStepPhaseNum = MotionBlock::STEP_PHASE_DECEL;
-						axisExecData._targetStepCount = axisExecData._stepsDecelPhase;
-					}
-				}
 				// Set active
 				axisExecData._isActive = true;
 				// Set direction for the axis
-				_motionIO.stepDirn(axisIdx, pBlock->_axisStepsToTarget.getVal(axisIdx) >= 0);
+				_motionIO.stepDirn(axisIdx, axisStepData._stepsTotalMaybeNeg >= 0);
 
 				// Test code
 #ifdef TEST_MOTION_ACTUATOR_ENABLE
 				if (_pTestMotionActuator)
-					_pTestMotionActuator->stepDirn(axisIdx, pBlock->_axisStepsToTarget.getVal(axisIdx) >= 0);
+					_pTestMotionActuator->stepDirn(axisIdx, axisStepData._stepsTotalMaybeNeg >= 0);
 #endif
-
-                //Log.trace("BLK axisIdx %d stepsToTarget %ld stepRtPerKTks %ld accStepsPerKTksPerMs %ld stepAcc %ld stepPlat %ld stepDecel %ld",
-				//			axisIdx, pBlock->_axisStepsToTarget.getVal(axisIdx),
-				//			axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS,
-				//			axisExecData._stepsAccPhase, axisExecData._stepsPlateauPhase, axisExecData._stepsDecelPhase);
-
 			}
 		}
         // Return here to reduce the maximum time this function takes
@@ -166,27 +145,28 @@ void MotionActuator::procTick()
 			// Subtract from accumulator leaving remainder to combat rounding errors
 			axisExecData._curAccumulatorNS -= MotionBlock::NS_IN_A_MS;
 
-			// Accelerate as required (changing interval between steps)
-			if (axisExecData._axisStepPhaseNum == MotionBlock::STEP_PHASE_ACCEL)
+			// Check if decelerating
+			if (axisExecData._curStepCount > axisExecData._stepsBeforeDecel)
 			{
-				//Log.trace("Accel Steps/s %ld Accel %ld", axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS);
-				if (axisExecData._curStepRatePerKTicks + axisExecData._accStepsPerKTicksPerMS < MotionBlock::TTICKS_VALUE)
-					axisExecData._curStepRatePerKTicks += axisExecData._accStepsPerKTicksPerMS;
-				//else
-				//	Log.trace("Didn't add acceleration");
-			}
-			else if (axisExecData._axisStepPhaseNum == MotionBlock::STEP_PHASE_DECEL)
-    		{
 				//Log.trace("Decel Steps/s %ld Accel %ld", axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS);
-				if (axisExecData._curStepRatePerKTicks > axisExecData._minStepRatePerKTicks * 2)
-					axisExecData._curStepRatePerKTicks -= axisExecData._accStepsPerKTicksPerMS;
+				if (axisExecData._curStepRatePerTTicks > std::max(MIN_STEP_RATE_PER_TTICKS + axisExecData._accStepsPerTTicksPerMS, axisExecData._finalStepRatePerTTicks + axisExecData._accStepsPerTTicksPerMS))
+					axisExecData._curStepRatePerTTicks -= axisExecData._accStepsPerTTicksPerMS;
 				//else
 				//	Log.trace("Didn't sub acceleration");
+
+			}
+			else if (axisExecData._curStepRatePerTTicks < axisExecData._maxStepRatePerTTicks)
+    		{
+				//Log.trace("Accel Steps/s %ld Accel %ld", axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS);
+				if (axisExecData._curStepRatePerTTicks + axisExecData._accStepsPerTTicksPerMS < MotionBlock::TTICKS_VALUE)
+					axisExecData._curStepRatePerTTicks += axisExecData._accStepsPerTTicksPerMS;
+				//else
+				//	Log.trace("Didn't add acceleration");
 			}
     	}
 
 		// Bump the step accumulator
-		axisExecData._curAccumulatorStep += axisExecData._curStepRatePerKTicks;
+		axisExecData._curAccumulatorStep += axisExecData._curStepRatePerTTicks;
 
 		// Check for step accumulator overflow
 		if (axisExecData._curAccumulatorStep >= MotionBlock::TTICKS_VALUE)
@@ -196,7 +176,7 @@ void MotionActuator::procTick()
 
 			// Step
 			_motionIO.stepStart(axisIdx);
-			axisExecData._curPhaseStepCount++;
+			axisExecData._curStepCount++;
 
 			// Test code
 #ifdef TEST_MOTION_ACTUATOR_ENABLE
@@ -204,37 +184,9 @@ void MotionActuator::procTick()
 				_pTestMotionActuator->stepStart(axisIdx);
 #endif
 
-			// Check if phase is done
-			if (axisExecData._curPhaseStepCount >= axisExecData._targetStepCount)
-			{
-				// Check for the next phase
-				axisExecData._curPhaseStepCount = 0;
+			// Check if done
+			if (axisExecData._curStepCount >= axisExecData._stepsTotalAbs)
 				axisExecData._isActive = false;
-				if (axisExecData._axisStepPhaseNum == MotionBlock::STEP_PHASE_ACCEL)
-				{
-					if (axisExecData._stepsPlateauPhase != 0)
-					{
-						axisExecData._axisStepPhaseNum = MotionBlock::STEP_PHASE_PLATEAU;
-						axisExecData._targetStepCount = axisExecData._stepsPlateauPhase;
-						axisExecData._isActive = true;
-					}
-					else if (axisExecData._stepsDecelPhase != 0)
-					{
-						axisExecData._axisStepPhaseNum = MotionBlock::STEP_PHASE_DECEL;
-						axisExecData._targetStepCount = axisExecData._stepsDecelPhase;
-						axisExecData._isActive = true;
-					}
-				}
-				else if (axisExecData._axisStepPhaseNum == MotionBlock::STEP_PHASE_PLATEAU)
-				{
-					if (axisExecData._stepsDecelPhase != 0)
-					{
-						axisExecData._axisStepPhaseNum = MotionBlock::STEP_PHASE_DECEL;
-						axisExecData._targetStepCount = axisExecData._stepsDecelPhase;
-						axisExecData._isActive = true;
-					}
-				}
-			}
 		}
 		// Check if axis is moving
 		anyAxisMoving |= axisExecData._isActive;

@@ -158,7 +158,7 @@ void setup()
 
 	_motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
 	_motionHelper.configure(ROBOT_CONFIG_STR_MUGBOT);
-	_motionHelper.setTestMode("OUTPUTSTEPDATA");
+	_motionHelper.setTestMode("BLINKD7 TIMEISR"); 
 	_motionHelper.pause(false);
 }
 

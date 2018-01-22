@@ -121,4 +121,24 @@ public:
 			return NULL;
 		return &(_pipeline[nthPos]);
 	}
+
+	// Debug
+	void debugShowBlocks(AxesParams& axesParams)
+	{
+		int elIdx = 0;
+		bool headShown = false;
+		for (int i = count() - 1; i >= 0; i--)
+		{
+			MotionBlock* pBlock = peekNthFromPut(i);
+			if (pBlock)
+			{
+				if (!headShown)
+				{
+					pBlock->debugShowBlkHead();
+					headShown = true;
+				}
+				pBlock->debugShowBlock(elIdx++, axesParams);
+			}
+		}
+	}
 };
