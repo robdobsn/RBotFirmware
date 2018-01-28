@@ -109,7 +109,7 @@ void MotionActuator::procTick()
 			RobotConsts::RawMotionAxis_t* pAxisInfo = &_rawMotionHwInfo._axis[axisIdx];
 			if (pAxisInfo->_pinDirection != -1)
 				digitalWriteFast(pAxisInfo->_pinDirection,
-								(stepsTotal >= 0) != pAxisInfo->_pinDirectionReversed);
+								(stepsTotal >= 0) == pAxisInfo->_pinDirectionReversed);
 
 			// Test code
 #ifdef TEST_MOTION_ACTUATOR_OUTPUT

@@ -98,7 +98,7 @@ public:
 			}
 
 			TestOutputStepInf inf = getStepInf();
-			Log.trace("W\t%lu\t%d\t%d", inf._micros, inf._pin, inf._val ? 1 : 0);
+			//Log.trace("W\t%lu\t%d\t%d", inf._micros, inf._pin, inf._val ? 1 : 0);
 		}
 	}
 };
