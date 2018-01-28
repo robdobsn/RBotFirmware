@@ -6,10 +6,12 @@
 // Comment out these items to enable/disable test code
 #ifdef SPARK
 #define TEST_MOTION_ACTUATOR_ENABLE 1
+//#define TEST_MOTION_ACTUATOR_OUTPUT 1
 #define SystemTicksPerMicrosecond System.ticksPerMicrosecond
 #define SystemTicks System.ticks
 #else
 #define TEST_MOTION_ACTUATOR_ENABLE 1
+//#define TEST_MOTION_ACTUATOR_OUTPUT 1
 #endif
 
 #include "application.h"
@@ -96,7 +98,7 @@ public:
 			}
 
 			TestOutputStepInf inf = getStepInf();
-			//Log.info("W\t%lu\t%d\t%d", inf._micros, inf._pin, inf._val ? 1 : 0);
+			Log.trace("W\t%lu\t%d\t%d", inf._micros, inf._pin, inf._val ? 1 : 0);
 		}
 	}
 };
@@ -111,6 +113,8 @@ public:
 	int _pinNum;
 	uint32_t __isrDbgTickMin;
 	uint32_t __isrDbgTickMax;
+	uint32_t __isrDbgTickCount;
+	uint32_t __isrDbgTickSum;
 	uint32_t __startTicks;
 
 	TestMotionActuator()
@@ -120,6 +124,8 @@ public:
 		_timeISR = false;
 		__isrDbgTickMin = 100000000;
 		__isrDbgTickMax = 0;
+		__isrDbgTickCount = 0;
+		__isrDbgTickSum = 0;
 	}
 	~TestMotionActuator()
 	{
@@ -142,6 +148,15 @@ public:
 			_timeISR = true;
 		Log.info("TestMotionActuator: blink %d, outputStepData %d, timeISR %d",
 				_blinkD7OnISR, _outputStepData, _timeISR);
+#ifndef TEST_MOTION_ACTUATOR_OUTPUT
+		if (_outputStepData)
+		{
+			Log.info(" ");
+			Log.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+			Log.info("OUTPUTSTEPDATA is selected BUT TEST_MOTION_ACTUATOR_OUTPUT in not defined");
+			Log.info(" ");
+		}
+#endif
 		if (_blinkD7OnISR)
 		{
 			_pinNum = ConfigPinMap::getPinFromName("D7");
@@ -149,6 +164,8 @@ public:
 		}
 		__isrDbgTickMin = 100000000;
 		__isrDbgTickMax = 0;
+		__isrDbgTickCount = 0;
+		__isrDbgTickSum = 0;
 	}
 
 	void process()
@@ -170,7 +187,7 @@ public:
 		}
 	}
 
-	void timeStart()
+	inline void timeStart()
 	{
 		if (_timeISR)
 		{
@@ -179,7 +196,7 @@ public:
 		}
 	}
 
-	void timeEnd()
+	inline void timeEnd()
 	{
 		if (_timeISR)
 		{
@@ -193,10 +210,12 @@ public:
 		        __isrDbgTickMin = elapsedTicks;
 		    if (__isrDbgTickMax < elapsedTicks)
 		        __isrDbgTickMax = elapsedTicks;
+				__isrDbgTickCount++;
+				__isrDbgTickSum += elapsedTicks;
 		}
 	}
 
-	void stepStart(int axisIdx)
+	inline void stepStart(int axisIdx)
 	{
 #ifdef TEST_MOTION_ACTUATOR_ENABLE
 		if (_outputStepData)
@@ -204,7 +223,7 @@ public:
 #endif
 	}
 
-	void stepEnd()
+	inline void stepEnd()
 	{
 #ifdef TEST_MOTION_ACTUATOR_ENABLE
 		if (_outputStepData)
@@ -212,7 +231,7 @@ public:
 #endif
 	}
 
-	void stepDirn(int axisIdx, int val)
+	inline void stepDirn(int axisIdx, int val)
 	{
 #ifdef TEST_MOTION_ACTUATOR_ENABLE
 		if (_outputStepData)
@@ -223,11 +242,15 @@ public:
 	void showDebug()
 	{
 #ifdef TEST_MOTION_ACTUATOR_ENABLE
-		Log.info("Min/Max ISR exec time %0.2fuS, %0.2fuS",
+		Log.info("Min/Max/Avg/Count ISR exec time %0.2fuS, %0.2fuS, %0.2fus, %ld",
 					((double)__isrDbgTickMin)/SystemTicksPerMicrosecond(),
-					((double)__isrDbgTickMax)/SystemTicksPerMicrosecond());
+					((double)__isrDbgTickMax)/SystemTicksPerMicrosecond(),
+				__isrDbgTickCount != 0 ? ((double)(__isrDbgTickSum*1.0/__isrDbgTickCount)/SystemTicksPerMicrosecond()) : 0,
+				__isrDbgTickCount);
 		__isrDbgTickMin = 10000000;
 		__isrDbgTickMax = 0;
+		__isrDbgTickCount = 0;
+		__isrDbgTickSum = 0;
 #endif
 	}
 

@@ -103,10 +103,10 @@ public:
 					validFeedrateMMps = fabsf(axisMaxSpeedMMps / unitVectors._pt[axisIdx]);
 			}
 		}
-	
+
 		// Calculate move time
 		double reciprocalTime = validFeedrateMMps / moveDist;
-	
+
 #ifdef DEBUG_MOTIONPLANNER_INFO
 		Log.trace("ValidatedFeedrate %0.3f, reciprocalTime %0.3f", validFeedrateMMps, reciprocalTime);
 #endif
@@ -228,7 +228,7 @@ public:
 		int earliestBlockToReprocess = -1;
 		float previousBlockExitSpeed = 0;
 		float followingBlockEntrySpeed = 0;
-		AxisInt32s previousBlockExitStepRatePerTTicks;
+		uint32_t previousBlockExitStepRatePerTTicks;
 		MotionBlock* pBlock = NULL;
 		MotionBlock* pFollowingBlock = NULL;
 		while (true)
@@ -243,7 +243,7 @@ public:
 			{
 				// Get the exit speed from this executing block to use as the entry speed when going forwards
 				previousBlockExitSpeed = pBlock->_exitSpeedMMps;
-				pBlock->getExitStepRatesPerTTicks(previousBlockExitStepRatePerTTicks);
+				previousBlockExitStepRatePerTTicks = pBlock->getExitStepRatePerTTicks();
 				break;
 			}
 
@@ -256,7 +256,7 @@ public:
 #endif
 				//Get the exit speed from this block to use as the entry speed when going forwards
 				previousBlockExitSpeed = pBlock->_exitSpeedMMps;
-				pBlock->getExitStepRatesPerTTicks(previousBlockExitStepRatePerTTicks);
+				previousBlockExitStepRatePerTTicks = pBlock->getExitStepRatePerTTicks();
 				break;
 			}
 
@@ -316,7 +316,7 @@ public:
 
 			// Prepare this block for stepping
 			pBlock->prepareForStepping(axesParams, previousBlockExitStepRatePerTTicks);
-			pBlock->getExitStepRatesPerTTicks(previousBlockExitStepRatePerTTicks);
+			previousBlockExitStepRatePerTTicks = pBlock->getExitStepRatePerTTicks();
 		}
 
 #ifdef DEBUG_MOTIONPLANNER_INFO

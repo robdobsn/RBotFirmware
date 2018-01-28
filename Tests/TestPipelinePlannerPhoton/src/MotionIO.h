@@ -92,7 +92,7 @@ public:
 			int dirnPin = ConfigPinMap::getPinFromName(dirnPinName.c_str());
 			Log.info("Axis%d (step pin %d, dirn pin %d)", axisIdx, stepPin, dirnPin);
 			if ((stepPin != -1 && dirnPin != -1))
-				_stepperMotors[axisIdx] = new StepperMotor(StepperMotor::MOTOR_TYPE_DRIVER, stepPin, dirnPin);
+				_stepperMotors[axisIdx] = new StepperMotor(RobotConsts::MOTOR_TYPE_DRIVER, stepPin, dirnPin);
 		}
 		else
 		{
@@ -146,7 +146,8 @@ public:
 		_ASSERT(axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES);
 #endif
 		// Start dirn
-		return _stepperMotors[axisIdx]->stepDirn(dirn);
+		if (_stepperMotors[axisIdx])
+			_stepperMotors[axisIdx]->stepDirn(dirn);
 	}
 
 	// Start a step
@@ -156,6 +157,7 @@ public:
 		_ASSERT(axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES);
 #endif
 		// Start step
+		if (_stepperMotors[axisIdx])
 		return _stepperMotors[axisIdx]->stepStart();
 	}
 
@@ -247,8 +249,47 @@ public:
 			_motorsAreEnabled = false;
 		}
 	}
+
 	unsigned long getLastActiveUnixTime()
 	{
 		return _motorEnLastUnixTime;
+	}
+
+	void getRawMotionHwInfo(RobotConsts::RawMotionHwInfo_t& raw)
+	{
+		// Fill in the info
+		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+		{
+			// Initialise
+			raw._axis[axisIdx]._pinStepCurLevel = 0;
+			raw._axis[axisIdx]._motorType = RobotConsts::MOTOR_TYPE_NONE;
+			raw._axis[axisIdx]._pinStep = -1;
+			raw._axis[axisIdx]._pinDirection = -1;
+			raw._axis[axisIdx]._pinDirectionReversed = 0;
+			raw._axis[axisIdx]._pinEndStopMin = -1;
+			raw._axis[axisIdx]._pinEndStopMinActiveLevel = 0;
+			raw._axis[axisIdx]._pinEndStopMax = -1;
+			raw._axis[axisIdx]._pinEndStopMaxActiveLevel = 0;
+
+			// Extract info about stepper motor if any
+			if (_stepperMotors[axisIdx])
+			{
+				raw._axis[axisIdx]._motorType = _stepperMotors[axisIdx]->getMotorType();
+				_stepperMotors[axisIdx]->getPins(raw._axis[axisIdx]._pinStep,
+								raw._axis[axisIdx]._pinDirection, raw._axis[axisIdx]._pinDirectionReversed);
+			}
+			// Min endstop
+			if (_endStops[axisIdx][0])
+			{
+				_endStops[axisIdx][0]->getPins(raw._axis[axisIdx]._pinEndStopMin,
+								raw._axis[axisIdx]._pinEndStopMinActiveLevel);
+			}
+			// Max endstop
+			if (_endStops[axisIdx][1])
+			{
+				_endStops[axisIdx][1]->getPins(raw._axis[axisIdx]._pinEndStopMax,
+								raw._axis[axisIdx]._pinEndStopMaxActiveLevel);
+			}
+		}
 	}
 };

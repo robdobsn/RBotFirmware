@@ -59,6 +59,11 @@ void MotionHelper::configure(const char* robotConfigJSON)
 	// Configure robot
 	configureRobot(robotConfigJSON);
 
+	// Give the MotionActuator access to raw motionIO info
+	RobotConsts::RawMotionHwInfo_t rawMotionHwInfo;
+	_motionIO.getRawMotionHwInfo(rawMotionHwInfo);
+	_motionActuator.setRawMotionHwInfo(rawMotionHwInfo);
+
 	// Clear motion info
 	_curAxisPosition.clear();
 }

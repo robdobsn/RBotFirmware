@@ -146,7 +146,8 @@ public:
 		_ASSERT(axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES);
 #endif
 		// Start dirn
-		return _stepperMotors[axisIdx]->stepDirn(dirn);
+		if (_stepperMotors[axisIdx])
+			_stepperMotors[axisIdx]->stepDirn(dirn);
 	}
 
 	// Start a step
@@ -156,7 +157,8 @@ public:
 		_ASSERT(axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES);
 #endif
 		// Start step
-		return _stepperMotors[axisIdx]->stepStart();
+		if (_stepperMotors[axisIdx])
+			return _stepperMotors[axisIdx]->stepStart();
 	}
 
 	// Check if a step is in progress on any motor, if all such and return true, else false

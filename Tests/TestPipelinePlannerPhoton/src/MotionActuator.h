@@ -18,9 +18,15 @@
 class MotionActuator
 {
 private:
+	// If this is true nothing will move
 	volatile bool _isPaused;
+
+	// Pipeline of blocks to be processed
 	MotionPipeline& _motionPipeline;
-	MotionIO& _motionIO;
+
+	// Raw access to motors and endstops
+	RobotConsts::RawMotionHwInfo_t _rawMotionHwInfo;
+
 	// This is to ensure that the robot never goes to 0 tick rate - which would leave it
 	// immobile forever
 	static constexpr uint32_t MIN_STEP_RATE_PER_SEC = 1;
@@ -39,33 +45,21 @@ private:
 #endif
 
 private:
-	struct axisExecData_t
-	{
-		// Enabled flag
+	// Execution info for the currently executing block
 		bool _isEnabled;
-		// True while axis is active - when all false block is complete
-		bool _isActive;
 		// Steps
-		uint32_t _stepsTotalAbs;
-		uint32_t _stepsBeforeDecel;
-		uint32_t _curStepCount;
-		// Max and final step rates
-		uint32_t _maxStepRatePerTTicks;
-		uint32_t _finalStepRatePerTTicks;
+	uint32_t _stepsTotalAbs[RobotConsts::MAX_AXES];
+	uint32_t _curStepCount[RobotConsts::MAX_AXES];
 		// Current step rate (in steps per K ticks)
 		uint32_t _curStepRatePerTTicks;
-		// Acceleration rate
-		uint32_t _accStepsPerTTicksPerMS;
 		// Accumulators for stepping and acceleration increments
 		uint32_t _curAccumulatorStep;
 		uint32_t _curAccumulatorNS;
-	};
-	axisExecData_t _axisExecData[RobotConsts::MAX_AXES];
+	uint32_t _curAccumulatorRelative[RobotConsts::MAX_AXES];
 
 public:
 	MotionActuator(MotionIO& motionIO, MotionPipeline& motionPipeline) :
-		_motionPipeline(motionPipeline),
-		_motionIO(motionIO)
+		_motionPipeline(motionPipeline)
 	{
 		// Init
 		clear();
@@ -78,6 +72,11 @@ public:
 			_isrMotionTimer.begin(_isrStepperMotion, ISR_TIMER_PERIOD_US, uSec);
 		}
 #endif
+	}
+
+	void setRawMotionHwInfo(RobotConsts::RawMotionHwInfo_t& rawMotionHwInfo)
+	{
+		_rawMotionHwInfo = rawMotionHwInfo;
 	}
 
 	void setTestMode(const char* testModeStr)

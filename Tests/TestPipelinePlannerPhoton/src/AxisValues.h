@@ -197,7 +197,7 @@ public:
 			if ((includeDist == NULL) || includeDist[i])
 			{
 				float sq = _pt[i] - pt._pt[i];
-				sq = sq*sq;
+				sq = sq * sq;
 				distSum += sq;
 			}
 		}

@@ -5,16 +5,10 @@
 
 class StepperMotor
 {
-public:
-	// MOTOR_TYPE_DRIVER has an A4988 or similar stepper driver chip that just requires step and direction
-	typedef enum
-	{
-		MOTOR_TYPE_NONE,
-		MOTOR_TYPE_DRIVER
-	} MOTOR_TYPE;
-	MOTOR_TYPE _motorType;
-
 private:
+	// Motor type
+	RobotConsts::MOTOR_TYPE _motorType;
+
 	// Motor operates in reverse (i.e. direction low = forwards)
 	bool _motorDirectionReversed;
 
@@ -30,9 +24,9 @@ private:
 
 public:
 	// For MOTOR_TYPE_DRIVER two pins are used step & direction
-	StepperMotor(MOTOR_TYPE motorType, uint8_t pinStep, uint8_t pinDirection)
+	StepperMotor(RobotConsts::MOTOR_TYPE motorType, uint8_t pinStep, uint8_t pinDirection)
 	{
-		if (motorType == MOTOR_TYPE_DRIVER)
+		if (motorType == RobotConsts::MOTOR_TYPE_DRIVER)
 		{
 			if (pinStep != -1 && pinDirection != -1)
 			{
@@ -49,7 +43,7 @@ public:
 		}
 		else
 		{
-			motorType = MOTOR_TYPE_NONE;
+			motorType = RobotConsts::MOTOR_TYPE_NONE;
 		}
 	}
 
@@ -60,7 +54,7 @@ public:
 
 	void deinit()
 	{
-		_motorType = MOTOR_TYPE_NONE;
+		_motorType = RobotConsts::MOTOR_TYPE_NONE;
 		// Free up pins
 		if (_pinStep != -1)
 			pinMode(_pinStep, INPUT);
@@ -100,10 +94,16 @@ public:
         digitalWrite(_pinStep, false);
     }
 
-	void getPins(int& stepPin, int& dirnPin)
+	void getPins(int& stepPin, int& dirnPin, bool& dirnReverse)
 	{
 		stepPin = _pinStep;
 		dirnPin = _pinDirection;
+		dirnReverse = _motorDirectionReversed;
+	}
+
+	RobotConsts::MOTOR_TYPE getMotorType()
+	{
+		return _motorType;
 	}
 
 };

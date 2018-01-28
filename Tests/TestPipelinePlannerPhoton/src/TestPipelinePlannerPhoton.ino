@@ -6,7 +6,9 @@ SYSTEM_MODE(AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 SerialLogHandler logHandler(LOG_LEVEL_INFO);
 
-static const char* ROBOT_CONFIG_STR_MUGBOT =
+#ifdef ROBOT_MUGBOT
+
+static const char* ROBOT_CONFIG_STR =
 	"{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
     " \"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
     " \"cmdsAtStart\":\"\", "
@@ -14,17 +16,6 @@ static const char* ROBOT_CONFIG_STR_MUGBOT =
     " \"stepsPerRotation\":6400, \"unitsPerRotation\":360 },"
     " \"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":10.0, \"maxAcc\":10.0,"
     " \"stepsPerRotation\":1600, \"unitsPerRotation\":1 },"
-    " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
-    "}";
-
-static const char* ROBOT_CONFIG_STR_XY =
-	"{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
-    " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
-    " \"cmdsAtStart\":\"\", "
-    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":10.0, \"maxAcc\":100.0,"
-    " \"stepsPerRotation\":3200, \"unitsPerRotation\":60 },"
-    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":10.0, \"maxAcc\":100.0,"
-    " \"stepsPerRotation\":3200, \"unitsPerRotation\":60 },"
     " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
     "}";
 
@@ -49,17 +40,63 @@ static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams&
 	return ptWasValid;
 }
 
+#elif defined ROBOT_XY
+
+static const char* ROBOT_CONFIG_STR =
+	"{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
+    " \"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
+    " \"cmdsAtStart\":\"\", "
+    " \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":10.0, \"maxAcc\":10.0,"
+    " \"stepsPerRotation\":6400, \"unitsPerRotation\":32 },"
+    " \"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":10.0, \"maxAcc\":10.0,"
+    " \"stepsPerRotation\":1600, \"unitsPerRotation\":32 },"
+    " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
+    "}";
+
+#else
+
+static const char* ROBOT_CONFIG_STR =
+	"{\"robotType\": \"AxiBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
+    " \"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
+    " \"cmdsAtStart\":\"\", "
+    " \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":50.0, \"maxAcc\":10.0,"
+    " \"stepsPerRotation\":3200, \"unitsPerRotation\":32 },"
+    " \"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":50.0, \"maxAcc\":10.0,"
+    " \"stepsPerRotation\":3200, \"unitsPerRotation\":32 },"
+    " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
+    "}";
+
+static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams)
+{
+	// Check machine bounds and fix the value if required
+	bool ptWasValid = axesParams.ptInBounds(pt, true);
+
+	// Perform conversion
+	float axis0ValFromHome = pt.getVal(0) - axesParams.getHomeOffsetVal(0);
+	float axis1ValFromHome = pt.getVal(1) - axesParams.getHomeOffsetVal(1);
+	float axis2ValFromHome = pt.getVal(2) - axesParams.getHomeOffsetVal(2);
+
+	// Convert to steps and add offset to home in steps
+	actuatorCoords.setVal(0, (axis0ValFromHome+axis1ValFromHome) * axesParams.getStepsPerUnit(0)
+		+ axesParams.getHomeOffsetSteps(0));
+	actuatorCoords.setVal(1, (axis0ValFromHome-axis1ValFromHome) * axesParams.getStepsPerUnit(1)
+		+ axesParams.getHomeOffsetSteps(1));
+
+	// Convert to steps and add offset to home in steps
+	actuatorCoords.setVal(2, axis2ValFromHome * axesParams.getStepsPerUnit(2)
+		+ axesParams.getHomeOffsetSteps(2));
+
+		// Log.trace("ptToActuator %f -> %f (homeOffVal %f, homeOffSteps %ld)",
+		// 	pt.getVal(axisIdx), actuatorCoords._pt[axisIdx],
+		// 	axesParams.getHomeOffsetVal(axisIdx), axesParams.getHomeOffsetSteps(axisIdx));
+
+	return ptWasValid;
+}
+
+#endif
+
 static void actuatorToPt(AxisFloats& actuatorCoords, AxisFloats& pt, AxesParams& axesParams)
 {
-	// Perform conversion
-	for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
-	{
-		float ptVal = actuatorCoords.getVal(axisIdx) - axesParams.getHomeOffsetSteps(axisIdx);
-		ptVal = ptVal / axesParams.getStepsPerUnit(axisIdx) + axesParams.getHomeOffsetVal(axisIdx);
-		pt.setVal(axisIdx, ptVal);
-		Log.trace("actuatorToPt %d %f -> %f (perunit %f)", axisIdx, actuatorCoords.getVal(axisIdx),
-			ptVal, axesParams.getStepsPerUnit(axisIdx));
-	}
 }
 
 static void correctStepOverflow(AxesParams& axesParams)
@@ -87,10 +124,10 @@ const int __numTests = 2;
 int __curTestErrorCount = 0;
 const int __testSquareDiagonalLen = 6;
 int __testSquareDiagonal [__testSquareDiagonalLen][2] =
-				{ {1,0}, {1,1}, {0,1}, {0,0}, {1,1}, {0,0} };
-const int __testOneBigMoveLen = 1;
+				{ {100,0}, {100,100}, {0,100}, {0,0}, {100,100}, {0,0} };
+const int __testOneBigMoveLen = 2;
 int __testOneBigMove [__testOneBigMoveLen][2] =
-				{ {10,10} };
+				{ {64,64}, {0,0} };
 
 bool setupNextTest()
 {
@@ -153,25 +190,28 @@ void setup()
 {
 	Serial.begin(115200);
 	delay(2000);
-	Log.info(" ");
+	Log.info("=====================================================================");
+	String systemName = "TEST PIPELINE PLANNER PHOTON";
+	Log.info("%s (built %s %s)", systemName.c_str(), __DATE__, __TIME__);
 	Log.info("========================== TESTING PIPELINE ==========================");
 
 	_motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
-	_motionHelper.configure(ROBOT_CONFIG_STR_MUGBOT);
-	_motionHelper.setTestMode("BLINKD7 TIMEISR"); 
+	_motionHelper.configure(ROBOT_CONFIG_STR);
+	_motionHelper.setTestMode("TIMEISR");
 	_motionHelper.pause(false);
 }
 
 bool __debugTimingShown = true;
 bool __wasIdle = false;
 unsigned long __idleTime = 0;
+unsigned long __timeStartedTest = millis();
 
 void loop()
 {
 	while (true)
 	{
 	    _motionHelper.service(true);
-		if (_motionHelper.isIdle())
+		if (_motionHelper.isIdle() || Utils::isTimeout(millis(), __timeStartedTest, 60000))
 		{
 			if (!__debugTimingShown)
 			{
@@ -191,6 +231,7 @@ void loop()
 					if (setupNextTest())
 					{
 						__debugTimingShown = false;
+						__timeStartedTest = millis();
 					}
 					__wasIdle = false;
 					_motionHelper.pause(false);

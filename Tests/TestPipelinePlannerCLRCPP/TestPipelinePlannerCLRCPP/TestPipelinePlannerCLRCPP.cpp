@@ -10,9 +10,11 @@ using namespace System;
 
 double __maxElapsedMoveToTime = 0;
 
-static const char* ROBOT_CONFIG_STR_MUGBOT =
+#ifdef ROBOT_MUGBOT
+
+static const char* ROBOT_CONFIG_STR =
 "{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
-" \"stepEnablePin\":\"D7\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
+" \"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
 " \"cmdsAtStart\":\"\", "
 " \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":10.0, \"maxAcc\":10.0,"
 " \"stepsPerRotation\":6400, \"unitsPerRotation\":360 },"
@@ -20,30 +22,6 @@ static const char* ROBOT_CONFIG_STR_MUGBOT =
 " \"stepsPerRotation\":1600, \"unitsPerRotation\":1 },"
 " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
 "}";
-
-static const char* ROBOT_CONFIG_STR_XY =
-	"{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
-    " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
-    " \"cmdsAtStart\":\"\", "
-    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":100.0, \"maxAcc\":10.0,"
-    " \"stepsPerRotation\":3200, \"unitsPerRotation\":60 },"
-    " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":100.0, \"maxAcc\":10.0,"
-    " \"stepsPerRotation\":3200, \"unitsPerRotation\":60 },"
-    " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
-    "}";
-
-static const char* ROBOT_CONFIG_STR_XY_UNIT =
-"{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
-" \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
-" \"cmdsAtStart\":\"\", "
-" \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":50.0, \"maxAcc\":10.0,"
-" \"stepsPerRotation\":100, \"unitsPerRotation\":1 },"
-" \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":50.0, \"maxAcc\":10.0,"
-" \"stepsPerRotation\":100, \"unitsPerRotation\":1 },"
-" \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
-"}";
-
-#define ROBOT_CONFIG_STR ROBOT_CONFIG_STR_XY_UNIT
 
 static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams)
 {
@@ -59,24 +37,70 @@ static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams&
 		actuatorCoords.setVal(axisIdx, axisValFromHome * axesParams.getStepsPerUnit(axisIdx)
 			+ axesParams.getHomeOffsetSteps(axisIdx));
 
-		//Log.trace("ptToActuator %f -> %f (homeOffVal %f, homeOffSteps %ld)",
-		//	pt.getVal(axisIdx), actuatorCoords._pt[axisIdx],
-		//	axesParams.getHomeOffsetVal(axisIdx), axesParams.getHomeOffsetSteps(axisIdx));
+		Log.trace("ptToActuator %f -> %f (homeOffVal %f, homeOffSteps %ld)",
+			pt.getVal(axisIdx), actuatorCoords._pt[axisIdx],
+			axesParams.getHomeOffsetVal(axisIdx), axesParams.getHomeOffsetSteps(axisIdx));
 	}
 	return ptWasValid;
 }
 
+#elif defined ROBOT_XY
+
+static const char* ROBOT_CONFIG_STR =
+"{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
+" \"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
+" \"cmdsAtStart\":\"\", "
+" \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":10.0, \"maxAcc\":10.0,"
+" \"stepsPerRotation\":6400, \"unitsPerRotation\":32 },"
+" \"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":10.0, \"maxAcc\":10.0,"
+" \"stepsPerRotation\":1600, \"unitsPerRotation\":32 },"
+" \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
+"}";
+
+#else
+
+static const char* ROBOT_CONFIG_STR =
+"{\"robotType\": \"AxiBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
+" \"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
+" \"cmdsAtStart\":\"\", "
+" \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":10.0, \"maxAcc\":10.0,"
+" \"stepsPerRotation\":3200, \"unitsPerRotation\":32 },"
+" \"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":10.0, \"maxAcc\":10.0,"
+" \"stepsPerRotation\":1600, \"unitsPerRotation\":32 },"
+" \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
+"}";
+
+static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams)
+{
+	// Check machine bounds and fix the value if required
+	bool ptWasValid = axesParams.ptInBounds(pt, true);
+
+	// Perform conversion
+	float axis0ValFromHome = pt.getVal(0) - axesParams.getHomeOffsetVal(0);
+	float axis1ValFromHome = pt.getVal(1) - axesParams.getHomeOffsetVal(1);
+	float axis2ValFromHome = pt.getVal(2) - axesParams.getHomeOffsetVal(2);
+
+	// Convert to steps and add offset to home in steps
+	actuatorCoords.setVal(0, (axis0ValFromHome + axis1ValFromHome) * axesParams.getStepsPerUnit(0)
+		+ axesParams.getHomeOffsetSteps(0));
+	actuatorCoords.setVal(1, (axis0ValFromHome - axis1ValFromHome) * axesParams.getStepsPerUnit(1)
+		+ axesParams.getHomeOffsetSteps(1));
+
+	// Convert to steps and add offset to home in steps
+	actuatorCoords.setVal(2, axis2ValFromHome * axesParams.getStepsPerUnit(2)
+		+ axesParams.getHomeOffsetSteps(2));
+
+	// Log.trace("ptToActuator %f -> %f (homeOffVal %f, homeOffSteps %ld)",
+	// 	pt.getVal(axisIdx), actuatorCoords._pt[axisIdx],
+	// 	axesParams.getHomeOffsetVal(axisIdx), axesParams.getHomeOffsetSteps(axisIdx));
+
+	return ptWasValid;
+}
+
+#endif
+
 static void actuatorToPt(AxisFloats& actuatorCoords, AxisFloats& pt, AxesParams& axesParams)
 {
-	// Perform conversion
-	for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
-	{
-		float ptVal = actuatorCoords.getVal(axisIdx) - axesParams.getHomeOffsetSteps(axisIdx);
-		ptVal = ptVal / axesParams.getStepsPerUnit(axisIdx) + axesParams.getHomeOffsetVal(axisIdx);
-		pt.setVal(axisIdx, ptVal);
-		//Log.trace("actuatorToPt %d %f -> %f (perunit %f)", axisIdx, actuatorCoords.getVal(axisIdx),
-		//	ptVal, axesParams.getStepsPerUnit(axisIdx));
-	}
 }
 
 static void correctStepOverflow(AxesParams& axesParams)
@@ -214,34 +238,18 @@ struct TEST_FIELD
 
 void testMotionElemVals(int outIdx, int valIdx, int& errorCount, MotionBlock& elem, const char* pRslt, AxesParams& axesParams)
 {
-	MotionBlock::axisStepData_t axisStepData[RobotConsts::MAX_AXES];
-	elem.debugGetAxisStepInfoCleaned(axisStepData, axesParams);
-
 	TEST_FIELD __testFields[] = {
 		{ false, "idx", false, 0, 0 },
 		{ true, "_entrySpeedMMps", true, elem._entrySpeedMMps, 0},
 		{ true, "_exitSpeedMMps", true, elem._exitSpeedMMps, 0 },
 		{ true, "_axisStepsToTargetX", false, 0, elem.getStepsToTarget(0) },
-		{ true, "_stepsBeforeDecelX", false, 0, axisStepData[0]._stepsBeforeDecel },
-		{ true, "_initialStepRatePerKTicksX", true, DEBUG_STEP_TTICKS_TO_MMPS(axisStepData[0]._initialStepRatePerTTicks, axesParams, 0), 0 },
-		{ true, "_maxStepRatePerTTicksX", true, DEBUG_STEP_TTICKS_TO_MMPS(axisStepData[0]._maxStepRatePerTTicks, axesParams, 0), 0 },
-		{ true, "_finalStepRatePerTTicksX", true, DEBUG_STEP_TTICKS_TO_MMPS(axisStepData[0]._finalStepRatePerTTicks, axesParams, 0), 0 },
-		{ true, "_accStepsPerKTicksPerMSX", false, 0, axisStepData[0]._accStepsPerTTicksPerMS },
 		{ true, "_axisStepsToTargetY", false, 0, elem.getStepsToTarget(1) },
-		{ true, "_stepsBeforeDecelY", false, 0, axisStepData[1]._stepsBeforeDecel },
-		{ true, "_initialStepRatePerKTicksY", true, DEBUG_STEP_TTICKS_TO_MMPS(axisStepData[1]._initialStepRatePerTTicks, axesParams, 1), 0 },
-		{ true, "_maxStepRatePerTTicksY", true, DEBUG_STEP_TTICKS_TO_MMPS(axisStepData[1]._maxStepRatePerTTicks, axesParams, 1), 0 },
-		{ true, "_finalStepRatePerTTicksY", true, DEBUG_STEP_TTICKS_TO_MMPS(axisStepData[1]._finalStepRatePerTTicks, axesParams, 1), 0 },
-		{ true, "_accStepsPerKTicksPerMSY", false, 0, axisStepData[1]._accStepsPerTTicksPerMS },
-
-#ifdef USE_SMOOTHIE_CODE
-		{ true, "_totalMoveTicks", false, 0, elem._totalMoveTicks },
-		{ true, "_initialStepRate", true, elem._initialStepRate, 0 },
-		{ true, "_accelUntil", false, 0, elem._accelUntil },
-		{ true, "_accelPerTick", true, elem._accelPerTick, 0 },
-		{ true, "_decelAfter", false, 0, elem._decelAfter },
-		{ true, "_decelPerTick", true, elem._decelPerTick, 0 }
-#endif
+		{ true, "_axisStepsToTargetZ", false, 0, elem.getStepsToTarget(2) },
+		{ true, "_stepsBeforeDecel", false, 0, elem._stepsBeforeDecel },
+		{ true, "_initialStepRatePerKTicks", true, DEBUG_STEP_TTICKS_TO_MMPS(elem._initialStepRatePerTTicks, axesParams, 0), 0 },
+		{ true, "_maxStepRatePerTTicks", true, DEBUG_STEP_TTICKS_TO_MMPS(elem._maxStepRatePerTTicks, axesParams, 0), 0 },
+		{ true, "_finalStepRatePerTTicks", true, DEBUG_STEP_TTICKS_TO_MMPS(elem._finalStepRatePerTTicks, axesParams, 0), 0 },
+		{ true, "_accStepsPerKTicksPerMS", false, 0, elem._accStepsPerTTicksPerMS },
 	};
 
 	if (valIdx >= sizeof(__testFields) / sizeof(TEST_FIELD))
@@ -303,9 +311,8 @@ int main()
 				sizeof(MotionBlock), sizeof(AxisBools), sizeof(AxisFloats), sizeof(AxisInt32s),
 				sizeof(MotionBlock::axisStepInfo_t));
 #endif
-	Log.trace("Sizeof MotionBlock %d, AxisBools %d, AxisFloat %d, AxisUint32s %d, axisStepData %d",
-		sizeof(MotionBlock), sizeof(AxisBools), sizeof(AxisFloats), sizeof(AxisInt32s),
-		sizeof(MotionBlock::axisStepData_t));
+	Log.trace("Sizeof MotionBlock %d, AxisBools %d, AxisFloat %d, AxisUint32s %d",
+		sizeof(MotionBlock), sizeof(AxisBools), sizeof(AxisFloats), sizeof(AxisInt32s));
 
 	Log.trace("");
 	Log.trace("##################################################");

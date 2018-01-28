@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json
 
-f = open("../TestPipelinePlannerCLRCPP/TestPipelinePlannerCLRCPP/testOut/testOut_RightAngle_00027.txt")
+f = open("../TestPipelinePlannerCLRCPP/TestPipelinePlannerCLRCPP/testOut/testOut_SquareAndDiagonal_00019.txt")
 lines = f.readlines()
 
 # Find JSON
@@ -67,16 +67,16 @@ for line in lines:
                 # print(intervalUs)
                 lastAxisUs[axisIdx] = elapsedUs
                 axisSpeed[axisIdx].append(speed)
-            curDist[axisIdx] += axisDirn[axisIdx] * stepDists[axisIdx]
-            axisDist[axisIdx].append(curDist[axisIdx])
-            if axisXYLastUs != 0 and axisXYLastUs + 5 > elapsedUs:
-                axisXY[0][len(axisXY[0])-1] = curDist[0]
-                axisXY[1][len(axisXY[1]) - 1] = curDist[1]
-            else:
-                axisXY[0].append(curDist[0])
-                axisXY[1].append(curDist[1])
-                axisXYLastUs = elapsedUs
-            axisTimes[axisIdx].append(elapsedUs)
+                curDist[axisIdx] += axisDirn[axisIdx] * stepDists[axisIdx]
+                axisDist[axisIdx].append(curDist[axisIdx])
+                if axisXYLastUs != 0 and axisXYLastUs + 5 > elapsedUs:
+                    axisXY[0][len(axisXY[0])-1] = curDist[0]
+                    axisXY[1][len(axisXY[1]) - 1] = curDist[1]
+                else:
+                    axisXY[0].append(curDist[0])
+                    axisXY[1].append(curDist[1])
+                    axisXYLastUs = elapsedUs
+                axisTimes[axisIdx].append(elapsedUs)
         if linePin in pinAxis0Dirn or linePin in pinAxis1Dirn:
             axisIdx = 0
             if linePin in pinAxis1Dirn:
@@ -90,8 +90,8 @@ fig = plt.figure()
 ax1 = fig.add_subplot(311)
 ax2 = fig.add_subplot(312)
 ax3 = fig.add_subplot(313)
-# print("axisSpeed[0]", axisSpeed[0])
-# print("axisTimes[0]", axisTimes[0])
+print("axisSpeed[0]", len(axisSpeed[0]), "\n", axisSpeed[0])
+print("axisTimes[0]", len(axisTimes[0]), "\n", axisTimes[0])
 # print("axisDist[0]", len(axisDist[0]), axisDist[0])
 # print("axisSpeed[1]", axisSpeed[1])
 # print("axisTimes[1]", axisTimes[1])
