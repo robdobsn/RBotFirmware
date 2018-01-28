@@ -10,6 +10,8 @@ using namespace System;
 
 double __maxElapsedMoveToTime = 0;
 
+#define ROBOT_XY 1
+
 #ifdef ROBOT_MUGBOT
 
 static const char* ROBOT_CONFIG_STR =
@@ -50,12 +52,34 @@ static const char* ROBOT_CONFIG_STR =
 "{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, \"pipelineLen\":100, "
 " \"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
 " \"cmdsAtStart\":\"\", "
-" \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":10.0, \"maxAcc\":10.0,"
-" \"stepsPerRotation\":6400, \"unitsPerRotation\":32 },"
-" \"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":10.0, \"maxAcc\":10.0,"
-" \"stepsPerRotation\":1600, \"unitsPerRotation\":32 },"
+" \"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":100.0, \"maxAcc\":10.0,"
+" \"stepsPerRotation\":3200, \"unitsPerRotation\":32 },"
+" \"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":100.0, \"maxAcc\":10.0,"
+" \"stepsPerRotation\":3200, \"unitsPerRotation\":32 },"
 " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
 "}";
+
+static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams)
+{
+	// Check machine bounds and fix the value if required
+	bool ptWasValid = axesParams.ptInBounds(pt, true);
+
+	// Perform conversion
+	for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+	{
+		// Axis val from home point
+		float axisValFromHome = pt.getVal(axisIdx) - axesParams.getHomeOffsetVal(axisIdx);
+		// Convert to steps and add offset to home in steps
+		actuatorCoords.setVal(axisIdx, axisValFromHome * axesParams.getStepsPerUnit(axisIdx)
+			+ axesParams.getHomeOffsetSteps(axisIdx));
+
+		Log.trace("ptToActuator %f -> %f (homeOffVal %f, homeOffSteps %ld)",
+			pt.getVal(axisIdx), actuatorCoords._pt[axisIdx],
+			axesParams.getHomeOffsetVal(axisIdx), axesParams.getHomeOffsetSteps(axisIdx));
+	}
+
+	return ptWasValid;
+}
 
 #else
 
@@ -321,6 +345,9 @@ int main()
 
 	int totalErrorCount = 0;
 
+	int debugFileNameIdx = 0;
+	int testIdx = 0;
+
 	// Go through tests
 	for each (TestCaseM^ tc in testCaseHandler.testCases)
 	{
@@ -382,7 +409,8 @@ int main()
 		Log.info("Max elapsed ms %0.3f", __maxElapsedMoveToTime);
 
 		const char* pTestName = tc->getName();
-		testStarting(pTestName, ROBOT_CONFIG_STR);
+		testStarting(testIdx, pTestName, ROBOT_CONFIG_STR, testIdx==0, debugFileNameIdx);
+		testIdx++;
 
 		uint32_t tickCount = 0;
 		while (true)
@@ -397,6 +425,7 @@ int main()
 			if (_motionHelper.isIdle())
 			{
 				testCompleted();
+				break;
 			}
 		}
 

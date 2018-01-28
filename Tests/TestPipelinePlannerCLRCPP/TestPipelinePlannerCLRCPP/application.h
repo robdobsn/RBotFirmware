@@ -94,15 +94,13 @@ static RdLogger Log;
 //}
 
 extern void pinMode(int pin, int mode);
-
 extern void digitalWrite(int pin, int val);
-
+extern void digitalWriteFast(int pin, int val);
 extern bool digitalRead(int pin);
-
+extern void pinSetFast(int pin);
+extern void pinResetFast(int pin);
 typedef int PinMode;
-
-extern void testStarting(const char* testName, const char* debugParams);
-
+extern void testStarting(int testIdx, const char* testName, const char* debugParams, bool firstInRun, int& debugFileIdx);
 extern void delayMicroseconds(unsigned long us);
 
 class Servo

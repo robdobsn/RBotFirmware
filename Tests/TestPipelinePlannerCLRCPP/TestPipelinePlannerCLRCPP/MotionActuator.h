@@ -18,9 +18,15 @@
 class MotionActuator
 {
 private:
+	// If this is true nothing will move
 	volatile bool _isPaused;
+
+	// Pipeline of blocks to be processed
 	MotionPipeline& _motionPipeline;
-	MotionIO& _motionIO;
+
+	// Raw access to motors and endstops
+	RobotConsts::RawMotionHwInfo_t _rawMotionHwInfo;
+
 	// This is to ensure that the robot never goes to 0 tick rate - which would leave it
 	// immobile forever
 	static constexpr uint32_t MIN_STEP_RATE_PER_SEC = 1;
@@ -53,8 +59,7 @@ private:
 
 public:
 	MotionActuator(MotionIO& motionIO, MotionPipeline& motionPipeline) :
-		_motionPipeline(motionPipeline),
-		_motionIO(motionIO)
+		_motionPipeline(motionPipeline)
 	{
 		// Init
 		clear();
@@ -67,6 +72,11 @@ public:
 			_isrMotionTimer.begin(_isrStepperMotion, ISR_TIMER_PERIOD_US, uSec);
 		}
 #endif
+	}
+
+	void setRawMotionHwInfo(RobotConsts::RawMotionHwInfo_t& rawMotionHwInfo)
+	{
+		_rawMotionHwInfo = rawMotionHwInfo;
 	}
 
 	void setTestMode(const char* testModeStr)

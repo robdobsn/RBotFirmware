@@ -52,4 +52,9 @@ public:
         }
         return true;
     }
+    void getPins(int& sensePin, bool& activeLevel)
+    {
+      sensePin = _pin;
+      activeLevel = _activeLevel;
+    }
 };

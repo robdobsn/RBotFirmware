@@ -49,7 +49,7 @@ void MotionActuator::process()
 #endif
 
 	// Test code if enabled process test data
-#ifdef TEST_MOTION_ACTUATOR_ENABLE
+#ifdef TEST_MOTION_ACTUATOR_OUTPUT
 	if (_pTestMotionActuator)
 		_pTestMotionActuator->process();
 #endif
@@ -62,13 +62,24 @@ void MotionActuator::procTick()
 		return;
 
 	// Test code
-#ifdef TEST_MOTION_ACTUATOR_ENABLE
+#ifdef TEST_MOTION_ACTUATOR_OUTPUT
 	if (_pTestMotionActuator)
 		_pTestMotionActuator->stepEnd();
 #endif
 
 	// Do a step-end for any motor which needs one - return here to avoid too short a pulse
-	if (_motionIO.stepEnd())
+	bool anyPinReset = false;
+	for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+	{
+		RobotConsts::RawMotionAxis_t* pAxisInfo = &_rawMotionHwInfo._axis[axisIdx];
+		if (pAxisInfo->_pinStepCurLevel == 1)
+		{
+			pinResetFast(pAxisInfo->_pinStep);
+			anyPinReset = true;
+		}
+		pAxisInfo->_pinStepCurLevel = 0;
+	}
+	if (anyPinReset)
 		return;
 
 	// Peek a MotionPipelineElem from the queue
@@ -90,15 +101,20 @@ void MotionActuator::procTick()
 		// Step counts and direction for each axis
 		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 		{
-			_stepsTotalAbs[axisIdx] = abs(pBlock->_stepsTotalMaybeNeg[axisIdx]);
+			int32_t stepsTotal = pBlock->_stepsTotalMaybeNeg[axisIdx];
+			_stepsTotalAbs[axisIdx] = abs(stepsTotal);
 			_curStepCount[axisIdx] = 0;
 			_curAccumulatorRelative[axisIdx] = 0;
 			// Set direction for the axis
-			_motionIO.stepDirn(axisIdx, pBlock->_stepsTotalMaybeNeg[axisIdx] >= 0);
+			RobotConsts::RawMotionAxis_t* pAxisInfo = &_rawMotionHwInfo._axis[axisIdx];
+			if (pAxisInfo->_pinDirection != -1)
+				digitalWriteFast(pAxisInfo->_pinDirection,
+								(stepsTotal >= 0) == pAxisInfo->_pinDirectionReversed);
+
 			// Test code
-#ifdef TEST_MOTION_ACTUATOR_ENABLE
+#ifdef TEST_MOTION_ACTUATOR_OUTPUT
 			if (_pTestMotionActuator)
-				_pTestMotionActuator->stepDirn(axisIdx, pBlock->_stepsTotalMaybeNeg[axisIdx] >= 0);
+				_pTestMotionActuator->stepDirn(axisIdx, stepsTotal >= 0);
 #endif
 		}
 
@@ -108,13 +124,6 @@ void MotionActuator::procTick()
 
 		// Step rate
 		_curStepRatePerTTicks = pBlock->_initialStepRatePerTTicks;
-
-		// Check if any steps on axis with max steps
-		if (_stepsTotalAbs[pBlock->_axisIdxWithMaxSteps] == 0)
-		{
-			// If not this block is complete
-			_motionPipeline.remove();
-		}
 
 		// Return here to reduce the maximum time this function takes
 		// Assuming this function is called frequently (<50uS intervals say)
@@ -158,23 +167,27 @@ void MotionActuator::procTick()
 	if (_curAccumulatorStep >= MotionBlock::TTICKS_VALUE)
 	{
 		bool anyAxisMoving = false;
+		int axisIdxMaxSteps = pBlock->_axisIdxWithMaxSteps;
 
 		// Subtract from accumulator leaving remainder
 		_curAccumulatorStep -= MotionBlock::TTICKS_VALUE;
 
 		// Step the axis with the greatest step count if needed
-		if (_curStepCount[pBlock->_axisIdxWithMaxSteps] < _stepsTotalAbs[pBlock->_axisIdxWithMaxSteps])
+		if (_curStepCount[axisIdxMaxSteps] < _stepsTotalAbs[axisIdxMaxSteps])
 		{
 			// Step this axis
-			_motionIO.stepStart(pBlock->_axisIdxWithMaxSteps);
-			_curStepCount[pBlock->_axisIdxWithMaxSteps]++;
-			if (_curStepCount[pBlock->_axisIdxWithMaxSteps] < _stepsTotalAbs[pBlock->_axisIdxWithMaxSteps])
+			RobotConsts::RawMotionAxis_t* pAxisInfo = &_rawMotionHwInfo._axis[axisIdxMaxSteps];
+			if (pAxisInfo->_pinStep != -1)
+					pinSetFast(pAxisInfo->_pinStep);
+			pAxisInfo->_pinStepCurLevel = 1;
+			_curStepCount[axisIdxMaxSteps]++;
+			if (_curStepCount[axisIdxMaxSteps] < _stepsTotalAbs[axisIdxMaxSteps])
 				anyAxisMoving = true;
 
 			// Test code
-#ifdef TEST_MOTION_ACTUATOR_ENABLE
+#ifdef TEST_MOTION_ACTUATOR_OUTPUT
 			if (_pTestMotionActuator)
-				_pTestMotionActuator->stepStart(pBlock->_axisIdxWithMaxSteps);
+				_pTestMotionActuator->stepStart(axisIdxMaxSteps);
 #endif
 
 		}
@@ -182,24 +195,27 @@ void MotionActuator::procTick()
 		// Check if other axes need stepping
 		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
 		{
-			if ((axisIdx == pBlock->_axisIdxWithMaxSteps) || (_curStepCount[axisIdx] == _stepsTotalAbs[axisIdx]))
+			if ((axisIdx == axisIdxMaxSteps) || (_curStepCount[axisIdx] == _stepsTotalAbs[axisIdx]))
 				continue;
 
 			// Bump the relative accumulator
 			_curAccumulatorRelative[axisIdx] += _stepsTotalAbs[axisIdx];
-			if (_curAccumulatorRelative[axisIdx] >= _stepsTotalAbs[pBlock->_axisIdxWithMaxSteps])
+			if (_curAccumulatorRelative[axisIdx] >= _stepsTotalAbs[axisIdxMaxSteps])
 			{
 				// Do the remainder calculation
-				_curAccumulatorRelative[axisIdx] -= _stepsTotalAbs[pBlock->_axisIdxWithMaxSteps];
+				_curAccumulatorRelative[axisIdx] -= _stepsTotalAbs[axisIdxMaxSteps];
 
-				// Step the other axis
-				_motionIO.stepStart(axisIdx);
+				// Step the axis
+				RobotConsts::RawMotionAxis_t* pAxisInfo = &_rawMotionHwInfo._axis[axisIdx];
+				if (pAxisInfo->_pinStep != -1)
+						pinSetFast(pAxisInfo->_pinStep);
+				pAxisInfo->_pinStepCurLevel = 1;
 				_curStepCount[axisIdx]++;
 				if (_curStepCount[axisIdx] < _stepsTotalAbs[axisIdx])
 					anyAxisMoving = true;
 
 				// Test code
-#ifdef TEST_MOTION_ACTUATOR_ENABLE
+#ifdef TEST_MOTION_ACTUATOR_OUTPUT
 				if (_pTestMotionActuator)
 					_pTestMotionActuator->stepStart(axisIdx);
 #endif

@@ -59,6 +59,11 @@ void MotionHelper::configure(const char* robotConfigJSON)
 	// Configure robot
 	configureRobot(robotConfigJSON);
 
+	// Give the MotionActuator access to raw motionIO info
+	RobotConsts::RawMotionHwInfo_t rawMotionHwInfo;
+	_motionIO.getRawMotionHwInfo(rawMotionHwInfo);
+	_motionActuator.setRawMotionHwInfo(rawMotionHwInfo);
+
 	// Clear motion info
 	_curAxisPosition.clear();
 }
@@ -240,6 +245,11 @@ void MotionHelper::service(bool processPipeline)
 
 	// Process any split-up blocks to be added to the pipeline
 	blocksToAddProcess();
+
+	// Service MotionIO
+	if (_motionPipeline.count() > 0)
+		_motionIO.motionIsActive();
+	_motionIO.service();
 }
 
 void MotionHelper::setCurPositionAsHome(AxisFloats& pt)

@@ -128,7 +128,7 @@ void MotionActuator::procTick()
 		// Return here to reduce the maximum time this function takes
 		// Assuming this function is called frequently (<50uS intervals say)
 		// then it will make little difference if we return now and pick up on the next tick
-		// return;
+		return;
 	}
 
 	// Bump the millisec accumulator

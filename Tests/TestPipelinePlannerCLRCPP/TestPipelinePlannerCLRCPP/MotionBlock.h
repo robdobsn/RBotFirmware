@@ -24,7 +24,8 @@ public:
 	static constexpr uint32_t TTICKS_VALUE = 1000000000l;
 
 	// Tick interval in NS
-	// 20000NS means max of 50k steps per second
+	// 20000NS means max of 25k steps per second (as each step requires 2 entries to ISR - at least)
+	// The ISR time is now averaging 1.3uS and max 2.8uS so this could be reduced to 10000 if needed
 	static constexpr uint32_t TICK_INTERVAL_NS = 20000;
 	static constexpr float TICKS_PER_SEC = (1e9f / TICK_INTERVAL_NS);
 

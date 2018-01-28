@@ -11,7 +11,7 @@
 #define SystemTicks System.ticks
 #else
 #define TEST_MOTION_ACTUATOR_ENABLE 1
-//#define TEST_MOTION_ACTUATOR_OUTPUT 1
+#define TEST_MOTION_ACTUATOR_OUTPUT 1
 #endif
 
 #include "application.h"

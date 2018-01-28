@@ -11,7 +11,7 @@ Time_t Time;
 
 std::ofstream __outFile;
 bool __outOpen = false;
-String __outFileBase = "testOut/testOut_";
+String __outFileBase = "../../TestOutputData/PipelinePlanner/steps_";
 String __outFileName;
 
 unsigned long millis()
@@ -40,45 +40,66 @@ bool fexists(const String filename) {
 	return (bool)ifile;
 }
 
-void openDebugFileIfReqd(const char* testName)
+void openDebugFileIfReqd(int testIdx, const char* testName, bool firstInRun, int& debugFileIdx)
 {
 	if (!__outOpen)
 	{
-		int fileCount = 0;
+		int fileCount = debugFileIdx;
 		while (true)
 		{
-			__outFileName = __outFileBase + testName + "_" + String::format("%05d", fileCount) + ".txt";
+			__outFileName = __outFileBase + String::format("%05d", fileCount) + "_" + String::format("%02d", testIdx) + "_" + testName + ".txt";
+			if (!firstInRun)
+				break;
 			if (!fexists(__outFileName))
 				break;
 			fileCount++;
 		}
+		debugFileIdx = fileCount;
 		__outFile.open(__outFileName);
 		__outOpen = true;
 	}
 }
 
+void digitalWriteFast(int pin, int val)
+{
+	digitalWrite(pin, val);
+}
+
 void digitalWrite(int pin, int val)
 {
-	if (pin == 17) pin = 2;
-	if (pin == 16) pin = 3;
-	if (pin == 15) pin = 4;
-	if (pin == 14) pin = 5;
 	// Ignore if it is a lowering of a step pin (to avoid end of test problem)
-	if ((val == 0) && (pin == 2 || pin == 4))
+	if ((val == 0) && (pin == 17 || pin == 15))
 		return;
 	// Ignore motor enable
-	if (pin == 12)
+	if (pin == 4)
 		return;
+	char* pinName = "st0";
+	if (pin == 16)
+		pinName = "dr0";
+	else if (pin == 15)
+		pinName = "st1";
+	else if (pin == 14)
+		pinName = "dr1";
 	// Dump
 	if (__outFile.is_open())
 	{
-		__outFile << "W\t" << __curMicros << "\t" << pin << "\t" << val << "\n";
+		__outFile << "W\t" << __curMicros << "\t" << pinName << "\t" << val << "\n";
 	}
 }
 
-void testStarting(const char* testName, const char* debugParams)
+void pinSetFast(int pin)
 {
-	openDebugFileIfReqd(testName);
+	digitalWrite(pin, 1);
+}
+
+void pinResetFast(int pin)
+{
+	digitalWrite(pin, 0);
+}
+
+void testStarting(int testIdx, const char* testName, const char* debugParams, bool firstInRun, int& debugFileIdx)
+{
+	openDebugFileIfReqd(testIdx, testName, firstInRun, debugFileIdx);
 	__outFile << debugParams << "\n\n";
 }
 
