@@ -245,6 +245,11 @@ void MotionHelper::service(bool processPipeline)
 
 	// Process any split-up blocks to be added to the pipeline
 	blocksToAddProcess();
+
+	// Service MotionIO
+	if (_motionPipeline.count() > 0)
+		_motionIO.motionIsActive();
+	_motionIO.service();
 }
 
 void MotionHelper::setCurPositionAsHome(AxisFloats& pt)

@@ -2,6 +2,7 @@
 
 #include "StepperMotor.h"
 #include "EndStop.h"
+#include "Utils.h"
 
 #ifndef SPARK
 #define BOUNDS_CHECK_ISR_FUNCTIONS 1
@@ -253,6 +254,18 @@ public:
 	unsigned long getLastActiveUnixTime()
 	{
 		return _motorEnLastUnixTime;
+	}
+
+	void motionIsActive()
+	{
+		enableMotors(true, false);
+	}
+
+	void service()
+	{
+		// Check for motor enable timeout
+		if (_motorsAreEnabled && Utils::isTimeout(millis(), _motorEnLastMillis, (unsigned long)(_stepDisableSecs * 1000)))
+				enableMotors(false, true);
 	}
 
 	void getRawMotionHwInfo(RobotConsts::RawMotionHwInfo_t& raw)
