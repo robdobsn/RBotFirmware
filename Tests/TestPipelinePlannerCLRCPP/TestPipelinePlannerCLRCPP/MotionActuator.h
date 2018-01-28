@@ -113,5 +113,4 @@ private:
 	static void _isrStepperMotion(void);
 #endif
 	void procTick();
-
 };

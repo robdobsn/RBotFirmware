@@ -563,9 +563,9 @@ public:
       }
     }
     // Log.trace("safeStringDup <%s> %d %d %d %d %d %d %d <%s>",
-              pSrc, maxx, toAlloc, srcStrlen, stringLen,
-              insideDoubleQuotes, insideSingleQuotes,
-              skipJSONWhitespace, pDest);
+    //          pSrc, maxx, toAlloc, srcStrlen, stringLen,
+    //          insideDoubleQuotes, insideSingleQuotes,
+    //          skipJSONWhitespace, pDest);
     return pDest;
   }
 

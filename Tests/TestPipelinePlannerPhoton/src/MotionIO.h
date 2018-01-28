@@ -227,7 +227,7 @@ public:
   void enableMotors(bool en, bool timeout)
   {
     // Log.trace("Enable %d, disable level %d, disable after time %0.2f", 
-									en, !_stepEnableActiveLevel, _stepDisableSecs);
+		//							en, !_stepEnableActiveLevel, _stepDisableSecs);
     if (en)
     {
       if (_stepEnablePin != -1)

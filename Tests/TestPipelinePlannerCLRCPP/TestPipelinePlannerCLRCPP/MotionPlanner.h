@@ -6,323 +6,330 @@
 //#define DEBUG_TEST_DUMP 1
 //#define DEBUG_MOTIONPLANNER_INFO 1
 #ifdef DEBUG_MOTIONPLANNER_INFO
-#define DEBUG_BLOCK_TO_DUMP_OR_MINUS1_FOR_ALL -1
+#define DEBUG_BLOCK_TO_DUMP_OR_MINUS1_FOR_ALL    -1
 #endif
 
 #include "MotionPipeline.h"
 
-typedef bool(*ptToActuatorFnType) (AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams);
-typedef void(*actuatorToPtFnType) (AxisFloats& actuatorCoords, AxisFloats& pt, AxesParams& axesParams);
-typedef void(*correctStepOverflowFnType) (AxesParams& axesParams);
+typedef bool (*ptToActuatorFnType) (AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams);
+typedef void (*actuatorToPtFnType) (AxisFloats& actuatorCoords, AxisFloats& pt, AxesParams& axesParams);
+typedef void (*correctStepOverflowFnType) (AxesParams& axesParams);
 
 class MotionPlanner
 {
 private:
-	// Minimum planner speed mm/s
-	float _minimumPlannerSpeedMMps;
-	// Junction deviation
-	float _junctionDeviation;
+  // Minimum planner speed mm/s
+  float _minimumPlannerSpeedMMps;
+  // Junction deviation
+  float _junctionDeviation;
 
-	// Structure to store details on last processed block
-	struct MotionBlockSequentialData
-	{
-		AxisFloats _unitVectors;
-		float _maxParamSpeedMMps;
-	};
-	// Data on previously processed block
-	bool _prevMotionBlockValid;
-	MotionBlockSequentialData _prevMotionBlock;
+  // Structure to store details on last processed block
+  struct MotionBlockSequentialData
+  {
+    AxisFloats _unitVectors;
+    float      _maxParamSpeedMMps;
+  };
+  // Data on previously processed block
+  bool _prevMotionBlockValid;
+  MotionBlockSequentialData _prevMotionBlock;
 
 public:
-	MotionPlanner()
-	{
-		_prevMotionBlockValid = false;
-		_minimumPlannerSpeedMMps = 0;
-		// Configure the motion pipeline - these values will be changed in config
-		_junctionDeviation = 0;
-	}
+  MotionPlanner()
+  {
+    _prevMotionBlockValid    = false;
+    _minimumPlannerSpeedMMps = 0;
+    // Configure the motion pipeline - these values will be changed in config
+    _junctionDeviation = 0;
+  }
 
-	void configure(float junctionDeviation)
-	{
-		_junctionDeviation = junctionDeviation;
-	}
+  void configure(float junctionDeviation)
+  {
+    _junctionDeviation = junctionDeviation;
+  }
 
-	// Entry point for adding a motion block
-	bool moveTo(RobotCommandArgs& args,
-		AxisFloats& destActuatorCoords,
-		AxisPosition& curAxisPositions,
-		AxesParams& axesParams, MotionPipeline& motionPipeline)
-	{
-		// Find axis deltas and sum of squares of motion on primary axes
-		float deltas[RobotConsts::MAX_AXES];
-		bool isAMove = false;
-		bool isAPrimaryMove = false;
-		float squareSum = 0;
-		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
-		{
-			deltas[axisIdx] = args.pt._pt[axisIdx] - curAxisPositions._axisPositionMM._pt[axisIdx];
-			if (deltas[axisIdx] != 0)
-			{
-				isAMove = true;
-				if (axesParams.isPrimaryAxis(axisIdx))
-				{
-					squareSum += powf(deltas[axisIdx], 2);
-					isAPrimaryMove = true;
-				}
-			}
-		}
+  // Entry point for adding a motion block
+  bool moveTo(RobotCommandArgs& args,
+              AxisFloats& destActuatorCoords,
+              AxisPosition& curAxisPositions,
+              AxesParams& axesParams, MotionPipeline& motionPipeline)
+  {
+    // Find axis deltas and sum of squares of motion on primary axes
+    float deltas[RobotConsts::MAX_AXES];
+    bool  isAMove        = false;
+    bool  isAPrimaryMove = false;
+    float squareSum      = 0;
+    for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+    {
+      deltas[axisIdx] = args.pt._pt[axisIdx] - curAxisPositions._axisPositionMM._pt[axisIdx];
+      if (deltas[axisIdx] != 0)
+      {
+        isAMove = true;
+        if (axesParams.isPrimaryAxis(axisIdx))
+        {
+          squareSum     += powf(deltas[axisIdx], 2);
+          isAPrimaryMove = true;
+        }
+      }
+    }
 
-		// Distance being moved
-		float moveDist = sqrtf(squareSum);
+    // Distance being moved
+    float moveDist = sqrtf(squareSum);
 
-		// Ignore if there is no real movement
-		if (!isAMove || moveDist < MotionBlock::MINIMUM_MOVE_DIST_MM)
-			return false;
+    // Ignore if there is no real movement
+    if (!isAMove || moveDist < MotionBlock::MINIMUM_MOVE_DIST_MM)
+      return false;
 
-		// Create a block for this movement which will end up on the pipeline
-		MotionBlock block;
+    // Create a block for this movement which will end up on the pipeline
+    MotionBlock block;
 
-		// Max speed (may be overridden downwards by feedrate)
-		float validFeedrateMMps = 1e8;
-		if (args.feedrateValid)
-			validFeedrateMMps = args.feedrateVal;
+    // Max speed (may be overridden downwards by feedrate)
+    float validFeedrateMMps = 1e8;
+    if (args.feedrateValid)
+      validFeedrateMMps = args.feedrateVal;
 
-		// Find the unit vectors for the primary axes and check the feedrate
-		AxisFloats unitVectors;
-		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
-		{
-			if (axesParams.isPrimaryAxis(axisIdx))
-			{
-				// Unit vector calculation
-				unitVectors._pt[axisIdx] = float(deltas[axisIdx] / moveDist);
+    // Find the unit vectors for the primary axes and check the feedrate
+    AxisFloats unitVectors;
+    for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+    {
+      if (axesParams.isPrimaryAxis(axisIdx))
+      {
+        // Unit vector calculation
+        unitVectors._pt[axisIdx] = float(deltas[axisIdx] / moveDist);
 
-				// Check the feedrate
-				float axisSpeedAtRequestedFeedrateMMps = fabsf(unitVectors._pt[axisIdx] * validFeedrateMMps);
-				float axisMaxSpeedMMps = axesParams.getMaxSpeed(axisIdx);
-				if (axisSpeedAtRequestedFeedrateMMps > axisMaxSpeedMMps)
-					validFeedrateMMps = fabsf(axisMaxSpeedMMps / unitVectors._pt[axisIdx]);
-			}
-		}
+        // Check the feedrate
+        float axisSpeedAtRequestedFeedrateMMps = fabsf(unitVectors._pt[axisIdx] * validFeedrateMMps);
+        float axisMaxSpeedMMps                 = axesParams.getMaxSpeed(axisIdx);
+        if (axisSpeedAtRequestedFeedrateMMps > axisMaxSpeedMMps)
+          validFeedrateMMps = fabsf(axisMaxSpeedMMps / unitVectors._pt[axisIdx]);
+      }
+    }
 
-		// Calculate move time
-		double reciprocalTime = validFeedrateMMps / moveDist;
-
-#ifdef DEBUG_MOTIONPLANNER_INFO
-		Log.trace("ValidatedFeedrate %0.3f, reciprocalTime %0.3f", validFeedrateMMps, reciprocalTime);
-#endif
-
-		// Store values in the block
-		block._feedrateMMps = float(validFeedrateMMps);
-		block._moveDistPrimaryAxesMM = float(moveDist);
-
-		// Find if there are any steps
-		bool hasSteps = false;
-		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
-		{
-			// Check if any steps to perform
-			float stepsFloat = destActuatorCoords._pt[axisIdx] - curAxisPositions._stepsFromHome.vals[axisIdx];
-			int32_t steps = int32_t(ceilf(stepsFloat));
-			if (steps != 0)
-				hasSteps = true;
-			// Value (and direction)
-			block.setStepsToTarget(axisIdx, steps);
-		}
-
-		// Check there are some actual steps
-		if (!hasSteps)
-			return false;
-
-		// If there is a prior block then compute the maximum speed at exit of the second block to keep
-		// the junction deviation within bounds - there are more comments in the Smoothieware (and GRBL) code
-		float junctionDeviation = _junctionDeviation;
-		float vmaxJunction = _minimumPlannerSpeedMMps;
-
-		// Invalidate the data stored for the prev element if the pipeline becomes empty
-		if (!motionPipeline.canGet())
-			_prevMotionBlockValid = false;
-
-		// Calculate the maximum speed for the junction between two blocks
-		if (isAPrimaryMove && _prevMotionBlockValid)
-		{
-			float prevParamSpeed = isAPrimaryMove ? _prevMotionBlock._maxParamSpeedMMps : 0;
-			if (junctionDeviation > 0.0f && prevParamSpeed > 0.0f)
-			{
-				// Compute cosine of angle between previous and current path. (prev_unit_vec is negative)
-				// NOTE: Max junction velocity is computed without sin() or acos() by trig half angle identity.
-				float cosTheta = -_prevMotionBlock._unitVectors.X() * unitVectors.X()
-					- _prevMotionBlock._unitVectors.Y() * unitVectors.Y()
-					- _prevMotionBlock._unitVectors.Z() * unitVectors.Z();
-
-				// Skip and use default max junction speed for 0 degree acute junction.
-				if (cosTheta < 0.95F) {
-					vmaxJunction = fminf(prevParamSpeed, block._feedrateMMps);
-					// Skip and avoid divide by zero for straight junctions at 180 degrees. Limit to min() of nominal speeds.
-					if (cosTheta > -0.95F) {
-						// Compute maximum junction velocity based on maximum acceleration and junction deviation
-						float sinThetaD2 = sqrtf(0.5F * (1.0F - cosTheta)); // Trig half angle identity. Always positive.
-						vmaxJunction = fminf(vmaxJunction, sqrtf(axesParams._masterAxisMaxAccMMps2 * junctionDeviation * sinThetaD2 / (1.0F - sinThetaD2)));
-					}
-				}
-			}
-		}
-		block._maxEntrySpeedMMps = vmaxJunction;
+    // Calculate move time
+    double reciprocalTime = validFeedrateMMps / moveDist;
 
 #ifdef DEBUG_MOTIONPLANNER_INFO
-		Log.trace("PrevMoveInQueue %d, JunctionDeviation %0.3f, VmaxJunction %0.3f", motionPipeline.canGet(), junctionDeviation, vmaxJunction);
+    Log.trace("ValidatedFeedrate %0.3f, reciprocalTime %0.3f", validFeedrateMMps, reciprocalTime);
 #endif
 
-		// Add the element to the pipeline and remember previous element
-		motionPipeline.add(block);
-		MotionBlockSequentialData prevBlockInfo;
-		prevBlockInfo._maxParamSpeedMMps = block._feedrateMMps;
-		prevBlockInfo._unitVectors = unitVectors;
-		_prevMotionBlock = prevBlockInfo;
-		_prevMotionBlockValid = true;
+    // Store values in the block
+    block._feedrateMMps          = float(validFeedrateMMps);
+    block._moveDistPrimaryAxesMM = float(moveDist);
 
-		// Recalculate the whole queue
-		recalculatePipeline(motionPipeline, axesParams);
+    // Find if there are any steps
+    bool hasSteps = false;
+    for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+    {
+      // Check if any steps to perform
+      float   stepsFloat = destActuatorCoords._pt[axisIdx] - curAxisPositions._stepsFromHome.vals[axisIdx];
+      int32_t steps      = int32_t(ceilf(stepsFloat));
+      if (steps != 0)
+        hasSteps = true;
+      // Value (and direction)
+      block.setStepsToTarget(axisIdx, steps);
+    }
 
-		// Return the change in actuator position
-		for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
-			curAxisPositions._stepsFromHome.setVal(axisIdx, curAxisPositions._stepsFromHome.getVal(axisIdx) + block.getStepsToTarget(axisIdx));
+    // Check there are some actual steps
+    if (!hasSteps)
+      return false;
 
-		return true;
-	}
+    // If there is a prior block then compute the maximum speed at exit of the second block to keep
+    // the junction deviation within bounds - there are more comments in the Smoothieware (and GRBL) code
+    float junctionDeviation = _junctionDeviation;
+    float vmaxJunction      = _minimumPlannerSpeedMMps;
 
-	void debugDumpQueue(const char* comStr, MotionPipeline& motionPipeline, unsigned int minQLen)
-	{
+    // Invalidate the data stored for the prev element if the pipeline becomes empty
+    if (!motionPipeline.canGet())
+      _prevMotionBlockValid = false;
+
+    // Calculate the maximum speed for the junction between two blocks
+    if (isAPrimaryMove && _prevMotionBlockValid)
+    {
+      float prevParamSpeed = isAPrimaryMove ? _prevMotionBlock._maxParamSpeedMMps : 0;
+      if (junctionDeviation > 0.0f && prevParamSpeed > 0.0f)
+      {
+        // Compute cosine of angle between previous and current path. (prev_unit_vec is negative)
+        // NOTE: Max junction velocity is computed without sin() or acos() by trig half angle identity.
+        float cosTheta = -_prevMotionBlock._unitVectors.X() * unitVectors.X()
+                         - _prevMotionBlock._unitVectors.Y() * unitVectors.Y()
+                         - _prevMotionBlock._unitVectors.Z() * unitVectors.Z();
+
+        // Skip and use default max junction speed for 0 degree acute junction.
+        if (cosTheta < 0.95F)
+        {
+          vmaxJunction = fminf(prevParamSpeed, block._feedrateMMps);
+          // Skip and avoid divide by zero for straight junctions at 180 degrees. Limit to min() of nominal speeds.
+          if (cosTheta > -0.95F)
+          {
+            // Compute maximum junction velocity based on maximum acceleration and junction deviation
+            // Trig half angle identity, always positive
+            float sinThetaD2 = sqrtf(0.5F * (1.0F - cosTheta));
+            vmaxJunction = fminf(vmaxJunction,
+                                 sqrtf(axesParams._masterAxisMaxAccMMps2 * junctionDeviation * sinThetaD2 /
+                                       (1.0F - sinThetaD2)));
+          }
+        }
+      }
+    }
+    block._maxEntrySpeedMMps = vmaxJunction;
+
+#ifdef DEBUG_MOTIONPLANNER_INFO
+    Log.trace("PrevMoveInQueue %d, JunctionDeviation %0.3f, VmaxJunction %0.3f",
+              motionPipeline.canGet(), junctionDeviation, vmaxJunction);
+#endif
+
+    // Add the element to the pipeline and remember previous element
+    motionPipeline.add(block);
+    MotionBlockSequentialData prevBlockInfo;
+    prevBlockInfo._maxParamSpeedMMps = block._feedrateMMps;
+    prevBlockInfo._unitVectors       = unitVectors;
+    _prevMotionBlock                 = prevBlockInfo;
+    _prevMotionBlockValid            = true;
+
+    // Recalculate the whole queue
+    recalculatePipeline(motionPipeline, axesParams);
+
+    // Return the change in actuator position
+    for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+      curAxisPositions._stepsFromHome.setVal(axisIdx,
+                                             curAxisPositions._stepsFromHome.getVal(axisIdx) + block.getStepsToTarget(axisIdx));
+
+    return true;
+  }
+
+  void debugDumpQueue(const char* comStr, MotionPipeline& motionPipeline, unsigned int minQLen)
+  {
 #ifdef DEBUG_TEST_DUMP
-		if (minQLen != -1 && motionPipeline.count() != minQLen)
-			return;
-		int curIdx = 0;
-		while (MotionBlock* pCurBlock = motionPipeline.peekNthFromGet(curIdx))
-		{
-			Log.trace("%s #%d En %0.3f Ex %0.3f (maxEntry %0.3f, maxParam %0.3f)", comStr, curIdx,
-				pCurBlock->_entrySpeedMMps, pCurBlock->_exitSpeedMMps,
-				pCurBlock->_maxEntrySpeedMMps, pCurBlock->_feedrateMMps);
-			// Next
-			curIdx++;
-		}
+    if (minQLen != -1 && motionPipeline.count() != minQLen)
+      return;
+    int curIdx = 0;
+    while (MotionBlock* pCurBlock = motionPipeline.peekNthFromGet(curIdx))
+    {
+      Log.trace("%s #%d En %0.3f Ex %0.3f (maxEntry %0.3f, maxParam %0.3f)", comStr, curIdx,
+                pCurBlock->_entrySpeedMMps, pCurBlock->_exitSpeedMMps,
+                pCurBlock->_maxEntrySpeedMMps, pCurBlock->_feedrateMMps);
+      // Next
+      curIdx++;
+    }
 #endif
-	}
+  }
 
-	void recalculatePipeline(MotionPipeline& motionPipeline, AxesParams& axesParams)
-	{
-		// The last block in the pipe (most recently added) will have zero exit speed
-		// For each block, walking backwards in the queue :
-		//    We know the desired exit speed so calculate the entry speed using v^2 = u^2 + 2*a*s
-		//    Set the exit speed for the previous block from this entry speed
-		// Then walk forward in the queue starting with the first block that can be changed:
-		//    Set the entry speed from the previous block (or to 0 if none)
-		//    Calculate the max possible exit speed for the block using the same formula as above
-		//    Set the entry speed for the next block using this exit speed
-		// Finally prepare the block for stepper motor actuation
+  void recalculatePipeline(MotionPipeline& motionPipeline, AxesParams& axesParams)
+  {
+    // The last block in the pipe (most recently added) will have zero exit speed
+    // For each block, walking backwards in the queue :
+    //    We know the desired exit speed so calculate the entry speed using v^2 = u^2 + 2*a*s
+    //    Set the exit speed for the previous block from this entry speed
+    // Then walk forward in the queue starting with the first block that can be changed:
+    //    Set the entry speed from the previous block (or to 0 if none)
+    //    Calculate the max possible exit speed for the block using the same formula as above
+    //    Set the entry speed for the next block using this exit speed
+    // Finally prepare the block for stepper motor actuation
 
 #ifdef DEBUG_MOTIONPLANNER_INFO
-		Log.trace("^^^^^^^^^^^^^^^^^^^^^^^BEFORE RECALC^^^^^^^^^^^^^^^^^^^^^^^^");
-		motionPipeline.debugShowBlocks(axesParams);
+    Log.trace("^^^^^^^^^^^^^^^^^^^^^^^BEFORE RECALC^^^^^^^^^^^^^^^^^^^^^^^^");
+    motionPipeline.debugShowBlocks(axesParams);
 #endif
 
-		// Iterate the block queue in backwards time order stopping at the first block that has its recalculateFlag false
-		int blockIdx = 0;
-		int earliestBlockToReprocess = -1;
-		float previousBlockExitSpeed = 0;
-		float followingBlockEntrySpeed = 0;
-		uint32_t previousBlockExitStepRatePerTTicks;
-		MotionBlock* pBlock = NULL;
-		MotionBlock* pFollowingBlock = NULL;
-		while (true)
-		{
-			// Get the block at current index
-			pBlock = motionPipeline.peekNthFromPut(blockIdx);
-			if (pBlock == NULL)
-				break;
+    // Iterate the block queue in backwards time order stopping at the first block that has its recalculateFlag false
+    int        blockIdx                 = 0;
+    int        earliestBlockToReprocess = -1;
+    float      previousBlockExitSpeed   = 0;
+    float      followingBlockEntrySpeed = 0;
+    uint32_t   previousBlockExitStepRatePerTTicks;
+    MotionBlock* pBlock          = NULL;
+    MotionBlock* pFollowingBlock = NULL;
+    while (true)
+    {
+      // Get the block at current index
+      pBlock = motionPipeline.peekNthFromPut(blockIdx);
+      if (pBlock == NULL)
+        break;
 
-			// Stop if we don't need to recalculate beyond here or if this block is already executing
-			if (pBlock->_isExecuting)
-			{
-				// Get the exit speed from this executing block to use as the entry speed when going forwards
-				previousBlockExitSpeed = pBlock->_exitSpeedMMps;
-				previousBlockExitStepRatePerTTicks = pBlock->getExitStepRatePerTTicks();
-				break;
-			}
+      // Stop if we don't need to recalculate beyond here or if this block is already executing
+      if (pBlock->_isExecuting)
+      {
+        // Get the exit speed from this executing block to use as the entry speed when going forwards
+        previousBlockExitSpeed             = pBlock->_exitSpeedMMps;
+        previousBlockExitStepRatePerTTicks = pBlock->getExitStepRatePerTTicks();
+        break;
+      }
 
-			// If entry speed is already at the maximum entry speed then we can stop here as no further changes are
-			// going to be made by going back further
-			if (pBlock->_entrySpeedMMps == pBlock->_maxEntrySpeedMMps && blockIdx > 1)
-			{
+      // If entry speed is already at the maximum entry speed then we can stop here as no further changes are
+      // going to be made by going back further
+      if (pBlock->_entrySpeedMMps == pBlock->_maxEntrySpeedMMps && blockIdx > 1)
+      {
 #ifdef DEBUG_MOTIONPLANNER_INFO
-				Log.trace("++++++++++++++++++++++++++++++ Optimizing block %d, prevSpeed %0.3f", blockIdx, pBlock->_exitSpeedMMps);
+        Log.trace("++++++++++++++++++++++++++++++ Optimizing block %d, prevSpeed %0.3f", blockIdx, pBlock->_exitSpeedMMps);
 #endif
-				//Get the exit speed from this block to use as the entry speed when going forwards
-				previousBlockExitSpeed = pBlock->_exitSpeedMMps;
-				previousBlockExitStepRatePerTTicks = pBlock->getExitStepRatePerTTicks();
-				break;
-			}
+        //Get the exit speed from this block to use as the entry speed when going forwards
+        previousBlockExitSpeed             = pBlock->_exitSpeedMMps;
+        previousBlockExitStepRatePerTTicks = pBlock->getExitStepRatePerTTicks();
+        break;
+      }
 
-			// If there was a following block (remember we're working backwards) then now set the entry speed
-			if (pFollowingBlock)
-			{
-				
-				// Assume for now that that whole block will be deceleration and calculate the max speed we can enter to be able to slow
-				// to the exit speed required
-				float maxEntrySpeed = MotionBlock::maxAchievableSpeed(axesParams._masterAxisMaxAccMMps2, pFollowingBlock->_exitSpeedMMps, pFollowingBlock->_moveDistPrimaryAxesMM);
-				pFollowingBlock->_entrySpeedMMps = fminf(maxEntrySpeed, pFollowingBlock->_maxEntrySpeedMMps);
+      // If there was a following block (remember we're working backwards) then now set the entry speed
+      if (pFollowingBlock)
+      {
+        // Assume for now that that whole block will be deceleration and calculate the max speed we can enter to be able to slow
+        // to the exit speed required
+        float maxEntrySpeed = MotionBlock::maxAchievableSpeed(axesParams._masterAxisMaxAccMMps2,
+                                    pFollowingBlock->_exitSpeedMMps, pFollowingBlock->_moveDistPrimaryAxesMM);
+        pFollowingBlock->_entrySpeedMMps = fminf(maxEntrySpeed, pFollowingBlock->_maxEntrySpeedMMps);
 
-				// Remember entry speed (to use as exit speed in the next loop)
-				followingBlockEntrySpeed = pFollowingBlock->_entrySpeedMMps;
-			}
+        // Remember entry speed (to use as exit speed in the next loop)
+        followingBlockEntrySpeed = pFollowingBlock->_entrySpeedMMps;
+      }
 
-			// Remember the following block for the next pass
-			pFollowingBlock = pBlock;
+      // Remember the following block for the next pass
+      pFollowingBlock = pBlock;
 
-			// Set the block's exit speed to the entry speed of the block after this one
-			pBlock->_exitSpeedMMps = followingBlockEntrySpeed;
+      // Set the block's exit speed to the entry speed of the block after this one
+      pBlock->_exitSpeedMMps = followingBlockEntrySpeed;
 
-			// Remember this as the earliest block to reprocess when going forwards
-			earliestBlockToReprocess = blockIdx;
+      // Remember this as the earliest block to reprocess when going forwards
+      earliestBlockToReprocess = blockIdx;
 
-			// Next
-			blockIdx++;
-		}
+      // Next
+      blockIdx++;
+    }
 
-		// Now iterate in forward time order
-		for (blockIdx = earliestBlockToReprocess; blockIdx >= 0; blockIdx--)
-		{
-			// Get the block to calculate for
-			pBlock = motionPipeline.peekNthFromPut(blockIdx);
-			if (!pBlock)
-				break;
+    // Now iterate in forward time order
+    for (blockIdx = earliestBlockToReprocess; blockIdx >= 0; blockIdx--)
+    {
+      // Get the block to calculate for
+      pBlock = motionPipeline.peekNthFromPut(blockIdx);
+      if (!pBlock)
+        break;
 
-			// Set the entry speed to the previous block exit speed
-			// if (pBlock->_entrySpeedMMps > previousBlockExitSpeed)
-			pBlock->_entrySpeedMMps = previousBlockExitSpeed;
+      // Set the entry speed to the previous block exit speed
+      // if (pBlock->_entrySpeedMMps > previousBlockExitSpeed)
+      pBlock->_entrySpeedMMps = previousBlockExitSpeed;
 
-			// Calculate maximum speed possible for the block - based on acceleration at the best rate
-			float maxExitSpeed = pBlock->maxAchievableSpeed(axesParams._masterAxisMaxAccMMps2, pBlock->_entrySpeedMMps, pBlock->_moveDistPrimaryAxesMM);
-			pBlock->_exitSpeedMMps = fminf(maxExitSpeed, pBlock->_exitSpeedMMps);
+      // Calculate maximum speed possible for the block - based on acceleration at the best rate
+      float maxExitSpeed = pBlock->maxAchievableSpeed(axesParams._masterAxisMaxAccMMps2,
+                                    pBlock->_entrySpeedMMps, pBlock->_moveDistPrimaryAxesMM);
+      pBlock->_exitSpeedMMps = fminf(maxExitSpeed, pBlock->_exitSpeedMMps);
 
-			// Remember for next block
-			previousBlockExitSpeed = pBlock->_exitSpeedMMps;
-		}
+      // Remember for next block
+      previousBlockExitSpeed = pBlock->_exitSpeedMMps;
+    }
 
-		// Recalculate trapezoid for blocks that need it
-		for (blockIdx = earliestBlockToReprocess; blockIdx >= 0; blockIdx--)
-		{
-			// Get the block to calculate for
-			pBlock = motionPipeline.peekNthFromPut(blockIdx);
-			if (!pBlock)
-				break;
+    // Recalculate trapezoid for blocks that need it
+    for (blockIdx = earliestBlockToReprocess; blockIdx >= 0; blockIdx--)
+    {
+      // Get the block to calculate for
+      pBlock = motionPipeline.peekNthFromPut(blockIdx);
+      if (!pBlock)
+        break;
 
-			// Prepare this block for stepping
-			pBlock->prepareForStepping(axesParams, previousBlockExitStepRatePerTTicks);
-			previousBlockExitStepRatePerTTicks = pBlock->getExitStepRatePerTTicks();
-		}
+      // Prepare this block for stepping
+      pBlock->prepareForStepping(axesParams, previousBlockExitStepRatePerTTicks);
+      previousBlockExitStepRatePerTTicks = pBlock->getExitStepRatePerTTicks();
+    }
 
 #ifdef DEBUG_MOTIONPLANNER_INFO
-			Log.trace(".................AFTER RECALC.......................");
-			motionPipeline.debugShowBlocks(axesParams);
+    Log.trace(".................AFTER RECALC.......................");
+    motionPipeline.debugShowBlocks(axesParams);
 #endif
-
-	}
+  }
 };

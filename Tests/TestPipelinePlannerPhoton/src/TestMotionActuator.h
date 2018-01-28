@@ -59,16 +59,8 @@ public:
 
   void addToQueue(int pin, int val)
   {
-    if (pin == 17)
-      pin = 2;
-    if (pin == 16)
-      pin = 3;
-    if (pin == 15)
-      pin = 4;
-    if (pin == 14)
-      pin = 5;
     // Ignore if it is a lowering of a step pin (to avoid end of test problem)
-    if ((val == 0) && (pin == 2 || pin == 4))
+    if ((val == 0) && (pin == 17 || pin == 15))
       return;
     if (_stepBufPos.canPut())
     {

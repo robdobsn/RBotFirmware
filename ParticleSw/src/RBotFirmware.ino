@@ -80,7 +80,7 @@ unsigned long configDirtyStartMs = 0;
 // rotary axis 1/16 microstepping
 static const char* ROBOT_CONFIG_STR_MUGBOT_PIHAT_1_1 =
     "{\"robotType\": \"MugBot\", \"xMaxMM\":150, \"yMaxMM\":120,"
-    "\"cmdsAtStart\":\"G28\","
+    "\"cmdsAtStart\":\"\","
     "\"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":60.0,"
     "\"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":50.0, \"maxAcc\":20.0,"
     "\"stepsPerRotation\":6400, \"unitsPerRotation\":360, \"minVal\":-360, \"maxVal\":360},"

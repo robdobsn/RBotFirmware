@@ -144,11 +144,11 @@ void MotionActuator::procTick()
 		if (_curStepCount[pBlock->_axisIdxWithMaxSteps] > pBlock->_stepsBeforeDecel)
 		{
 			//Log.trace("Decel Steps/s %ld Accel %ld", axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS);
-			if (_curStepRatePerTTicks > std::max(MIN_STEP_RATE_PER_TTICKS + pBlock->_accStepsPerTTicksPerMS, pBlock->_finalStepRatePerTTicks + pBlock->_accStepsPerTTicksPerMS))
+      if (_curStepRatePerTTicks > std::max(MIN_STEP_RATE_PER_TTICKS + pBlock->_accStepsPerTTicksPerMS,
+                                           pBlock->_finalStepRatePerTTicks + pBlock->_accStepsPerTTicksPerMS))
 				_curStepRatePerTTicks -= pBlock->_accStepsPerTTicksPerMS;
 			//else
 			//	Log.trace("Didn't sub acceleration");
-
 		}
 		else if (_curStepRatePerTTicks < pBlock->_maxStepRatePerTTicks)
 		{
@@ -189,7 +189,6 @@ void MotionActuator::procTick()
 			if (_pTestMotionActuator)
 				_pTestMotionActuator->stepStart(axisIdxMaxSteps);
 #endif
-
 		}
 
 		// Check if other axes need stepping
@@ -220,7 +219,6 @@ void MotionActuator::procTick()
 					_pTestMotionActuator->stepStart(axisIdx);
 #endif
 			}
-
 		}
 
 		// Any axes still moving?

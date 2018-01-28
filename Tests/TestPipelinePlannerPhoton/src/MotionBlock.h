@@ -3,11 +3,6 @@
 
 #pragma once
 
-//#define USE_OLD_WAY_FOR_ENTRY_SPEED 1
-#ifdef _DEBUG
-//#define DEBUG_CLEAR_BLOCK_FOR_CLARITY 1
-#endif
-
 #include "math.h"
 #include "AxisValues.h"
 #include "AxesParams.h"

@@ -8,12 +8,12 @@
 class AxisPosition
 {
 public:
-	AxisFloats _axisPositionMM;
-	AxisInt32s _stepsFromHome;
+  AxisFloats _axisPositionMM;
+  AxisInt32s _stepsFromHome;
 
-	void clear()
-	{
-		_axisPositionMM.set(0, 0, 0);
-		_stepsFromHome.set(0, 0, 0);
-	}
+  void clear()
+  {
+    _axisPositionMM.set(0, 0, 0);
+    _stepsFromHome.set(0, 0, 0);
+  }
 };
