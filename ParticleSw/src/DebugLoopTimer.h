@@ -62,7 +62,7 @@ public:
             {
                 double avg = 0;
                 avg = (1.0 * _loopTimeAvgSum) / _loopTimeAvgCount;
-                avgStr = String::format("%0.3fus", avg);
+                avgStr = String::format("%0.0fus", avg);
             }
 
             // Find slowest loop activity
@@ -74,7 +74,7 @@ public:
                     curSlowestIdx = i;
             }
             if (_blockMaxTime[curSlowestIdx] != 0)
-                slowestStr = String::format(" Slowest %s %0.3fus",
+                slowestStr = String::format(" Slowest %s %0.0fus",
                         _blockName[curSlowestIdx].c_str(), _blockMaxTime[curSlowestIdx] * 1.0);
 
             // Second slowest
@@ -85,12 +85,12 @@ public:
                     cur2ndSlowestIdx = i;
             }
             if (_blockMaxTime[cur2ndSlowestIdx] != 0)
-                slowestStr += String::format(", %s %0.3fus",
+                slowestStr += String::format(", %s %0.fus",
                         _blockName[cur2ndSlowestIdx].c_str(), _blockMaxTime[cur2ndSlowestIdx] * 1.0);
 
             String programInfoStr;
             _infoStrCallback(programInfoStr);
-            Log.info("%09ld Loop Avg %s Max %0.3fus Min %0.3fus%s%s", micros(),
+            Log.info("%09lu Avg %s Max %0.0fus Min %0.0fus%s%s", micros(),
                         avgStr.c_str(), _loopTimeMax*1.0, _loopTimeMin*1.0,
                         slowestStr.c_str(),
                         programInfoStr.c_str());
