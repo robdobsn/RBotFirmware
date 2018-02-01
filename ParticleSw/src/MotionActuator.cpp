@@ -16,6 +16,8 @@ IntervalTimer MotionActuator::_isrMotionTimer;
 // Static refrerence to a single MotionActuator instance
 MotionActuator* MotionActuator::_pMotionActuatorInstance = NULL;
 
+// Function that handles ISR calls based on a timer
+// When ISR is enabled this is called every MotionBlock::TICK_INTERVAL_NS nanoseconds
 void MotionActuator::_isrStepperMotion(void)
 {
   // Test code if enabled
@@ -41,6 +43,7 @@ void MotionActuator::_isrStepperMotion(void)
 
 #endif
 
+// Process method called by main program loop
 void MotionActuator::process()
 {
   // If not using ISR call procTick on every process call
@@ -55,9 +58,11 @@ void MotionActuator::process()
 #endif
 }
 
+// procTick method called either by ISR or via the main program loop
+// Handles all motor movement
 void MotionActuator::procTick()
 {
-  // Log.trace("MotionActuator: procTick");
+  // Log.trace("MotionActuator: procTick, paused %d, qLen %d", _isPaused, _motionPipeline.count());
 
   // Check if paused
   if (_isPaused)
@@ -82,7 +87,10 @@ void MotionActuator::procTick()
     pAxisInfo->_pinStepCurLevel = 0;
   }
   if (anyPinReset)
+  {
+    // Log.info("MotionActuator: ResetPin return");
     return;
+  }
 
   // Peek a MotionPipelineElem from the queue
   MotionBlock* pBlock = _motionPipeline.peekGet();
@@ -91,7 +99,10 @@ void MotionActuator::procTick()
 
   // Check if the element can be executed
   if (!pBlock->_canExecute)
+  {
+    // Log.info("MotionActuator: No exec return");
     return;
+  }
 
   // See if the block was already executing and set isExecuting if not
   bool newBlock = !pBlock->_isExecuting;
@@ -127,8 +138,9 @@ void MotionActuator::procTick()
     // Step rate
     _curStepRatePerTTicks = pBlock->_initialStepRatePerTTicks;
 
-    // Log.trace("MotionActuator: New Block XSt %ld, YSt %ld, ZSt %ld, initRt %ld, maxRt %ld, endRt %ld, acc %ld",
+    // Log.info("MotionActuator: New Block XSt %ld, YSt %ld, ZSt %ld, MaxStpAx %d, initRt %ld, maxRt %ld, endRt %ld, acc %ld",
     //             _stepsTotalAbs[0], _stepsTotalAbs[1], _stepsTotalAbs[2],
+    //             pBlock->_axisIdxWithMaxSteps,
     //             pBlock->_initialStepRatePerTTicks,
     //             pBlock->_maxStepRatePerTTicks,
     //             pBlock->_finalStepRatePerTTicks,
@@ -152,14 +164,14 @@ void MotionActuator::procTick()
     // Check if decelerating
     if (_curStepCount[pBlock->_axisIdxWithMaxSteps] > pBlock->_stepsBeforeDecel)
     {
-      //Log.trace("MotionActuator: Decel Steps/s %ld Accel %ld", axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS);
+      // Log.info("MotionActuator: Decel Steps/s %ld Accel %ld", _curStepRatePerTTicks, pBlock->_accStepsPerTTicksPerMS);
       if (_curStepRatePerTTicks > std::max(MIN_STEP_RATE_PER_TTICKS + pBlock->_accStepsPerTTicksPerMS,
                                            pBlock->_finalStepRatePerTTicks + pBlock->_accStepsPerTTicksPerMS))
         _curStepRatePerTTicks -= pBlock->_accStepsPerTTicksPerMS;
     }
     else if (_curStepRatePerTTicks < pBlock->_maxStepRatePerTTicks)
     {
-      //Log.trace("MotionActuator: Accel Steps/s %ld Accel %ld", axisExecData._curStepRatePerKTicks, axisExecData._accStepsPerKTicksPerMS);
+      // Log.info("MotionActuator: Accel Steps/s %ld Accel %ld", _curStepRatePerTTicks, pBlock->_accStepsPerTTicksPerMS);
       if (_curStepRatePerTTicks + pBlock->_accStepsPerTTicksPerMS < MotionBlock::TTICKS_VALUE)
         _curStepRatePerTTicks += pBlock->_accStepsPerTTicksPerMS;
     }
@@ -182,6 +194,7 @@ void MotionActuator::procTick()
     {
       // Step this axis
       RobotConsts::RawMotionAxis_t* pAxisInfo = &_rawMotionHwInfo._axis[axisIdxMaxSteps];
+      // Log.info("pinSetFast: %d (ax %d major)", pAxisInfo->_pinStep, axisIdxMaxSteps);
       if (pAxisInfo->_pinStep != -1)
         pinSetFast(pAxisInfo->_pinStep);
       pAxisInfo->_pinStepCurLevel = 1;
@@ -213,6 +226,7 @@ void MotionActuator::procTick()
         RobotConsts::RawMotionAxis_t* pAxisInfo = &_rawMotionHwInfo._axis[axisIdx];
         if (pAxisInfo->_pinStep != -1)
           pinSetFast(pAxisInfo->_pinStep);
+//        Log.trace("pinSetFast: %d (ax %d)", pAxisInfo->_pinStep, axisIdx);
         pAxisInfo->_pinStepCurLevel = 1;
         _curStepCount[axisIdx]++;
         if (_curStepCount[axisIdx] < _stepsTotalAbs[axisIdx])
@@ -231,6 +245,7 @@ void MotionActuator::procTick()
     {
       // If not this block is complete
       _motionPipeline.remove();
+      // Log.info("Block done");
     }
   }
 }

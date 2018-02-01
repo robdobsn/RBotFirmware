@@ -31,7 +31,7 @@ SYSTEM_THREAD(ENABLED);
 
 // Application info
 static const char* APPLICATION_NAME = "RBotFirmware";
-SerialLogHandler logHandler(LOG_LEVEL_TRACE);
+SerialLogHandler logHandler(LOG_LEVEL_INFO);
 
 // Robot controller
 RobotController _robotController;
@@ -75,19 +75,18 @@ static const unsigned long MAX_MS_CONFIG_DIRTY = 10000;
 unsigned long configDirtyStartMs = 0;
 #define WRITE_TO_EEPROM_ENABLED 1
 
-// Mugbot on PiHat 1.1
-// linear axis 1/8 microstepping,
-// rotary axis 1/16 microstepping
-static const char* ROBOT_CONFIG_STR_MUGBOT_PIHAT_1_1 =
+// Mugbot on PiHat 2.0
+// 1/16 microstepping
+static const char* ROBOT_CONFIG_STR_MUGBOT =
     "{\"robotType\": \"MugBot\", \"xMaxMM\":150, \"yMaxMM\":120,"
     "\"cmdsAtStart\":\"\","
-    "\"stepEnablePin\":\"D4\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":60.0,"
-    "\"axis0\": { \"stepPin\": \"A7\", \"dirnPin\":\"A6\", \"maxSpeed\":50.0, \"maxAcc\":20.0,"
+    "\"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":60.0,"
+    "\"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":50.0, \"maxAcc\":20.0,"
     "\"stepsPerRotation\":6400, \"unitsPerRotation\":360, \"minVal\":-360, \"maxVal\":360},"
-    "\"axis1\": { \"stepPin\": \"A5\", \"dirnPin\":\"A4\", \"maxSpeed\":75.0, \"maxAcc\":25.0,"
-    "\"stepsPerRotation\":1600, \"unitsPerRotation\":1.0, \"minVal\":0, \"maxVal\":100,"
+    "\"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":75.0, \"maxAcc\":25.0,"
+    "\"stepsPerRotation\":3200, \"unitsPerRotation\":1.0, \"minVal\":0, \"maxVal\":100,"
     "\"homeOffsetVal\": 100,"
-    "\"endStop0\": { \"sensePin\": \"D7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
+    "\"endStop0\": { \"sensePin\": \"A6\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
     "\"axis2\": { \"servoPin\": \"D0\", \"isServoAxis\": 1, \"isPrimaryAxis\": 0, \"homeOffsetVal\": 180, \"homeOffsetSteps\": 2500,"
     "\"minVal\":0, \"maxVal\":180, \"stepsPerRotation\":2000, \"unitsPerRotation\":360 },"
     "}";
@@ -128,16 +127,16 @@ static const char* ROBOT_CONFIG_STR_MUGBOT_PIHAT_1_1 =
 //     " \"stepsPerRotation\":3200, \"unitsPerRotation\":62}"
 //     "}";
 
-// static const char* ROBOT_CONFIG_STR_XY =
-//     "{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, "
-//     " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
-//     " \"cmdsAtStart\":\"\", "
-//     " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":100.0, \"maxAcc\":10.0,"
-//     " \"stepsPerRotation\":3200, \"unitsPerRotation\":60},"
-//     " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":100.0, \"maxAcc\":10.0,"
-//     " \"stepsPerRotation\":3200, \"unitsPerRotation\":60},"
-//     " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
-//     "}";
+static const char* ROBOT_CONFIG_STR_XY =
+    "{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, "
+    " \"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":1.0,"
+    " \"cmdsAtStart\":\"\", "
+    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":100.0, \"maxAcc\":10.0,"
+    " \"stepsPerRotation\":3200, \"unitsPerRotation\":32},"
+    " \"axis1\": { \"stepPin\": \D4\", \"dirnPin\":\"D5\", \"maxSpeed\":100.0, \"maxAcc\":10.0,"
+    " \"stepsPerRotation\":3200, \"unitsPerRotation\":32},"
+    " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
+    "}";
 
 static const char* ROBOT_DEFAULT_SEQUENCE_COMMANDS =
     "{}";
@@ -151,7 +150,7 @@ static const char* ROBOT_DEFAULT_PATTERN_COMMANDS =
     "  }"
     "}";*/
 
-static const char* ROBOT_CONFIG_STR = ROBOT_CONFIG_STR_MUGBOT_PIHAT_1_1;
+static const char* ROBOT_CONFIG_STR = ROBOT_CONFIG_STR_MUGBOT;
 
 // Post settings information via API
 void restAPI_PostSettings(RestAPIEndpointMsg& apiMsg, String& retStr)

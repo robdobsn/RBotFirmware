@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import json
 import glob
 
-testRunIdx = 1
+testRunIdx = 0
 
 fileNameTemplate = "../TestOutputData/PipelinePlanner/steps_" + "{0:0>5}".format(testRunIdx) + "_*.txt"
 

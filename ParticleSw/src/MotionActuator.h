@@ -4,7 +4,7 @@
 #pragma once
 
 #ifdef SPARK
-//#define USE_SPARK_INTERVAL_TIMER_ISR    1
+#define USE_SPARK_INTERVAL_TIMER_ISR    1
 #endif
 
 #include "application.h"

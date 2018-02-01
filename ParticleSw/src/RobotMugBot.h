@@ -38,9 +38,9 @@ public:
             actuatorCoords.setVal(axisIdx, axisValFromHome * axesParams.getStepsPerUnit(axisIdx)
                             + axesParams.getHomeOffsetSteps(axisIdx));
 
-            Log.trace("ptToActuator %f -> %f (homeOffVal %f, homeOffSteps %ld)",
-                    pt.getVal(axisIdx), actuatorCoords._pt[axisIdx],
-                    axesParams.getHomeOffsetVal(axisIdx), axesParams.getHomeOffsetSteps(axisIdx));
+            // Log.info("ptToActuator %f -> %f (homeOffVal %f, homeOffSteps %ld)",
+            //         pt.getVal(axisIdx), actuatorCoords._pt[axisIdx],
+            //         axesParams.getHomeOffsetVal(axisIdx), axesParams.getHomeOffsetSteps(axisIdx));
         }
         return ptWasValid;
     }
@@ -53,8 +53,8 @@ public:
             float ptVal = actuatorCoords.getVal(axisIdx) - axesParams.getHomeOffsetSteps(axisIdx);
             ptVal = ptVal / axesParams.getStepsPerUnit(axisIdx) + axesParams.getHomeOffsetVal(axisIdx);
             pt.setVal(axisIdx, ptVal);
-            Log.trace("actuatorToPt %d %f -> %f (perunit %f)", axisIdx, actuatorCoords.getVal(axisIdx),
-                            ptVal, axesParams.getStepsPerUnit(axisIdx));
+            // Log.info("actuatorToPt %d %f -> %f (perunit %f)", axisIdx, actuatorCoords.getVal(axisIdx),
+            //                 ptVal, axesParams.getStepsPerUnit(axisIdx));
         }
     }
 
@@ -114,6 +114,9 @@ public:
 
         // Init motion controller from config
         _motionHelper.configure(robotConfigStr);
+
+        // Set current position to be home (will be overridden when we do homing)
+        _motionHelper.setCurPositionAsHome(true, true, true);
 
         // Get params specific to this robot
         _maxHomingSecs = RdJson::getLong("maxHomingSecs", maxHomingSecs_default, robotConfigStr);

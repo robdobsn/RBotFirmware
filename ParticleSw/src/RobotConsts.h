@@ -24,8 +24,17 @@ struct RawMotionAxis_t
   int                     _pinEndStopMax;
   bool                    _pinEndStopMaxActiveLevel;
 };
-struct RawMotionHwInfo_t
+class RawMotionHwInfo_t
 {
+public:
   RawMotionAxis_t _axis[RobotConsts::MAX_AXES];
+
+  RawMotionHwInfo_t operator=(RawMotionHwInfo_t& other)
+  {
+    for (int i = 0; i < RobotConsts::MAX_AXES; i++)
+    {
+      _axis[i] = other._axis[i];
+    }
+  }
 };
 };

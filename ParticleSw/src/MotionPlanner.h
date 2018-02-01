@@ -108,7 +108,7 @@ public:
     double reciprocalTime = validFeedrateMMps / moveDist;
 
 #ifdef DEBUG_MOTIONPLANNER_INFO
-    Log.trace("ValidatedFeedrate %0.3f, reciprocalTime %0.3f", validFeedrateMMps, reciprocalTime);
+    Log.info("ValidatedFeedrate %0.3f, reciprocalTime %0.3f", validFeedrateMMps, reciprocalTime);
 #endif
 
     // Store values in the block
@@ -173,7 +173,7 @@ public:
     block._maxEntrySpeedMMps = vmaxJunction;
 
 #ifdef DEBUG_MOTIONPLANNER_INFO
-    Log.trace("PrevMoveInQueue %d, JunctionDeviation %0.3f, VmaxJunction %0.3f",
+    Log.info("PrevMoveInQueue %d, JunctionDeviation %0.3f, VmaxJunction %0.3f",
               motionPipeline.canGet(), junctionDeviation, vmaxJunction);
 #endif
 
@@ -204,7 +204,7 @@ public:
     int curIdx = 0;
     while (MotionBlock* pCurBlock = motionPipeline.peekNthFromGet(curIdx))
     {
-      Log.trace("%s #%d En %0.3f Ex %0.3f (maxEntry %0.3f, maxParam %0.3f)", comStr, curIdx,
+      Log.info("%s #%d En %0.3f Ex %0.3f (maxEntry %0.3f, maxParam %0.3f)", comStr, curIdx,
                 pCurBlock->_entrySpeedMMps, pCurBlock->_exitSpeedMMps,
                 pCurBlock->_maxEntrySpeedMMps, pCurBlock->_feedrateMMps);
       // Next
@@ -226,7 +226,7 @@ public:
     // Finally prepare the block for stepper motor actuation
 
 #ifdef DEBUG_MOTIONPLANNER_INFO
-    Log.trace("^^^^^^^^^^^^^^^^^^^^^^^BEFORE RECALC^^^^^^^^^^^^^^^^^^^^^^^^");
+    Log.info("^^^^^^^^^^^^^^^^^^^^^^^BEFORE RECALC^^^^^^^^^^^^^^^^^^^^^^^^");
     motionPipeline.debugShowBlocks(axesParams);
 #endif
 
@@ -259,7 +259,7 @@ public:
       if (pBlock->_entrySpeedMMps == pBlock->_maxEntrySpeedMMps && blockIdx > 1)
       {
 #ifdef DEBUG_MOTIONPLANNER_INFO
-        Log.trace("++++++++++++++++++++++++++++++ Optimizing block %d, prevSpeed %0.3f", blockIdx, pBlock->_exitSpeedMMps);
+        Log.info("++++++++++++++++++++++++++++++ Optimizing block %d, prevSpeed %0.3f", blockIdx, pBlock->_exitSpeedMMps);
 #endif
         //Get the exit speed from this block to use as the entry speed when going forwards
         previousBlockExitSpeed             = pBlock->_exitSpeedMMps;
@@ -328,7 +328,7 @@ public:
     }
 
 #ifdef DEBUG_MOTIONPLANNER_INFO
-    Log.trace(".................AFTER RECALC.......................");
+    Log.info(".................AFTER RECALC.......................");
     motionPipeline.debugShowBlocks(axesParams);
 #endif
   }
