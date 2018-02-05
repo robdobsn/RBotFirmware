@@ -90,7 +90,7 @@ public:
 
             String programInfoStr;
             _infoStrCallback(programInfoStr);
-            Log.info("%09lu Avg %s Max %0.0fus Min %0.0fus%s%s", micros(),
+            Log.info("Avg %s Max %0.0fus Min %0.0fus%s%s", 
                         avgStr.c_str(), _loopTimeMax*1.0, _loopTimeMin*1.0,
                         slowestStr.c_str(),
                         programInfoStr.c_str());
