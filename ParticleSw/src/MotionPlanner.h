@@ -4,7 +4,7 @@
 #pragma once
 
 //#define DEBUG_TEST_DUMP 1
-//#define DEBUG_MOTIONPLANNER_INFO 1
+#define DEBUG_MOTIONPLANNER_INFO 1
 #ifdef DEBUG_MOTIONPLANNER_INFO
 #define DEBUG_BLOCK_TO_DUMP_OR_MINUS1_FOR_ALL    -1
 #endif
@@ -81,6 +81,9 @@ public:
 
     // Create a block for this movement which will end up on the pipeline
     MotionBlock block;
+
+    // set end-stop check requirements
+    block.setEndStopsToCheck(args.endstopCheck);
 
     // Max speed (may be overridden downwards by feedrate)
     float validFeedrateMMps = 1e8;

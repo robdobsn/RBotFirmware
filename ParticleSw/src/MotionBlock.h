@@ -38,6 +38,8 @@ public:
   float _entrySpeedMMps;
   // Computed exit speed for this block
   float _exitSpeedMMps;
+  // End-stops to test
+  AxisMinMaxBools _endStopsToCheck;
 
   // Flags
   struct
@@ -81,6 +83,7 @@ public:
     _initialStepRatePerTTicks = 0;
     _maxStepRatePerTTicks     = 0;
     _stepsBeforeDecel         = 0;
+    _endStopsToCheck.none();
     for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
       _stepsTotalMaybeNeg[axisIdx] = 0;
   }
@@ -129,6 +132,12 @@ public:
       val = lowBound;
     if (val > highBound)
       val = highBound;
+  }
+
+  void setEndStopsToCheck(AxisMinMaxBools& endStopCheck)
+  {
+    Log.trace("Set test enstops %08x", endStopCheck.uintVal());
+    _endStopsToCheck = endStopCheck;
   }
 
   // The block's entry and exit speed are now known

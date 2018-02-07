@@ -5,22 +5,46 @@
 
 // Comment out these items to enable/disable test code
 #ifdef SPARK
-//#define TEST_MOTION_ACTUATOR_ENABLE    1
-//#define TEST_MOTION_ACTUATOR_OUTPUT 1
+#define TEST_MOTION_ACTUATOR_ENABLE    1
+#define TEST_MOTION_ACTUATOR_OUTPUT    1
 #define SystemTicksPerMicrosecond      System.ticksPerMicrosecond
 #define SystemTicks                    System.ticks
 #else
 #define TEST_MOTION_ACTUATOR_ENABLE    1
 #define TEST_MOTION_ACTUATOR_OUTPUT    1
 #endif
+#define TEST_MOTION_ACTUATOR_CONFIG "TIMEISR BLINKD7"
 
 #include "application.h"
 #include "MotionRingBuffer.h"
 #include "ConfigPinMap.h"
 #include <vector>
+
 static constexpr int TEST_OUTPUT_STEPS = 1000;
 
-#ifdef TEST_MOTION_ACTUATOR_ENABLE
+#ifdef TEST_MOTION_ACTUATOR_OUTPUT
+#define TEST_MOTION_ACTUATOR_PROCESS      if (_pTestMotionActuator) _pTestMotionActuator->process();
+#define TEST_MOTION_ACTUATOR_STEP_END     if (_pTestMotionActuator) _pTestMotionActuator->stepEnd();
+#define TEST_MOTION_ACTUATOR_STEP_DIRN    if (_pTestMotionActuator) _pTestMotionActuator->stepDirn(axisIdx, stepsTotal >= 0);
+#define TEST_MOTION_ACTUATOR_STEP_START(AX_IDX)    if (_pTestMotionActuator) _pTestMotionActuator->stepStart(AX_IDX);
+#else
+#define TEST_MOTION_ACTUATOR_PROCESS
+#define TEST_MOTION_ACTUATOR_STEP_END
+#define TEST_MOTION_ACTUATOR_STEP_DIRN
+#define TEST_MOTION_ACTUATOR_STEP_START(AX_IDX)
+#endif
+
+#ifndef TEST_MOTION_ACTUATOR_ENABLE
+
+#define TEST_MOTION_ACTUATOR_DEF
+#define TEST_MOTION_ACTUATOR_TIME_START
+#define TEST_MOTION_ACTUATOR_TIME_END
+
+#else
+
+#define TEST_MOTION_ACTUATOR_DEF           TestMotionActuator * MotionActuator::_pTestMotionActuator = NULL;
+#define TEST_MOTION_ACTUATOR_TIME_START    if (_pTestMotionActuator) { _pTestMotionActuator->blink(); _pTestMotionActuator->timeStart(); }
+#define TEST_MOTION_ACTUATOR_TIME_END      if (_pTestMotionActuator) _pTestMotionActuator->timeEnd();
 
 class TestOutputStepData
 {
@@ -180,7 +204,7 @@ public:
     if (_testCount > blinkRate)
     {
       _testCount = 0;
-      digitalWrite(_pinNum, !digitalRead(_pinNum));
+      digitalWriteFast(_pinNum, !pinReadFast(_pinNum));
     }
   }
 
@@ -236,20 +260,26 @@ public:
 #endif
   }
 
-  void showDebug()
+  String getDebugStr()
   {
-#ifdef TEST_MOTION_ACTUATOR_ENABLE
-    Log.info("Min/Max/Avg/Count ISR exec time %0.2fuS, %0.2fuS, %0.2fus, %ld",
+    String retStr = String::format("ISR Mn/Mx/Av/# %0.2fuS/%0.2fuS/%0.2fus/%ld",
              ((double) __isrDbgTickMin) / SystemTicksPerMicrosecond(),
              ((double) __isrDbgTickMax) / SystemTicksPerMicrosecond(),
              (__isrDbgTickCount != 0) ?
-						 				((double) (__isrDbgTickSum * 1.0 / __isrDbgTickCount) / SystemTicksPerMicrosecond()) :
-										0,
+             ((double) (__isrDbgTickSum * 1.0 / __isrDbgTickCount) / SystemTicksPerMicrosecond()) :
+             0,
              __isrDbgTickCount);
     __isrDbgTickMin   = 10000000;
     __isrDbgTickMax   = 0;
     __isrDbgTickCount = 0;
     __isrDbgTickSum   = 0;
+    return retStr;
+  }
+
+  void showDebug()
+  {
+#ifdef TEST_MOTION_ACTUATOR_ENABLE
+    Log.info(getDebugStr().c_str());
 #endif
   }
 };

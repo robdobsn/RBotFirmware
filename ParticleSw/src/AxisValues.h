@@ -223,93 +223,149 @@ public:
   }
 };
 
-class AxisBools
+class AxisValidBools
 {
 public:
-  struct
+  struct BoolBitValues
   {
-    bool b0 : 1;
-    bool b1 : 1;
-    bool b2 : 1;
-    bool b3 : 1;
-    bool b4 : 1;
-    bool b5 : 1;
-    bool b6 : 1;
+    bool bX : 1;
+    bool bY : 1;
+    bool bZ : 1;
+  };
+  union
+  {
+    BoolBitValues _bits;
+    uint16_t _uint;
   };
 
 public:
-  AxisBools()
+  AxisValidBools()
   {
-    b0 = b1 = b2 = b3 = b4 = b5 = b6 = 0;
+    _uint = 0;
   }
-  AxisBools(const AxisBools& other)
+  AxisValidBools(const AxisValidBools& other)
   {
-    b0 = other.b0;
-    b1 = other.b1;
-    b2 = other.b2;
-    b3 = other.b3;
-    b4 = other.b4;
-    b5 = other.b5;
-    b6 = other.b6;
+    _uint = other._uint;
   }
-  void operator=(const AxisBools& other)
+  void operator=(const AxisValidBools& other)
   {
-    b0 = other.b0;
-    b1 = other.b1;
-    b2 = other.b2;
-    b3 = other.b3;
-    b4 = other.b4;
-    b5 = other.b5;
-    b6 = other.b6;
+    _uint = other._uint;
   }
   bool isValid(int axisIdx)
   {
-    switch (axisIdx)
+    return _uint & (1 << axisIdx);
+  }
+  AxisValidBools(bool xValid, bool yValid, bool zValid)
+  {
+    _uint = 0;
+    _bits.bX = xValid;
+    _bits.bY = yValid;
+    _bits.bZ = zValid;
+  }
+  bool XValid()
+  {
+    return _bits.bX;
+  }
+  bool YValid()
+  {
+    return _bits.bY;
+  }
+  bool ZValid()
+  {
+    return _bits.bZ;
+  }
+  bool operator[](int boolIdx)
+  {
+    return isValid(boolIdx);
+  }
+  void setVal(int boolIdx, bool val)
+  {
+    if (val)
+      _uint |= (1 << boolIdx);
+    else
+      _uint &= (0xffff ^ (1 << boolIdx));
+  }
+};
+
+class AxisMinMaxBools
+{
+public:
+  static constexpr int MIN_MAX_VALID_BIT = 31;
+
+  static constexpr int MIN_MAX_VALUES_MASK = 0x3fffffff;
+
+  static constexpr int MIN_VAL_IDX = 0;
+  static constexpr int MAX_VAL_IDX = 1;
+
+  static constexpr int VALS_PER_AXIS = 2;
+  static constexpr int BITS_PER_VAL = 2;
+  static constexpr int BITS_PER_VAL_MASK = 0x03;
+
+  enum AxisMinMaxEnum {
+    END_TEST_NONE = 0,
+    END_TEST_HIT = 1,
+    END_TEST_NOT_HIT = 2
+  };
+
+  union
+  {
+    uint32_t _uint;
+  };
+
+public:
+  AxisMinMaxBools()
+  {
+    _uint = 0;
+  }
+  AxisMinMaxBools(const AxisMinMaxBools& other)
+  {
+    _uint = other._uint;
+  }
+  void operator=(const AxisMinMaxBools& other)
+  {
+    _uint = other._uint;
+  }
+  bool isValid()
+  {
+    return _uint & (1 << MIN_MAX_VALID_BIT);
+  }
+  void set(int axisIdx, int endStopIdx, AxisMinMaxEnum checkType)
+  {
+    int valIdx = (axisIdx * VALS_PER_AXIS + endStopIdx) * BITS_PER_VAL;
+    uint32_t valMask = (BITS_PER_VAL_MASK << valIdx);
+    _uint &= (valMask ^ 0xffffffff);
+    valMask |= checkType << valIdx;
+    valMask |= (1 << MIN_MAX_VALID_BIT);
+  }
+  AxisMinMaxEnum get(int axisIdx, int endStopIdx)
+  {
+    int valIdx = (axisIdx * VALS_PER_AXIS + endStopIdx) * BITS_PER_VAL;
+    return (AxisMinMaxEnum)((_uint >> valIdx) & BITS_PER_VAL_MASK);
+  }
+  void none()
+  {
+    _uint = 0;
+  }
+  void all()
+  {
+    uint32_t newUint = 0;
+    for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
     {
-    case 0: return b0;
-    case 1: return b1;
-    case 2: return b2;
-    case 3: return b3;
-    case 4: return b4;
-    case 5: return b5;
-    case 6: return b6;
+      newUint = newUint << (VALS_PER_AXIS * BITS_PER_VAL);
+      for (int valIdx = 0; valIdx < VALS_PER_AXIS; valIdx++)
+        newUint |= END_TEST_HIT << (valIdx * BITS_PER_VAL);
     }
+    _uint = newUint |= (1 << MIN_MAX_VALID_BIT);
+  }
+  bool any()
+  {
+    if (isValid())
+      return (_uint & MIN_MAX_VALUES_MASK) != 0;
     return false;
   }
-  AxisBools(bool xValid, bool yValid, bool zValid)
+  uint32_t uintVal()
   {
-    b0 = xValid;
-    b1 = yValid;
-    b2 = zValid;
-  }
-  bool X()
-  {
-    return b0;
-  }
-  bool Y()
-  {
-    return b1;
-  }
-  bool Z()
-  {
-    return b2;
-  }
-  bool operator[](int axisIdx)
-  {
-    return isValid(axisIdx);
-  }
-  void setVal(int axisIdx, bool val)
-  {
-    switch (axisIdx)
-    {
-    case 0: b0 = val; break;
-    case 1: b1 = val; break;
-    case 2: b2 = val; break;
-    case 3: b3 = val; break;
-    case 4: b4 = val; break;
-    case 5: b5 = val; break;
-    case 6: b6 = val; break;
-    }
+    return _uint;
   }
 };
 

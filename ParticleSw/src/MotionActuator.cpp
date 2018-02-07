@@ -4,10 +4,10 @@
 #include "MotionActuator.h"
 
 // Test of motion actuator
-#ifdef TEST_MOTION_ACTUATOR_ENABLE
-TestMotionActuator* MotionActuator::_pTestMotionActuator = NULL;
-#endif
+TEST_MOTION_ACTUATOR_DEF
 
+// Code here is using the SparkIntervalTimer from PKourany
+// https://github.com/pkourany/Spark-Interval-Timer
 #ifdef USE_SPARK_INTERVAL_TIMER_ISR
 
 // Static interval timer
@@ -20,25 +20,15 @@ MotionActuator* MotionActuator::_pMotionActuatorInstance = NULL;
 // When ISR is enabled this is called every MotionBlock::TICK_INTERVAL_NS nanoseconds
 void MotionActuator::_isrStepperMotion(void)
 {
-  // Test code if enabled
-#ifdef TEST_MOTION_ACTUATOR_ENABLE
-  if (_pTestMotionActuator)
-  {
-    _pTestMotionActuator->blink();
-    // Time execution
-    _pTestMotionActuator->timeStart();
-  }
-#endif
+  // Instrumentation code to time ISR execution (if enabled - see TestMotionActuator.h)
+  TEST_MOTION_ACTUATOR_TIME_START
 
   // Process block
   if (_pMotionActuatorInstance)
     _pMotionActuatorInstance->procTick();
 
-#ifdef TEST_MOTION_ACTUATOR_ENABLE
   // Time execution
-  if (_pTestMotionActuator)
-    _pTestMotionActuator->timeEnd();
-#endif
+  TEST_MOTION_ACTUATOR_TIME_END
 }
 
 #endif
@@ -51,11 +41,8 @@ void MotionActuator::process()
   procTick();
 #endif
 
-  // Test code if enabled process test data
-#ifdef TEST_MOTION_ACTUATOR_OUTPUT
-  if (_pTestMotionActuator)
-    _pTestMotionActuator->process();
-#endif
+  // Instrumentation - used to collect test information about operation of MotionActuator
+  TEST_MOTION_ACTUATOR_PROCESS
 }
 
 // procTick method called either by ISR or via the main program loop
@@ -68,11 +55,8 @@ void MotionActuator::procTick()
   if (_isPaused)
     return;
 
-  // Test code
-#ifdef TEST_MOTION_ACTUATOR_OUTPUT
-  if (_pTestMotionActuator)
-    _pTestMotionActuator->stepEnd();
-#endif
+  // Instrumentation
+  TEST_MOTION_ACTUATOR_STEP_END
 
   // Do a step-end for any motor which needs one - return here to avoid too short a pulse
   bool anyPinReset = false;
@@ -124,11 +108,8 @@ void MotionActuator::procTick()
         digitalWriteFast(pAxisInfo->_pinDirection,
                          (stepsTotal >= 0) == pAxisInfo->_pinDirectionReversed);
 
-      // Test code
-#ifdef TEST_MOTION_ACTUATOR_OUTPUT
-      if (_pTestMotionActuator)
-        _pTestMotionActuator->stepDirn(axisIdx, stepsTotal >= 0);
-#endif
+      // Instrumentation
+      TEST_MOTION_ACTUATOR_STEP_DIRN
     }
 
     // Accumulator reset
@@ -150,6 +131,74 @@ void MotionActuator::procTick()
     // Assuming this function is called frequently (<50uS intervals say)
     // then it will make little difference if we return now and pick up on the next tick
     return;
+  }
+
+  // Check for any end-stops either hit or not hit
+  if (pBlock->_endStopsToCheck.any())
+  {
+    // Go through axes - check if the axis is moving in a direction which might result in hitting an active
+    // end-stop
+    for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+    {
+      int pinToTest = -1;
+      bool valToTestFor = false;
+      // Anything to check for?
+      for (int minMaxIdx = 0; minMaxIdx < AxisMinMaxBools::VALS_PER_AXIS; minMaxIdx++)
+      {
+        switch (pBlock->_endStopsToCheck.get(axisIdx, minMaxIdx))
+        {
+          case AxisMinMaxBools::END_TEST_HIT:
+          {
+            // Check max
+            if ((pBlock->_stepsTotalMaybeNeg[axisIdx] > 0) && (minMaxIdx == AxisMinMaxBools::MAX_VAL_IDX))
+            {
+              pinToTest = _rawMotionHwInfo._axis[axisIdx]._pinEndStopMax;
+              valToTestFor = _rawMotionHwInfo._axis[axisIdx]._pinEndStopMaxActiveLevel;
+            }
+            // Check min
+            else if ((pBlock->_stepsTotalMaybeNeg[axisIdx] < 0) && (minMaxIdx == AxisMinMaxBools::MIN_VAL_IDX))
+            {
+              pinToTest = _rawMotionHwInfo._axis[axisIdx]._pinEndStopMin;
+              valToTestFor = _rawMotionHwInfo._axis[axisIdx]._pinEndStopMinActiveLevel;
+            }
+            break;
+          }
+          case AxisMinMaxBools::END_TEST_NOT_HIT:
+          {
+            // Check max
+            if ((pBlock->_stepsTotalMaybeNeg[axisIdx] < 0) && (minMaxIdx == AxisMinMaxBools::MAX_VAL_IDX))
+            {
+              pinToTest = _rawMotionHwInfo._axis[axisIdx]._pinEndStopMax;
+              valToTestFor = !_rawMotionHwInfo._axis[axisIdx]._pinEndStopMaxActiveLevel;
+            }
+            // Check min
+            else if ((pBlock->_stepsTotalMaybeNeg[axisIdx] > 0) && (minMaxIdx == AxisMinMaxBools::MIN_VAL_IDX))
+            {
+              pinToTest = _rawMotionHwInfo._axis[axisIdx]._pinEndStopMin;
+              valToTestFor = !_rawMotionHwInfo._axis[axisIdx]._pinEndStopMinActiveLevel;
+            }
+            break;
+          }
+        }
+        // Log.info("Ax %d, minMaxIdx %d, EndStopGet %08lx, Steps %ld, pinToTest %d, valToTestFor %d", axisIdx, minMaxIdx, pBlock->_endStopsToCheck.get(axisIdx, minMaxIdx),
+        //               pBlock->_stepsTotalMaybeNeg[axisIdx], pinToTest, valToTestFor);
+      }
+
+      // Check if anything to test
+      // Log.info("End-stop ax%d PINTO %d toTest %d curVal %d", axisIdx, pinToTest, valToTestFor, pinToTest >= 0 ? (pinReadFast(pinToTest) != 0) : -1);
+      if (pinToTest >= 0)
+      {
+        // Log.info("End-stop TEST %d, %d, cur %d", pinToTest, valToTestFor, pinReadFast(pinToTest));
+        if ((pinReadFast(pinToTest) != 0) == valToTestFor)
+        {
+          // Cancel motion as end-stop reached
+          _endStopReached = true;
+          _motionPipeline.remove();
+          // Log.info("End-stop reached %d, %d", pinToTest, valToTestFor);
+          return;
+        }
+      }
+    }
   }
 
   // Bump the millisec accumulator
@@ -202,11 +251,8 @@ void MotionActuator::procTick()
       if (_curStepCount[axisIdxMaxSteps] < _stepsTotalAbs[axisIdxMaxSteps])
         anyAxisMoving = true;
 
-      // Test code
-#ifdef TEST_MOTION_ACTUATOR_OUTPUT
-      if (_pTestMotionActuator)
-        _pTestMotionActuator->stepStart(axisIdxMaxSteps);
-#endif
+      // Instrumentation
+      TEST_MOTION_ACTUATOR_STEP_START(axisIdxMaxSteps)
     }
 
     // Check if other axes need stepping
@@ -226,17 +272,14 @@ void MotionActuator::procTick()
         RobotConsts::RawMotionAxis_t* pAxisInfo = &_rawMotionHwInfo._axis[axisIdx];
         if (pAxisInfo->_pinStep != -1)
           pinSetFast(pAxisInfo->_pinStep);
-//        Log.trace("pinSetFast: %d (ax %d)", pAxisInfo->_pinStep, axisIdx);
+      //  Log.trace("pinSetFast: %d (ax %d)", pAxisInfo->_pinStep, axisIdx);
         pAxisInfo->_pinStepCurLevel = 1;
         _curStepCount[axisIdx]++;
         if (_curStepCount[axisIdx] < _stepsTotalAbs[axisIdx])
           anyAxisMoving = true;
 
-        // Test code
-#ifdef TEST_MOTION_ACTUATOR_OUTPUT
-        if (_pTestMotionActuator)
-          _pTestMotionActuator->stepStart(axisIdx);
-#endif
+        // Instrumentation
+        TEST_MOTION_ACTUATOR_STEP_START(axisIdx)
       }
     }
 
@@ -248,6 +291,17 @@ void MotionActuator::procTick()
       // Log.info("Block done");
     }
   }
+}
+
+String MotionActuator::getDebugStr()
+{
+  #ifdef TEST_MOTION_ACTUATOR_ENABLE
+    if (_pTestMotionActuator)
+      return _pTestMotionActuator->getDebugStr();
+    return "";
+  #else
+    return "";
+  #endif
 }
 
 void MotionActuator::showDebug()

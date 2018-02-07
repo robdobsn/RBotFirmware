@@ -47,6 +47,8 @@ private:
 private:
   // Execution info for the currently executing block
   bool _isEnabled;
+  // End-stop reached
+  bool _endStopReached;
   // Steps
   uint32_t _stepsTotalAbs[RobotConsts::MAX_AXES];
   uint32_t _curStepCount[RobotConsts::MAX_AXES];
@@ -94,6 +96,7 @@ public:
   void clear()
   {
     _isPaused = true;
+    _endStopReached = false;
 #ifdef TEST_MOTION_ACTUATOR_ENABLE
     _pTestMotionActuator = NULL;
 #endif
@@ -102,10 +105,25 @@ public:
   void pause(bool pauseIt)
   {
     _isPaused = pauseIt;
+    if (!_isPaused)
+    {
+      _endStopReached = false;
+    }
+  }
+
+  void clearEndstopReached()
+  {
+    _endStopReached = false;
+  }
+
+  bool isEndStopReached()
+  {
+    return _endStopReached;
   }
 
   void process();
 
+  String getDebugStr();
   void showDebug();
 
 private:

@@ -141,6 +141,7 @@ public:
   // Test code
   void debugShowBlocks();
   void debugShowTiming();
+  String getDebugStr();
   int testGetPipelineCount();
   bool testGetPipelineBlock(int elIdx, MotionBlock& elem);
   void setTestMode(const char* testModeStr)

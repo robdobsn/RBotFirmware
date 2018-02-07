@@ -60,9 +60,10 @@ public:
                         int endstopIdx = strtol(++pStr, &pEndStr, 10);
                         pStr = pEndStr;
                         if (endstopIdx == 1)
-                            cmdArgs.endstopEnum = RobotEndstopArg_Check;
+                            cmdArgs.setTestAllEndStops();
                         else if (endstopIdx == 0)
-                            cmdArgs.endstopEnum = RobotEndstopArg_Ignore;
+                            cmdArgs.setTestNoEndStops();
+                        Log.info("Set to check endstops %s", cmdArgs.toJSON().c_str());
                         break;
                     }
                 default:

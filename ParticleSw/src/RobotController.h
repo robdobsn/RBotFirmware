@@ -87,6 +87,7 @@ public:
 
         if (_pRobot)
         {
+            _motionHelper.setTestMode(TEST_MOTION_ACTUATOR_CONFIG);
             _pRobot->pause(false);
         }
 
@@ -191,6 +192,11 @@ public:
         if (!_pRobot)
             return false;
         return _pRobot->wasActiveInLastNSeconds(nSeconds);
+    }
+
+    String getDebugStr()
+    {
+      return _motionHelper.getDebugStr();
     }
 
 };

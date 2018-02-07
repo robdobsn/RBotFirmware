@@ -61,6 +61,7 @@ void debugLoopInfoCallback(String& infoStr)
   infoStr = String::format(" IP %s MEM %d Q %d R %d", ipAddr.c_str(),
         System.freeMemory(), _workflowManager.numWaiting(),
         _commandInterpreter.canAcceptCommand());
+  infoStr += _robotController.getDebugStr();
 }
 DebugLoopTimer debugLoopTimer(10000, debugLoopInfoCallback);
 
@@ -81,12 +82,12 @@ static const char* ROBOT_CONFIG_STR_MUGBOT =
     "{\"robotType\": \"MugBot\", \"xMaxMM\":150, \"yMaxMM\":120,"
     "\"cmdsAtStart\":\"\","
     "\"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":60.0,"
-    "\"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":50.0, \"maxAcc\":20.0,"
+    "\"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":10.0, \"maxAcc\":5.0,"
     "\"stepsPerRotation\":6400, \"unitsPerRotation\":360, \"minVal\":-360, \"maxVal\":360},"
-    "\"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":75.0, \"maxAcc\":25.0,"
-    "\"stepsPerRotation\":3200, \"unitsPerRotation\":1.0, \"minVal\":0, \"maxVal\":100,"
+    "\"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":5.0, \"maxAcc\":5.0,"
+    "\"stepsPerRotation\":3200, \"unitsPerRotation\":2.0, \"minVal\":0, \"maxVal\":100,"
     "\"homeOffsetVal\": 100,"
-    "\"endStop0\": { \"sensePin\": \"A6\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
+    "\"endStop1\": { \"sensePin\": \"A7\", \"activeLevel\":0, \"inputType\":\"INPUT_PULLUP\"}},"
     "\"axis2\": { \"servoPin\": \"D0\", \"isServoAxis\": 1, \"isPrimaryAxis\": 0, \"homeOffsetVal\": 180, \"homeOffsetSteps\": 2500,"
     "\"minVal\":0, \"maxVal\":180, \"stepsPerRotation\":2000, \"unitsPerRotation\":360 },"
     "}";

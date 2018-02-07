@@ -6,13 +6,6 @@
 #include "application.h"
 #include "AxisValues.h"
 
-enum RobotEndstopArg
-{
-  RobotEndstopArg_None,
-  RobotEndstopArg_Check,
-  RobotEndstopArg_Ignore
-};
-
 enum RobotMoveTypeArg
 {
   RobotMoveTypeArg_None,
@@ -28,7 +21,7 @@ public:
   float extrudeVal;
   bool feedrateValid;
   float feedrateVal;
-  RobotEndstopArg endstopEnum;
+  AxisMinMaxBools endstopCheck;
   bool moveClockwise;
   bool moveRapid;
   RobotMoveTypeArg moveType;
@@ -40,11 +33,10 @@ public:
   }
   void clear()
   {
-    extrudeValid  = feedrateValid = false;
-    extrudeVal    = feedrateVal = 0.0;
-    endstopEnum   = RobotEndstopArg_None;
-    moveClockwise = moveRapid = false;
-    moveType      = RobotMoveTypeArg_None;
+    extrudeValid          = feedrateValid = false;
+    extrudeVal            = feedrateVal = 0.0;
+    moveClockwise         = moveRapid = false;
+    moveType              = RobotMoveTypeArg_None;
   }
   RobotCommandArgs(const RobotCommandArgs& other)
   {
@@ -63,6 +55,22 @@ public:
     }
   }
 
+  void setTestAllEndStops()
+  {
+    endstopCheck.all();
+    Log.info("Test all endstops");
+  }
+
+  void setTestNoEndStops()
+  {
+    endstopCheck.none();
+  }
+
+  void setTestEndStopsDefault()
+  {
+    endstopCheck.none();
+  }
+
   String toJSON()
   {
     String jsonStr;
@@ -72,6 +80,9 @@ public:
       jsonStr += "\"rel\"";
     else
       jsonStr += "\"abs\"";
+    jsonStr += ",\"endStopChk\":\"";
+    String endStopStr = String::format("%08lx", endstopCheck.uintVal());
+    jsonStr += endStopStr + "\"";
     jsonStr += "}";
     return jsonStr;
   }
@@ -80,14 +91,14 @@ private:
   void copy(const RobotCommandArgs& copyFrom)
   {
     clear();
-    pt            = copyFrom.pt;
-    extrudeValid  = copyFrom.extrudeValid;
-    extrudeVal    = copyFrom.extrudeVal;
-    feedrateValid = copyFrom.feedrateValid;
-    feedrateVal   = copyFrom.feedrateVal;
-    endstopEnum   = copyFrom.endstopEnum;
-    moveClockwise = copyFrom.moveClockwise;
-    moveRapid     = copyFrom.moveRapid;
-    moveType      = copyFrom.moveType;
+    pt                    = copyFrom.pt;
+    extrudeValid          = copyFrom.extrudeValid;
+    extrudeVal            = copyFrom.extrudeVal;
+    feedrateValid         = copyFrom.feedrateValid;
+    feedrateVal           = copyFrom.feedrateVal;
+    endstopCheck          = copyFrom.endstopCheck;
+    moveClockwise         = copyFrom.moveClockwise;
+    moveRapid             = copyFrom.moveRapid;
+    moveType              = copyFrom.moveType;
   }
 };

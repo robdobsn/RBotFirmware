@@ -121,7 +121,7 @@ void MotionHelper::stop()
 {
   _motionPipeline.clear();
   _motionActuator.clear();
-  _isPaused = false;
+  pause(false);
 }
 
 // Check if idle
@@ -151,11 +151,8 @@ void MotionHelper::getCurStatus(RobotCommandArgs& args)
 // Command the robot to move (adding a command to the pipeline of motion)
 bool MotionHelper::moveTo(RobotCommandArgs& args)
 {
-  // Handle any motion parameters (such as relative movement, feedrate, etc)
-  setMotionParams(args);
-
-  // Handle relative motion and fill in the destPos for axes for
-  // which values not specified
+  // Fill in the destPos for axes for which values not specified
+  // Handle relative motion override if present
   // Don't use servo values for computing distance to travel
   AxisFloats destPos = args.pt;
   bool       includeDist[RobotConsts::MAX_AXES];
@@ -167,7 +164,12 @@ bool MotionHelper::moveTo(RobotCommandArgs& args)
     }
     else
     {
-      if (_moveRelative)
+      // Check relative motion - override current options if this command
+      // explicitly states a moveType
+      bool moveRelative = _moveRelative;
+      if (args.moveType != RobotMoveTypeArg_None)
+        moveRelative = (args.moveType == RobotMoveTypeArg_Relative);
+      if (moveRelative)
         destPos.setVal(i, _curAxisPosition._axisPositionMM.getVal(i) + args.pt.getVal(i));
     }
     includeDist[i] = _axesParams.isPrimaryAxis(i);
@@ -290,9 +292,9 @@ void MotionHelper::debugShowBlocks()
   _motionPipeline.debugShowBlocks(_axesParams);
 }
 
-void MotionHelper::debugShowTiming()
+String MotionHelper::getDebugStr()
 {
-  _motionActuator.showDebug();
+  return _motionActuator.getDebugStr();
 }
 
 int MotionHelper::testGetPipelineCount()
