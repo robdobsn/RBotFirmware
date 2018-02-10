@@ -221,17 +221,15 @@ public:
   }
   String toJSON()
   {
-    String jsonStr;
-    if (RobotConsts::MAX_AXES >= 2)
+    String jsonStr = "[";
+    for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
     {
-      jsonStr = "\"X\":" + String::format("%0.3f", _pt[0]) +
-                ",\"Y\":" + String::format("%0.3f", _pt[1]);
+      if (axisIdx != 0)
+        jsonStr += ",";
+      jsonStr += String::format("%0.3f", _pt[axisIdx]);
     }
-    if (RobotConsts::MAX_AXES >= 3)
-    {
-      jsonStr += ",\"Z\":" + String::format("%0.3f", _pt[2]);
-    }
-    return "{" + jsonStr + "}";
+    jsonStr += "]";
+    return jsonStr;
   }
 };
 
@@ -379,6 +377,25 @@ public:
   {
     return _uint;
   }
+  String toJSON()
+  {
+    String jsonStr = "[";
+    for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+    {
+      if (axisIdx != 0)
+        jsonStr += ",";
+      jsonStr += "[";
+      for (int endstopIdx = 0; endstopIdx < RobotConsts::MAX_ENDSTOPS_PER_AXIS; endstopIdx++)
+      {
+        if (endstopIdx != 0)
+          jsonStr += ",";
+        jsonStr += get(axisIdx, endstopIdx);
+      }
+      jsonStr += "]";
+    }
+    jsonStr += "]";
+    return jsonStr;
+  }
 };
 
 class AxisInt32s
@@ -443,16 +460,14 @@ public:
   }
   String toJSON()
   {
-    String jsonStr;
-    if (RobotConsts::MAX_AXES >= 2)
+    String jsonStr = "[";
+    for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
     {
-      jsonStr = "\"X\":" + String::format("%ld", vals[0]) +
-                ",\"Y\":" + String::format("%ld", vals[1]);
+      if (axisIdx != 0)
+        jsonStr += ",";
+      jsonStr += String::format("%ld", vals[axisIdx]);
     }
-    if (RobotConsts::MAX_AXES >= 3)
-    {
-      jsonStr += ",\"Z\":" + String::format("%ld", vals[2]);
-    }
-    return "{" + jsonStr + "}";
+    jsonStr += "]";
+    return jsonStr;
   }
 };

@@ -226,9 +226,7 @@ public:
       jsonStr += "\"rel\"";
     else
       jsonStr += "\"abs\"";
-    jsonStr += ",\"endStopChk\":\"";
-    String endStopStr = String::format("%08lx", _endstops.uintVal());
-    jsonStr += endStopStr + "\"";
+    jsonStr += ",\"endstops\":" + _endstops.toJSON();
     jsonStr += ",\"allowOutOfBounds\":" + String(_allowOutOfBounds ? "\"Y\"" : "\"N\"");
     String numberedCmdStr = String::format("%ld", _numberedCommandIndex);
     jsonStr += ", \"numberedCmd\":" + numberedCmdStr;

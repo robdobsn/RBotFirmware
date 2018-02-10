@@ -42,7 +42,8 @@
                 MAX_POST_CHUNK_SIZE: 1000,
                 UPLOAD_RETRY_TIME_MS: 1000,
                 MAX_UPLOAD_RETRIES: 180,
-                axisNames: ["X","Y","Z"]
+                axisNames: ["X","Y","Z"],
+                endstopNames: ["min", "max"]
             };
             // Handle the file send box listener
             var inputFileUpload = document.getElementById("input_file_upload");
@@ -61,10 +62,31 @@
         function statusCallback(resp) {
             var machineStatus = JSON.parse(resp);
             var axisNames = window.RBotUIVars.axisNames;
+            var endstopNames = window.RBotUIVars.endstopNames;
             if (machineStatus.hasOwnProperty("pos"))
             {
                 for (var i = 0; i < axisNames.length; i++) {
-                    document.getElementById("td_" + axisNames[i]).innerHTML = machineStatus["pos"][axisNames[i]].toFixed(2);
+                    document.getElementById("td_" + axisNames[i]).innerHTML = machineStatus["pos"][i].toFixed(2);
+                }
+            }
+            if (machineStatus.hasOwnProperty("steps"))
+            {
+                for (var i = 0; i < axisNames.length; i++) {
+                    document.getElementById("td_step" + axisNames[i]).innerHTML = machineStatus["steps"][i];
+                }
+            }
+            if (machineStatus.hasOwnProperty("endstops"))
+            {
+                for (var i = 0; i < axisNames.length; i++) {
+                    for (var j = 0; j < endstopNames.length; j++) {
+                        var endstopState = machineStatus["endstops"][i][j];
+                        var endstopStr = "n/a";
+                        if (endstopState == 1)
+                            endstopStr = "HIT";
+                        if (endstopState == 2)
+                            endstopStr = "";
+                        document.getElementById("td_" + endstopNames[j] + axisNames[i]).innerHTML = endstopStr;
+                    }
                 }
             }
             window.RBotUIVars.statusUpdateTimer = setTimeout(statusUpdate, 500);
@@ -529,6 +551,7 @@
         }
         .th-statusGrid {
             width: 100px;
+            font-weight: normal;
         }
 
         .uiTableButtons {
@@ -656,15 +679,34 @@
                 <table class="uiTable uiTableGrid">
                     <tbody>
                     <tr>
-                        <th rowspan="2" class="th-status">Position</th>
+                        <th class="th-status"></th>
                         <th id="th_X">X</th>
                         <th id="th_Y">Y</th>
                         <th id="th_Z" style="border-right: 1px;">Z</th>
                     </tr>
                     <tr>
+                        <th class="th-status">Position</th>
                         <td id="td_X">n/a</td>
                         <td id="td_Y">n/a</td>
                         <td id="td_Z" style="border-right: 1px;">n/a</td>
+                    </tr>
+                    <tr>
+                        <th class="th-status">Steps</th>
+                        <td id="td_stepX">n/a</td>
+                        <td id="td_stepY">n/a</td>
+                        <td id="td_stepZ" style="border-right: 1px;">n/a</td>
+                    </tr>
+                    <tr>
+                        <th class="th-status">Min-stop</th>
+                        <td id="td_minX">n/a</td>
+                        <td id="td_minY">n/a</td>
+                        <td id="td_minZ" style="border-right: 1px;">n/a</td>
+                    </tr>
+                    <tr>
+                        <th class="th-status">Max-stop</th>
+                        <td id="td_maxX">n/a</td>
+                        <td id="td_maxY">n/a</td>
+                        <td id="td_maxZ" style="border-right: 1px;">n/a</td>
                     </tr>
                     </tbody>
                 </table>
