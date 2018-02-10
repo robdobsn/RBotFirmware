@@ -224,12 +224,12 @@ public:
     String jsonStr;
     if (RobotConsts::MAX_AXES >= 2)
     {
-      jsonStr = "\"X\":" + String::format("%0.5f", _pt[0]) +
-                ",\"Y\":" + String::format("%0.5f", _pt[1]);
+      jsonStr = "\"X\":" + String::format("%0.3f", _pt[0]) +
+                ",\"Y\":" + String::format("%0.3f", _pt[1]);
     }
     if (RobotConsts::MAX_AXES >= 3)
     {
-      jsonStr += ",\"Z\":" + String::format("%0.5f", _pt[2]);
+      jsonStr += ",\"Z\":" + String::format("%0.3f", _pt[2]);
     }
     return "{" + jsonStr + "}";
   }
@@ -309,20 +309,20 @@ public:
   static constexpr int MIN_VAL_IDX = 0;
   static constexpr int MAX_VAL_IDX = 1;
 
-  static constexpr int VALS_PER_AXIS = 2;
+  static constexpr int VALS_PER_AXIS = RobotConsts::MAX_ENDSTOPS_PER_AXIS;
   static constexpr int BITS_PER_VAL = 2;
   static constexpr int BITS_PER_VAL_MASK = 0x03;
 
   enum AxisMinMaxEnum {
     END_TEST_NONE = 0,
+    END_STOP_NONE = 0,
     END_TEST_HIT = 1,
-    END_TEST_NOT_HIT = 2
+    END_STOP_HIT = 1,
+    END_TEST_NOT_HIT = 2,
+    END_STOP_NOT_HIT = 2
   };
 
-  union
-  {
-    uint32_t _uint;
-  };
+  uint32_t _uint;
 
 public:
   AxisMinMaxBools()
@@ -440,5 +440,19 @@ public:
   {
     if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
       vals[axisIdx] = val;
+  }
+  String toJSON()
+  {
+    String jsonStr;
+    if (RobotConsts::MAX_AXES >= 2)
+    {
+      jsonStr = "\"X\":" + String::format("%ld", vals[0]) +
+                ",\"Y\":" + String::format("%ld", vals[1]);
+    }
+    if (RobotConsts::MAX_AXES >= 3)
+    {
+      jsonStr += ",\"Z\":" + String::format("%ld", vals[2]);
+    }
+    return "{" + jsonStr + "}";
   }
 };

@@ -29,7 +29,7 @@ public:
   float _extrudeValue;
   float _feedrateValue;
   RobotMoveTypeArg _moveType;
-  AxisMinMaxBools _endstopCheck;
+  AxisMinMaxBools _endstops;
 
 public:
   RobotCommandArgs()
@@ -40,7 +40,7 @@ public:
   {
     _ptInMM.clear();
     _ptInSteps.clear();
-    _endstopCheck.none();
+    _endstops.none();
     _numberedCommandIndex = RobotConsts::NUMBERED_COMMAND_NONE;
     _dontSplitMove = false;
     _extrudeValid  = false;
@@ -152,30 +152,34 @@ public:
   {
     return _extrudeValue;
   }
+  void setEndStops(AxisMinMaxBools endstops)
+  {
+    _endstops = endstops;
+  }
   void setTestAllEndStops()
   {
-    _endstopCheck.all();
+    _endstops.all();
     Log.info("Test all endstops");
   }
 
   void setTestNoEndStops()
   {
-    _endstopCheck.none();
+    _endstops.none();
   }
 
   void setTestEndStopsDefault()
   {
-    _endstopCheck.none();
+    _endstops.none();
   }
 
   void setTestEndStop(int axisIdx, int endStopIdx, AxisMinMaxBools::AxisMinMaxEnum checkType)
   {
-    _endstopCheck.set(axisIdx, endStopIdx, checkType);
+    _endstops.set(axisIdx, endStopIdx, checkType);
   }
 
   inline AxisMinMaxBools& getEndstopCheck()
   {
-    return _endstopCheck;
+    return _endstops;
   }
 
   void setAllowOutOfBounds(bool allowOutOfBounds = true)
@@ -206,6 +210,7 @@ public:
   {
     String jsonStr;
     jsonStr = "{\"pos\":" + _ptInMM.toJSON();
+    jsonStr += ",\"steps\":" + _ptInSteps.toJSON();
     if (_feedrateValid)
     {
       String feedrateStr = String::format("%0.2f", _feedrateValue);
@@ -222,9 +227,9 @@ public:
     else
       jsonStr += "\"abs\"";
     jsonStr += ",\"endStopChk\":\"";
-    String endStopStr = String::format("%08lx", _endstopCheck.uintVal());
+    String endStopStr = String::format("%08lx", _endstops.uintVal());
     jsonStr += endStopStr + "\"";
-    jsonStr += ",\"allowOutOfBounds\":" + String(_allowOutOfBounds ? "Y" : "N");
+    jsonStr += ",\"allowOutOfBounds\":" + String(_allowOutOfBounds ? "\"Y\"" : "\"N\"");
     String numberedCmdStr = String::format("%ld", _numberedCommandIndex);
     jsonStr += ", \"numberedCmd\":" + numberedCmdStr;
     jsonStr += "}";
@@ -241,7 +246,7 @@ private:
     _extrudeValue  = copyFrom._extrudeValue;
     _feedrateValid = copyFrom._feedrateValid;
     _feedrateValue = copyFrom._feedrateValue;
-    _endstopCheck  = copyFrom._endstopCheck;
+    _endstops       = copyFrom._endstops;
     _moveClockwise = copyFrom._moveClockwise;
     _moveRapid     = copyFrom._moveRapid;
     _dontSplitMove = copyFrom._dontSplitMove;

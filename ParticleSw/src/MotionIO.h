@@ -14,7 +14,6 @@
 class MotionIO
 {
 public:
-  static const int MAX_ENDSTOPS_PER_AXIS         = 2;
   static constexpr float stepDisableSecs_default = 60.0f;
 
 private:
@@ -31,7 +30,7 @@ private:
   unsigned long _motorEnLastMillis;
   unsigned long _motorEnLastUnixTime;
   // End stops
-  EndStop* _endStops[RobotConsts::MAX_AXES][MAX_ENDSTOPS_PER_AXIS];
+  EndStop* _endStops[RobotConsts::MAX_AXES][RobotConsts::MAX_ENDSTOPS_PER_AXIS];
 
 public:
   MotionIO()
@@ -41,7 +40,7 @@ public:
     {
       _stepperMotors[i] = NULL;
       _servoMotors[i]   = NULL;
-      for (int j = 0; j < MAX_ENDSTOPS_PER_AXIS; j++)
+      for (int j = 0; j < RobotConsts::MAX_ENDSTOPS_PER_AXIS; j++)
         _endStops[i][j] = NULL;
     }
     // Stepper management
@@ -72,7 +71,7 @@ public:
         _servoMotors[i]->detach();
       delete _servoMotors[i];
       _servoMotors[i] = NULL;
-      for (int j = 0; j < MAX_ENDSTOPS_PER_AXIS; j++)
+      for (int j = 0; j < RobotConsts::MAX_ENDSTOPS_PER_AXIS; j++)
       {
         delete _endStops[i][j];
         _endStops[i][j] = NULL;
@@ -113,7 +112,7 @@ public:
     }
 
     // End stops
-    for (int endStopIdx = 0; endStopIdx < MAX_ENDSTOPS_PER_AXIS; endStopIdx++)
+    for (int endStopIdx = 0; endStopIdx < RobotConsts::MAX_ENDSTOPS_PER_AXIS; endStopIdx++)
     {
       // Get the config for endstop if present
       String endStopIdStr = "endStop" + String(endStopIdx);
@@ -206,7 +205,7 @@ public:
   {
     if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
       return false;
-    if (endStopIdx < 0 || endStopIdx >= MAX_ENDSTOPS_PER_AXIS)
+    if (endStopIdx < 0 || endStopIdx >= RobotConsts::MAX_ENDSTOPS_PER_AXIS)
       return false;
     return true;
   }
@@ -216,7 +215,7 @@ public:
     // For safety return true in these cases
     if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
       return true;
-    if (endStopIdx < 0 || endStopIdx >= MAX_ENDSTOPS_PER_AXIS)
+    if (endStopIdx < 0 || endStopIdx >= RobotConsts::MAX_ENDSTOPS_PER_AXIS)
       return true;
 
     // Test endstop
@@ -225,6 +224,27 @@ public:
 
     // All other cases return true (as this might be safer)
     return true;
+  }
+
+  AxisMinMaxBools getEndStopVals()
+  {
+    AxisMinMaxBools endstops;
+    for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+    {
+      for (int endStopIdx = 0; endStopIdx < RobotConsts::MAX_ENDSTOPS_PER_AXIS; endStopIdx++)
+      {
+        AxisMinMaxBools::AxisMinMaxEnum endStopEnum = AxisMinMaxBools::END_STOP_NONE;
+        if (_endStops[axisIdx][endStopIdx])
+        {
+          if (_endStops[axisIdx][endStopIdx] -> isAtEndStop())
+            endStopEnum = AxisMinMaxBools::END_STOP_HIT;
+          else
+            endStopEnum = AxisMinMaxBools::END_STOP_NOT_HIT;
+        }
+        endstops.set(axisIdx, endStopIdx, endStopEnum);
+      }
+    }
+    return endstops;
   }
 
   void enableMotors(bool en, bool timeout)

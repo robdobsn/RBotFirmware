@@ -148,6 +148,8 @@ void MotionHelper::getCurStatus(RobotCommandArgs& args)
   // Get current position
   args.setPointMM(_curAxisPosition._axisPositionMM);
   args.setPointSteps(_curAxisPosition._stepsFromHome);
+  // Get end-stop values
+  args.setEndStops(_motionIO.getEndStopVals());
   // Absolute/Relative movement
   args.setMoveType(_moveRelative ? RobotMoveTypeArg_Relative : RobotMoveTypeArg_Absolute);
 }
