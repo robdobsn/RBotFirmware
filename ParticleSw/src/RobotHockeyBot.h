@@ -62,13 +62,9 @@ public:
     {
     }
 
-private:
-    // MotionHelper for the robot motion
-    MotionHelper& _motionHelper;
-
 public:
     RobotHockeyBot(const char* pRobotTypeName, MotionHelper& motionHelper) :
-        RobotBase(pRobotTypeName), _motionHelper(motionHelper)
+        RobotBase(pRobotTypeName, motionHelper)
     {
         _motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
     }

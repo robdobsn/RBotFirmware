@@ -91,19 +91,19 @@ public:
     return _axesParams.getStepsPerUnit(axisIdx);
   }
 
-  double getStepsPerRotation(int axisIdx)
+  double getstepsPerRot(int axisIdx)
   {
-    return _axesParams.getStepsPerRotation(axisIdx);
+    return _axesParams.getstepsPerRot(axisIdx);
   }
 
-  double getUnitsPerRotation(int axisIdx)
+  double getunitsPerRot(int axisIdx)
   {
-    return _axesParams.getUnitsPerRotation(axisIdx);
+    return _axesParams.getunitsPerRot(axisIdx);
   }
 
-  long getHomeOffsetSteps(int axisIdx)
+  long gethomeOffSteps(int axisIdx)
   {
-    return _axesParams.getHomeOffsetSteps(axisIdx);
+    return _axesParams.gethomeOffSteps(axisIdx);
   }
 
   AxesParams& getAxesParams()

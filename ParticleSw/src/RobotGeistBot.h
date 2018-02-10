@@ -94,10 +94,10 @@ public:
     static void actuatorToPolar(AxisFloats& actuatorCoords, float polarCoordsAzFirst[], AxesParams& axesParams)
     {
         // Calculate azimuth
-        int alphaSteps = (abs(int(actuatorCoords._pt[0])) % (int)(axesParams.getStepsPerRotation(0)));
+        int alphaSteps = (abs(int(actuatorCoords._pt[0])) % (int)(axesParams.getstepsPerRot(0)));
         double alphaDegs = alphaSteps / axesParams.getStepsPerUnit(0);
         if (actuatorCoords._pt[0] < 0)
-            alphaDegs = axesParams.getUnitsPerRotation(0)-alphaDegs;
+            alphaDegs = axesParams.getunitsPerRot(0)-alphaDegs;
         polarCoordsAzFirst[0] = alphaDegs * M_PI / 180;
 
         // Calculate linear position (note that this robot has interaction between azimuth and linear motion as the rack moves
@@ -123,29 +123,29 @@ public:
 
     static void correctStepOverflow(AxesParams& axesParams)
     {
-        int rotationSteps = (int)(axesParams.getStepsPerRotation(0));
+        int rotationSteps = (int)(axesParams.getstepsPerRot(0));
         // Debug
         bool showDebug = false;
-        if (axesParams.getHomeOffsetSteps(0) > rotationSteps || axesParams.getHomeOffsetSteps(0) <= -rotationSteps)
+        if (axesParams.gethomeOffSteps(0) > rotationSteps || axesParams.gethomeOffSteps(0) <= -rotationSteps)
         {
             Log.trace("CORRECTING ax0 %ld ax1 %ld",
-                            axesParams.getHomeOffsetSteps(0), axesParams.getHomeOffsetSteps(1));
+                            axesParams.gethomeOffSteps(0), axesParams.gethomeOffSteps(1));
             showDebug = true;
         }
         // Bring steps from home values back within a single rotation
-        while (axesParams.getHomeOffsetSteps(0) > rotationSteps)
+        while (axesParams.gethomeOffSteps(0) > rotationSteps)
         {
-            axesParams.setHomeOffsetSteps(0, axesParams.getHomeOffsetSteps(0) - rotationSteps);
-            axesParams.setHomeOffsetSteps(1, axesParams.getHomeOffsetSteps(1) - rotationSteps);
+            axesParams.sethomeOffSteps(0, axesParams.gethomeOffSteps(0) - rotationSteps);
+            axesParams.sethomeOffSteps(1, axesParams.gethomeOffSteps(1) - rotationSteps);
         }
-        while (axesParams.getHomeOffsetSteps(0) <= -rotationSteps)
+        while (axesParams.gethomeOffSteps(0) <= -rotationSteps)
         {
-            axesParams.setHomeOffsetSteps(0, axesParams.getHomeOffsetSteps(0) + rotationSteps);
-            axesParams.setHomeOffsetSteps(1, axesParams.getHomeOffsetSteps(1) + rotationSteps);
+            axesParams.sethomeOffSteps(0, axesParams.gethomeOffSteps(0) + rotationSteps);
+            axesParams.sethomeOffSteps(1, axesParams.gethomeOffSteps(1) + rotationSteps);
         }
         if (showDebug)
             Log.trace("CORRECTED ax0 %ld ax1 %ld",
-                            axesParams.getHomeOffsetSteps(0), axesParams.getHomeOffsetSteps(1));
+                            axesParams.gethomeOffSteps(0), axesParams.gethomeOffSteps(1));
     }
 
 private:
@@ -187,12 +187,9 @@ private:
     HOMING_STEP_TYPE _homingAxis1Step;
     double _timeBetweenHomingStepsUs;
 
-    // MotionHelper for the robot motion
-    MotionHelper& _motionHelper;
-
 public:
     RobotGeistBot(const char* pRobotTypeName, MotionHelper& motionHelper) :
-        RobotBase(pRobotTypeName), _motionHelper(motionHelper)
+        RobotBase(pRobotTypeName, motionHelper)
     {
         _homingState = HOMING_STATE_IDLE;
         _homeReqMillis = 0;
@@ -403,7 +400,7 @@ private:
     //         case ROTATE_TO_HOME:
     //         {
     //             _homingStateNext = HOMING_STATE_COMPLETE;
-    //             _homingStepsLimit = abs(_motionHelper.getHomeOffsetSteps(0));
+    //             _homingStepsLimit = abs(_motionHelper.gethomeOffSteps(0));
     //             _homingApplyStepLimit = true;
     //             // To purely rotate both steppers must turn in the same direction
     //             _homingAxis0Step = HSTEP_BACKWARDS;

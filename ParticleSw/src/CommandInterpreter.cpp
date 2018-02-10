@@ -125,6 +125,12 @@ void CommandInterpreter::processSingle(const char* pCmdStr, String& retStr)
         Log.info("CmdInterp: WiFi Credentials Cleared");
         retStr = okRslt;
     }
+    // else if (strstr(pCmdStr, "setconfig") == pCmdStr)
+    // {
+    //     Log.info("CmdInterp: set config");
+    //
+    //     retStr = okRslt;
+    // }
     else if (_pWorkflowManager)
     {
         // Send the line to the workflow manager

@@ -23,9 +23,9 @@ namespace RobotConsts
     int                     _pinStep;
     int                     _pinStepCurLevel;
     int                     _pinEndStopMin;
-    bool                    _pinEndStopMinActiveLevel;
+    bool                    _pinEndStopMinactLvl;
     int                     _pinEndStopMax;
-    bool                    _pinEndStopMaxActiveLevel;
+    bool                    _pinEndStopMaxactLvl;
   };
   class RawMotionHwInfo_t
   {

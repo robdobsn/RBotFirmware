@@ -10,10 +10,13 @@ class RobotBase
 {
 protected:
     String _robotTypeName;
+    // MotionHelper for the robot motion
+    MotionHelper& _motionHelper;
 
 public:
-    RobotBase(const char* pRobotTypeName) :
-        _robotTypeName(pRobotTypeName)
+    RobotBase(const char* pRobotTypeName, MotionHelper& motionHelper) :
+        _robotTypeName(pRobotTypeName),
+        _motionHelper(motionHelper)
     {
     }
 
@@ -71,6 +74,7 @@ public:
     // Homing commands
     virtual void goHome(RobotCommandArgs& args)
     {
+
     }
 
     virtual void setHome(RobotCommandArgs& args)

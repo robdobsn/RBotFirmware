@@ -36,11 +36,11 @@ public:
             float axisValFromHome = pt.getVal(axisIdx) - axesParams.getHomeOffsetVal(axisIdx);
             // Convert to steps and add offset to home in steps
             actuatorCoords.setVal(axisIdx, axisValFromHome * axesParams.getStepsPerUnit(axisIdx)
-                            + axesParams.getHomeOffsetSteps(axisIdx));
+                            + axesParams.gethomeOffSteps(axisIdx));
 
             // Log.info("ptToActuator %f -> %f (homeOffVal %f, homeOffSteps %ld)",
             //         pt.getVal(axisIdx), actuatorCoords._pt[axisIdx],
-            //         axesParams.getHomeOffsetVal(axisIdx), axesParams.getHomeOffsetSteps(axisIdx));
+            //         axesParams.getHomeOffsetVal(axisIdx), axesParams.gethomeOffSteps(axisIdx));
         }
         return ptWasValid;
     }
@@ -50,7 +50,7 @@ public:
         // Perform conversion
         for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
         {
-            float ptVal = actuatorCoords.getVal(axisIdx) - axesParams.getHomeOffsetSteps(axisIdx);
+            float ptVal = actuatorCoords.getVal(axisIdx) - axesParams.gethomeOffSteps(axisIdx);
             ptVal = ptVal / axesParams.getStepsPerUnit(axisIdx) + axesParams.getHomeOffsetVal(axisIdx);
             pt.setVal(axisIdx, ptVal);
             // Log.info("actuatorToPt %d %f -> %f (perunit %f)", axisIdx, actuatorCoords.getVal(axisIdx),
@@ -89,12 +89,9 @@ private:
     HOMING_STEP_TYPE _homingAxis1Step;
     double _timeBetweenHomingStepsUs;
 
-    // MotionHelper for the robot motion
-    MotionHelper& _motionHelper;
-
 public:
     RobotMugBot(const char* pRobotTypeName, MotionHelper& motionHelper) :
-        RobotBase(pRobotTypeName), _motionHelper(motionHelper)
+        RobotBase(pRobotTypeName, motionHelper)
     {
         _homingState = HOMING_STATE_IDLE;
         _homeReqMillis = 0;

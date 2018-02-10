@@ -23,7 +23,7 @@ private:
   Servo* _servoMotors[RobotConsts::MAX_AXES];
   // Step enable
   int _stepEnablePin;
-  bool _stepEnableActiveLevel = true;
+  bool _stepEnLev = true;
   // Motor enable
   float _stepDisableSecs;
   bool _motorsAreEnabled;
@@ -45,7 +45,7 @@ public:
     }
     // Stepper management
     _stepEnablePin         = -1;
-    _stepEnableActiveLevel = true;
+    _stepEnLev = true;
     _stepDisableSecs       = 60.0;
     _motorEnLastMillis     = 0;
     _motorEnLastUnixTime   = 0;
@@ -131,14 +131,14 @@ public:
   {
     // Get motor enable info
     String stepEnablePinName = RdJson::getString("stepEnablePin", "-1", robotConfigJSON);
-    _stepEnableActiveLevel = RdJson::getLong("stepEnableActiveLevel", 1, robotConfigJSON);
+    _stepEnLev = RdJson::getLong("stepEnLev", 1, robotConfigJSON);
     _stepEnablePin         = ConfigPinMap::getPinFromName(stepEnablePinName.c_str());
     _stepDisableSecs       = float(RdJson::getDouble("stepDisableSecs", stepDisableSecs_default, robotConfigJSON));
-    Log.info("MotorIO (pin %d, actLvl %d, disableAfter %0.2fs)", _stepEnablePin, _stepEnableActiveLevel, _stepDisableSecs);
+    Log.info("MotorIO (pin %d, actLvl %d, disableAfter %0.2fs)", _stepEnablePin, _stepEnLev, _stepDisableSecs);
 
     // Enable pin - initially disable
     pinMode(_stepEnablePin, OUTPUT);
-    digitalWrite(_stepEnablePin, !_stepEnableActiveLevel);
+    digitalWrite(_stepEnablePin, !_stepEnLev);
     return true;
   }
 
@@ -250,14 +250,14 @@ public:
   void enableMotors(bool en, bool timeout)
   {
     // Log.trace("Enable %d, disable level %d, disable after time %0.2f",
-		//							en, !_stepEnableActiveLevel, _stepDisableSecs);
+		//							en, !_stepEnLev, _stepDisableSecs);
     if (en)
     {
       if (_stepEnablePin != -1)
       {
         if (!_motorsAreEnabled)
           Log.info("MotionIO: motors enabled, disable after time %0.2f", _stepDisableSecs);
-        digitalWrite(_stepEnablePin, _stepEnableActiveLevel);
+        digitalWrite(_stepEnablePin, _stepEnLev);
       }
       _motorsAreEnabled    = true;
       _motorEnLastMillis   = millis();
@@ -269,7 +269,7 @@ public:
       {
         if (_motorsAreEnabled)
           Log.info("MotionIO: motors disabled by %s", timeout ? "timeout" : "command");
-        digitalWrite(_stepEnablePin, !_stepEnableActiveLevel);
+        digitalWrite(_stepEnablePin, !_stepEnLev);
       }
       _motorsAreEnabled = false;
     }
@@ -305,9 +305,9 @@ public:
       raw._axis[axisIdx]._pinDirection             = -1;
       raw._axis[axisIdx]._pinDirectionReversed     = 0;
       raw._axis[axisIdx]._pinEndStopMin            = -1;
-      raw._axis[axisIdx]._pinEndStopMinActiveLevel = 0;
+      raw._axis[axisIdx]._pinEndStopMinactLvl = 0;
       raw._axis[axisIdx]._pinEndStopMax            = -1;
-      raw._axis[axisIdx]._pinEndStopMaxActiveLevel = 0;
+      raw._axis[axisIdx]._pinEndStopMaxactLvl = 0;
 
       // Extract info about stepper motor if any
       if (_stepperMotors[axisIdx])
@@ -321,13 +321,13 @@ public:
       if (_endStops[axisIdx][0])
       {
         _endStops[axisIdx][0]->getPins(raw._axis[axisIdx]._pinEndStopMin,
-                                       raw._axis[axisIdx]._pinEndStopMinActiveLevel);
+                                       raw._axis[axisIdx]._pinEndStopMinactLvl);
       }
       // Max endstop
       if (_endStops[axisIdx][1])
       {
         _endStops[axisIdx][1]->getPins(raw._axis[axisIdx]._pinEndStopMax,
-                                       raw._axis[axisIdx]._pinEndStopMaxActiveLevel);
+                                       raw._axis[axisIdx]._pinEndStopMaxactLvl);
       }
     }
   }

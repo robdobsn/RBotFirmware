@@ -153,13 +153,13 @@ void MotionActuator::procTick()
             if ((pBlock->_stepsTotalMaybeNeg[axisIdx] > 0) && (minMaxIdx == AxisMinMaxBools::MAX_VAL_IDX))
             {
               pinToTest = _rawMotionHwInfo._axis[axisIdx]._pinEndStopMax;
-              valToTestFor = _rawMotionHwInfo._axis[axisIdx]._pinEndStopMaxActiveLevel;
+              valToTestFor = _rawMotionHwInfo._axis[axisIdx]._pinEndStopMaxactLvl;
             }
             // Check min
             else if ((pBlock->_stepsTotalMaybeNeg[axisIdx] < 0) && (minMaxIdx == AxisMinMaxBools::MIN_VAL_IDX))
             {
               pinToTest = _rawMotionHwInfo._axis[axisIdx]._pinEndStopMin;
-              valToTestFor = _rawMotionHwInfo._axis[axisIdx]._pinEndStopMinActiveLevel;
+              valToTestFor = _rawMotionHwInfo._axis[axisIdx]._pinEndStopMinactLvl;
             }
             break;
           }
@@ -169,13 +169,13 @@ void MotionActuator::procTick()
             if ((pBlock->_stepsTotalMaybeNeg[axisIdx] < 0) && (minMaxIdx == AxisMinMaxBools::MAX_VAL_IDX))
             {
               pinToTest = _rawMotionHwInfo._axis[axisIdx]._pinEndStopMax;
-              valToTestFor = !_rawMotionHwInfo._axis[axisIdx]._pinEndStopMaxActiveLevel;
+              valToTestFor = !_rawMotionHwInfo._axis[axisIdx]._pinEndStopMaxactLvl;
             }
             // Check min
             else if ((pBlock->_stepsTotalMaybeNeg[axisIdx] > 0) && (minMaxIdx == AxisMinMaxBools::MIN_VAL_IDX))
             {
               pinToTest = _rawMotionHwInfo._axis[axisIdx]._pinEndStopMin;
-              valToTestFor = !_rawMotionHwInfo._axis[axisIdx]._pinEndStopMinActiveLevel;
+              valToTestFor = !_rawMotionHwInfo._axis[axisIdx]._pinEndStopMinactLvl;
             }
             break;
           }

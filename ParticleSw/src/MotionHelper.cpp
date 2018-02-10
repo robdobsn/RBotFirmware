@@ -298,7 +298,7 @@ void MotionHelper::setCurPositionAsHome(int axisIdx)
   if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
     return;
   _curAxisPosition._axisPositionMM.setVal(axisIdx, _axesParams.getHomeOffsetVal(axisIdx));
-  _curAxisPosition._stepsFromHome.setVal(axisIdx, _axesParams.getHomeOffsetSteps(axisIdx));
+  _curAxisPosition._stepsFromHome.setVal(axisIdx, _axesParams.gethomeOffSteps(axisIdx));
 }
 
 // Debug helper methods

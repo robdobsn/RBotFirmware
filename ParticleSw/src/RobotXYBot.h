@@ -25,11 +25,11 @@ public:
             float axisValFromHome = pt.getVal(axisIdx) - axesParams.getHomeOffsetVal(axisIdx);
             // Convert to steps and add offset to home in steps
             actuatorCoords.setVal(axisIdx, axisValFromHome * axesParams.getStepsPerUnit(axisIdx)
-                            + axesParams.getHomeOffsetSteps(axisIdx));
+                            + axesParams.gethomeOffSteps(axisIdx));
 
             Log.trace("ptToActuator %f -> %f (homeOffVal %f, homeOffSteps %ld)",
                     pt.getVal(axisIdx), actuatorCoords._pt[axisIdx],
-                    axesParams.getHomeOffsetVal(axisIdx), axesParams.getHomeOffsetSteps(axisIdx));
+                    axesParams.getHomeOffsetVal(axisIdx), axesParams.gethomeOffSteps(axisIdx));
         }
         return ptWasValid;
     }
@@ -39,7 +39,7 @@ public:
         // Perform conversion
         for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
         {
-            float ptVal = actuatorCoords.getVal(axisIdx) - axesParams.getHomeOffsetSteps(axisIdx);
+            float ptVal = actuatorCoords.getVal(axisIdx) - axesParams.gethomeOffSteps(axisIdx);
             ptVal = ptVal / axesParams.getStepsPerUnit(axisIdx) + axesParams.getHomeOffsetVal(axisIdx);
             pt.setVal(axisIdx, ptVal);
             Log.trace("actuatorToPt %d %f -> %f (perunit %f)", axisIdx, actuatorCoords.getVal(axisIdx),
@@ -52,13 +52,9 @@ public:
         // Not necessary for a non-continuous rotation bot
     }
 
-private:
-    // MotionHelper for the robot motion
-    MotionHelper& _motionHelper;
-
 public:
     RobotXYBot(const char* pRobotTypeName, MotionHelper& motionHelper) :
-        RobotBase(pRobotTypeName), _motionHelper(motionHelper)
+        RobotBase(pRobotTypeName, motionHelper)
     {
         _motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
     }

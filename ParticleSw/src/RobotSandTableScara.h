@@ -66,13 +66,13 @@ public:
         //        targetPolarCoords._pt[0], targetPolarCoords._pt[1]);
 
         // // Coordinates for axis0
-        // actuatorCoords._pt[0] = axisParams[0]._stepsPerRotation * targetPolarCoords._pt[0] / M_PI / 2;
+        // actuatorCoords._pt[0] = axisParams[0]._stepsPerRot * targetPolarCoords._pt[0] / M_PI / 2;
         // // Check for very close to origin - in this case don't move the shoulder-elbow as it is unnecessary
         // if (pt._pt[0]*pt._pt[0]+pt._pt[1]*pt._pt[1] < 1.0)
         //     actuatorCoords._pt[0] = axisParams[0]._stepsFromHome;
         //
         // // Convert to steps - note that axis 1 motor is mounted upside down from each other so axis 1 is inverted
-        // actuatorCoords._pt[1] = - axisParams[1]._stepsPerRotation * targetPolarCoords._pt[1] / M_PI / 2;
+        // actuatorCoords._pt[1] = - axisParams[1]._stepsPerRot * targetPolarCoords._pt[1] / M_PI / 2;
 
         return true;
     }
@@ -98,10 +98,10 @@ private:
     static ROTATION_TYPE ptToRotations(AxisFloats& pt, AxisFloats& rot1Degrees, AxisFloats& rot2Degrees, AxesParams& axesParams)
     {
         // Calculate arm lengths
-        // The _unitsPerRotation values in the axisParams indicate the circumference of the circle
+        // The _unitsPerRot values in the axisParams indicate the circumference of the circle
         // formed by moving each arm through 360 degrees
-        double shoulderElbowMM = axesParams.getUnitsPerRotation(0) / M_PI / 2;
-        double elbowHandMM = axesParams.getUnitsPerRotation(1) / M_PI / 2;
+        double shoulderElbowMM = axesParams.getunitsPerRot(0) / M_PI / 2;
+        double elbowHandMM = axesParams.getunitsPerRot(1) / M_PI / 2;
 
         // Calculate the two different configurations of upper and lower arm that can by used to reach any point
         // with the exception of the centre of the machine (many solutions to this) and points on perimeter of working
@@ -160,10 +160,10 @@ private:
     static void rotatonsToPoint(AxisFloats& rotDegrees, AxisFloats& pt, AxesParams& axesParams)
     {
         // Calculate arm lengths
-        // The _unitsPerRotation values in the axisParams indicate the circumference of the circle
+        // The _unitsPerRot values in the axisParams indicate the circumference of the circle
         // formed by moving each arm through 360 degrees
-        double shoulderElbowMM = axesParams.getUnitsPerRotation(0) / M_PI / 2;
-        double elbowHandMM = axesParams.getUnitsPerRotation(1) / M_PI / 2;
+        double shoulderElbowMM = axesParams.getunitsPerRot(0) / M_PI / 2;
+        double elbowHandMM = axesParams.getunitsPerRot(1) / M_PI / 2;
 
         // Trig to get elbow location - alpha is clockwise from North
         double alpha = d2r(rotDegrees._pt[0]);
@@ -189,8 +189,8 @@ private:
     {
         // Axis 0 positive steps clockwise, axis 1 postive steps are anticlockwise
         // Axis 0 zero steps is at 0 degrees, axis 1 zero steps is at 180 degrees
-        actuatorCoords._pt[0] = - rotationDegrees._pt[0] * axesParams.getStepsPerRotation(0) / 360;
-        actuatorCoords._pt[1] = (rotationDegrees._pt[1] - 180) * axesParams.getStepsPerRotation(1) / 360;
+        actuatorCoords._pt[0] = - rotationDegrees._pt[0] * axesParams.getstepsPerRot(0) / 360;
+        actuatorCoords._pt[1] = (rotationDegrees._pt[1] - 180) * axesParams.getstepsPerRot(1) / 360;
         Log.trace("rotationToActuator a %0.2fD b %0.2fD ax1Steps %0.2f ax1Steps %0.2f",
                 rotationDegrees._pt[0], rotationDegrees._pt[1], actuatorCoords._pt[0], actuatorCoords._pt[1]);
     }
@@ -200,9 +200,9 @@ private:
         // Axis 0 positive steps clockwise, axis 1 postive steps are anticlockwise
         // Axis 0 zero steps is at 0 degrees, axis 1 zero steps is at 180 degrees
         // All angles returned are in degrees anticlockwise from East
-        double axis0Degrees = actuatorCoords._pt[0] * 360 / axesParams.getStepsPerRotation(0);
+        double axis0Degrees = actuatorCoords._pt[0] * 360 / axesParams.getstepsPerRot(0);
         double alpha = -axis0Degrees;
-        double axis1Degrees = actuatorCoords._pt[1] * 360 / axesParams.getStepsPerRotation(1);
+        double axis1Degrees = actuatorCoords._pt[1] * 360 / axesParams.getstepsPerRot(1);
         double beta = 180 + axis1Degrees;
         rotationDegrees.set(alpha, beta);
         Log.trace("actuatorToRotation ax0Steps %0.2f ax1Steps %0.2f a %0.2fD b %0.2fD",
@@ -213,13 +213,13 @@ private:
     {
         // Get current steps from home
         AxisFloats actuatorCoords;
-        actuatorCoords.X(axesParams.getHomeOffsetSteps(0));
-        actuatorCoords.Y(axesParams.getHomeOffsetSteps(1));
+        actuatorCoords.X(axesParams.gethomeOffSteps(0));
+        actuatorCoords.Y(axesParams.gethomeOffSteps(1));
 
         actuatorToRotation(actuatorCoords, rotationDegrees, axesParams);
 
         Log.trace("getCurrentRotation ax0FromHome %ld ax1FromHome %ld alpha %0.2fD beta %02.fD",
-                    axesParams.getHomeOffsetSteps(0), axesParams.getHomeOffsetSteps(1),
+                    axesParams.gethomeOffSteps(0), axesParams.gethomeOffSteps(1),
                     rotationDegrees._pt[0], rotationDegrees._pt[1]);
     }
 
@@ -461,16 +461,13 @@ private:
     HOMING_STEP_TYPE _homingAxis1Step;
     double _timeBetweenHomingStepsUs;
 
-    // MotionHelper for the robot motion
-    MotionHelper& _motionHelper;
-
     // Defaults
     static constexpr int homingStepTimeUs_default = 1000;
     static constexpr int maxHomingSecs_default = 1000;
 
 public:
     RobotSandTableScara(const char* pRobotTypeName, MotionHelper& motionHelper) :
-        RobotBase(pRobotTypeName), _motionHelper(motionHelper)
+        RobotBase(pRobotTypeName, motionHelper)
     {
         _homingState = HOMING_STATE_IDLE;
         _homeReqMillis = 0;
@@ -635,9 +632,9 @@ public:
     //         {
     //             // We now know how many steps the endstop is active for - so halve this and move
     //             // back that amount and we are in the centre of the home range
-    //             int homingAxis1Centre = prevHomingSteps / 2 + _motionHelper.getHomeOffsetSteps(1);
+    //             int homingAxis1Centre = prevHomingSteps / 2 + _motionHelper.gethomeOffSteps(1);
     //             Log.trace("Homing - PastEndstop - axis1CentreSteps = %d (offset is %ld)",
-    //                                     homingAxis1Centre, _motionHelper.getHomeOffsetSteps(1));
+    //                                     homingAxis1Centre, _motionHelper.gethomeOffSteps(1));
     //             _homingStepsLimit = homingAxis1Centre;
     //             _homingApplyStepLimit = true;
     //             _homingStateNext = AXIS1_HOMED;

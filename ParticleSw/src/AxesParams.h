@@ -38,7 +38,7 @@ public:
   {
     _masterAxisIdx            = -1;
     _masterAxisMaxAccMMps2    = AxisParams::acceleration_default;
-    _masterAxisStepDistanceMM = AxisParams::unitsPerRotation_default / AxisParams::stepsPerRotation_default;
+    _masterAxisStepDistanceMM = AxisParams::unitsPerRot_default / AxisParams::stepsPerRot_default;
     for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
       _axisParams[axisIdx].clear();
     _cacheLastTickRatePerSec = 0;
@@ -47,36 +47,36 @@ public:
   float getStepsPerUnit(int axisIdx)
   {
     if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
-      return AxisParams::stepsPerRotation_default / AxisParams::unitsPerRotation_default;
+      return AxisParams::stepsPerRot_default / AxisParams::unitsPerRot_default;
     return _axisParams[axisIdx].stepsPerUnit();
   }
 
-  float getStepsPerRotation(int axisIdx)
+  float getstepsPerRot(int axisIdx)
   {
     if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
-      return AxisParams::stepsPerRotation_default;
-    return _axisParams[axisIdx]._stepsPerRotation;
+      return AxisParams::stepsPerRot_default;
+    return _axisParams[axisIdx]._stepsPerRot;
   }
 
-  float getUnitsPerRotation(int axisIdx)
+  float getunitsPerRot(int axisIdx)
   {
     if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
-      return AxisParams::unitsPerRotation_default;
-    return _axisParams[axisIdx]._unitsPerRotation;
+      return AxisParams::unitsPerRot_default;
+    return _axisParams[axisIdx]._unitsPerRot;
   }
 
-  long getHomeOffsetSteps(int axisIdx)
+  long gethomeOffSteps(int axisIdx)
   {
     if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
       return 0;
-    return _axisParams[axisIdx]._homeOffsetSteps;
+    return _axisParams[axisIdx]._homeOffSteps;
   }
 
-  void setHomeOffsetSteps(int axisIdx, long newVal)
+  void sethomeOffSteps(int axisIdx, long newVal)
   {
     if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
       return;
-    _axisParams[axisIdx]._homeOffsetSteps = newVal;
+    _axisParams[axisIdx]._homeOffSteps = newVal;
   }
 
   float getHomeOffsetVal(int axisIdx)
@@ -115,8 +115,8 @@ public:
   float getStepDistMM(int axisIdx)
   {
     if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
-      return AxisParams::unitsPerRotation_default / AxisParams::stepsPerRotation_default;
-    return _axisParams[axisIdx]._unitsPerRotation / _axisParams[axisIdx]._stepsPerRotation;
+      return AxisParams::unitsPerRot_default / AxisParams::stepsPerRot_default;
+    return _axisParams[axisIdx]._unitsPerRot / _axisParams[axisIdx]._stepsPerRot;
   }
 
   float getMaxAccel(int axisIdx)
