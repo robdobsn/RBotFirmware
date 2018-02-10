@@ -13,10 +13,10 @@ class RobotXYBot : public RobotBase
 {
 public:
 
-    static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams)
+    static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams, bool allowOutOfBounds)
     {
         // Check machine bounds and fix the value if required
-        bool ptWasValid = axesParams.ptInBounds(pt, true);
+        bool ptWasValid = axesParams.ptInBounds(pt, !allowOutOfBounds);
 
         // Perform conversion
         for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)

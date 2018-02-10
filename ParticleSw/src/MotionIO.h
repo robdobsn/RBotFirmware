@@ -1,3 +1,6 @@
+// RBotFirmware
+// Rob Dobson 2016-18
+
 #pragma once
 
 #include "StepperMotor.h"
@@ -233,7 +236,7 @@ public:
       if (_stepEnablePin != -1)
       {
         if (!_motorsAreEnabled)
-          Log.info("MotionHelper motors enabled, disable after time %0.2f", _stepDisableSecs);
+          Log.info("MotionIO: motors enabled, disable after time %0.2f", _stepDisableSecs);
         digitalWrite(_stepEnablePin, _stepEnableActiveLevel);
       }
       _motorsAreEnabled    = true;
@@ -245,7 +248,7 @@ public:
       if (_stepEnablePin != -1)
       {
         if (_motorsAreEnabled)
-          Log.info("MotionHelper motors disabled by %s", timeout ? "timeout" : "command");
+          Log.info("MotionIO: motors disabled by %s", timeout ? "timeout" : "command");
         digitalWrite(_stepEnablePin, !_stepEnableActiveLevel);
       }
       _motorsAreEnabled = false;

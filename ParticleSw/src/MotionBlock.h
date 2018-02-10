@@ -40,6 +40,9 @@ public:
   float _exitSpeedMMps;
   // End-stops to test
   AxisMinMaxBools _endStopsToCheck;
+  // Numbered command index - to help keep track of block execution from other processes
+  // like homing
+  int _numberedCommandIndex;
 
   // Flags
   struct
@@ -83,11 +86,20 @@ public:
     _initialStepRatePerTTicks = 0;
     _maxStepRatePerTTicks     = 0;
     _stepsBeforeDecel         = 0;
+    _numberedCommandIndex     = 0;
     _endStopsToCheck.none();
     for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
       _stepsTotalMaybeNeg[axisIdx] = 0;
   }
 
+  void setNumberedCommandIndex(int cmdIdx)
+  {
+    _numberedCommandIndex = cmdIdx;
+  }
+  int getNumberedCommandIndex()
+  {
+    return _numberedCommandIndex;
+  }
   int32_t getStepsToTarget(int axisIdx)
   {
     if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)

@@ -91,6 +91,13 @@ public:
     return _axisParams;
   }
 
+  float getAxisMaxRange(int axisIdx)
+  {
+    if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
+      return 0;
+    return fabsf(_axisParams[axisIdx]._maxVal - _axisParams[axisIdx]._minVal);
+  }
+
   float getMaxSpeed(int axisIdx)
   {
     if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
@@ -153,13 +160,6 @@ public:
     for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
       wasValid = wasValid && _axisParams[axisIdx].ptInBounds(pt._pt[axisIdx], correctValueInPlace);
     return wasValid;
-  }
-
-  void setHomePosition(AxisFloats& pt, AxisInt32s& steps)
-  {
-    for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
-      if (pt.isValid(axisIdx))
-        _axisParams[axisIdx].setHomePosition(pt.getVal(axisIdx), steps.getVal(axisIdx));
   }
 
   bool configureAxis(const char* robotConfigJSON, int axisIdx, String& axisJSON)

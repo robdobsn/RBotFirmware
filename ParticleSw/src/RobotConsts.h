@@ -12,6 +12,8 @@ typedef enum
   MOTOR_TYPE_SERVO
 } MOTOR_TYPE;
 
+static constexpr int NUMBERED_COMMAND_NONE = 0;
+
 struct RawMotionAxis_t
 {
   RobotConsts::MOTOR_TYPE _motorType;

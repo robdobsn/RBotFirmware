@@ -82,12 +82,6 @@ public:
     return wasValid;
   }
 
-  void setHomePosition(float val, long steps)
-  {
-    _homeOffsetVal   = val;
-    _homeOffsetSteps = steps;
-  }
-
   void setFromJSON(const char* axisJSON)
   {
     // Stepper motor

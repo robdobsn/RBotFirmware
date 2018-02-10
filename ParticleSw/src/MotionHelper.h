@@ -10,6 +10,7 @@
 #include "MotionPlanner.h"
 #include "MotionIO.h"
 #include "MotionActuator.h"
+#include "MotionHoming.h"
 
 class MotionHelper
 {
@@ -43,8 +44,10 @@ private:
   MotionPipeline _motionPipeline;
   // Motion IO (Motors and end-stops)
   MotionIO _motionIO;
-  // Motion
+  // Actuators (motors etc)
   MotionActuator _motionActuator;
+  // Homing
+  MotionHoming _motionHoming;
 
   // Split-up movement blocks to be added to pipeline
   // Number of blocks to add
@@ -83,23 +86,6 @@ public:
   // Check if idle
   bool isIdle();
 
-  void jumpHome(int axisIdx)
-  {
-    Log.info("JUMP HOME IS NO LONGER IMPLEMENTED");
-  }
-
-  bool isEndStopValid(int axisIdx, int endStopIdx)
-  {
-    Log.info("isEndStopValid IS NO LONGER IMPLEMENTED");
-    return true;
-  }
-
-  bool isAtEndStop(int axisIdx, int endStopIdx)
-  {
-    Log.info("isAtEndStop IS NO LONGER IMPLEMENTED");
-    return true;
-  }
-
   double getStepsPerUnit(int axisIdx)
   {
     return _axesParams.getStepsPerUnit(axisIdx);
@@ -125,12 +111,16 @@ public:
     return _axesParams;
   }
 
-  void setCurPositionAsHome(AxisFloats& pt);
-  void setCurPositionAsHome(bool xIsHome, bool yIsHome, bool zIsHome);
+  void setCurPositionAsHome(int axisIdx);
 
   bool moveTo(RobotCommandArgs& args);
   void setMotionParams(RobotCommandArgs& args);
   void getCurStatus(RobotCommandArgs& args);
+  void goHome(RobotCommandArgs& args);
+  int getLastCompletedNumberedCmdIdx()
+  {
+    return _motionActuator.getLastCompletedNumberedCmdIdx();
+  }
   void service(bool processPipeline);
 
   unsigned long getLastActiveUnixTime()

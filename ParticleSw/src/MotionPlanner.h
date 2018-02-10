@@ -11,7 +11,7 @@
 
 #include "MotionPipeline.h"
 
-typedef bool (*ptToActuatorFnType) (AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams);
+typedef bool (*ptToActuatorFnType) (AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams, bool allowOutOfBounds);
 typedef void (*actuatorToPtFnType) (AxisFloats& actuatorCoords, AxisFloats& pt, AxesParams& axesParams);
 typedef void (*correctStepOverflowFnType) (AxesParams& axesParams);
 
@@ -60,7 +60,7 @@ public:
     float squareSum      = 0;
     for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
     {
-      deltas[axisIdx] = args.pt._pt[axisIdx] - curAxisPositions._axisPositionMM._pt[axisIdx];
+      deltas[axisIdx] = args.getValNoCkMM(axisIdx) - curAxisPositions._axisPositionMM._pt[axisIdx];
       if (deltas[axisIdx] != 0)
       {
         isAMove = true;
@@ -83,12 +83,15 @@ public:
     MotionBlock block;
 
     // set end-stop check requirements
-    block.setEndStopsToCheck(args.endstopCheck);
+    block.setEndStopsToCheck(args.getEndstopCheck());
+
+    // Set numbered command index if present
+    block.setNumberedCommandIndex(args.getNumberedCommandIndex());
 
     // Max speed (may be overridden downwards by feedrate)
     float validFeedrateMMps = 1e8;
-    if (args.feedrateValid)
-      validFeedrateMMps = args.feedrateVal;
+    if (args.isFeedrateValid())
+      validFeedrateMMps = args.getFeedrate();
 
     // Find the unit vectors for the primary axes and check the feedrate
     AxisFloats unitVectors;

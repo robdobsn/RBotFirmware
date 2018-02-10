@@ -19,7 +19,7 @@ public:
 
 public:
 
-    static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams)
+    static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams, bool allowOutOfBounds)
     {
         // Note that the rotation angle comes straight from the Y parameter
         // This means that drawings in the range 0 .. 240mm height (assuming 1:1 scaling is chosen)
@@ -27,7 +27,7 @@ public:
         // mug-radius independent
 
         // Check machine bounds and fix the value if required
-        bool ptWasValid = axesParams.ptInBounds(pt, true);
+        bool ptWasValid = axesParams.ptInBounds(pt, !allowOutOfBounds);
 
         // Perform conversion
         for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
@@ -115,37 +115,38 @@ public:
         // Init motion controller from config
         _motionHelper.configure(robotConfigStr);
 
-        // Set current position to be home (will be overridden when we do homing)
-        _motionHelper.setCurPositionAsHome(true, true, true);
+        // // Set current position to be home (will be overridden when we do homing)
+        // _motionHelper.setCurPositionAsHome(true, true, true);
 
-        // Get params specific to this robot
-        _maxHomingSecs = RdJson::getLong("maxHomingSecs", maxHomingSecs_default, robotConfigStr);
+        // // Get params specific to this robot
+        // _maxHomingSecs = RdJson::getLong("maxHomingSecs", maxHomingSecs_default, robotConfigStr);
 
-        // Info
-        Log.info("%s maxHome %lds", _robotTypeName.c_str(), _maxHomingSecs);
+        // // Info
+        // Log.info("%s maxHome %lds", _robotTypeName.c_str(), _maxHomingSecs);
 
         return true;
     }
 
     void goHome(RobotCommandArgs& args)
     {
-        // Info
-        _homeX = args.pt.isValid(0);
-        _homeY = args.pt.isValid(1);
-        _homeZ = args.pt.isValid(2);
-        if (!_homeX && !_homeY && !_homeZ)
-            _homeX = _homeY = _homeZ = true;
-        Log.info("%s goHome x%d, y%d, z%d", _robotTypeName.c_str(),
-                        _homeX, _homeY, _homeZ);
-
-        // Set homing state
-        homingSetNewState(HOMING_STATE_INIT);
+      _motionHelper.goHome(args);
+        // // Info
+        // _homeX = args.isValid(0);
+        // _homeY = args.isValid(1);
+        // _homeZ = args.isValid(2);
+        // if (!_homeX && !_homeY && !_homeZ)
+        //     _homeX = _homeY = _homeZ = true;
+        // Log.info("%s goHome x%d, y%d, z%d", _robotTypeName.c_str(),
+        //                 _homeX, _homeY, _homeZ);
+        //
+        // // Set homing state
+        // homingSetNewState(HOMING_STATE_INIT);
     }
 
-    void setHome(RobotCommandArgs& args)
-    {
-        _motionHelper.setCurPositionAsHome(args.pt);
-    }
+    // void setHome(RobotCommandArgs& args)
+    // {
+    //     _motionHelper.setCurPositionAsHome(args.getPoint());
+    // }
 
     bool canAcceptCommand()
     {
@@ -172,87 +173,87 @@ public:
         _motionHelper.getCurStatus(args);
     }
 
-    void homingSetNewState(HOMING_STATE newState)
-    {
-        // Debug
-        // if (_homingStepsDone != 0)
-        Log.info("Changing state to %d ... HomingSteps %d", newState, _homingStepsDone);
-        // else
-        //     Log.trace("Changing state to %d ... HomingSteps %d", _homingStepsDone);
-
-        // Reset homing vars
-        _homingStepsDone = 0;
-        _homingStepsLimit = 0;
-        _homingApplyStepLimit = false;
-        _homingSeekAxis1Endstop0 = HSEEK_NONE;
-        _homingAxis1Step = HSTEP_NONE;
-        _homingState = newState;
-
-        // Handle the specfics of the new homing state
-        switch(newState)
-        {
-            case HOMING_STATE_IDLE:
-            {
-                break;
-            }
-            case HOMING_STATE_INIT:
-            {
-                // Check which axes we are homing
-                if (_homeZ)
-                {
-                    _motionHelper.jumpHome(2);
-                }
-                if (_homeY)
-                {
-                    _homeReqMillis = millis();
-                    // If we are at the endstop we need to move away from it first
-                    _homingStateNext = HOMING_STATE_SEEK_ENDSTOP;
-                    _homingSeekAxis1Endstop0 = HSEEK_OFF;
-                    // Move away from endstop if needed
-                    _homingAxis1Step = HSTEP_BACKWARDS;
-                    _timeBetweenHomingStepsUs = _homingLinearFastStepTimeUs;
-                    bool endstop1Val = _motionHelper.isAtEndStop(1,0);
-                    Log.info("Homing started%s", endstop1Val ? " moving from endstop" : "");
-                    break;
-                }
-                else
-                {
-                    _homingState = HOMING_STATE_IDLE;
-                    break;
-                }
-            }
-            case HOMING_STATE_SEEK_ENDSTOP:
-            {
-                // Rotate to the rotation endstop
-                _homingStateNext = HOMING_STATE_BACK_OFF;
-                _homingSeekAxis1Endstop0 = HSEEK_ON;
-                _homingAxis1Step = HSTEP_FORWARDS;
-                _timeBetweenHomingStepsUs = _homingLinearSlowStepTimeUs;
-                Log.info("Homing to end stop");
-                break;
-            }
-            case HOMING_STATE_BACK_OFF:
-            {
-                // Rotate to the rotation endstop
-                _homingStateNext = HOMING_STATE_COMPLETE;
-                _homingSeekAxis1Endstop0 = HSEEK_NONE;
-                _homingAxis1Step = HSTEP_BACKWARDS;
-                _timeBetweenHomingStepsUs = _homingLinearSlowStepTimeUs;
-                _homingStepsLimit = 4000;
-                _homingApplyStepLimit = true;
-                Log.info("Homing to end stop");
-                break;
-            }
-            case HOMING_STATE_COMPLETE:
-            {
-                AxisFloats homeVals(0,0);
-                _motionHelper.setCurPositionAsHome(homeVals);
-                _homingState = HOMING_STATE_IDLE;
-                Log.info("Homing - complete");
-                break;
-            }
-        }
-    }
+    // void homingSetNewState(HOMING_STATE newState)
+    // {
+    //     // Debug
+    //     // if (_homingStepsDone != 0)
+    //     Log.info("Changing state to %d ... HomingSteps %d", newState, _homingStepsDone);
+    //     // else
+    //     //     Log.trace("Changing state to %d ... HomingSteps %d", _homingStepsDone);
+    //
+    //     // Reset homing vars
+    //     _homingStepsDone = 0;
+    //     _homingStepsLimit = 0;
+    //     _homingApplyStepLimit = false;
+    //     _homingSeekAxis1Endstop0 = HSEEK_NONE;
+    //     _homingAxis1Step = HSTEP_NONE;
+    //     _homingState = newState;
+    //
+    //     // Handle the specfics of the new homing state
+    //     switch(newState)
+    //     {
+    //         case HOMING_STATE_IDLE:
+    //         {
+    //             break;
+    //         }
+    //         case HOMING_STATE_INIT:
+    //         {
+    //             // Check which axes we are homing
+    //             if (_homeZ)
+    //             {
+    //                 _motionHelper.jumpHome(2);
+    //             }
+    //             if (_homeY)
+    //             {
+    //                 _homeReqMillis = millis();
+    //                 // If we are at the endstop we need to move away from it first
+    //                 _homingStateNext = HOMING_STATE_SEEK_ENDSTOP;
+    //                 _homingSeekAxis1Endstop0 = HSEEK_OFF;
+    //                 // Move away from endstop if needed
+    //                 _homingAxis1Step = HSTEP_BACKWARDS;
+    //                 _timeBetweenHomingStepsUs = _homingLinearFastStepTimeUs;
+    //                 bool endstop1Val = _motionHelper.isAtEndStop(1,0);
+    //                 Log.info("Homing started%s", endstop1Val ? " moving from endstop" : "");
+    //                 break;
+    //             }
+    //             else
+    //             {
+    //                 _homingState = HOMING_STATE_IDLE;
+    //                 break;
+    //             }
+    //         }
+    //         case HOMING_STATE_SEEK_ENDSTOP:
+    //         {
+    //             // Rotate to the rotation endstop
+    //             _homingStateNext = HOMING_STATE_BACK_OFF;
+    //             _homingSeekAxis1Endstop0 = HSEEK_ON;
+    //             _homingAxis1Step = HSTEP_FORWARDS;
+    //             _timeBetweenHomingStepsUs = _homingLinearSlowStepTimeUs;
+    //             Log.info("Homing to end stop");
+    //             break;
+    //         }
+    //         case HOMING_STATE_BACK_OFF:
+    //         {
+    //             // Rotate to the rotation endstop
+    //             _homingStateNext = HOMING_STATE_COMPLETE;
+    //             _homingSeekAxis1Endstop0 = HSEEK_NONE;
+    //             _homingAxis1Step = HSTEP_BACKWARDS;
+    //             _timeBetweenHomingStepsUs = _homingLinearSlowStepTimeUs;
+    //             _homingStepsLimit = 4000;
+    //             _homingApplyStepLimit = true;
+    //             Log.info("Homing to end stop");
+    //             break;
+    //         }
+    //         case HOMING_STATE_COMPLETE:
+    //         {
+    //             AxisFloats homeVals(0,0);
+    //             _motionHelper.setCurPositionAsHome(homeVals);
+    //             _homingState = HOMING_STATE_IDLE;
+    //             Log.info("Homing - complete");
+    //             break;
+    //         }
+    //     }
+    // }
 
     bool homingService()
     {

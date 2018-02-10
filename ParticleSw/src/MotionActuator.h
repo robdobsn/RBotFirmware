@@ -49,6 +49,8 @@ private:
   bool _isEnabled;
   // End-stop reached
   bool _endStopReached;
+  // Last completed numbered command
+  int _lastDoneNumberedCmdIdx;
   // Steps
   uint32_t _stepsTotalAbs[RobotConsts::MAX_AXES];
   uint32_t _curStepCount[RobotConsts::MAX_AXES];
@@ -97,6 +99,7 @@ public:
   {
     _isPaused = true;
     _endStopReached = false;
+    _lastDoneNumberedCmdIdx = RobotConsts::NUMBERED_COMMAND_NONE;
 #ifdef TEST_MOTION_ACTUATOR_ENABLE
     _pTestMotionActuator = NULL;
 #endif
@@ -121,6 +124,10 @@ public:
     return _endStopReached;
   }
 
+  int getLastCompletedNumberedCmdIdx()
+  {
+    return _lastDoneNumberedCmdIdx;
+  }
   void process();
 
   String getDebugStr();

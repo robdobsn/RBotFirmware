@@ -80,6 +80,7 @@ unsigned long configDirtyStartMs = 0;
 // 1/16 microstepping
 static const char* ROBOT_CONFIG_STR_MUGBOT =
     "{\"robotType\": \"MugBot\", \"xMaxMM\":150, \"yMaxMM\":120,"
+    "\"homingSeq\":\"Y-sx!;Y+r9sx;Y-1.0;Y=h$\","
     "\"cmdsAtStart\":\"\","
     "\"stepEnablePin\":\"A2\", \"stepEnableActiveLevel\":1, \"stepDisableSecs\":60.0,"
     "\"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":10.0, \"maxAcc\":5.0,"

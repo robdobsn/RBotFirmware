@@ -194,6 +194,11 @@ void MotionActuator::procTick()
           // Cancel motion as end-stop reached
           _endStopReached = true;
           _motionPipeline.remove();
+          // Check if this is a numbered block - if so record its completion
+          if (pBlock->getNumberedCommandIndex() != RobotConsts::NUMBERED_COMMAND_NONE)
+          {
+            _lastDoneNumberedCmdIdx = pBlock->getNumberedCommandIndex();
+          }
           // Log.info("End-stop reached %d, %d", pinToTest, valToTestFor);
           return;
         }
@@ -289,6 +294,11 @@ void MotionActuator::procTick()
       // If not this block is complete
       _motionPipeline.remove();
       // Log.info("Block done");
+      // Check if this is a numbered block - if so record its completion
+      if (pBlock->getNumberedCommandIndex() != RobotConsts::NUMBERED_COMMAND_NONE)
+      {
+        _lastDoneNumberedCmdIdx = pBlock->getNumberedCommandIndex();
+      }
     }
   }
 }

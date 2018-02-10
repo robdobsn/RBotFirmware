@@ -13,7 +13,7 @@ class RobotHockeyBot : public RobotBase
 {
 public:
 
-    static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams)
+    static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams, bool allowOutOfBounds)
     {
         // // Simple scaling from one domain to another
         // bool isValid = true;

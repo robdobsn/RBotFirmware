@@ -34,25 +34,23 @@ public:
             switch(toupper(*pStr))
             {
                 case 'X':
-                    cmdArgs.setAxisValue(0, strtod(++pStr, &pEndStr), true);
+                    cmdArgs.setAxisValMM(0, strtod(++pStr, &pEndStr), true);
                     pStr = pEndStr;
                     break;
                 case 'Y':
-                    cmdArgs.setAxisValue(1, strtod(++pStr, &pEndStr), true);
+                    cmdArgs.setAxisValMM(1, strtod(++pStr, &pEndStr), true);
                     pStr = pEndStr;
                     break;
                 case 'Z':
-                    cmdArgs.setAxisValue(2, strtod(++pStr, &pEndStr), true);
+                    cmdArgs.setAxisValMM(2, strtod(++pStr, &pEndStr), true);
                     pStr = pEndStr;
                     break;
                 case 'E':
-                    cmdArgs.extrudeValid = true;
-                    cmdArgs.extrudeVal = strtod(++pStr, &pEndStr);
+                    cmdArgs.setExtrude(strtod(++pStr, &pEndStr));
                     pStr = pEndStr;
                     break;
                 case 'F':
-                    cmdArgs.feedrateValid = true;
-                    cmdArgs.feedrateVal = strtod(++pStr, &pEndStr);
+                    cmdArgs.setFeedrate(strtod(++pStr, &pEndStr));
                     pStr = pEndStr;
                     break;
                 case 'S':
@@ -103,27 +101,29 @@ public:
             case 1: // Move
                 if (takeAction)
                 {
-                    cmdArgs.moveRapid = (cmdNum == 0);
+                    cmdArgs.setMoveRapid(cmdNum == 0);
                     pRobotController->moveTo(cmdArgs);
                 }
                 return true;
             case 28: // Home axes
                 if (takeAction)
                 {
+                    if (!cmdArgs.anyValid())
+                      cmdArgs.setAllAxesNeedHoming();
                     pRobotController->goHome(cmdArgs);
                 }
                 return true;
             case 90: // Move absolute
                 if (takeAction)
                 {
-                    cmdArgs.moveType = RobotMoveTypeArg_Absolute;
+                    cmdArgs.setMoveType(RobotMoveTypeArg_Absolute);
                     pRobotController->setMotionParams(cmdArgs);
                 }
                 return true;
             case 91: // Movements relative
                 if (takeAction)
                 {
-                    cmdArgs.moveType = RobotMoveTypeArg_Relative;
+                    cmdArgs.setMoveType(RobotMoveTypeArg_Relative);
                     pRobotController->setMotionParams(cmdArgs);
                 }
                 return true;

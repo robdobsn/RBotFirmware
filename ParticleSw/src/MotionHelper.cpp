@@ -8,7 +8,8 @@
 #include "Utils.h"
 
 MotionHelper::MotionHelper() :
-  _motionActuator(_motionIO, _motionPipeline)
+  _motionActuator(_motionIO, _motionPipeline),
+  _motionHoming(this)
 {
   // Init
   _isPaused        = false;
@@ -91,6 +92,9 @@ bool MotionHelper::configureRobot(const char* robotConfigJSON)
   _motionPipeline.init(pipelineLen);
   _motionPlanner.configure(junctionDeviation);
 
+  // Homing
+  _motionHoming.configure(robotConfigJSON);
+
   // MotionIO
   _motionIO.configureMotors(robotConfigJSON);
   return true;
@@ -134,18 +138,24 @@ bool MotionHelper::isIdle()
 void MotionHelper::setMotionParams(RobotCommandArgs& args)
 {
   // Check for relative movement specified and set accordingly
-  if (args.moveType != RobotMoveTypeArg_None)
-    _moveRelative = (args.moveType == RobotMoveTypeArg_Relative);
+  if (args.getMoveType() != RobotMoveTypeArg_None)
+    _moveRelative = (args.getMoveType() == RobotMoveTypeArg_Relative);
 }
 
 // Get current status of robot
 void MotionHelper::getCurStatus(RobotCommandArgs& args)
 {
   // Get current position
-  AxisFloats axisPosns;
-  args.pt = _curAxisPosition._axisPositionMM;
+  args.setPointMM(_curAxisPosition._axisPositionMM);
+  args.setPointSteps(_curAxisPosition._stepsFromHome);
   // Absolute/Relative movement
-  args.moveType = _moveRelative ? RobotMoveTypeArg_Relative : RobotMoveTypeArg_Absolute;
+  args.setMoveType(_moveRelative ? RobotMoveTypeArg_Relative : RobotMoveTypeArg_Absolute);
+}
+
+// Command the robot to home one or more axes
+void MotionHelper::goHome(RobotCommandArgs& args)
+{
+    _motionHoming.homingStart(args);
 }
 
 // Command the robot to move (adding a command to the pipeline of motion)
@@ -154,23 +164,24 @@ bool MotionHelper::moveTo(RobotCommandArgs& args)
   // Fill in the destPos for axes for which values not specified
   // Handle relative motion override if present
   // Don't use servo values for computing distance to travel
-  AxisFloats destPos = args.pt;
+  AxisFloats destPos = args.getPointMM();
   bool       includeDist[RobotConsts::MAX_AXES];
   for (int i = 0; i < RobotConsts::MAX_AXES; i++)
   {
-    if (!args.pt.isValid(i))
+    if (!args.isValid(i))
     {
       destPos.setVal(i, _curAxisPosition._axisPositionMM.getVal(i));
+      // Log.info("MOVE TO ax %d, pos %d", i, _curAxisPosition._axisPositionMM.getVal(i));
     }
     else
     {
       // Check relative motion - override current options if this command
       // explicitly states a moveType
       bool moveRelative = _moveRelative;
-      if (args.moveType != RobotMoveTypeArg_None)
-        moveRelative = (args.moveType == RobotMoveTypeArg_Relative);
+      if (args.getMoveType() != RobotMoveTypeArg_None)
+        moveRelative = (args.getMoveType() == RobotMoveTypeArg_Relative);
       if (moveRelative)
-        destPos.setVal(i, _curAxisPosition._axisPositionMM.getVal(i) + args.pt.getVal(i));
+        destPos.setVal(i, _curAxisPosition._axisPositionMM.getVal(i) + args.getValMM(i));
     }
     includeDist[i] = _axesParams.isPrimaryAxis(i);
   }
@@ -180,7 +191,7 @@ bool MotionHelper::moveTo(RobotCommandArgs& args)
 
   // Ensure at least one block
   int numBlocks = 1;
-  if (_blockDistanceMM > 0.01f)
+  if (_blockDistanceMM > 0.01f && !args.getDontSplitMove())
     numBlocks = int(lineLen / _blockDistanceMM);
   if (numBlocks == 0)
     numBlocks = 1;
@@ -205,14 +216,14 @@ bool MotionHelper::addToPlanner(RobotCommandArgs& args)
 {
   // Convert the move to actuator coordinates
   AxisFloats actuatorCoords;
-  _ptToActuatorFn(args.pt, actuatorCoords, _axesParams);
+  _ptToActuatorFn(args.getPointMM(), actuatorCoords, _axesParams, args.getAllowOutOfBounds());
 
   // Plan the move
   bool moveOk = _motionPlanner.moveTo(args, actuatorCoords, _curAxisPosition, _axesParams, _motionPipeline);
   if (moveOk)
   {
     // Update axisMotion
-    _curAxisPosition._axisPositionMM = args.pt;
+    _curAxisPosition._axisPositionMM = args.getPointMM();
   }
   return moveOk;
 }
@@ -243,7 +254,7 @@ void MotionHelper::blocksToAddProcess()
       _blocksToAddTotal = 0;
 
     // Add to planner
-    _blocksToAddCommandArgs.pt = nextBlockDest;
+    _blocksToAddCommandArgs.setPointMM(nextBlockDest);
     addToPlanner(_blocksToAddCommandArgs);
 
     // Enable motors
@@ -271,19 +282,21 @@ void MotionHelper::service(bool processPipeline)
   if (_motionPipeline.count() > 0)
     _motionIO.motionIsActive();
   _motionIO.service();
+
+  // Service homing
+  _motionHoming.service(_axesParams);
+  if (_motionHoming.isHomingInProgress())
+    _motionIO.motionIsActive();
+
 }
 
-// Reset coordinates
-void MotionHelper::setCurPositionAsHome(AxisFloats& pt)
+// Set home coordinates
+void MotionHelper::setCurPositionAsHome(int axisIdx)
 {
-  _axesParams.setHomePosition(pt, _curAxisPosition._stepsFromHome);
-}
-
-// Reset coordinates
-void MotionHelper::setCurPositionAsHome(bool xIsHome, bool yIsHome, bool zIsHome)
-{
-  AxisFloats pt(0, 0, 0, xIsHome, yIsHome, zIsHome);
-  _axesParams.setHomePosition(pt, _curAxisPosition._stepsFromHome);
+  if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
+    return;
+  _curAxisPosition._axisPositionMM.setVal(axisIdx, _axesParams.getHomeOffsetVal(axisIdx));
+  _curAxisPosition._stepsFromHome.setVal(axisIdx, _axesParams.getHomeOffsetSteps(axisIdx));
 }
 
 // Debug helper methods

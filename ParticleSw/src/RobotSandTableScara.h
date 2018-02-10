@@ -30,12 +30,12 @@ public:
     // Angles of lower arm are calculated anticlockwise from home posiiton (i.e. anticlockwise from West)
 
     // Convert a cartesian point to actuator coordinates
-    static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams)
+    static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams, bool allowOutOfBounds)
     {
         // Target axis rotations
         AxisFloats rot1Degrees, rot2Degrees;
         ROTATION_TYPE rotationResult = ptToRotations(pt, rot1Degrees, rot2Degrees, axesParams);
-        if (rotationResult == ROTATION_OUT_OF_BOUNDS)
+        if ((rotationResult == ROTATION_OUT_OF_BOUNDS) && (!allowOutOfBounds))
             return false;
 
         // Get current rotation
@@ -499,14 +499,14 @@ public:
         return true;
     }
 
-    void goHome(RobotCommandArgs& args)
-    {
-        // Info
-        Log.info("%s goHome", _robotTypeName.c_str());
-
-        // Set homing state
-        homingSetNewState(HOMING_STATE_INIT);
-    }
+    // void goHome(RobotCommandArgs& args)
+    // {
+    //     // Info
+    //     Log.info("%s goHome", _robotTypeName.c_str());
+    //
+    //     // Set homing state
+    //     homingSetNewState(HOMING_STATE_INIT);
+    // }
 
     bool canAcceptCommand()
     {
@@ -534,126 +534,126 @@ public:
         _motionHelper.getCurStatus(args);
     }
 
-    void homingSetNewState(HOMING_STATE newState)
-    {
-        // Debug
-        if (_homingStepsDone != 0)
-            Log.trace("RobotSandTableScara homingState %d ... HomingSteps %d", newState, _homingStepsDone);
-
-        // Reset homing vars
-        int prevHomingSteps = _homingStepsDone;
-        _homingStepsDone = 0;
-        _homingStepsLimit = 0;
-        _homingApplyStepLimit = false;
-        _homingSeekAxis0Endstop0 = HSEEK_NONE;
-        _homingSeekAxis1Endstop0 = HSEEK_NONE;
-        _homingAxis0Step = HSTEP_NONE;
-        _homingAxis1Step = HSTEP_NONE;
-        _homingState = newState;
-
-        // Handle the specfics of the new homing state
-        switch(newState)
-        {
-            case HOMING_STATE_IDLE:
-            {
-                break;
-            }
-            case HOMING_STATE_INIT:
-            {
-                _homeReqMillis = millis();
-                // If we are at the rotation endstop we need to move away from it first
-                _homingStateNext = AXIS0_TO_ENDSTOP;
-                _homingSeekAxis0Endstop0 = HSEEK_OFF;
-                // Moving axis 0 only
-                _homingAxis0Step = HSTEP_BACKWARDS;
-                Log.info("Homing started");
-                break;
-            }
-            case AXIS0_TO_ENDSTOP:
-            {
-                // Rotate to endstop
-                _homingStateNext = AXIS0_AT_ENDSTOP;
-                _homingSeekAxis0Endstop0 = HSEEK_ON;
-                // Axis 0 only
-                _homingAxis0Step = HSTEP_FORWARDS;
-                Log.trace("Homing - rotating to axis 0 end stop");
-                break;
-            }
-            case AXIS0_AT_ENDSTOP:
-            {
-                // Rotate past endstop to find other end of endstop range
-                _homingStateNext = AXIS0_PAST_ENDSTOP;
-                _homingSeekAxis0Endstop0 = HSEEK_OFF;
-                // Axis 0 only
-                _homingAxis0Step = HSTEP_FORWARDS;
-                break;
-            }
-            case AXIS0_PAST_ENDSTOP:
-            {
-                // We now know how many steps the endstop is active for - so halve this and move
-                // back that amount and we are in the centre of the home range
-                int homingAxis0Centre = prevHomingSteps / 2;
-                Log.trace("Homing - PastEndstop - axis0CentreSteps = %d", homingAxis0Centre);
-                _homingStepsLimit = homingAxis0Centre;
-                _homingApplyStepLimit = true;
-                _homingStateNext = AXIS0_HOMED;
-                // Axis 0 only
-                _homingAxis0Step = HSTEP_BACKWARDS;
-                break;
-            }
-            case AXIS0_HOMED:
-            {
-                _motionHelper.setCurPositionAsHome(true,false,false);
-                // Rotate from endstop if needed
-                _homingStateNext = AXIS1_TO_ENDSTOP;
-                _homingSeekAxis1Endstop0 = HSEEK_OFF;
-                // Axis 1 only
-                _homingAxis1Step = HSTEP_BACKWARDS;
-                Log.trace("Homing - rotating away from axis 1 endstop if required");
-                break;
-            }
-            case AXIS1_TO_ENDSTOP:
-            {
-                // Rotate to endstop
-                _homingStateNext = AXIS1_AT_ENDSTOP;
-                _homingSeekAxis1Endstop0 = HSEEK_ON;
-                // Axis 1 only
-                _homingAxis1Step = HSTEP_FORWARDS;
-                Log.trace("Homing - rotating to axis 1 endstop");
-                break;
-            }
-            case AXIS1_AT_ENDSTOP:
-            {
-                // Rotate past endstop to find other end of endstop range
-                _homingStateNext = AXIS1_PAST_ENDSTOP;
-                _homingSeekAxis1Endstop0 = HSEEK_OFF;
-                // Axis 1 only
-                _homingAxis1Step = HSTEP_FORWARDS;
-                break;
-            }
-            case AXIS1_PAST_ENDSTOP:
-            {
-                // We now know how many steps the endstop is active for - so halve this and move
-                // back that amount and we are in the centre of the home range
-                int homingAxis1Centre = prevHomingSteps / 2 + _motionHelper.getHomeOffsetSteps(1);
-                Log.trace("Homing - PastEndstop - axis1CentreSteps = %d (offset is %ld)",
-                                        homingAxis1Centre, _motionHelper.getHomeOffsetSteps(1));
-                _homingStepsLimit = homingAxis1Centre;
-                _homingApplyStepLimit = true;
-                _homingStateNext = AXIS1_HOMED;
-                // Axis 1 only
-                _homingAxis1Step = HSTEP_BACKWARDS;
-                break;
-            }
-            case AXIS1_HOMED:
-            {
-                _motionHelper.setCurPositionAsHome(false,true,false);
-                _homingState = HOMING_STATE_IDLE;
-                Log.info("Homing - complete");
-                break;
-            }
-        }
-    }
+    // void homingSetNewState(HOMING_STATE newState)
+    // {
+    //     // Debug
+    //     if (_homingStepsDone != 0)
+    //         Log.trace("RobotSandTableScara homingState %d ... HomingSteps %d", newState, _homingStepsDone);
+    //
+    //     // Reset homing vars
+    //     int prevHomingSteps = _homingStepsDone;
+    //     _homingStepsDone = 0;
+    //     _homingStepsLimit = 0;
+    //     _homingApplyStepLimit = false;
+    //     _homingSeekAxis0Endstop0 = HSEEK_NONE;
+    //     _homingSeekAxis1Endstop0 = HSEEK_NONE;
+    //     _homingAxis0Step = HSTEP_NONE;
+    //     _homingAxis1Step = HSTEP_NONE;
+    //     _homingState = newState;
+    //
+    //     // Handle the specfics of the new homing state
+    //     switch(newState)
+    //     {
+    //         case HOMING_STATE_IDLE:
+    //         {
+    //             break;
+    //         }
+    //         case HOMING_STATE_INIT:
+    //         {
+    //             _homeReqMillis = millis();
+    //             // If we are at the rotation endstop we need to move away from it first
+    //             _homingStateNext = AXIS0_TO_ENDSTOP;
+    //             _homingSeekAxis0Endstop0 = HSEEK_OFF;
+    //             // Moving axis 0 only
+    //             _homingAxis0Step = HSTEP_BACKWARDS;
+    //             Log.info("Homing started");
+    //             break;
+    //         }
+    //         case AXIS0_TO_ENDSTOP:
+    //         {
+    //             // Rotate to endstop
+    //             _homingStateNext = AXIS0_AT_ENDSTOP;
+    //             _homingSeekAxis0Endstop0 = HSEEK_ON;
+    //             // Axis 0 only
+    //             _homingAxis0Step = HSTEP_FORWARDS;
+    //             Log.trace("Homing - rotating to axis 0 end stop");
+    //             break;
+    //         }
+    //         case AXIS0_AT_ENDSTOP:
+    //         {
+    //             // Rotate past endstop to find other end of endstop range
+    //             _homingStateNext = AXIS0_PAST_ENDSTOP;
+    //             _homingSeekAxis0Endstop0 = HSEEK_OFF;
+    //             // Axis 0 only
+    //             _homingAxis0Step = HSTEP_FORWARDS;
+    //             break;
+    //         }
+    //         case AXIS0_PAST_ENDSTOP:
+    //         {
+    //             // We now know how many steps the endstop is active for - so halve this and move
+    //             // back that amount and we are in the centre of the home range
+    //             int homingAxis0Centre = prevHomingSteps / 2;
+    //             Log.trace("Homing - PastEndstop - axis0CentreSteps = %d", homingAxis0Centre);
+    //             _homingStepsLimit = homingAxis0Centre;
+    //             _homingApplyStepLimit = true;
+    //             _homingStateNext = AXIS0_HOMED;
+    //             // Axis 0 only
+    //             _homingAxis0Step = HSTEP_BACKWARDS;
+    //             break;
+    //         }
+    //         case AXIS0_HOMED:
+    //         {
+    //             _motionHelper.setCurPositionAsHome(true,false,false);
+    //             // Rotate from endstop if needed
+    //             _homingStateNext = AXIS1_TO_ENDSTOP;
+    //             _homingSeekAxis1Endstop0 = HSEEK_OFF;
+    //             // Axis 1 only
+    //             _homingAxis1Step = HSTEP_BACKWARDS;
+    //             Log.trace("Homing - rotating away from axis 1 endstop if required");
+    //             break;
+    //         }
+    //         case AXIS1_TO_ENDSTOP:
+    //         {
+    //             // Rotate to endstop
+    //             _homingStateNext = AXIS1_AT_ENDSTOP;
+    //             _homingSeekAxis1Endstop0 = HSEEK_ON;
+    //             // Axis 1 only
+    //             _homingAxis1Step = HSTEP_FORWARDS;
+    //             Log.trace("Homing - rotating to axis 1 endstop");
+    //             break;
+    //         }
+    //         case AXIS1_AT_ENDSTOP:
+    //         {
+    //             // Rotate past endstop to find other end of endstop range
+    //             _homingStateNext = AXIS1_PAST_ENDSTOP;
+    //             _homingSeekAxis1Endstop0 = HSEEK_OFF;
+    //             // Axis 1 only
+    //             _homingAxis1Step = HSTEP_FORWARDS;
+    //             break;
+    //         }
+    //         case AXIS1_PAST_ENDSTOP:
+    //         {
+    //             // We now know how many steps the endstop is active for - so halve this and move
+    //             // back that amount and we are in the centre of the home range
+    //             int homingAxis1Centre = prevHomingSteps / 2 + _motionHelper.getHomeOffsetSteps(1);
+    //             Log.trace("Homing - PastEndstop - axis1CentreSteps = %d (offset is %ld)",
+    //                                     homingAxis1Centre, _motionHelper.getHomeOffsetSteps(1));
+    //             _homingStepsLimit = homingAxis1Centre;
+    //             _homingApplyStepLimit = true;
+    //             _homingStateNext = AXIS1_HOMED;
+    //             // Axis 1 only
+    //             _homingAxis1Step = HSTEP_BACKWARDS;
+    //             break;
+    //         }
+    //         case AXIS1_HOMED:
+    //         {
+    //             _motionHelper.setCurPositionAsHome(false,true,false);
+    //             _homingState = HOMING_STATE_IDLE;
+    //             Log.info("Homing - complete");
+    //             break;
+    //         }
+    //     }
+    // }
 
     bool homingService()
     {

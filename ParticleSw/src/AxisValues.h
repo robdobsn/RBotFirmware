@@ -15,9 +15,7 @@ public:
 public:
   AxisFloats()
   {
-    for (int i = 0; i < RobotConsts::MAX_AXES; i++)
-      _pt[i] = 0;
-    _validityFlags = 0;
+    clear();
   }
   AxisFloats(const AxisFloats& other)
   {
@@ -47,6 +45,16 @@ public:
     _validityFlags  = xValid ? 0x01 : 0;
     _validityFlags |= yValid ? 0x02 : 0;
     _validityFlags |= zValid ? 0x04 : 0;
+  }
+  void clear()
+  {
+    for (int i = 0; i < RobotConsts::MAX_AXES; i++)
+      _pt[i] = 0;
+    _validityFlags = 0;
+  }
+  inline float getValNoCk(int axisIdx)
+  {
+    return _pt[axisIdx];
   }
   float getVal(int axisIdx)
   {
@@ -89,6 +97,10 @@ public:
       return (_validityFlags & axisMask) != 0;
     }
     return false;
+  }
+  bool anyValid()
+  {
+    return (_validityFlags != 0);
   }
   float X()
   {
@@ -334,8 +346,8 @@ public:
     int valIdx = (axisIdx * VALS_PER_AXIS + endStopIdx) * BITS_PER_VAL;
     uint32_t valMask = (BITS_PER_VAL_MASK << valIdx);
     _uint &= (valMask ^ 0xffffffff);
-    valMask |= checkType << valIdx;
-    valMask |= (1 << MIN_MAX_VALID_BIT);
+    _uint |= checkType << valIdx;
+    _uint |= (1 << MIN_MAX_VALID_BIT);
   }
   AxisMinMaxEnum get(int axisIdx, int endStopIdx)
   {
@@ -377,8 +389,7 @@ public:
 public:
   AxisInt32s()
   {
-    for (int i = 0; i < RobotConsts::MAX_AXES; i++)
-      vals[i] = 0;
+    clear();
   }
   AxisInt32s(const AxisInt32s& u32s)
   {
@@ -395,6 +406,11 @@ public:
     vals[0] = xVal;
     vals[1] = yVal;
     vals[2] = zVal;
+  }
+  void clear()
+  {
+    for (int i = 0; i < RobotConsts::MAX_AXES; i++)
+      vals[i] = 0;
   }
   void set(int32_t val0, int32_t val1, int32_t val2 = 0)
   {
