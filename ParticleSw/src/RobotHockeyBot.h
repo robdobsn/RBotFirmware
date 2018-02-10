@@ -70,64 +70,64 @@ public:
     }
 
     // Set config
-    bool init(const char* robotConfigStr)
-    {
-        // Info
-        // Log.info("Constructing %s from %s", _robotTypeName.c_str(), robotConfigStr);
-
-        // Init motion controller from config
-        _motionHelper.configure(robotConfigStr);
-
-        return true;
-    }
-
-    bool canAcceptCommand()
-    {
-        // Check if motionHelper is can accept a command
-        return _motionHelper.canAccept();
-    }
-
-    void moveTo(RobotCommandArgs& args)
-    {
-        _motionHelper.moveTo(args);
-    }
-
-    void setMotionParams(RobotCommandArgs& args)
-    {
-        _motionHelper.setMotionParams(args);
-    }
-
-    void getCurStatus(RobotCommandArgs& args)
-    {
-        _motionHelper.getCurStatus(args);
-    }
-
-    // Pause (or un-pause) all motion
-    void pause(bool pauseIt)
-    {
-        _motionHelper.pause(pauseIt);
-    }
-
-    // Check if paused
-    bool isPaused()
-    {
-        return _motionHelper.isPaused();
-    }
-
-    // Stop
-    void stop()
-    {
-        _motionHelper.stop();
-    }
-
-    void service()
-    {
-        // Service the motion controller
-        _motionHelper.service(true);
-    }
-
-    bool wasActiveInLastNSeconds(unsigned int nSeconds)
-    {
-        return ((unsigned long)Time.now() < _motionHelper.getLastActiveUnixTime() + nSeconds);
-    }
+    // bool init(const char* robotConfigStr)
+    // {
+    //     // Info
+    //     // Log.info("Constructing %s from %s", _robotTypeName.c_str(), robotConfigStr);
+    //
+    //     // Init motion controller from config
+    //     _motionHelper.configure(robotConfigStr);
+    //
+    //     return true;
+    // }
+    //
+    // bool canAcceptCommand()
+    // {
+    //     // Check if motionHelper is can accept a command
+    //     return _motionHelper.canAccept();
+    // }
+    //
+    // void moveTo(RobotCommandArgs& args)
+    // {
+    //     _motionHelper.moveTo(args);
+    // }
+    //
+    // void setMotionParams(RobotCommandArgs& args)
+    // {
+    //     _motionHelper.setMotionParams(args);
+    // }
+    //
+    // void getCurStatus(RobotCommandArgs& args)
+    // {
+    //     _motionHelper.getCurStatus(args);
+    // }
+    //
+    // // Pause (or un-pause) all motion
+    // void pause(bool pauseIt)
+    // {
+    //     _motionHelper.pause(pauseIt);
+    // }
+    //
+    // // Check if paused
+    // bool isPaused()
+    // {
+    //     return _motionHelper.isPaused();
+    // }
+    //
+    // // Stop
+    // void stop()
+    // {
+    //     _motionHelper.stop();
+    // }
+    //
+    // void service()
+    // {
+    //     // Service the motion controller
+    //     _motionHelper.service(true);
+    // }
+    //
+    // bool wasActiveInLastNSeconds(unsigned int nSeconds)
+    // {
+    //     return ((unsigned long)Time.now() < _motionHelper.getLastActiveUnixTime() + nSeconds);
+    // }
 };

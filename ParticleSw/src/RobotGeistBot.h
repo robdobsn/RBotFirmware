@@ -201,340 +201,340 @@ public:
     }
 
     // Set config
-    bool init(const char* robotConfigStr)
-    {
-        // Info
-        // Log.info("Constructing %s from %s", _robotTypeName.c_str(), robotConfigStr);
-
-        // Init motion controller from config
-        _motionHelper.configure(robotConfigStr);
-
-        // Get params specific to this robot
-        _maxHomingSecs = RdJson::getLong("maxHomingSecs", maxHomingSecs_default, robotConfigStr);
-        _homingLinOffsetDegs = RdJson::getDouble("homingLinOffsetDegs", homingLinOffsetDegs_default, robotConfigStr);
-        _homingCentreOffsetMM = RdJson::getDouble("homingCentreOffsetMM", homingCentreOffsetMM_default, robotConfigStr);
-        _homingRotCentreDegs = RdJson::getDouble("homingRotCentreDegs", homingRotCentreDegs_default, robotConfigStr);
-
-        // Info
-        Log.info("%s maxHome %lds linOff %0.3fd ctrOff %0.3fmm rotCtr %0.3fd",
-                    _robotTypeName.c_str(), _maxHomingSecs, _homingLinOffsetDegs, _homingCentreOffsetMM, _homingRotCentreDegs);
-
-        return true;
-    }
-
-    // void goHome(RobotCommandArgs& args)
-    // {
-    //     // GeistBot can only home X & Y axes together so ignore params
-    //     Log.info("%s goHome", _robotTypeName.c_str());
-    //
-    //     // Set homing state
-    //     homingSetNewState(HOMING_STATE_INIT);
-    // }
-
-    bool canAcceptCommand()
-    {
-        // Check if homing
-        if (_homingState != HOMING_STATE_IDLE)
-            return false;
-
-        // Check if motionHelper can accept a command
-        return _motionHelper.canAccept();
-    }
-
-    void moveTo(RobotCommandArgs& args)
-    {
-        _motionHelper.moveTo(args);
-    }
-
-    void setMotionParams(RobotCommandArgs& args)
-    {
-        _motionHelper.setMotionParams(args);
-    }
-
-    void getCurStatus(RobotCommandArgs& args)
-    {
-        _motionHelper.getCurStatus(args);
-    }
-
-    bool lastTimeActiveMillis(unsigned long& lastMillis)
-    {
-	return 0;
-    }
-
-private:
-    // void homingSetNewState(HOMING_STATE newState)
-    // {
-    //     // Debug
-    //     if (_homingStepsDone != 0)
-    //         Log.trace("Changing state ... HomingSteps %d", _homingStepsDone);
-    //
-    //     // Reset homing vars
-    //     _homingStepsDone = 0;
-    //     _homingStepsLimit = 0;
-    //     _homingApplyStepLimit = false;
-    //     _homingSeekAxis0Endstop0 = HSEEK_NONE;
-    //     _homingSeekAxis1Endstop0 = HSEEK_NONE;
-    //     _homingAxis0Step = HSTEP_NONE;
-    //     _homingAxis1Step = HSTEP_NONE;
-    //     _homingState = newState;
-    //
-    //     // Handle the specfics of the new homing state
-    //     switch(newState)
-    //     {
-    //         case HOMING_STATE_IDLE:
-    //         {
-    //             break;
-    //         }
-    //         case HOMING_STATE_INIT:
-    //         {
-    //             _homeReqMillis = millis();
-    //             // If we are at the rotation endstop we need to move away from it first
-    //             _homingStateNext = ROTATE_TO_ENDSTOP;
-    //             _homingSeekAxis0Endstop0 = HSEEK_OFF;
-    //             // To purely rotate both steppers must turn in the same direction
-    //             _homingAxis0Step = HSTEP_FORWARDS;
-    //             _homingAxis1Step = HSTEP_FORWARDS;
-    //             _timeBetweenHomingStepsUs = _homingRotateFastStepTimeUs;
-    //             Log.info("Homing started");
-    //             break;
-    //         }
-    //         case ROTATE_TO_ENDSTOP:
-    //         {
-    //             // Rotate to the rotation endstop
-    //             _homingStateNext = ROTATE_FOR_HOME_SET;
-    //             _homingSeekAxis0Endstop0 = HSEEK_ON;
-    //             // To purely rotate both steppers must turn in the same direction
-    //             _homingAxis0Step = HSTEP_BACKWARDS;
-    //             _homingAxis1Step = HSTEP_BACKWARDS;
-    //             Log.trace("Homing - rotating to end stop 0");
-    //             break;
-    //         }
-    //         case ROTATE_FOR_HOME_SET:
-    //         {
-    //             // Rotate to the rotation endstop
-    //             _homingStateNext = ROTATE_TO_LINEAR_SEEK_ANGLE;
-    //             _homingStepsLimit = _homingRotCentreDegs * _motionHelper.getStepsPerUnit(0);
-    //             _homingApplyStepLimit = true;
-    //             // To purely rotate both steppers must turn in the same direction
-    //             _homingAxis0Step = HSTEP_BACKWARDS;
-    //             _homingAxis1Step = HSTEP_BACKWARDS;
-    //             Log.trace("Homing - rotating to home position 0");
-    //             break;
-    //         }
-    //         case ROTATE_TO_LINEAR_SEEK_ANGLE:
-    //         {
-    //             _homingStateNext = LINEAR_SEEK_ENDSTOP;
-    //             _motionHelper.setCurPositionAsHome(true,false,false);
-    //             _homingStepsLimit = _homingLinOffsetDegs * _motionHelper.getStepsPerUnit(0);
-    //             _homingApplyStepLimit = true;
-    //             // To purely rotate both steppers must turn in the same direction
-    //             _homingAxis0Step = HSTEP_FORWARDS;
-    //             _homingAxis1Step = HSTEP_FORWARDS;
-    //             Log.trace("Homing - at rotate endstop, prep linear seek %d steps back", _homingStepsLimit);
-    //             break;
-    //         }
-    //         case LINEAR_SEEK_ENDSTOP:
-    //         {
-    //             // Seek the linear end stop
-    //             _homingStateNext = LINEAR_CLEAR_ENDSTOP;
-    //             _homingSeekAxis1Endstop0 = HSEEK_ON;
-    //             // For linear motion just the rack and pinion stepper needs to rotate
-    //             // - forwards is towards the centre in this case
-    //             _homingAxis0Step = HSTEP_NONE;
-    //             _homingAxis1Step = HSTEP_BACKWARDS;
-    //             _timeBetweenHomingStepsUs = _homingLinearFastStepTimeUs;
-    //             Log.trace("Homing - linear seek");
-    //             break;
-    //         }
-    //         case LINEAR_CLEAR_ENDSTOP:
-    //         {
-    //             // If we are at the linear endstop we need to move away from it first
-    //             _homingStateNext = LINEAR_FULLY_CLEAR_ENDSTOP;
-    //             _homingSeekAxis1Endstop0 = HSEEK_OFF;
-    //             // For linear motion just the rack and pinion stepper needs to rotate
-    //             // - forwards is towards the centre in this case
-    //             _homingAxis0Step = HSTEP_NONE;
-    //             _homingAxis1Step = HSTEP_FORWARDS;
-    //             Log.trace("Homing - clear endstop");
-    //             break;
-    //         }
-    //         case LINEAR_FULLY_CLEAR_ENDSTOP:
-    //         {
-    //             // Move a little from the further from the endstop
-    //             _homingStateNext = LINEAR_SLOW_ENDSTOP;
-    //             _homingStepsLimit = 5 * _motionHelper.getStepsPerUnit(1);
-    //             _homingApplyStepLimit = true;
-    //             // For linear motion just the rack and pinion stepper needs to rotate
-    //             // - forwards is towards the centre in this case
-    //             _homingAxis0Step = HSTEP_NONE;
-    //             _homingAxis1Step = HSTEP_FORWARDS;
-    //             Log.trace("Homing - nudge away from linear endstop");
-    //             break;
-    //         }
-    //         case LINEAR_SLOW_ENDSTOP:
-    //         {
-    //             // Seek the linear end stop
-    //             _homingStateNext = OFFSET_TO_CENTRE;
-    //             _homingSeekAxis1Endstop0 = HSEEK_ON;
-    //             // For linear motion just the rack and pinion stepper needs to rotate
-    //             // - forwards is towards the centre in this case
-    //             _homingAxis0Step = HSTEP_NONE;
-    //             _homingAxis1Step = HSTEP_BACKWARDS;
-    //             _timeBetweenHomingStepsUs = _homingLinearSlowStepTimeUs;
-    //             Log.trace("Homing - linear seek");
-    //             break;
-    //         }
-    //         case OFFSET_TO_CENTRE:
-    //         {
-    //             // Move a little from the end stop to reach centre of machine
-    //             _homingStateNext = ROTATE_TO_HOME;
-    //             _homingStepsLimit = _homingCentreOffsetMM * _motionHelper.getStepsPerUnit(1);
-    //             _homingApplyStepLimit = true;
-    //             // For linear motion just the rack and pinion stepper needs to rotate
-    //             // - forwards is towards the centre in this case
-    //             _homingAxis0Step = HSTEP_NONE;
-    //             _homingAxis1Step = HSTEP_BACKWARDS;
-    //             Log.trace("Homing - offet to centre");
-    //             break;
-    //         }
-    //         case ROTATE_TO_HOME:
-    //         {
-    //             _homingStateNext = HOMING_STATE_COMPLETE;
-    //             _homingStepsLimit = abs(_motionHelper.gethomeOffSteps(0));
-    //             _homingApplyStepLimit = true;
-    //             // To purely rotate both steppers must turn in the same direction
-    //             _homingAxis0Step = HSTEP_BACKWARDS;
-    //             _homingAxis1Step = HSTEP_BACKWARDS;
-    //             Log.trace("Homing - rotating back home %d steps", _homingStepsLimit);
-    //             break;
-    //         }
-    //         case HOMING_STATE_COMPLETE:
-    //         {
-    //             _motionHelper.setCurPositionAsHome(false,true,false);
-    //             _homingState = HOMING_STATE_IDLE;
-    //             Log.info("Homing - complete");
-    //             break;
-    //         }
-    //     }
-    // }
-
-    bool homingService()
-    {
-        // // Check for idle
-        // if (_homingState == HOMING_STATE_IDLE)
-        //     return false;
-        //
-        // // Check for timeout
-        // if (millis() > _homeReqMillis + (_maxHomingSecs * 1000))
-        // {
-        //     Log.info("Homing Timed Out");
-        //     homingSetNewState(HOMING_STATE_IDLE);
-        // }
-        //
-        // // Check for endstop if seeking them
-        // bool endstop0Val = _motionHelper.isAtEndStop(0,0);
-        // bool endstop1Val = _motionHelper.isAtEndStop(1,0);
-        // if (((_homingSeekAxis0Endstop0 == HSEEK_ON) && endstop0Val) || ((_homingSeekAxis0Endstop0 == HSEEK_OFF) && !endstop0Val))
-        // {
-        //     homingSetNewState(_homingStateNext);
-        // }
-        // if (((_homingSeekAxis1Endstop0 == HSEEK_ON) && endstop1Val) || ((_homingSeekAxis1Endstop0 == HSEEK_OFF) && !endstop1Val))
-        // {
-        //     homingSetNewState(_homingStateNext);
-        // }
-        //
-        // // Check if we are ready for the next step
-        // unsigned long lastStepMicros = _motionHelper.getAxisLastStepMicros(0);
-        // unsigned long lastStepMicros1 = _motionHelper.getAxisLastStepMicros(1);
-        // if (lastStepMicros < lastStepMicros1)
-        //     lastStepMicros = lastStepMicros1;
-        // if (Utils::isTimeout(micros(), lastStepMicros, _timeBetweenHomingStepsUs))
-        // {
-        //     // Axis 0
-        //     if (_homingAxis0Step != HSTEP_NONE)
-        //         _motionHelper.step(0, _homingAxis0Step == HSTEP_FORWARDS);
-        //
-        //     // Axis 1
-        //     if (_homingAxis1Step != HSTEP_NONE)
-        //         _motionHelper.step(1, _homingAxis1Step == HSTEP_FORWARDS);
-        //
-        //     // Count homing steps in this stage
-        //     _homingStepsDone++;
-        //
-        //     // Check for step limit in this stage
-        //     if (_homingApplyStepLimit && (_homingStepsDone >= _homingStepsLimit))
-        //         homingSetNewState(_homingStateNext);
-        //
-        //     // // Debug
-        //     // if (_homingStepsDone % 250 == 0)
-        //     // {
-        //     //     const char* pStr = "ROT_ACW";
-        //     //     if (_homingAxis0Step == HSTEP_NONE)
-        //     //     {
-        //     //         if (_homingAxis1Step == HSTEP_NONE)
-        //     //             pStr = "NONE";
-        //     //         else if (_homingAxis1Step == HSTEP_FORWARDS)
-        //     //             pStr = "LIN_FOR";
-        //     //         else
-        //     //             pStr = "LIN_BAK";
-        //     //     }
-        //     //     else if (_homingAxis0Step == HSTEP_FORWARDS)
-        //     //     {
-        //     //         pStr = "ROT_CW";
-        //     //     }
-        //     //     Log.trace("HomingSteps %d %s", _homingStepsDone, pStr);
-        //     // }
-        // }
-        //
-        // // // Check for linear endstop if seeking it
-        // // if (_homingState == LINEAR_TO_ENDSTOP)
-        // // {
-        // //     if (_motionHelper.isAtEndStop(1,0))
-        // //     {
-        // //         _homingState = OFFSET_TO_CENTRE;
-        // //         _homingStepsLimit = _homingCentreOffsetMM * _motionHelper.getAxisParams(1)._stepsPerUnit;
-        // //         _homingStepsDone = 0;
-        // //         Log.info("Homing - %d steps to centre", _homingStepsLimit);
-        // //         break;
-        // //     }
-        // // }
-        //
-        return true;
-
-    }
-
-public:
-    // Pause (or un-pause) all motion
-    void pause(bool pauseIt)
-    {
-        _motionHelper.pause(pauseIt);
-    }
-
-    // Check if paused
-    bool isPaused()
-    {
-        return _motionHelper.isPaused();
-    }
-
-    // Stop
-    void stop()
-    {
-        _motionHelper.stop();
-    }
-
-    void service()
-    {
-        // Service homing activity
-        bool homingActive = homingService();
-
-        // Service the motion controller
-        _motionHelper.service(!homingActive);
-    }
-
-    bool wasActiveInLastNSeconds(unsigned int nSeconds)
-    {
-        if (_homingState != HOMING_STATE_IDLE)
-            return true;
-        return ((unsigned long)Time.now() < _motionHelper.getLastActiveUnixTime() + nSeconds);
-    }
+//     bool init(const char* robotConfigStr)
+//     {
+//         // Info
+//         // Log.info("Constructing %s from %s", _robotTypeName.c_str(), robotConfigStr);
+//
+//         // Init motion controller from config
+//         _motionHelper.configure(robotConfigStr);
+//
+//         // Get params specific to this robot
+//         _maxHomingSecs = RdJson::getLong("maxHomingSecs", maxHomingSecs_default, robotConfigStr);
+//         _homingLinOffsetDegs = RdJson::getDouble("homingLinOffsetDegs", homingLinOffsetDegs_default, robotConfigStr);
+//         _homingCentreOffsetMM = RdJson::getDouble("homingCentreOffsetMM", homingCentreOffsetMM_default, robotConfigStr);
+//         _homingRotCentreDegs = RdJson::getDouble("homingRotCentreDegs", homingRotCentreDegs_default, robotConfigStr);
+//
+//         // Info
+//         Log.info("%s maxHome %lds linOff %0.3fd ctrOff %0.3fmm rotCtr %0.3fd",
+//                     _robotTypeName.c_str(), _maxHomingSecs, _homingLinOffsetDegs, _homingCentreOffsetMM, _homingRotCentreDegs);
+//
+//         return true;
+//     }
+//
+//     // void goHome(RobotCommandArgs& args)
+//     // {
+//     //     // GeistBot can only home X & Y axes together so ignore params
+//     //     Log.info("%s goHome", _robotTypeName.c_str());
+//     //
+//     //     // Set homing state
+//     //     homingSetNewState(HOMING_STATE_INIT);
+//     // }
+//
+//     bool canAcceptCommand()
+//     {
+//         // Check if homing
+//         if (_homingState != HOMING_STATE_IDLE)
+//             return false;
+//
+//         // Check if motionHelper can accept a command
+//         return _motionHelper.canAccept();
+//     }
+//
+//     void moveTo(RobotCommandArgs& args)
+//     {
+//         _motionHelper.moveTo(args);
+//     }
+//
+//     void setMotionParams(RobotCommandArgs& args)
+//     {
+//         _motionHelper.setMotionParams(args);
+//     }
+//
+//     void getCurStatus(RobotCommandArgs& args)
+//     {
+//         _motionHelper.getCurStatus(args);
+//     }
+//
+//     bool lastTimeActiveMillis(unsigned long& lastMillis)
+//     {
+// 	return 0;
+//     }
+//
+// private:
+//     // void homingSetNewState(HOMING_STATE newState)
+//     // {
+//     //     // Debug
+//     //     if (_homingStepsDone != 0)
+//     //         Log.trace("Changing state ... HomingSteps %d", _homingStepsDone);
+//     //
+//     //     // Reset homing vars
+//     //     _homingStepsDone = 0;
+//     //     _homingStepsLimit = 0;
+//     //     _homingApplyStepLimit = false;
+//     //     _homingSeekAxis0Endstop0 = HSEEK_NONE;
+//     //     _homingSeekAxis1Endstop0 = HSEEK_NONE;
+//     //     _homingAxis0Step = HSTEP_NONE;
+//     //     _homingAxis1Step = HSTEP_NONE;
+//     //     _homingState = newState;
+//     //
+//     //     // Handle the specfics of the new homing state
+//     //     switch(newState)
+//     //     {
+//     //         case HOMING_STATE_IDLE:
+//     //         {
+//     //             break;
+//     //         }
+//     //         case HOMING_STATE_INIT:
+//     //         {
+//     //             _homeReqMillis = millis();
+//     //             // If we are at the rotation endstop we need to move away from it first
+//     //             _homingStateNext = ROTATE_TO_ENDSTOP;
+//     //             _homingSeekAxis0Endstop0 = HSEEK_OFF;
+//     //             // To purely rotate both steppers must turn in the same direction
+//     //             _homingAxis0Step = HSTEP_FORWARDS;
+//     //             _homingAxis1Step = HSTEP_FORWARDS;
+//     //             _timeBetweenHomingStepsUs = _homingRotateFastStepTimeUs;
+//     //             Log.info("Homing started");
+//     //             break;
+//     //         }
+//     //         case ROTATE_TO_ENDSTOP:
+//     //         {
+//     //             // Rotate to the rotation endstop
+//     //             _homingStateNext = ROTATE_FOR_HOME_SET;
+//     //             _homingSeekAxis0Endstop0 = HSEEK_ON;
+//     //             // To purely rotate both steppers must turn in the same direction
+//     //             _homingAxis0Step = HSTEP_BACKWARDS;
+//     //             _homingAxis1Step = HSTEP_BACKWARDS;
+//     //             Log.trace("Homing - rotating to end stop 0");
+//     //             break;
+//     //         }
+//     //         case ROTATE_FOR_HOME_SET:
+//     //         {
+//     //             // Rotate to the rotation endstop
+//     //             _homingStateNext = ROTATE_TO_LINEAR_SEEK_ANGLE;
+//     //             _homingStepsLimit = _homingRotCentreDegs * _motionHelper.getStepsPerUnit(0);
+//     //             _homingApplyStepLimit = true;
+//     //             // To purely rotate both steppers must turn in the same direction
+//     //             _homingAxis0Step = HSTEP_BACKWARDS;
+//     //             _homingAxis1Step = HSTEP_BACKWARDS;
+//     //             Log.trace("Homing - rotating to home position 0");
+//     //             break;
+//     //         }
+//     //         case ROTATE_TO_LINEAR_SEEK_ANGLE:
+//     //         {
+//     //             _homingStateNext = LINEAR_SEEK_ENDSTOP;
+//     //             _motionHelper.setCurPositionAsHome(true,false,false);
+//     //             _homingStepsLimit = _homingLinOffsetDegs * _motionHelper.getStepsPerUnit(0);
+//     //             _homingApplyStepLimit = true;
+//     //             // To purely rotate both steppers must turn in the same direction
+//     //             _homingAxis0Step = HSTEP_FORWARDS;
+//     //             _homingAxis1Step = HSTEP_FORWARDS;
+//     //             Log.trace("Homing - at rotate endstop, prep linear seek %d steps back", _homingStepsLimit);
+//     //             break;
+//     //         }
+//     //         case LINEAR_SEEK_ENDSTOP:
+//     //         {
+//     //             // Seek the linear end stop
+//     //             _homingStateNext = LINEAR_CLEAR_ENDSTOP;
+//     //             _homingSeekAxis1Endstop0 = HSEEK_ON;
+//     //             // For linear motion just the rack and pinion stepper needs to rotate
+//     //             // - forwards is towards the centre in this case
+//     //             _homingAxis0Step = HSTEP_NONE;
+//     //             _homingAxis1Step = HSTEP_BACKWARDS;
+//     //             _timeBetweenHomingStepsUs = _homingLinearFastStepTimeUs;
+//     //             Log.trace("Homing - linear seek");
+//     //             break;
+//     //         }
+//     //         case LINEAR_CLEAR_ENDSTOP:
+//     //         {
+//     //             // If we are at the linear endstop we need to move away from it first
+//     //             _homingStateNext = LINEAR_FULLY_CLEAR_ENDSTOP;
+//     //             _homingSeekAxis1Endstop0 = HSEEK_OFF;
+//     //             // For linear motion just the rack and pinion stepper needs to rotate
+//     //             // - forwards is towards the centre in this case
+//     //             _homingAxis0Step = HSTEP_NONE;
+//     //             _homingAxis1Step = HSTEP_FORWARDS;
+//     //             Log.trace("Homing - clear endstop");
+//     //             break;
+//     //         }
+//     //         case LINEAR_FULLY_CLEAR_ENDSTOP:
+//     //         {
+//     //             // Move a little from the further from the endstop
+//     //             _homingStateNext = LINEAR_SLOW_ENDSTOP;
+//     //             _homingStepsLimit = 5 * _motionHelper.getStepsPerUnit(1);
+//     //             _homingApplyStepLimit = true;
+//     //             // For linear motion just the rack and pinion stepper needs to rotate
+//     //             // - forwards is towards the centre in this case
+//     //             _homingAxis0Step = HSTEP_NONE;
+//     //             _homingAxis1Step = HSTEP_FORWARDS;
+//     //             Log.trace("Homing - nudge away from linear endstop");
+//     //             break;
+//     //         }
+//     //         case LINEAR_SLOW_ENDSTOP:
+//     //         {
+//     //             // Seek the linear end stop
+//     //             _homingStateNext = OFFSET_TO_CENTRE;
+//     //             _homingSeekAxis1Endstop0 = HSEEK_ON;
+//     //             // For linear motion just the rack and pinion stepper needs to rotate
+//     //             // - forwards is towards the centre in this case
+//     //             _homingAxis0Step = HSTEP_NONE;
+//     //             _homingAxis1Step = HSTEP_BACKWARDS;
+//     //             _timeBetweenHomingStepsUs = _homingLinearSlowStepTimeUs;
+//     //             Log.trace("Homing - linear seek");
+//     //             break;
+//     //         }
+//     //         case OFFSET_TO_CENTRE:
+//     //         {
+//     //             // Move a little from the end stop to reach centre of machine
+//     //             _homingStateNext = ROTATE_TO_HOME;
+//     //             _homingStepsLimit = _homingCentreOffsetMM * _motionHelper.getStepsPerUnit(1);
+//     //             _homingApplyStepLimit = true;
+//     //             // For linear motion just the rack and pinion stepper needs to rotate
+//     //             // - forwards is towards the centre in this case
+//     //             _homingAxis0Step = HSTEP_NONE;
+//     //             _homingAxis1Step = HSTEP_BACKWARDS;
+//     //             Log.trace("Homing - offet to centre");
+//     //             break;
+//     //         }
+//     //         case ROTATE_TO_HOME:
+//     //         {
+//     //             _homingStateNext = HOMING_STATE_COMPLETE;
+//     //             _homingStepsLimit = abs(_motionHelper.gethomeOffSteps(0));
+//     //             _homingApplyStepLimit = true;
+//     //             // To purely rotate both steppers must turn in the same direction
+//     //             _homingAxis0Step = HSTEP_BACKWARDS;
+//     //             _homingAxis1Step = HSTEP_BACKWARDS;
+//     //             Log.trace("Homing - rotating back home %d steps", _homingStepsLimit);
+//     //             break;
+//     //         }
+//     //         case HOMING_STATE_COMPLETE:
+//     //         {
+//     //             _motionHelper.setCurPositionAsHome(false,true,false);
+//     //             _homingState = HOMING_STATE_IDLE;
+//     //             Log.info("Homing - complete");
+//     //             break;
+//     //         }
+//     //     }
+//     // }
+//
+//     bool homingService()
+//     {
+//         // // Check for idle
+//         // if (_homingState == HOMING_STATE_IDLE)
+//         //     return false;
+//         //
+//         // // Check for timeout
+//         // if (millis() > _homeReqMillis + (_maxHomingSecs * 1000))
+//         // {
+//         //     Log.info("Homing Timed Out");
+//         //     homingSetNewState(HOMING_STATE_IDLE);
+//         // }
+//         //
+//         // // Check for endstop if seeking them
+//         // bool endstop0Val = _motionHelper.isAtEndStop(0,0);
+//         // bool endstop1Val = _motionHelper.isAtEndStop(1,0);
+//         // if (((_homingSeekAxis0Endstop0 == HSEEK_ON) && endstop0Val) || ((_homingSeekAxis0Endstop0 == HSEEK_OFF) && !endstop0Val))
+//         // {
+//         //     homingSetNewState(_homingStateNext);
+//         // }
+//         // if (((_homingSeekAxis1Endstop0 == HSEEK_ON) && endstop1Val) || ((_homingSeekAxis1Endstop0 == HSEEK_OFF) && !endstop1Val))
+//         // {
+//         //     homingSetNewState(_homingStateNext);
+//         // }
+//         //
+//         // // Check if we are ready for the next step
+//         // unsigned long lastStepMicros = _motionHelper.getAxisLastStepMicros(0);
+//         // unsigned long lastStepMicros1 = _motionHelper.getAxisLastStepMicros(1);
+//         // if (lastStepMicros < lastStepMicros1)
+//         //     lastStepMicros = lastStepMicros1;
+//         // if (Utils::isTimeout(micros(), lastStepMicros, _timeBetweenHomingStepsUs))
+//         // {
+//         //     // Axis 0
+//         //     if (_homingAxis0Step != HSTEP_NONE)
+//         //         _motionHelper.step(0, _homingAxis0Step == HSTEP_FORWARDS);
+//         //
+//         //     // Axis 1
+//         //     if (_homingAxis1Step != HSTEP_NONE)
+//         //         _motionHelper.step(1, _homingAxis1Step == HSTEP_FORWARDS);
+//         //
+//         //     // Count homing steps in this stage
+//         //     _homingStepsDone++;
+//         //
+//         //     // Check for step limit in this stage
+//         //     if (_homingApplyStepLimit && (_homingStepsDone >= _homingStepsLimit))
+//         //         homingSetNewState(_homingStateNext);
+//         //
+//         //     // // Debug
+//         //     // if (_homingStepsDone % 250 == 0)
+//         //     // {
+//         //     //     const char* pStr = "ROT_ACW";
+//         //     //     if (_homingAxis0Step == HSTEP_NONE)
+//         //     //     {
+//         //     //         if (_homingAxis1Step == HSTEP_NONE)
+//         //     //             pStr = "NONE";
+//         //     //         else if (_homingAxis1Step == HSTEP_FORWARDS)
+//         //     //             pStr = "LIN_FOR";
+//         //     //         else
+//         //     //             pStr = "LIN_BAK";
+//         //     //     }
+//         //     //     else if (_homingAxis0Step == HSTEP_FORWARDS)
+//         //     //     {
+//         //     //         pStr = "ROT_CW";
+//         //     //     }
+//         //     //     Log.trace("HomingSteps %d %s", _homingStepsDone, pStr);
+//         //     // }
+//         // }
+//         //
+//         // // // Check for linear endstop if seeking it
+//         // // if (_homingState == LINEAR_TO_ENDSTOP)
+//         // // {
+//         // //     if (_motionHelper.isAtEndStop(1,0))
+//         // //     {
+//         // //         _homingState = OFFSET_TO_CENTRE;
+//         // //         _homingStepsLimit = _homingCentreOffsetMM * _motionHelper.getAxisParams(1)._stepsPerUnit;
+//         // //         _homingStepsDone = 0;
+//         // //         Log.info("Homing - %d steps to centre", _homingStepsLimit);
+//         // //         break;
+//         // //     }
+//         // // }
+//         //
+//         return true;
+//
+//     }
+//
+// public:
+//     // Pause (or un-pause) all motion
+//     void pause(bool pauseIt)
+//     {
+//         _motionHelper.pause(pauseIt);
+//     }
+//
+//     // Check if paused
+//     bool isPaused()
+//     {
+//         return _motionHelper.isPaused();
+//     }
+//
+//     // Stop
+//     void stop()
+//     {
+//         _motionHelper.stop();
+//     }
+//
+//     void service()
+//     {
+//         // Service homing activity
+//         bool homingActive = homingService();
+//
+//         // Service the motion controller
+//         _motionHelper.service(!homingActive);
+//     }
+//
+//     bool wasActiveInLastNSeconds(unsigned int nSeconds)
+//     {
+//         if (_homingState != HOMING_STATE_IDLE)
+//             return true;
+//         return ((unsigned long)Time.now() < _motionHelper.getLastActiveUnixTime() + nSeconds);
+//     }
 };

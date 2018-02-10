@@ -104,13 +104,10 @@ public:
     }
 
     // Set config
-    bool init(const char* robotConfigStr)
-    {
+    // bool init(const char* robotConfigStr)
+    // {
         // Info
         // Log.info("Constructing %s from %s", _robotTypeName.c_str(), robotConfigStr);
-
-        // Init motion controller from config
-        _motionHelper.configure(robotConfigStr);
 
         // // Set current position to be home (will be overridden when we do homing)
         // _motionHelper.setCurPositionAsHome(true, true, true);
@@ -121,12 +118,12 @@ public:
         // // Info
         // Log.info("%s maxHome %lds", _robotTypeName.c_str(), _maxHomingSecs);
 
-        return true;
-    }
+    //     return true;
+    // }
 
-    void goHome(RobotCommandArgs& args)
-    {
-      _motionHelper.goHome(args);
+    // void goHome(RobotCommandArgs& args)
+    // {
+    //   _motionHelper.goHome(args);
         // // Info
         // _homeX = args.isValid(0);
         // _homeY = args.isValid(1);
@@ -138,37 +135,22 @@ public:
         //
         // // Set homing state
         // homingSetNewState(HOMING_STATE_INIT);
-    }
+    // }
 
     // void setHome(RobotCommandArgs& args)
     // {
     //     _motionHelper.setCurPositionAsHome(args.getPoint());
     // }
 
-    bool canAcceptCommand()
-    {
-        // Check if homing
-        // if (_homingState != HOMING_STATE_IDLE)
-        //     return false;
-
-        // Check if motionHelper is can accept a command
-        return _motionHelper.canAccept();
-    }
-
-    void moveTo(RobotCommandArgs& args)
-    {
-        _motionHelper.moveTo(args);
-    }
-
-    void setMotionParams(RobotCommandArgs& args)
-    {
-        _motionHelper.setMotionParams(args);
-    }
-
-    void getCurStatus(RobotCommandArgs& args)
-    {
-        _motionHelper.getCurStatus(args);
-    }
+    // bool canAcceptCommand()
+    // {
+    //     // Check if homing
+    //     // if (_homingState != HOMING_STATE_IDLE)
+    //     //     return false;
+    //
+    //     // Check if motionHelper is can accept a command
+    //     return _motionHelper.canAccept();
+    // }
 
     // void homingSetNewState(HOMING_STATE newState)
     // {
@@ -252,8 +234,8 @@ public:
     //     }
     // }
 
-    bool homingService()
-    {
+    // bool homingService()
+    // {
     //     // Check for idle
     //     if (_homingState == HOMING_STATE_IDLE)
     //         return false;
@@ -292,40 +274,40 @@ public:
     //         }
     //     }
     //
-        return false;
-    }
+    //     return false;
+    // }
 
-    // Pause (or un-pause) all motion
-    void pause(bool pauseIt)
-    {
-        _motionHelper.pause(pauseIt);
-    }
+    // // Pause (or un-pause) all motion
+    // void pause(bool pauseIt)
+    // {
+    //     _motionHelper.pause(pauseIt);
+    // }
 
     // Check if paused
-    bool isPaused()
-    {
-        return _motionHelper.isPaused();
-    }
-
+    // bool isPaused()
+    // {
+    //     return _motionHelper.isPaused();
+    // }
+    //
     // Stop
-    void stop()
-    {
-        _motionHelper.stop();
-    }
+    // void stop()
+    // {
+    //     _motionHelper.stop();
+    // }
 
-    void service()
-    {
-        // Service homing activity
-        bool homingActive = homingService();
+    // void service()
+    // {
+    //     // Service homing activity
+    //     bool homingActive = homingService();
+    //
+    //     // Service the motion controller
+    //     _motionHelper.service(!homingActive);
+    // }
 
-        // Service the motion controller
-        _motionHelper.service(!homingActive);
-    }
-
-    bool wasActiveInLastNSeconds(unsigned int nSeconds)
-    {
-        if (_homingState != HOMING_STATE_IDLE)
-            return true;
-        return ((unsigned long)Time.now() < _motionHelper.getLastActiveUnixTime() + nSeconds);
-    }
+    // bool wasActiveInLastNSeconds(unsigned int nSeconds)
+    // {
+    //     if (_homingState != HOMING_STATE_IDLE)
+    //         return true;
+    //     return ((unsigned long)Time.now() < _motionHelper.getLastActiveUnixTime() + nSeconds);
+    // }
 };

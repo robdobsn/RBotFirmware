@@ -478,24 +478,24 @@ public:
     }
 
     // Set config
-    bool init(const char* robotConfigStr)
-    {
-        // Info
-        // Log.info("Constructing %s from %s", _robotTypeName.c_str(), robotConfigStr);
-
-        // Init motion controller from config
-        _motionHelper.configure(robotConfigStr);
-
-        // Get params specific to this robot
-        _maxHomingSecs = RdJson::getLong("maxHomingSecs", maxHomingSecs_default, robotConfigStr);
-
-        // Info
-        Log.info("%s maxHome %lds",
-                _robotTypeName.c_str(), _maxHomingSecs);
-
-        return true;
-    }
-
+    // bool init(const char* robotConfigStr)
+    // {
+    //     // Info
+    //     // Log.info("Constructing %s from %s", _robotTypeName.c_str(), robotConfigStr);
+    //
+    //     // Init motion controller from config
+    //     _motionHelper.configure(robotConfigStr);
+    //
+    //     // Get params specific to this robot
+    //     _maxHomingSecs = RdJson::getLong("maxHomingSecs", maxHomingSecs_default, robotConfigStr);
+    //
+    //     // Info
+    //     Log.info("%s maxHome %lds",
+    //             _robotTypeName.c_str(), _maxHomingSecs);
+    //
+    //     return true;
+    // }
+    //
     // void goHome(RobotCommandArgs& args)
     // {
     //     // Info
@@ -505,32 +505,32 @@ public:
     //     homingSetNewState(HOMING_STATE_INIT);
     // }
 
-    bool canAcceptCommand()
-    {
-        // Check if homing
-        if (_homingState != HOMING_STATE_IDLE)
-            return false;
-
-        // Check if motionHelper can accept a command
-        return _motionHelper.canAccept();
-    }
-
-    void moveTo(RobotCommandArgs& args)
-    {
-//        Log.trace("SandTableScara moveTo");
-        _motionHelper.moveTo(args);
-    }
-
-    void setMotionParams(RobotCommandArgs& args)
-    {
-        _motionHelper.setMotionParams(args);
-    }
-
-    void getCurStatus(RobotCommandArgs& args)
-    {
-        _motionHelper.getCurStatus(args);
-    }
-
+//     bool canAcceptCommand()
+//     {
+//         // Check if homing
+//         if (_homingState != HOMING_STATE_IDLE)
+//             return false;
+//
+//         // Check if motionHelper can accept a command
+//         return _motionHelper.canAccept();
+//     }
+//
+//     void moveTo(RobotCommandArgs& args)
+//     {
+// //        Log.trace("SandTableScara moveTo");
+//         _motionHelper.moveTo(args);
+//     }
+//
+//     void setMotionParams(RobotCommandArgs& args)
+//     {
+//         _motionHelper.setMotionParams(args);
+//     }
+//
+//     void getCurStatus(RobotCommandArgs& args)
+//     {
+//         _motionHelper.getCurStatus(args);
+//     }
+//
     // void homingSetNewState(HOMING_STATE newState)
     // {
     //     // Debug
@@ -651,9 +651,9 @@ public:
     //         }
     //     }
     // }
-
-    bool homingService()
-    {
+    //
+    // bool homingService()
+    // {
         // // Check for idle
         // if (_homingState == HOMING_STATE_IDLE)
         //     return false;
@@ -732,42 +732,42 @@ public:
         // //         break;
         // //     }
         // // }
-        return true;
-
-    }
-
-    // Pause (or un-pause) all motion
-    void pause(bool pauseIt)
-    {
-        _motionHelper.pause(pauseIt);
-    }
-
-    // Check if paused
-    bool isPaused()
-    {
-        return _motionHelper.isPaused();
-    }
-
-    // Stop
-    void stop()
-    {
-        _motionHelper.stop();
-    }
-
-    void service()
-    {
-        // Service homing activity
-        bool homingActive = homingService();
-
-        // Service the motion helper
-        _motionHelper.service(!homingActive);
-    }
-
-    bool wasActiveInLastNSeconds(unsigned int nSeconds)
-    {
-        if (_homingState != HOMING_STATE_IDLE)
-            return true;
-        return ((unsigned long)Time.now() < _motionHelper.getLastActiveUnixTime() + nSeconds);
-    }
+    //     return true;
+    //
+    // }
+    //
+    // // Pause (or un-pause) all motion
+    // void pause(bool pauseIt)
+    // {
+    //     _motionHelper.pause(pauseIt);
+    // }
+    //
+    // // Check if paused
+    // bool isPaused()
+    // {
+    //     return _motionHelper.isPaused();
+    // }
+    //
+    // // Stop
+    // void stop()
+    // {
+    //     _motionHelper.stop();
+    // }
+    //
+    // void service()
+    // {
+    //     // Service homing activity
+    //     bool homingActive = homingService();
+    //
+    //     // Service the motion helper
+    //     _motionHelper.service(!homingActive);
+    // }
+    //
+    // bool wasActiveInLastNSeconds(unsigned int nSeconds)
+    // {
+    //     if (_homingState != HOMING_STATE_IDLE)
+    //         return true;
+    //     return ((unsigned long)Time.now() < _motionHelper.getLastActiveUnixTime() + nSeconds);
+    // }
 
 };
