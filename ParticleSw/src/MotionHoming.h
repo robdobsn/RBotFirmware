@@ -15,7 +15,7 @@ public:
   String _homingSequence;
   bool _homingInProgress;
   RobotCommandArgs _axesToHome;
-  int _homingStrPos;
+  unsigned int _homingStrPos;
   bool _commandInProgress;
   RobotCommandArgs _curCommand;
   int _maxHomingSecs;
@@ -108,7 +108,6 @@ public:
     while (_homingStrPos < _homingSequence.length())
     {
       // Get axis
-      int axisIdx = 0;
       int ch      = _homingSequence.charAt(_homingStrPos);
       switch (ch)
       {

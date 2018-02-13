@@ -267,15 +267,11 @@ void MotionHelper::blocksToAddProcess()
 // Called regularly to allow the MotionHelper to do background work such as
 // adding split-up blocks to the pipeline and checking if motors should be
 // disabled after a period of no motion
-void MotionHelper::service(bool processPipeline)
+void MotionHelper::service()
 {
-  // Log.trace("MotionHelper: service(%d)", processPipeline);
-
-  // Check if we should process the movement pipeline
-  if (processPipeline)
-  {
-    _motionActuator.process();
-  }
+  // Call process on motion actuator - only really used for testing as
+  // motion is handled by ISR
+  _motionActuator.process();
 
   // Process any split-up blocks to be added to the pipeline
   blocksToAddProcess();

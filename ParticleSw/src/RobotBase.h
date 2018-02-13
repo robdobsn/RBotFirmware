@@ -57,11 +57,8 @@ public:
 
     virtual void service()
     {
-      // Service homing activity
-      bool homingActive = homingService();
-
       // Service the motion controller
-      _motionHelper.service(!homingActive);
+      _motionHelper.service();
     }
 
     // Movement commands
@@ -96,8 +93,6 @@ public:
 
     virtual bool wasActiveInLastNSeconds(unsigned int nSeconds)
     {
-      if (_homingState != HOMING_STATE_IDLE)
-          return true;
       return ((unsigned long)Time.now() < _motionHelper.getLastActiveUnixTime() + nSeconds);
     }
 

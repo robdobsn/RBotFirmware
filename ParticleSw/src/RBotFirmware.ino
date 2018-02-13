@@ -133,13 +133,13 @@ static const char* ROBOT_CONFIG_STR_SANDTABLESCARA =
 
 static const char* ROBOT_CONFIG_STR_XY =
     "{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, "
-    " \"stepEnablePin\":\"A2\", \"stepEnLev\":1, \"stepDisableSecs\":1.0,"
-    " \"cmdsAtStart\":\"\", "
-    " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":100.0, \"maxAcc\":10.0,"
-    " \"stepsPerRot\":3200, \"unitsPerRot\":32},"
-    " \"axis1\": { \"stepPin\": \D4\", \"dirnPin\":\"D5\", \"maxSpeed\":100.0, \"maxAcc\":10.0,"
-    " \"stepsPerRot\":3200, \"unitsPerRot\":32},"
-    " \"commandQueue\": { \"cmdQueueMaxLen\":50 } "
+    "\"stepEnablePin\":\"A2\", \"stepEnLev\":1, \"stepDisableSecs\":1.0,"
+    "\"cmdsAtStart\":\"\", "
+    "\"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":100.0, \"maxAcc\":10.0,"
+    "\"stepsPerRot\":3200, \"unitsPerRot\":32},"
+    "\"axis1\": { \"stepPin\": \D4\", \"dirnPin\":\"D5\", \"maxSpeed\":100.0, \"maxAcc\":10.0,"
+    "\"stepsPerRot\":3200, \"unitsPerRot\":32},"
+    "\"commandQueue\":{\"cmdQueueMaxLen\":50}"
     "}";
 
 static const char* ROBOT_DEFAULT_SEQUENCE_COMMANDS =

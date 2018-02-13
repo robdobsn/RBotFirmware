@@ -57,9 +57,10 @@ public:
   {
     copy(other);
   }
-  void operator=(const RobotCommandArgs& other)
+  RobotCommandArgs& operator=(const RobotCommandArgs& other)
   {
     copy(other);
+    return *this;
   }
   void setAxisValMM(int axisIdx, float value, bool isValid)
   {

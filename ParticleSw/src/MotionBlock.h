@@ -148,7 +148,7 @@ public:
 
   void setEndStopsToCheck(AxisMinMaxBools& endStopCheck)
   {
-    Log.trace("Set test enstops %08x", endStopCheck.uintVal());
+    Log.trace("Set test enstops %08lx", endStopCheck.uintVal());
     _endStopsToCheck = endStopCheck;
   }
 

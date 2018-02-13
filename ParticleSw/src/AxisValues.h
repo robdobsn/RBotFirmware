@@ -129,11 +129,12 @@ public:
     _pt[2]          = val;
     _validityFlags |= 0x04;
   }
-  void operator=(const AxisFloats& other)
+  AxisFloats& operator=(const AxisFloats& other)
   {
     for (int i = 0; i < RobotConsts::MAX_AXES; i++)
       _pt[i] = other._pt[i];
     _validityFlags = other._validityFlags;
+    return *this;
   }
   AxisFloats operator-(const AxisFloats& pt)
   {
@@ -257,9 +258,10 @@ public:
   {
     _uint = other._uint;
   }
-  void operator=(const AxisValidBools& other)
+  AxisValidBools& operator=(const AxisValidBools& other)
   {
     _uint = other._uint;
+    return *this;
   }
   bool isValid(int axisIdx)
   {
@@ -331,9 +333,10 @@ public:
   {
     _uint = other._uint;
   }
-  void operator=(const AxisMinMaxBools& other)
+  AxisMinMaxBools& operator=(const AxisMinMaxBools& other)
   {
     _uint = other._uint;
+    return *this;
   }
   bool isValid()
   {
@@ -413,10 +416,11 @@ public:
     for (int i = 0; i < RobotConsts::MAX_AXES; i++)
       vals[i] = u32s.vals[i];
   }
-  void operator=(const AxisInt32s& u32s)
+  AxisInt32s& operator=(const AxisInt32s& u32s)
   {
     for (int i = 0; i < RobotConsts::MAX_AXES; i++)
       vals[i] = u32s.vals[i];
+    return *this;
   }
   AxisInt32s(int32_t xVal, int32_t yVal, int32_t zVal)
   {

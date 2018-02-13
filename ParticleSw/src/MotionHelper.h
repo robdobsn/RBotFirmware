@@ -121,7 +121,7 @@ public:
   {
     return _motionActuator.getLastCompletedNumberedCmdIdx();
   }
-  void service(bool processPipeline);
+  void service();
 
   unsigned long getLastActiveUnixTime()
   {

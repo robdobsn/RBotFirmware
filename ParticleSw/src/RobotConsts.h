@@ -32,12 +32,13 @@ namespace RobotConsts
   public:
     RawMotionAxis_t _axis[RobotConsts::MAX_AXES];
 
-    RawMotionHwInfo_t operator=(RawMotionHwInfo_t& other)
+    RawMotionHwInfo_t& operator=(RawMotionHwInfo_t& other)
     {
       for (int i = 0; i < RobotConsts::MAX_AXES; i++)
       {
         _axis[i] = other._axis[i];
       }
+      return *this;
     }
   };
 };
