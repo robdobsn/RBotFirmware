@@ -7,6 +7,7 @@
 #include "CommsSerial.h"
 #include "ParticleCloud.h"
 #include "DebugLoopTimer.h"
+#include "RobotTypes.h"
 
 // Web server
 #include "RdWebServer.h"
@@ -76,85 +77,8 @@ static const unsigned long MAX_MS_CONFIG_DIRTY = 10000;
 unsigned long configDirtyStartMs = 0;
 #define WRITE_TO_EEPROM_ENABLED 1
 
-// Mugbot on PiHat 2.0
-// 1/16 microstepping
-static const char* ROBOT_CONFIG_STR_MUGBOT =
-    "{\"robotType\": \"MugBot\", \"xMaxMM\":150, \"yMaxMM\":120,"
-    "\"homingSeq\":\"Y-sx!;Y+r9sx;Y-1.0;Y=h$\","
-    "\"cmdsAtStart\":\"\","
-    "\"stepEnablePin\":\"A2\", \"stepEnLev\":1, \"stepDisableSecs\":60.0,"
-    "\"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":10.0, \"maxAcc\":5.0,"
-    "\"stepsPerRot\":6400, \"unitsPerRot\":360, \"minVal\":-360, \"maxVal\":360},"
-    "\"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":5.0, \"maxAcc\":5.0,"
-    "\"stepsPerRot\":3200, \"unitsPerRot\":2.0, \"minVal\":0, \"maxVal\":100,"
-    "\"homeOffsetVal\": 100,"
-    "\"endStop1\": { \"sensePin\": \"A7\", \"actLvl\":0, \"inputType\":\"INPUT_PULLUP\"}},"
-    "\"axis2\": { \"servoPin\": \"D0\", \"isServoAxis\": 1, \"isPrimaryAxis\": 0, \"homeOffsetVal\": 180, \"homeOffSteps\": 2500,"
-    "\"minVal\":0, \"maxVal\":180, \"stepsPerRot\":2000, \"unitsPerRot\":360 },"
-    "}";
-
-// static const char* ROBOT_CONFIG_STR_GEISTBOT =
-//     "{\"robotType\": \"GeistBot\", \"xMaxMM\":400, \"yMaxMM\":400, "
-//     " \"stepEnablePin\":\"A2\", \"stepEnLev\":1, \"stepDisableSecs\":1.0,"
-//     " \"maxHomingSecs\":120, \"homingLinOffsetDegs\":70, \"homingCentreOffsetMM\":4,"
-//     " \"homingRotCentreDegs\":3.7, \"cmdsAtStart\":\"G28;ModSpiral\", "
-//     " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":75.0, \"maxAcc\":5.0,"
-//     " \"stepsPerRot\":12000, \"unitsPerRot\":360, \"isDominantAxis\":1,"
-//     " \"endStop0\": { \"sensePin\": \"A6\", \"actLvl\":1, \"inputType\":\"INPUT_PULLUP\"}},"
-//     " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":75.0, \"maxAcc\":5.0,"
-//     " \"stepsPerRot\":12000, \"unitsPerRot\":44.8, \"minVal\":0, \"maxVal\":195, "
-//     " \"endStop0\": { \"sensePin\": \"A7\", \"actLvl\":0, \"inputType\":\"INPUT_PULLUP\"}},"
-//     "}";
-
-static const char* ROBOT_CONFIG_STR_SANDTABLESCARA =
-    "{\"robotType\": \"SandTableScara\", \"xMaxMM\":185, \"yMaxMM\":185, "
-    "\"cmdsAtStart\":\"\","
-    "\"homingSeq\":\"X-r5sn!;X+r9sx;X=h;Y=h$\","
-    "\"maxHomingSecs\":120,"
-    "\"stepEnablePin\":\"A2\", \"stepEnLev\":1, \"stepDisableSecs\":1.0,"
-    "\"blockDistanceMM\":1.0, \"homingAxis1OffsetDegs\":20.0,"
-    "\"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":75.0, \"maxAcc\":5.0,"
-    "\"stepsPerRot\":9600, \"unitsPerRot\":628.318,"
-    "\"endStop0\": { \"sensePin\": \"A6\", \"actLvl\":0, \"inputType\":\"INPUT_PULLUP\"}},"
-    "\"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":75.0, \"maxAcc\":5.0,"
-    "\"stepsPerRot\":9600, \"unitsPerRot\":628.318, \"homeOffSteps\": 0,"
-    "\"endStop0\": { \"sensePin\": \"A7\", \"actLvl\":0, \"inputType\":\"INPUT_PULLUP\"}},"
-    "}";
-
-// static const char* ROBOT_CONFIG_STR_AIRHOCKEY =
-//     "{\"robotType\": \"HockeyBot\", \"xMaxMM\":350, \"yMaxMM\":400, "
-//     " \"stepEnablePin\":\"A2\", \"stepEnLev\":1, \"stepDisableSecs\":1.0,"
-//     " \"cmdsAtStart\":\"\", "
-//     " \"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":5000.0, \"maxAcc\":5000.0,"
-//     " \"stepsPerRot\":3200, \"unitsPerRot\":62},"
-//     " \"axis1\": { \"stepPin\": \"D4\", \"dirnPin\":\"D5\", \"maxSpeed\":5000.0, \"maxAcc\":5000.0,"
-//     " \"stepsPerRot\":3200, \"unitsPerRot\":62}"
-//     "}";
-
-static const char* ROBOT_CONFIG_STR_XY =
-    "{\"robotType\": \"XYBot\", \"xMaxMM\":500, \"yMaxMM\":500, "
-    "\"stepEnablePin\":\"A2\", \"stepEnLev\":1, \"stepDisableSecs\":1.0,"
-    "\"cmdsAtStart\":\"\", "
-    "\"axis0\": { \"stepPin\": \"D2\", \"dirnPin\":\"D3\", \"maxSpeed\":100.0, \"maxAcc\":10.0,"
-    "\"stepsPerRot\":3200, \"unitsPerRot\":32},"
-    "\"axis1\": { \"stepPin\": \D4\", \"dirnPin\":\"D5\", \"maxSpeed\":100.0, \"maxAcc\":10.0,"
-    "\"stepsPerRot\":3200, \"unitsPerRot\":32},"
-    "\"commandQueue\":{\"cmdQueueMaxLen\":50}"
-    "}";
-
-static const char* ROBOT_DEFAULT_SEQUENCE_COMMANDS =
-    "{}";
-
-static const char* ROBOT_DEFAULT_PATTERN_COMMANDS =
-    "{}";
-    /*" \"pattern1\":"
-    "  {"
-    "  \"setup\":\"angle=0;diam=10\","
-    "  \"loop\":\"x=diam*sin(angle*3);y=diam*cos(angle*3);diam=diam+0.5;angle=angle+0.0314;stop=angle>6.28\""
-    "  }"
-    "}";*/
-
-static const char* ROBOT_CONFIG_STR = ROBOT_CONFIG_STR_SANDTABLESCARA;
+// Default robot type
+static const char* DEFAULT_ROBOT_TYPE_NAME = "XYBot";
 
 // Post settings information via API
 void restAPI_PostSettings(RestAPIEndpointMsg& apiMsg, String& retStr)
@@ -232,15 +156,65 @@ void particleAPI_Exec(const char* cmdStr, String& retStr)
     _commandInterpreter.process(cmdStr, retStr);
 }
 
+void reconfigure()
+{
+    // Get the config data
+    const char* pConfigData = configManager.getConfigData();
+
+    // See if robotConfig is present
+    String robotConfig = RdJson::getString("/robotConfig", "", pConfigData);
+    if (robotConfig.length() <= 0)
+    {
+      Log.info("RBotFirmware: No robotConfig found - defaulting");
+      // Set the default robot type
+      robotConfig = RobotTypes::getConfig(DEFAULT_ROBOT_TYPE_NAME);
+    }
+
+    // Init robot controller and workflow manager
+    _robotController.init(robotConfig.c_str());
+    _workflowManager.init(robotConfig.c_str());
+
+    // Configure the command interpreter
+    Log.info("Main setting config");
+    String patternsStr = RdJson::getString("/patterns", "{}", configManager.getConfigData());
+    _commandInterpreter.setPatterns(patternsStr);
+    Log.info("Main patterns %s", patternsStr.c_str());
+    String sequencesStr = RdJson::getString("/sequences", "{}", configManager.getConfigData());
+    _commandInterpreter.setSequences(sequencesStr);
+    Log.info("Main sequences %s", sequencesStr.c_str());
+}
+
+void handleStartupCommands()
+{
+  // Check for cmdsAtStart in the robot config
+  String cmdsAtStart = RdJson::getString("/robotConfig/cmdsAtStart", "", configManager.getConfigData());
+  Log.info("Main cmdsAtStart <%s>", cmdsAtStart.c_str());
+  if (cmdsAtStart.length() > 0)
+  {
+      String retStr;
+      _commandInterpreter.process(cmdsAtStart, retStr);
+  }
+
+  // Check for startup commands in the EEPROM config
+  String runAtStart = RdJson::getString("startup", "", configManager.getConfigData());
+  RdJson::unescapeString(runAtStart);
+  Log.info("Main EEPROM commands <%s>", runAtStart.c_str());
+  if (runAtStart.length() > 0)
+  {
+      String retStr;
+      _commandInterpreter.process(runAtStart, retStr);
+  }
+}
+
 void setup()
 {
     Serial.begin(115200);
-    delay(5000);
+    delay(2000);
     Log.info("%s (built %s %s)", APPLICATION_NAME, __DATE__, __TIME__);
     Log.info("System version: %s", (const char*)System.version());
 
     // Initialise the config manager
-    delay(5000);
+    delay(2000);
     const char* pConfig = configPersistence.read().c_str();
     Utils::logLongStr("Main: ConfigStr", pConfig, true);
     configManager.setConfigData(pConfig);
@@ -277,49 +251,6 @@ void setup()
                             particleAPI_ReportHealth, particleAPI_ReportHealthHash);
     pParticleCloud->RegisterVariables();
 
-    // Init robot controller and workflow manager
-    _robotController.init(ROBOT_CONFIG_STR);
-    _workflowManager.init(ROBOT_CONFIG_STR);
-
-    // Configure the command interpreter
-    bool configLoaded = false;
-    if (*pConfig == '{' || *pConfig == '[')
-    {
-        Log.info("Main setting config");
-        String patternsStr = RdJson::getString("/patterns", "{}", configManager.getConfigData());
-        _commandInterpreter.setPatterns(patternsStr);
-        Log.info("Main patterns %s", patternsStr.c_str());
-        String sequencesStr = RdJson::getString("/sequences", "{}", configManager.getConfigData());
-        _commandInterpreter.setSequences(sequencesStr);
-        Log.info("Main sequences %s", sequencesStr.c_str());
-        configLoaded = true;
-    }
-    if (!configLoaded)
-    {
-        Log.info("Main setting default configuration");
-        _commandInterpreter.setSequences(ROBOT_DEFAULT_SEQUENCE_COMMANDS);
-        _commandInterpreter.setPatterns(ROBOT_DEFAULT_PATTERN_COMMANDS);
-    }
-
-    // Check for cmdsAtStart in the robot config
-    String cmdsAtStart = RdJson::getString("cmdsAtStart", "", ROBOT_CONFIG_STR);
-    Log.info("Main cmdsAtStart <%s>", cmdsAtStart.c_str());
-    if (cmdsAtStart.length() > 0)
-    {
-        String retStr;
-        _commandInterpreter.process(cmdsAtStart, retStr);
-    }
-
-    // Check for startup commands in the EEPROM config
-    String runAtStart = RdJson::getString("startup", "", configManager.getConfigData());
-    RdJson::unescapeString(runAtStart);
-    Log.info("Main EEPROM commands <%s>", runAtStart.c_str());
-    if (runAtStart.length() > 0)
-    {
-        String retStr;
-        _commandInterpreter.process(runAtStart, retStr);
-    }
-
     // Add debug blocks
     debugLoopTimer.blockAdd(0, "Serial");
     debugLoopTimer.blockAdd(1, "Cmd");
@@ -328,6 +259,12 @@ void setup()
     debugLoopTimer.blockAdd(4, "Cloud");
     debugLoopTimer.blockAdd(5, "EEPROM");
     debugLoopTimer.blockAdd(6, "Dirty");
+
+    // Reconfigure the robot and other settings
+    reconfigure();
+
+    // Handle statup commands
+    handleStartupCommands();
 }
 
 long initialMemory = System.freeMemory();

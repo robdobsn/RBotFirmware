@@ -20,11 +20,11 @@ public:
     {
     }
 
-	// Get config data string
-	const char* getConfigData()
-	{
-		return _dataStrJSON.c_str();
-	}
+		// Get config data string
+		const char* getConfigData()
+		{
+			return _dataStrJSON.c_str();
+		}
 
     // Set the configuration data directly
     void setConfigData(const char* configJSONStr)
