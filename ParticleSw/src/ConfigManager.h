@@ -21,14 +21,16 @@ public:
     }
 
 		// Get config data string
-		const char* getConfigData()
+		String& getConfigData()
 		{
-			return _dataStrJSON.c_str();
+			// Log.info("ConfigManager: getConfigData length %d [0] %d", _dataStrJSON.length(), _dataStrJSON.charAt(0));
+			return _dataStrJSON;
 		}
 
     // Set the configuration data directly
     void setConfigData(const char* configJSONStr)
     {
-		_dataStrJSON = configJSONStr;
+			_dataStrJSON = configJSONStr;
+			// Log.info("ConfigManager: setConfigData length %d [0] %d", _dataStrJSON.length(), _dataStrJSON.charAt(0));
     }
 };

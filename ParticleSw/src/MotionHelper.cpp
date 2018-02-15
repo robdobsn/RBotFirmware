@@ -152,6 +152,10 @@ void MotionHelper::getCurStatus(RobotCommandArgs& args)
   args.setEndStops(_motionIO.getEndStopVals());
   // Absolute/Relative movement
   args.setMoveType(_moveRelative ? RobotMoveTypeArg_Relative : RobotMoveTypeArg_Absolute);
+  // paused
+  args.setPause(_isPaused);
+  // Queue length
+  args.setNumQueued(_motionPipeline.count());
 }
 
 // Command the robot to home one or more axes

@@ -15,7 +15,7 @@ enum RobotMoveTypeArg
 
 class RobotCommandArgs
 {
-public:
+private:
   bool _ptUnitsSteps : 1;
   bool _dontSplitMove : 1;
   bool _extrudeValid : 1;
@@ -23,6 +23,8 @@ public:
   bool _moveClockwise : 1;
   bool _moveRapid : 1;
   bool _allowOutOfBounds : 1;
+  bool _pause : 1;
+  int _queuedCommands;
   int _numberedCommandIndex;
   AxisFloats _ptInMM;
   AxisInt32s _ptInSteps;
@@ -49,10 +51,33 @@ public:
     _moveRapid = false;
     _ptUnitsSteps  = false;
     _allowOutOfBounds = false;
+    _pause = false;
     _extrudeValue  = 0.0;
     _feedrateValue = 0.0;
     _moveType      = RobotMoveTypeArg_None;
+    _queuedCommands = 0;
   }
+private:
+  void copy(const RobotCommandArgs& copyFrom)
+  {
+    clear();
+    _ptInMM        = copyFrom._ptInMM;
+    _ptInSteps     = copyFrom._ptInSteps;
+    _extrudeValid  = copyFrom._extrudeValid;
+    _extrudeValue  = copyFrom._extrudeValue;
+    _feedrateValid = copyFrom._feedrateValid;
+    _feedrateValue = copyFrom._feedrateValue;
+    _endstops       = copyFrom._endstops;
+    _moveClockwise = copyFrom._moveClockwise;
+    _moveRapid     = copyFrom._moveRapid;
+    _pause         = copyFrom._pause;
+    _dontSplitMove = copyFrom._dontSplitMove;
+    _allowOutOfBounds = copyFrom._allowOutOfBounds;
+    _numberedCommandIndex = copyFrom._numberedCommandIndex;
+    _moveType      = copyFrom._moveType;
+    _queuedCommands = copyFrom._queuedCommands;
+  }
+public:
   RobotCommandArgs(const RobotCommandArgs& other)
   {
     copy(other);
@@ -207,6 +232,14 @@ public:
   {
     return _numberedCommandIndex;
   }
+  void setNumQueued(int numQueued)
+  {
+    _queuedCommands = numQueued;
+  }
+  void setPause(bool pause)
+  {
+    _pause = pause;
+  }
   String toJSON()
   {
     String jsonStr;
@@ -229,28 +262,13 @@ public:
       jsonStr += "\"abs\"";
     jsonStr += ",\"endstops\":" + _endstops.toJSON();
     jsonStr += ",\"allowOutOfBounds\":" + String(_allowOutOfBounds ? "\"Y\"" : "\"N\"");
-    String numberedCmdStr = String::format("%ld", _numberedCommandIndex);
+    String numberedCmdStr = String::format("%d", _numberedCommandIndex);
     jsonStr += ", \"numberedCmd\":" + numberedCmdStr;
+    String queuedCommandsStr = String::format("%d", _queuedCommands);
+    jsonStr += ", \"queued\":" + queuedCommandsStr;
+    jsonStr += String(", \"paused\":") + (_pause ? "1" : "0");
     jsonStr += "}";
     return jsonStr;
   }
 
-private:
-  void copy(const RobotCommandArgs& copyFrom)
-  {
-    clear();
-    _ptInMM        = copyFrom._ptInMM;
-    _ptInSteps     = copyFrom._ptInSteps;
-    _extrudeValid  = copyFrom._extrudeValid;
-    _extrudeValue  = copyFrom._extrudeValue;
-    _feedrateValid = copyFrom._feedrateValid;
-    _feedrateValue = copyFrom._feedrateValue;
-    _endstops       = copyFrom._endstops;
-    _moveClockwise = copyFrom._moveClockwise;
-    _moveRapid     = copyFrom._moveRapid;
-    _dontSplitMove = copyFrom._dontSplitMove;
-    _allowOutOfBounds = copyFrom._allowOutOfBounds;
-    _numberedCommandIndex = copyFrom._numberedCommandIndex;
-    _moveType      = copyFrom._moveType;
-  }
 };

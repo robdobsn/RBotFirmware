@@ -1,10 +1,8 @@
-
-
-<!DOCTYPE html>
 <!-- RBotFirmware CNC Control
         by Rob Dobson (c) 2017
         MIT license
 -->
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -42,8 +40,12 @@
                 MAX_POST_CHUNK_SIZE: 1000,
                 UPLOAD_RETRY_TIME_MS: 1000,
                 MAX_UPLOAD_RETRIES: 180,
+                MAX_FILE_SIZE: 2000000,
+                MAX_CONFIG_LEN: 2000,
                 axisNames: ["X","Y","Z"],
-                endstopNames: ["min", "max"]
+                endstopNames: ["min", "max"],
+                robotTypes: [],
+                settings: {}
             };
             // Handle the file send box listener
             var inputFileUpload = document.getElementById("input_file_upload");
@@ -51,6 +53,8 @@
             // Handle enter in the gcode box
             var gcodeSendBox = document.getElementById("gcodeSendBox");
             gcodeSendBox.addEventListener('keypress', keyPressInGCodeBox, false);
+            // Get robotTypes (and then settings
+            callAjax("/getRobotTypes", robotTypesCallback);
             // Status update timer
             window.RBotUIVars.statusUpdateTimer = setTimeout(statusUpdate, 1000);
         }
@@ -81,15 +85,197 @@
                     for (var j = 0; j < endstopNames.length; j++) {
                         var endstopState = machineStatus["endstops"][i][j];
                         var endstopStr = "n/a";
-                        if (endstopState == 1)
+                        if (endstopState === 1)
                             endstopStr = "HIT";
-                        if (endstopState == 2)
+                        if (endstopState === 2)
                             endstopStr = "";
                         document.getElementById("td_" + endstopNames[j] + axisNames[i]).innerHTML = endstopStr;
                     }
                 }
             }
+            if (machineStatus.hasOwnProperty("paused"))
+            {
+                document.getElementById("td_robotState").innerHTML = (machineStatus.paused ? "Paused" : "Running");
+            }
+            if (machineStatus.hasOwnProperty("queued"))
+            {
+                document.getElementById("td_robotQueueLen").innerHTML = machineStatus.queued;
+            }
             window.RBotUIVars.statusUpdateTimer = setTimeout(statusUpdate, 500);
+        }
+
+        function robotTypesCallback(resp) {
+            // Store robot types
+            window.RBotUIVars.robotTypes = JSON.parse(resp);
+            // Get settings
+            callAjax("/getsettings", settingsCallback);
+        }
+
+        function showSettings() {
+            // Settings
+            var settings = window.RBotUIVars.settings;
+            if (settings.hasOwnProperty("robotConfig")) {
+                document.getElementById("td_RobotConfig_input").readOnly = false;
+                document.getElementById("td_RobotConfig_input").value = JSON.stringify(settings["robotConfig"]);
+            }
+            if (settings.hasOwnProperty("name")) {
+                document.getElementById("td_RobotName_input").value = settings["name"];
+            }
+            if (settings.hasOwnProperty("patterns")) {
+                document.getElementById("td_Patterns_input").value = JSON.stringify(settings["patterns"]);
+            }
+            if (settings.hasOwnProperty("sequences")) {
+                document.getElementById("td_Sequences_input").value = JSON.stringify(settings["sequences"]);
+            }
+            if (settings.hasOwnProperty("robotType")) {
+                var selSet = false;
+                for (var i = 0; i < window.RBotUIVars.robotTypes.length; i++) {
+                    if (window.RBotUIVars.robotTypes[i] === settings["robotType"]) {
+                        document.getElementById('td_RobotTypeSelect').setAttribute("selected", settings["robotType"]);
+                        selSet = true;
+                        break;
+                    }
+                }
+                if (!selSet)
+                    document.getElementById('td_RobotTypeSelect').setAttribute("selected", "Custom");
+            }
+            if (settings["robotType"] !== "Custom") {
+                document.getElementById("td_RobotConfig_input").readOnly = true;
+                console.log("Set td_RobotConfig_input readonly set to " + document.getElementById("td_RobotConfig_input").readOnly);
+            }
+            // Chack strings valid
+            checkJsonStrings(false);
+        }
+
+        function settingsCallback(resp) {
+            window.RBotUIVars.settings = JSON.parse(resp);
+            // Add the robot types to list
+            var selec = document.getElementById('td_RobotTypeSelect');
+            selec.innerHTML = "";
+            var opt = document.createElement('option');
+            opt.innerHTML = "Custom";
+            opt.value = "Custom";
+            selec.appendChild(opt);
+            for(var i = 0; i < window.RBotUIVars.robotTypes.length; i++) {
+                opt = document.createElement('option');
+                opt.innerHTML = window.RBotUIVars.robotTypes[i];
+                opt.value = window.RBotUIVars.robotTypes[i];
+                selec.appendChild(opt);
+            }
+            // Show current settings
+            showSettings();
+            // Get robotType info
+            robotTypeChange();
+        }
+
+        function checkJsonStrings(validateJsonToo)
+        {
+            if ((document.getElementById('td_Patterns_input').value.length <= 0) || (document.getElementById('td_Patterns_input').value == ""))
+                document.getElementById('td_Patterns_input').value = "{}";
+            if ((document.getElementById('td_Sequences_input').value.length <= 0) || (document.getElementById('td_Sequences_input').value == ""))
+                document.getElementById('td_Sequences_input').value = "{}";
+            if ((document.getElementById('td_RobotConfig_input').value.length <= 0) || (document.getElementById('td_RobotConfig_input').value == ""))
+                document.getElementById('td_RobotConfig_input').value = "{}";
+            //
+            if (validateJsonToo)
+            {
+                // Validate JSON
+                try {
+                    window.RBotUIVars.settings.patterns = JSON.parse(document.getElementById('td_Patterns_input').value);
+                }
+                catch(e) {
+                    return false;
+                }
+                try {
+                    window.RBotUIVars.settings.sequences = JSON.parse(document.getElementById('td_Sequences_input').value);
+                }
+                catch(e) {
+                    return false;
+                }
+                try {
+                    window.RBotUIVars.settings.robotConfig = JSON.parse(document.getElementById('td_RobotConfig_input').value);
+                }
+                catch(e) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function saveConfig()
+        {
+            console.log("Save Settings");
+            // Pull together the config
+            if (!checkJsonStrings(true)) {
+                alert("Settings JSON is not valid - please check");
+                return;
+            }
+            // Robot name
+            window.RBotUIVars.settings.name = document.getElementById('td_RobotName_input').value;
+            // Robot type and config
+            var selIdx = document.getElementById('td_RobotTypeSelect').selectedIndex;
+            var selType = document.getElementById('td_RobotTypeSelect').options[selIdx];
+            window.RBotUIVars.settings.robotType = selType.text;
+            // Check valid and remove extraneous values
+            var configStr = window.RBotUIVars.settings;
+            if (configStr.hasOwnProperty("robotType"))
+            {
+                if (configStr.robotType === "Custom")
+                {
+                    delete configStr.robotType;
+                }
+                else
+                {
+                    if (configStr.hasOwnProperty("robotConfig"))
+                        delete configStr.robotConfig;
+                }
+            }
+            else
+            {
+                if (configStr.hasOwnProperty("robotConfig"))
+                    delete configStr.robotConfig;
+            }
+            // Check length of config string
+            if (JSON.stringify(configStr).length > window.RBotUIVars.MAX_CONFIG_LEN) {
+                alert("Settings JSON is too long for EEPROM (max " + window.RBotUIVars.MAX_CONFIG_LEN + ") please shorten");
+            }
+            else {
+                console.log("Sending config str" + JSON.stringify(configStr));
+                postJson("/postsettings/", JSON.stringify(configStr), postSettingsOkCallback, postSettingsFailCallback);
+            }
+        }
+
+        function postSettingsOkCallback()
+        {
+            console.log("Settings sent ok");
+        }
+
+        function postSettingsFailCallback()
+        {
+            alert("Failed to send new settings");
+        }
+
+        function robotTypeChange()
+        {
+            var selIdx = document.getElementById('td_RobotTypeSelect').selectedIndex;
+            var selType = document.getElementById('td_RobotTypeSelect').options[selIdx];
+            console.log("Change robot type " + selType.text);
+            if (selType.text === "Custom") {
+                // Custom type
+                console.log("Robot type custom - NOT getting new settings");
+                window.RBotUIVars.settings["robotType"] = selType.text;
+                showSettings()
+            }
+            else {
+                window.RBotUIVars.settings["robotType"] = selType.text;
+                callAjax("/getRobotTypeConfig/" + selType.text, gotRobotTypeConfig);
+            }
+        }
+
+        function gotRobotTypeConfig(resp)
+        {
+            window.RBotUIVars.settings["robotConfig"] = JSON.parse(resp);
+            showSettings()
         }
 
         function callAjax(url, okCallback, failCallback)
@@ -219,7 +405,7 @@
         function showUploadStatus(statusStr)
         {
             var txtUploadStatus = document.getElementById("txtUploadStatus");
-            txtUploadStatus.innerHTML = statusStr;
+            txtUploadStatus.textContent = statusStr;
         }
 
         function setUploadState(uploadInProgress)
@@ -509,6 +695,26 @@
             border-color: #bd7e1f;
         }
 
+        .btn-heading {
+            color: white;
+            background-image: linear-gradient(to bottom, #e4af43 0, #dc7410 100%);
+            background-repeat: repeat-x;
+            border-color: #bd7e1f;
+            float:right;
+            padding: 2px 12px;
+            margin: -4px;
+        }
+        /*.btn-heading:after {*/
+            /*content: "";*/
+            /*clear: both;*/
+            /*display: table;*/
+        /*}*/
+        .btn-clear {
+            content: "";
+            clear: both;
+            display: table;
+        }
+
         .btn-default.disabled {
             background-color: #e0e0e0;
             background-image: none;
@@ -544,6 +750,9 @@
             vertical-align: middle !important;
         }
 
+        .uiTableLeftAligned {
+            text-align: left;
+        }
         .uiTableGrid > tbody > tr > th, .uiTableGrid > tbody > tr > td {
             border: 1px solid #ddd;
             min-width: 60px;
@@ -594,6 +803,20 @@
         }
         .txt-status {
 
+        }
+        .extra-space-above {
+            margin-top: 7px;
+        }
+        .textAreaInput {
+            border: none;
+            width:100%;
+            height:100%;
+            min-height: 3rem;
+        }
+        .textAreaOneLine {
+            border: none;
+            width:100%;
+            height:100%;
         }
     </style>
 
@@ -708,6 +931,14 @@
                         <td id="td_maxY">n/a</td>
                         <td id="td_maxZ" style="border-right: 1px;">n/a</td>
                     </tr>
+                    <tr>
+                        <th class="th-status">State</th>
+                        <td id="td_robotState" colspan="3" style="border-right: 1px;"></td>
+                    </tr>
+                    <tr>
+                        <th class="th-status">QueueLen</th>
+                        <td id="td_robotQueueLen" colspan="3" style="border-right: 1px;"></td>
+                    </tr>
                     </tbody>
                 </table>
             </div>
@@ -721,7 +952,7 @@
                 <div class="uiTable uiTblBtns tableMovement">
                     <tr>
                         <td class="home-buttons visible-lg">
-                            <div class="btn-group" role="group">
+                            <div class="btn-group extra-space-above" role="group">
                                 <button class="btn btn-primary" title="Home X axis (G28 X)" onclick="goHomeClick(0)">
                                     <span>Go Home X</span>
                                 </button>
@@ -930,6 +1161,52 @@
             </div>
         </div>
 
+        <div class="uiBlock">
+            <div class="uiPanel">
+                <div class="uiPanelHead">
+                    <span>Settings</span>
+                    <button id="btnSaveConfig" class="btn btn-heading" title="Save" onclick="saveConfig()">
+                        <span>Save</span>
+                    </button>
+                    <div class="btn-clear"></div>
+                </div>
+                <table class="uiTable uiTableGrid uiTableLeftAligned">
+                    <tbody>
+                    <tr>
+                        <th class="th-status">RobotType</th>
+                        <td id="td_RobotType" style="border-right: 1px;">
+                            <select id="td_RobotTypeSelect" onchange="robotTypeChange()">
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th-status">RobotName</th>
+                        <td id="td_RobotName" style="border-right: 1px;">
+                            <textarea class="textAreaOneLine" id="td_RobotName_input"></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th-status">RobotConfig</th>
+                        <td id="td_RobotConfig" style="border-right: 1px;">
+                            <textarea class="textAreaInput" id="td_RobotConfig_input"></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th-status">Patterns</th>
+                        <td id="td_Patterns" style="border-right: 1px;">
+                            <textarea class="textAreaInput" id="td_Patterns_input"></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th-status">Sequences</th>
+                        <td id="td_Sequences" style="border-right: 1px;">
+                            <textarea class="textAreaInput" id="td_Sequences_input"></textarea>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <!-- SVG icons -->

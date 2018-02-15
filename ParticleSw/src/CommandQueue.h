@@ -31,6 +31,7 @@ public:
 //        Log.info("Configuring CommandQueue from %s", configStr);
         _cmdQueueMaxLen = (int) RdJson::getLong("cmdQueueMaxLen",
                                             _cmdQueueMaxLenDefault, configStr);
+        clear();
 //        Log.info("CmdQueueMaxLen %d", _cmdQueueMaxLen);
     }
 

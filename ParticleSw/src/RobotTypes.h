@@ -26,4 +26,18 @@ public:
     }
     return "{}";
   }
+
+  // Return list of robot types
+  static const void getRobotTypes(String& retStr)
+  {
+    retStr = "[";
+    for (int configIdx = 0; configIdx < _numRobotTypes; configIdx++)
+    {
+      String robotType = RdJson::getString("robotType", "", _robotConfigs[configIdx]);
+      if (configIdx != 0)
+        retStr += ",";
+      retStr += "\"" + robotType + "\"";
+    }
+    retStr += "]";
+  }
 };

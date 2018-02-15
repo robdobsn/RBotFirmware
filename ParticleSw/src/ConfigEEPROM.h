@@ -80,7 +80,7 @@ public:
             char ch = EEPROM.read(_eepromBaseLocation + chIdx);
             dataStr.concat(ch);
         }
-        Log.info("ConfigEEPROM::read %d chars", dataStrLen);
+        Log.info("ConfigEEPROM::read %d chars [0] %d", dataStrLen, dataStr.charAt(0));
         _dirtyFlag = false;
         return dataStr;
     }

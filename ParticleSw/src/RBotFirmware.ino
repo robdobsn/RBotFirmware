@@ -8,6 +8,7 @@
 #include "ParticleCloud.h"
 #include "DebugLoopTimer.h"
 #include "RobotTypes.h"
+#include "RBotDefaults.h"
 
 // Web server
 #include "RdWebServer.h"
@@ -77,23 +78,22 @@ static const unsigned long MAX_MS_CONFIG_DIRTY = 10000;
 unsigned long configDirtyStartMs = 0;
 #define WRITE_TO_EEPROM_ENABLED 1
 
-// Default robot type
-static const char* DEFAULT_ROBOT_TYPE_NAME = "XYBot";
-
 // Post settings information via API
 void restAPI_PostSettings(RestAPIEndpointMsg& apiMsg, String& retStr)
 {
-    Log.trace("RestAPI PostSettings method %d contentLen %d", apiMsg._method, apiMsg._msgContentLen);
+    Log.info("RestAPI PostSettings method %d contentLen %d", apiMsg._method, apiMsg._msgContentLen);
     if (apiMsg._pMsgHeader)
         Log.trace("RestAPI PostSettings header len %d", strlen(apiMsg._pMsgHeader));
     // Store the settings
     configManager.setConfigData((const char*)apiMsg._pMsgContent);
     // Set flag to indicate EEPROM needs to be written
     configPersistence.setDirty();
+    // Reconfigure the robot
+    reconfigure();
     // Apply the config data
-    String patternsStr = RdJson::getString("/patterns", "{}", configManager.getConfigData());
+    String patternsStr = RdJson::getString("/patterns", "{}", configManager.getConfigData().c_str());
     _commandInterpreter.setPatterns(patternsStr);
-    String sequencesStr = RdJson::getString("/sequences", "{}", configManager.getConfigData());
+    String sequencesStr = RdJson::getString("/sequences", "{}", configManager.getConfigData().c_str());
     _commandInterpreter.setSequences(sequencesStr);
     // Result
     retStr = "{\"ok\"}";
@@ -102,42 +102,40 @@ void restAPI_PostSettings(RestAPIEndpointMsg& apiMsg, String& retStr)
 // Get settings information via API
 void restAPI_GetSettings(RestAPIEndpointMsg& apiMsg, String& retStr)
 {
-    Log.trace("RestAPI GetSettings method %d contentLen %d", apiMsg._method, apiMsg._msgContentLen);
-    // Get settings from each sub-element
-    const char* patterns = _commandInterpreter.getPatterns();
-    const char* sequences = _commandInterpreter.getSequences();
-    String runAtStart = RdJson::getString("startup", "", configManager.getConfigData());
-    Log.trace("RestAPI GetSettings patterns %s", patterns);
-    Log.trace("RestAPI GetSettings sequences %s", sequences);
-    Log.trace("RestAPI GetSettings startup %s", runAtStart.c_str());
-    retStr = "{\"maxCfgLen\":2000, \"name\":\"Sand Table\",\"patterns\":";
-    retStr += patterns;
-    retStr += ", \"sequences\":";
-    retStr += sequences;
-    retStr += ", \"startup\":\"";
-    RdJson::escapeString(runAtStart);
-    retStr += runAtStart.c_str();
-    retStr += "\"}";
+    Log.info("RestAPI GetSettings method %d contentLen %d", apiMsg._method, apiMsg._msgContentLen);
+    retStr = configManager.getConfigData();
+}
+
+void restAPI_GetRobotTypes(RestAPIEndpointMsg& apiMsg, String& retStr)
+{
+    Log.info("RestAPI GetRobotTypes method %d contentLen %d", apiMsg._method, apiMsg._msgContentLen);
+    RobotTypes::getRobotTypes(retStr);
+}
+
+void restAPI_GetRobotTypeConfig(RestAPIEndpointMsg& apiMsg, String& retStr)
+{
+    Log.info("RestAPI GetRobotTypeConfig method %d contentLen %d", apiMsg._method, apiMsg._msgContentLen);
+    retStr = RobotTypes::getConfig(apiMsg._pArgStr);
 }
 
 // Exec command via API
 void restAPI_Exec(RestAPIEndpointMsg& apiMsg, String& retStr)
 {
-    Log.trace("RestAPI Exec method %d contentLen %d", apiMsg._method, apiMsg._msgContentLen);
+    Log.info("RestAPI Exec method %d contentLen %d", apiMsg._method, apiMsg._msgContentLen);
     _commandInterpreter.process(apiMsg._pArgStr, retStr);
 }
 
 // Start Pattern via API
 void restAPI_Pattern(RestAPIEndpointMsg& apiMsg, String& retStr)
 {
-    Log.trace("RestAPI Pattern method %d contentLen %d", apiMsg._method, apiMsg._msgContentLen);
+    Log.info("RestAPI Pattern method %d contentLen %d", apiMsg._method, apiMsg._msgContentLen);
     _commandInterpreter.process(apiMsg._pArgStr, retStr);
 }
 
 // Start sequence via API
 void restAPI_Sequence(RestAPIEndpointMsg& apiMsg, String& retStr)
 {
-    Log.trace("RestAPI Sequence method %d contentLen %d", apiMsg._method, apiMsg._msgContentLen);
+    Log.info("RestAPI Sequence method %d contentLen %d", apiMsg._method, apiMsg._msgContentLen);
     _commandInterpreter.process(apiMsg._pArgStr, retStr);
 }
 
@@ -152,22 +150,26 @@ void restAPI_Status(RestAPIEndpointMsg& apiMsg, String& retStr)
 // Exec via particle function
 void particleAPI_Exec(const char* cmdStr, String& retStr)
 {
-    Log.trace("ParticleAPI Exec method %s", cmdStr);
+    Log.info("ParticleAPI Exec method %s", cmdStr);
     _commandInterpreter.process(cmdStr, retStr);
 }
 
 void reconfigure()
 {
     // Get the config data
-    const char* pConfigData = configManager.getConfigData();
+    String& configData = configManager.getConfigData();
 
     // See if robotConfig is present
-    String robotConfig = RdJson::getString("/robotConfig", "", pConfigData);
+    String robotConfig = RdJson::getString("/robotConfig", "", configData.c_str());
     if (robotConfig.length() <= 0)
     {
       Log.info("RBotFirmware: No robotConfig found - defaulting");
+      // See if there is a robotType specified in the main config
+      String robotType = RdJson::getString("/robotType", "", configData.c_str());
+      if (robotType.length() <= 0)
+          robotType = DEFAULT_ROBOT_TYPE_NAME;
       // Set the default robot type
-      robotConfig = RobotTypes::getConfig(DEFAULT_ROBOT_TYPE_NAME);
+      robotConfig = RobotTypes::getConfig(robotType.c_str());
     }
 
     // Init robot controller and workflow manager
@@ -176,10 +178,10 @@ void reconfigure()
 
     // Configure the command interpreter
     Log.info("Main setting config");
-    String patternsStr = RdJson::getString("/patterns", "{}", configManager.getConfigData());
+    String patternsStr = RdJson::getString("/patterns", "{}", configManager.getConfigData().c_str());
     _commandInterpreter.setPatterns(patternsStr);
     Log.info("Main patterns %s", patternsStr.c_str());
-    String sequencesStr = RdJson::getString("/sequences", "{}", configManager.getConfigData());
+    String sequencesStr = RdJson::getString("/sequences", "{}", configManager.getConfigData().c_str());
     _commandInterpreter.setSequences(sequencesStr);
     Log.info("Main sequences %s", sequencesStr.c_str());
 }
@@ -187,7 +189,7 @@ void reconfigure()
 void handleStartupCommands()
 {
   // Check for cmdsAtStart in the robot config
-  String cmdsAtStart = RdJson::getString("/robotConfig/cmdsAtStart", "", configManager.getConfigData());
+  String cmdsAtStart = RdJson::getString("/robotConfig/cmdsAtStart", "", configManager.getConfigData().c_str());
   Log.info("Main cmdsAtStart <%s>", cmdsAtStart.c_str());
   if (cmdsAtStart.length() > 0)
   {
@@ -196,7 +198,7 @@ void handleStartupCommands()
   }
 
   // Check for startup commands in the EEPROM config
-  String runAtStart = RdJson::getString("startup", "", configManager.getConfigData());
+  String runAtStart = RdJson::getString("startup", "", configManager.getConfigData().c_str());
   RdJson::unescapeString(runAtStart);
   Log.info("Main EEPROM commands <%s>", runAtStart.c_str());
   if (runAtStart.length() > 0)
@@ -215,15 +217,17 @@ void setup()
 
     // Initialise the config manager
     delay(2000);
-    const char* pConfig = configPersistence.read().c_str();
-    Utils::logLongStr("Main: ConfigStr", pConfig, true);
-    configManager.setConfigData(pConfig);
+    String configStr = configPersistence.read();
+    Utils::logLongStr("Main: ConfigStr", configStr.c_str(), true);
+    configManager.setConfigData(configStr.c_str());
 
     #ifdef RUN_TEST_CONFIG
     TestConfigManager::runTests();
     #endif
 
     // Add API endpoints
+    restAPIEndpoints.addEndpoint("getRobotTypes", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_GetRobotTypes, "", "");
+    restAPIEndpoints.addEndpoint("getRobotTypeConfig", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_GetRobotTypeConfig, "", "");
     restAPIEndpoints.addEndpoint("postsettings", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_PostSettings, "", "");
     restAPIEndpoints.addEndpoint("getsettings", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_GetSettings, "", "");
     restAPIEndpoints.addEndpoint("exec", RestAPIEndpointDef::ENDPOINT_CALLBACK, restAPI_Exec, "", "");
@@ -379,7 +383,7 @@ void loop()
         bool robotActive = _robotController.wasActiveInLastNSeconds(ROBOT_IDLE_BEFORE_WRITE_EEPROM_SECS);
         bool webActive = ((pWebServer) && (pWebServer->wasActiveInLastNSeconds(WEB_IDLE_BEFORE_WRITE_EEPROM_SECS)));
         if ((configMustWrite || (!robotActive && !webActive) || (ROBOT_IDLE_BEFORE_WRITE_EEPROM_SECS == 0 && WEB_IDLE_BEFORE_WRITE_EEPROM_SECS == 0)))
-            configPersistence.write(configManager.getConfigData());
+            configPersistence.write(configManager.getConfigData().c_str());
 
     }
     debugLoopTimer.blockEnd(6);
