@@ -155,7 +155,7 @@ public:
   // The block's entry and exit speed are now known
   // The block can accelerate and decelerate as required as long as these criteria are met
   // We now compute the stepping parameters to make motion happen
-  void prepareForStepping(AxesParams& axesParams, uint32_t prevBlockExitStepRatesPerTTicks)
+  void prepareForStepping(AxesParams& axesParams)
   {
     // If block is currently being executed don't change it
     if (_isExecuting)

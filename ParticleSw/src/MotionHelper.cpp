@@ -48,6 +48,17 @@ void MotionHelper::setTransforms(ptToActuatorFnType ptToActuatorFn, actuatorToPt
 // Configure the robot and pipeline parameters using a JSON input string
 void MotionHelper::configure(const char* robotConfigJSON)
 {
+  // Pipeline length and block size
+  int pipelineLen = int(RdJson::getLong("pipelineLen", pipelineLen_default, robotConfigJSON));
+  _blockDistanceMM = float(RdJson::getDouble("blockDistanceMM", blockDistanceMM_default, robotConfigJSON));
+  Log.info("MotionHelper configMotionPipeline len %d, _blockDistanceMM %0.2f (0=no-max)",
+           pipelineLen, _blockDistanceMM);
+  _motionPipeline.init(pipelineLen);
+
+  // Motion Pipeline and Planner
+  float junctionDeviation = float(RdJson::getDouble("junctionDeviation", junctionDeviation_default, robotConfigJSON));
+  _motionPlanner.configure(junctionDeviation);
+
   // MotionIO
   _motionIO.deinit();
 
@@ -64,7 +75,14 @@ void MotionHelper::configure(const char* robotConfigJSON)
   }
 
   // Configure robot
-  configureRobot(robotConfigJSON);
+  _xMaxMM = float(RdJson::getDouble("xMaxMM", 0, robotConfigJSON));
+  _yMaxMM = float(RdJson::getDouble("yMaxMM", 0, robotConfigJSON));
+
+  // Homing
+  _motionHoming.configure(robotConfigJSON);
+
+  // MotionIO
+  _motionIO.configureMotors(robotConfigJSON);
 
   // Give the MotionActuator access to raw motionIO info
   // this enables ISR based motion to be faster
@@ -74,30 +92,6 @@ void MotionHelper::configure(const char* robotConfigJSON)
 
   // Clear motion info
   _curAxisPosition.clear();
-}
-
-// Configure the robot itself
-bool MotionHelper::configureRobot(const char* robotConfigJSON)
-{
-  _xMaxMM = float(RdJson::getDouble("xMaxMM", 0, robotConfigJSON));
-  _yMaxMM = float(RdJson::getDouble("yMaxMM", 0, robotConfigJSON));
-
-  // Motion Pipeline and Planner
-  _blockDistanceMM = float(RdJson::getDouble("blockDistanceMM", blockDistanceMM_default, robotConfigJSON));
-  float junctionDeviation = float(RdJson::getDouble("junctionDeviation", junctionDeviation_default, robotConfigJSON));
-  int   pipelineLen       = int(RdJson::getLong("pipelineLen", pipelineLen_default, robotConfigJSON));
-  // Pipeline length and block size
-  Log.info("MotionHelper configMotionPipeline len %d, _blockDistanceMM %0.2f (0=no-max)",
-           pipelineLen, _blockDistanceMM);
-  _motionPipeline.init(pipelineLen);
-  _motionPlanner.configure(junctionDeviation);
-
-  // Homing
-  _motionHoming.configure(robotConfigJSON);
-
-  // MotionIO
-  _motionIO.configureMotors(robotConfigJSON);
-  return true;
 }
 
 // Check if a command can be accepted into the motion pipeline
@@ -167,6 +161,11 @@ void MotionHelper::goHome(RobotCommandArgs& args)
 // Command the robot to move (adding a command to the pipeline of motion)
 bool MotionHelper::moveTo(RobotCommandArgs& args)
 {
+  // Handle stepwise motion
+  if (args.isStepwise())
+  {
+    _motionPlanner.moveToStepwise(args, _curAxisPosition, _axesParams, _motionPipeline);
+  }
   // Fill in the destPos for axes for which values not specified
   // Handle relative motion override if present
   // Don't use servo values for computing distance to travel
@@ -217,23 +216,6 @@ bool MotionHelper::moveTo(RobotCommandArgs& args)
   return true;
 }
 
-// Add a movement to the pipeline using the planner which computes suitable motion
-bool MotionHelper::addToPlanner(RobotCommandArgs& args)
-{
-  // Convert the move to actuator coordinates
-  AxisFloats actuatorCoords;
-  _ptToActuatorFn(args.getPointMM(), actuatorCoords, _axesParams, args.getAllowOutOfBounds());
-
-  // Plan the move
-  bool moveOk = _motionPlanner.moveTo(args, actuatorCoords, _curAxisPosition, _axesParams, _motionPipeline);
-  if (moveOk)
-  {
-    // Update axisMotion
-    _curAxisPosition._axisPositionMM = args.getPointMM();
-  }
-  return moveOk;
-}
-
 // A single moveTo command can be split into blocks - this function checks if such
 // splitting is in progress and adds the split-up motion blocks accordingly
 void MotionHelper::blocksToAddProcess()
@@ -266,6 +248,23 @@ void MotionHelper::blocksToAddProcess()
     // Enable motors
     _motionIO.enableMotors(true, false);
   }
+}
+
+// Add a movement to the pipeline using the planner which computes suitable motion
+bool MotionHelper::addToPlanner(RobotCommandArgs& args)
+{
+  // Convert the move to actuator coordinates
+  AxisFloats actuatorCoords;
+  _ptToActuatorFn(args.getPointMM(), actuatorCoords, _curAxisPosition, _axesParams, args.getAllowOutOfBounds());
+
+  // Plan the move
+  bool moveOk = _motionPlanner.moveTo(args, actuatorCoords, _curAxisPosition, _axesParams, _motionPipeline);
+  if (moveOk)
+  {
+    // Update axisMotion
+    _curAxisPosition._axisPositionMM = args.getPointMM();
+  }
+  return moveOk;
 }
 
 // Called regularly to allow the MotionHelper to do background work such as

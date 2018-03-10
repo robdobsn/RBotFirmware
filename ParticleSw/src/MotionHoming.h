@@ -77,8 +77,8 @@ public:
     // Progress homing if possible
     if (_commandInProgress)
     {
-      // Check if a command has completed execution
       // Log.info("LastCompleted %d, %d", getLastCompletedNumberedCmdIdx(), _homingCurCommandIndex);
+      // Check if a command has completed execution
       if (getLastCompletedNumberedCmdIdx() != _homingCurCommandIndex)
         return;
     }
@@ -111,26 +111,42 @@ public:
       int ch      = _homingSequence.charAt(_homingStrPos);
       switch (ch)
       {
-        case '$':
+        case '$':  // All done ok
         {
           // Check if homing commands complete
           // Log.info("MotionHoming: command in prog %d, %d", _homingStrPos, _homingSequence.length());
-          _homingStrPos++;
           Log.info("MotionHoming: Homed ok");
           _isHomedOk = true;
           _homingInProgress = false;
           _commandInProgress = false;
+          _homingStrPos++;
           return true;
         }
-        case 'X': case 'x':
-        case 'Y': case 'y':
-        case 'Z': case 'z':
+        case '#':  // Process command
+        {
+          // Allow out of bounds movement while homing
+          _curCommand.setAllowOutOfBounds(true);
+          // Don't split the move
+          _curCommand.setDontSplitMove(true);
+          // Set the command index so we know when complete
+          _homingCurCommandIndex++;
+          _curCommand.setNumberedCommandIndex(_homingCurCommandIndex);
+          // Command complete so exec
+          _commandInProgress = true;
+          moveTo(_curCommand);
+          Log.info("MotionHoming: %s", _curCommand.toJSON().c_str());
+          _homingStrPos++;
+          return true;
+        }
+        case 'A': case 'a': // Actuators
+        case 'B': case 'b':
+        case 'C': case 'c':
         {
           // Axis index
           int axisIdx = 0;
-          if ((ch == 'Y') || (ch == 'y'))
+          if ((ch == 'B') || (ch == 'b'))
             axisIdx = 1;
-          else if ((ch == 'Z') || (ch == 'z'))
+          else if ((ch == 'C') || (ch == 'c'))
             axisIdx = 2;
           // Get the instruction
           _homingStrPos++;
@@ -143,7 +159,7 @@ public:
               _homingStrPos++;
               _curCommand.setMoveType(RobotMoveTypeArg_Relative);
               // Handle direction
-              float distToMove = axesParams.getAxisMaxRange(axisIdx);
+              int32_t distToMove = axesParams.getAxisMaxSteps(axisIdx);
               if (ch2 == '-')
                 distToMove = -distToMove;
               // Check for distance
@@ -160,16 +176,14 @@ public:
                   break;
                 }
               }
-              Log.info("Diststr %s", distStr.c_str());
               if (distStr.length() > 0)
               {
-                distToMove = distStr.toFloat();
+                distToMove = distStr.toInt();
                 if (ch2 == '-')
                   distToMove = -distToMove;
               }
-              // Set dist to move
-              _curCommand.setAxisValMM(axisIdx, distToMove, true);
-              _curCommand.setFeedrate(axesParams.getMaxSpeed(axisIdx) / 10);
+              // Feedrate
+              _curCommand.setFeedrate(axesParams.getMaxSpeed(axisIdx));
               // Check for speed
               if ((_homingSequence.charAt(_homingStrPos) == 'R') || (_homingSequence.charAt(_homingStrPos) == 'r'))
               {
@@ -184,21 +198,16 @@ public:
               // Endstops
               // Log.info("MotionHoming: testingCh %c, speed %0.3f, dist %0.3f", _homingSequence.charAt(_homingStrPos),
               //             _curCommand.getFeedrate(), _curCommand.getValMM(axisIdx));
-              if ((_homingSequence.charAt(_homingStrPos) == 'S') || (_homingSequence.charAt(_homingStrPos) == 's'))
+              int endStopIdx = 0;
+              bool checkActive = false;
+              bool setEndstopTest = false;
+              if ((_homingSequence.charAt(_homingStrPos) == 'X') || (_homingSequence.charAt(_homingStrPos) == 'x') ||
+                  (_homingSequence.charAt(_homingStrPos) == 'N') || (_homingSequence.charAt(_homingStrPos) == 'n'))
               {
+                endStopIdx = ((_homingSequence.charAt(_homingStrPos) == 'N') || (_homingSequence.charAt(_homingStrPos) == 'n')) ? 0 : 1;
+                checkActive = (_homingSequence.charAt(_homingStrPos) == 'X') || (_homingSequence.charAt(_homingStrPos) == 'N');
                 _homingStrPos++;
-                int endStopIdx = 0;
-                if ((_homingSequence.charAt(_homingStrPos) == 'X') || (_homingSequence.charAt(_homingStrPos) == 'x'))
-                  endStopIdx = 1;
-                _homingStrPos++;
-                bool checkActive = true;
-                if ((_homingSequence.charAt(_homingStrPos) == '!'))
-                {
-                  _homingStrPos++;
-                  checkActive = false;
-                }
-                // Log.info("Setting endstop %d, %d, %d",axisIdx, endStopIdx, checkActive ? AxisMinMaxBools::END_TEST_HIT : AxisMinMaxBools::END_TEST_NOT_HIT);
-                _curCommand.setTestEndStop(axisIdx, endStopIdx, checkActive ? AxisMinMaxBools::END_TEST_HIT : AxisMinMaxBools::END_TEST_NOT_HIT);
+                setEndstopTest = true;
               }
               // Check axis should be homed
               if (!_axesToHome.isValid(axisIdx))
@@ -206,18 +215,17 @@ public:
                 Log.info("MotionHoming: axis %d in sequence but not required to home", axisIdx);
                 continue;
               }
-              // Allow out of bounds movement while homing
-              _curCommand.setAllowOutOfBounds(true);
-              // Don't split the move
-              _curCommand.setDontSplitMove(true);
-              // Set the command index so we know when complete
-              _homingCurCommandIndex++;
-              _curCommand.setNumberedCommandIndex(_homingCurCommandIndex);
-              // Command complete so exec
-              _commandInProgress = true;
-              moveTo(_curCommand);
-              Log.info("MotionHoming: command %s", _curCommand.toJSON().c_str());
-              return true;
+              Log.info("MotionHoming: Axis %d Dist str %s, steps %ld (%ld), rate %0.2f", axisIdx, distStr.c_str(), distToMove,
+                          _curCommand.getValMM(axisIdx), _curCommand.getFeedrate());
+              // Check endStop
+              if (setEndstopTest)
+              {
+                Log.info("MotionHoming: axis %d Setting endstop %d, %d", axisIdx, endStopIdx, checkActive ? AxisMinMaxBools::END_STOP_HIT : AxisMinMaxBools::END_STOP_NOT_HIT);
+                _curCommand.setTestEndStop(axisIdx, endStopIdx, checkActive ? AxisMinMaxBools::END_STOP_HIT : AxisMinMaxBools::END_STOP_NOT_HIT);
+              }
+              // Set dist to move
+              _curCommand.setAxisSteps(axisIdx, distToMove, true);
+              break;
             }
             case '=':
             {
@@ -228,7 +236,7 @@ public:
                 _homingStrPos++;
               }
               Log.info("MotionHoming: Setting at home for axis %d", axisIdx);
-              return true;
+              break;
             }
           }
           break;

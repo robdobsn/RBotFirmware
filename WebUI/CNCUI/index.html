@@ -67,23 +67,23 @@
             var machineStatus = JSON.parse(resp);
             var axisNames = window.RBotUIVars.axisNames;
             var endstopNames = window.RBotUIVars.endstopNames;
-            if (machineStatus.hasOwnProperty("pos"))
+            if (machineStatus.hasOwnProperty("XYZ"))
             {
                 for (var i = 0; i < axisNames.length; i++) {
-                    document.getElementById("td_" + axisNames[i]).innerHTML = machineStatus["pos"][i].toFixed(2);
+                    document.getElementById("td_" + axisNames[i]).innerHTML = machineStatus["XYZ"][i].toFixed(2);
                 }
             }
-            if (machineStatus.hasOwnProperty("steps"))
+            if (machineStatus.hasOwnProperty("ABC"))
             {
                 for (var i = 0; i < axisNames.length; i++) {
-                    document.getElementById("td_step" + axisNames[i]).innerHTML = machineStatus["steps"][i];
+                    document.getElementById("td_step" + axisNames[i]).innerHTML = machineStatus["ABC"][i];
                 }
             }
-            if (machineStatus.hasOwnProperty("endstops"))
+            if (machineStatus.hasOwnProperty("end"))
             {
                 for (var i = 0; i < axisNames.length; i++) {
                     for (var j = 0; j < endstopNames.length; j++) {
-                        var endstopState = machineStatus["endstops"][i][j];
+                        var endstopState = machineStatus["end"][i][j];
                         var endstopStr = "n/a";
                         if (endstopState === 1)
                             endstopStr = "HIT";
@@ -93,13 +93,13 @@
                     }
                 }
             }
-            if (machineStatus.hasOwnProperty("paused"))
+            if (machineStatus.hasOwnProperty("pause"))
             {
-                document.getElementById("td_robotState").innerHTML = (machineStatus.paused ? "Paused" : "Running");
+                document.getElementById("td_robotState").innerHTML = (machineStatus.pause ? "Paused" : "Running");
             }
-            if (machineStatus.hasOwnProperty("queued"))
+            if (machineStatus.hasOwnProperty("Qd"))
             {
-                document.getElementById("td_robotQueueLen").innerHTML = machineStatus.queued;
+                document.getElementById("td_robotQueueLen").innerHTML = machineStatus.Qd;
             }
             window.RBotUIVars.statusUpdateTimer = setTimeout(statusUpdate, 500);
         }
@@ -594,6 +594,15 @@
             showUploadStatus("Upload failed")
 
         }
+        function gcodeInputKeyPress(e)
+        {
+            if ((e.which && e.which == 13) || (e.keyCode && e.keyCode == 13)) {
+                document.getElementById("gcodeSendButton").click();
+                return false;
+            } else {
+                return true;
+            }
+        }
     </script>
 
     <!-- CSS -->
@@ -835,8 +844,8 @@
         </div>
         <div class="uiBlock">
             <div class="uiForm">
-                <input type="text" name="gcode" class="form-control" placeholder="G-Code ..." id="gcodeSendBox">
-                <button type="submit" class="btn btn-default" title="Send G-Code" onclick="sendGcodeFromInput(event)">
+                <input type="text" name="gcode" class="form-control" onkeypress="gcodeInputKeyPress" placeholder="G-Code ..." id="gcodeSendBox">
+                <button type="submit" id="gcodeSendButton" class="btn btn-default" title="Send G-Code" onclick="sendGcodeFromInput(event)">
                     <svg class="icon-action">
                         <use xlink:href="#icon-send"></use>
                     </svg>

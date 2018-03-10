@@ -19,7 +19,7 @@ public:
 
 public:
 
-    static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams, bool allowOutOfBounds)
+    static bool ptToActuator(AxisFloats& targetPt, AxisFloats& outActuator, AxisPosition& curPos, AxesParams& axesParams, bool allowOutOfBounds)
     {
         // Note that the rotation angle comes straight from the Y parameter
         // This means that drawings in the range 0 .. 240mm height (assuming 1:1 scaling is chosen)
@@ -27,15 +27,15 @@ public:
         // mug-radius independent
 
         // Check machine bounds and fix the value if required
-        bool ptWasValid = axesParams.ptInBounds(pt, !allowOutOfBounds);
+        bool ptWasValid = axesParams.ptInBounds(targetPt, !allowOutOfBounds);
 
         // Perform conversion
         for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
         {
             // Axis val from home point
-            float axisValFromHome = pt.getVal(axisIdx) - axesParams.getHomeOffsetVal(axisIdx);
+            float axisValFromHome = targetPt.getVal(axisIdx) - axesParams.getHomeOffsetVal(axisIdx);
             // Convert to steps and add offset to home in steps
-            actuatorCoords.setVal(axisIdx, axisValFromHome * axesParams.getStepsPerUnit(axisIdx)
+            outActuator.setVal(axisIdx, axisValFromHome * axesParams.getStepsPerUnit(axisIdx)
                             + axesParams.gethomeOffSteps(axisIdx));
 
             // Log.info("ptToActuator %f -> %f (homeOffVal %f, homeOffSteps %ld)",
@@ -45,20 +45,20 @@ public:
         return ptWasValid;
     }
 
-    static void actuatorToPt(AxisFloats& actuatorCoords, AxisFloats& pt, AxesParams& axesParams)
+    static void actuatorToPt(AxisFloats& targetActuator, AxisFloats& outPt, AxisPosition& curPos, AxesParams& axesParams)
     {
         // Perform conversion
         for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
         {
-            float ptVal = actuatorCoords.getVal(axisIdx) - axesParams.gethomeOffSteps(axisIdx);
+            float ptVal = targetActuator.getVal(axisIdx) - axesParams.gethomeOffSteps(axisIdx);
             ptVal = ptVal / axesParams.getStepsPerUnit(axisIdx) + axesParams.getHomeOffsetVal(axisIdx);
-            pt.setVal(axisIdx, ptVal);
+            outPt.setVal(axisIdx, ptVal);
             // Log.info("actuatorToPt %d %f -> %f (perunit %f)", axisIdx, actuatorCoords.getVal(axisIdx),
             //                 ptVal, axesParams.getStepsPerUnit(axisIdx));
         }
     }
 
-    static void correctStepOverflow(AxesParams& axesParams)
+    static void correctStepOverflow(AxisPosition& curPos, AxesParams& axesParams)
     {
     }
 

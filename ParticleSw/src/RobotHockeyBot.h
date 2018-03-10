@@ -13,7 +13,7 @@ class RobotHockeyBot : public RobotBase
 {
 public:
 
-    static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams, bool allowOutOfBounds)
+    static bool ptToActuator(AxisFloats& targetPt, AxisFloats& outActuator, AxisPosition& curPos, AxesParams& axesParams, bool allowOutOfBounds)
     {
         // // Simple scaling from one domain to another
         // bool isValid = true;
@@ -41,7 +41,7 @@ public:
         return true;
     }
 
-    static void actuatorToPt(AxisFloats& actuatorCoords, AxisFloats& pt, AxesParams& axesParams)
+    static void actuatorToPt(AxisFloats& targetActuator, AxisFloats& outPt, AxisPosition& curPos, AxesParams& axesParams)
     {
         // double x = (actuatorCoords.getVal(0) + actuatorCoords.getVal(1)) / 2 / axisParams[0].stepsPerUnit();
         // double y = (actuatorCoords.getVal(0) - actuatorCoords.getVal(1)) / 2 / axisParams[1].stepsPerUnit();
@@ -58,7 +58,7 @@ public:
         //         actuatorCoords.getVal(1), y, axisParams[1].stepsPerUnit());
     }
 
-    static void correctStepOverflow(AxesParams& axesParams)
+    static void correctStepOverflow(AxisPosition& curPos, AxesParams& axesParams)
     {
     }
 

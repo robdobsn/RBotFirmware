@@ -145,7 +145,6 @@ private:
     return(v > fmin(b1, b2) && v < fmax(b1, b2));
   }
 
-  bool configureRobot(const char* robotConfigJSON);
   bool addToPlanner(RobotCommandArgs& args);
   void blocksToAddProcess();
 };

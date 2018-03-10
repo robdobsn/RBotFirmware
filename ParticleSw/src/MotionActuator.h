@@ -74,6 +74,7 @@ public:
     {
       _pMotionActuatorInstance = this;
       _isrMotionTimer.begin(_isrStepperMotion, ISR_TIMER_PERIOD_US, uSec);
+      Log.info("MotionActuator: Starting ISR timer");
     }
 #endif
   }

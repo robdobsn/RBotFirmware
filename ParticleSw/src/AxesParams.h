@@ -91,11 +91,29 @@ public:
     return _axisParams;
   }
 
+  bool getMaxVal(int axisIdx, float& maxVal)
+  {
+    if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
+      return false;
+    if (!_axisParams[axisIdx]._maxValValid)
+      return false;
+    maxVal = _axisParams[axisIdx]._maxVal;
+    return true;
+  }
+
   float getAxisMaxRange(int axisIdx)
   {
     if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
       return 0;
     return fabsf(_axisParams[axisIdx]._maxVal - _axisParams[axisIdx]._minVal);
+  }
+
+  int32_t getAxisMaxSteps(int axisIdx)
+  {
+    if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
+      return 0;
+    float axisMaxDist = fabsf(_axisParams[axisIdx]._maxVal - _axisParams[axisIdx]._minVal);
+    return ceilf(axisMaxDist * getStepsPerUnit(axisIdx));
   }
 
   float getMaxSpeed(int axisIdx)

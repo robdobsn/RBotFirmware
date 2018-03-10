@@ -227,7 +227,7 @@ public:
     {
       if (axisIdx != 0)
         jsonStr += ",";
-      jsonStr += String::format("%0.3f", _pt[axisIdx]);
+      jsonStr += String::format("%0.2f", _pt[axisIdx]);
     }
     jsonStr += "]";
     return jsonStr;
@@ -314,12 +314,10 @@ public:
   static constexpr int BITS_PER_VAL_MASK = 0x03;
 
   enum AxisMinMaxEnum {
-    END_TEST_NONE = 0,
     END_STOP_NONE = 0,
-    END_TEST_HIT = 1,
     END_STOP_HIT = 1,
-    END_TEST_NOT_HIT = 2,
-    END_STOP_NOT_HIT = 2
+    END_STOP_NOT_HIT = 2,
+    END_STOP_TOWARDS = 3
   };
 
   uint32_t _uint;
@@ -365,8 +363,9 @@ public:
     for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
     {
       newUint = newUint << (VALS_PER_AXIS * BITS_PER_VAL);
+      // Check endstop appropriate to direction of motion
       for (int valIdx = 0; valIdx < VALS_PER_AXIS; valIdx++)
-        newUint |= END_TEST_HIT << (valIdx * BITS_PER_VAL);
+        newUint |= END_STOP_TOWARDS << (valIdx * BITS_PER_VAL);
     }
     _uint = newUint |= (1 << MIN_MAX_VALID_BIT);
   }

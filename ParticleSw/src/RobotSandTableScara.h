@@ -26,28 +26,28 @@ public:
     // Positive stepping direction for axis 1 is anticlockwise movement of the lower arm when viewed from top of robot
     // Home position has elbow joint next to elbow position detector and magnet in centre
     // In the following the elbow joint at home position is at X=100, Y=0
-    // Angles of upper arm are calculated anticlockwise from home position (i.e. anticlockwise from East)
-    // Angles of lower arm are calculated anticlockwise from home posiiton (i.e. anticlockwise from West)
+    // Angles of upper arm are calculated clockwise from North
+    // Angles of lower arm are calculated clockwise from North
 
     // Convert a cartesian point to actuator coordinates
-    static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams, bool allowOutOfBounds)
+    static bool ptToActuator(AxisFloats& targetPt, AxisFloats& outActuator, AxisPosition& curPos, AxesParams& axesParams, bool allowOutOfBounds)
     {
         // Target axis rotations
-        AxisFloats rot1Degrees, rot2Degrees;
-        ROTATION_TYPE rotationResult = ptToRotations(pt, rot1Degrees, rot2Degrees, axesParams);
+        AxisFloats prefSolnDegrees;
+        ROTATION_TYPE rotationResult = ptToRotations(targetPt, prefSolnDegrees, axesParams);
         if ((rotationResult == ROTATION_OUT_OF_BOUNDS) && (!allowOutOfBounds))
             return false;
 
-        // Get current rotation
-        AxisFloats curRotation;
-        getCurrentRotation(curRotation, axesParams);
-
-        // Find best geometry solution for movement from current position to new one
-        AxisFloats reqdRotation;
-        getBestMovement(rot1Degrees, rot2Degrees, curRotation, rotationResult, reqdRotation);
+        // // Get current rotation
+        // AxisFloats curRotation;
+        // getCurrentRotation(curRotation, axesParams);
+        //
+        // // Find best geometry solution for movement from current position to new one
+        // AxisFloats reqdRotation;
+        // getBestMovement(prefSolnDegrees, curRotation, rotationResult, reqdRotation);
 
         // Convert to actuatorCoords
-        rotationToActuator(reqdRotation, actuatorCoords, axesParams);
+        rotationToActuator(prefSolnDegrees, outActuator, curPos, axesParams);
 
 //        testCoordTransforms(axisParams);
 
@@ -77,25 +77,25 @@ public:
         return true;
     }
 
-    static void actuatorToPt(AxisFloats& actuatorCoords, AxisFloats& pt, AxesParams& axesParams)
+    static void actuatorToPt(AxisFloats& targetActuator, AxisFloats& outPt, AxisPosition& curPos, AxesParams& axesParams)
     {
         // Convert to rotations
         AxisFloats rotDegrees;
-        actuatorToRotation(actuatorCoords, rotDegrees, axesParams);
+        actuatorToRotation(targetActuator, rotDegrees, axesParams);
 
         // Convert rotations to point
-        rotatonsToPoint(rotDegrees, pt, axesParams);
+        rotationsToPoint(rotDegrees, outPt, axesParams);
 
     }
 
-    static void correctStepOverflow(AxesParams& axesParams)
+    static void correctStepOverflow(AxisPosition& curPos, AxesParams& axesParams)
     {
         Log.trace("correctStepOverflow - currently unimplemented");
     }
 
 private:
 
-    static ROTATION_TYPE ptToRotations(AxisFloats& pt, AxisFloats& rot1Degrees, AxisFloats& rot2Degrees, AxesParams& axesParams)
+    static ROTATION_TYPE ptToRotations(AxisFloats& pt, AxisFloats& prefSolnDegrees, AxesParams& axesParams)
     {
         // Calculate arm lengths
         // The _unitsPerRot values in the axisParams indicate the circumference of the circle
@@ -104,9 +104,9 @@ private:
         double elbowHandMM = axesParams.getunitsPerRot(1) / M_PI / 2;
 
         // Calculate the two different configurations of upper and lower arm that can by used to reach any point
-        // with the exception of the centre of the machine (many solutions to this) and points on perimeter of working
+        // with the exception of the centre of the machine (many solutions to this) and points on perimeter of maximum
         // circle (only one solution)
-        // All angles are calculated anticlockwise from East
+        // All angles are calculated clockwise from North
 
         // Check for 0,0 point as this is a special case for this robot
         if (isApprox(pt._pt[0],0,0.1) && (isApprox(pt._pt[1],0,0.1)))
@@ -115,49 +115,68 @@ private:
             Log.trace("ptToRotations x %0.2f y %0.2f close to origin", pt._pt[0], pt._pt[1]);
 
             // Return values
-            rot1Degrees.set(0.0, 180.0);
-            rot2Degrees.set(0.0, 180.0);
+            prefSolnDegrees.set(0.0, 180.0);
             return ROTATION_IS_NEAR_CENTRE;
         }
 
         // Calculate distance from origin to pt (forms one side of triangle where arm segments form other sides)
         double thirdSideMM = sqrt(pow(pt._pt[0],2) + pow(pt._pt[1], 2));
 
-        // Check validity of position
+        // Check validity of position (use max val for X axis as the robot is circular X and Y max will be the same)
+        float maxValForXAxis = 0;
+        bool maxValid = axesParams.getMaxVal(0, maxValForXAxis);
         bool posValid = thirdSideMM <= shoulderElbowMM + elbowHandMM;
+        if (maxValid)
+          posValid &= thirdSideMM <= maxValForXAxis;
 
-        // Calculate upper arm partial angle
-        double delta1 = atan2(pt._pt[1], pt._pt[0]);
+        // Calculate angle from North to the point (note in atan2 X and Y are flipped from normal as angles are clockwise)
+        double delta1 = atan2(pt._pt[0], pt._pt[1]);
+        if (delta1 < 0)
+          delta1 += M_PI * 2;
 
-        // Calculate inner angle of triangle opposite elbow-hand side
+        // Calculate angle of triangle opposite elbow-hand side
         double delta2 = cosineRule(thirdSideMM, shoulderElbowMM, elbowHandMM);
 
-        // Calculate inner angle of triangle related opposite third side (relative to shoulder-elbow)
+        // Calculate angle of triangle opposite third side
         double innerAngleOppThird = cosineRule(shoulderElbowMM, elbowHandMM, thirdSideMM);
 
         // The two pairs of angles that solve these equations
         // alpha is the angle from shoulder to elbow
         // beta is angle from elbow to hand
-        double alpha1 = r2d(wrapRadians(delta1 + delta2));
-        double beta1 = r2d(wrapRadians(delta1 + delta2 + M_PI + innerAngleOppThird + 2 * M_PI));
-        double alpha2 = r2d(wrapRadians(delta1 - delta2 + 2 * M_PI));
-        double beta2 = r2d(wrapRadians(delta1 - delta2 + M_PI - innerAngleOppThird + 2 * M_PI));
+        double alpha1rads = delta1 - delta2;
+        double beta1rads = alpha1rads - innerAngleOppThird + M_PI;
+        double alpha2rads = delta1 + delta2;
+        double beta2rads = alpha2rads + innerAngleOppThird - M_PI;
 
-        // Debug
-        Log.trace("ptToRotationsDebug %s dist %0.2fmm D1 %0.2fD D2 %0.2fD innerAng %0.2fD",
-                posValid ? "ok" : "OUT_OF_BOUNDS",
-                thirdSideMM, delta1 * 180 / M_PI, delta2 * 180 / M_PI, innerAngleOppThird * 180 / M_PI);
-        Log.trace("ptToRotationsDebug alpha1 %0.2fD, beta1 %0.2fD, alpha2 %0.2fD, beta2 %0.2fD",
-                alpha1, beta1, alpha2, beta2);
+        // Find the sign of the angle between the arms
+        double betweenArms1rads = alpha1rads + M_PI - beta1rads;
+        double betweenArms2rads = alpha2rads + M_PI - beta2rads;
+
+        // Calculate the alpha and beta angles
+        double alpha1 = r2d(wrapRadians(alpha1rads + 2 * M_PI));
+        double beta1 = r2d(wrapRadians(beta1rads + 2 * M_PI));
+        double alpha2 = r2d(wrapRadians(alpha2rads + 2 * M_PI));
+        double beta2 = r2d(wrapRadians(beta2rads + 2 * M_PI));
 
         // Return values
-        rot1Degrees.set(alpha1, beta1);
-        rot2Degrees.set(alpha2, beta2);
+        if (betweenArms1rads >= 0 && betweenArms1rads < M_PI)
+          prefSolnDegrees.set(alpha1, beta1);
+        else
+          prefSolnDegrees.set(alpha2, beta2);
 
+          // Debug
+          Log.info("ptToRotationsDebug %s fromCtr %0.2fmm D1 %0.2fd D2 %0.2fd innerAng %0.2fd",
+                  posValid ? "ok" : "OUT_OF_BOUNDS",
+                  thirdSideMM, delta1 * 180 / M_PI, delta2 * 180 / M_PI, innerAngleOppThird * 180 / M_PI);
+          Log.info("ptToRotationsDebug alpha1 %0.2fd, beta1 %0.2fd, betw1 %0.2fd, alpha2 %0.2fd, beta2 %0.2fd, betw2 %0.2fd, prefAlpha(%0.2f)",
+                  alpha1, beta1, r2d(betweenArms1rads), alpha2, beta2, r2d(betweenArms2rads), prefSolnDegrees.getVal(0));
+
+        if (!posValid)
+          return ROTATION_OUT_OF_BOUNDS;
         return ROTATION_NORMAL;
     }
 
-    static void rotatonsToPoint(AxisFloats& rotDegrees, AxisFloats& pt, AxesParams& axesParams)
+    static void rotationsToPoint(AxisFloats& rotDegrees, AxisFloats& pt, AxesParams& axesParams)
     {
         // Calculate arm lengths
         // The _unitsPerRot values in the axisParams indicate the circumference of the circle
@@ -165,33 +184,48 @@ private:
         double shoulderElbowMM = axesParams.getunitsPerRot(0) / M_PI / 2;
         double elbowHandMM = axesParams.getunitsPerRot(1) / M_PI / 2;
 
-        // Trig to get elbow location - alpha is clockwise from North
+        // Trig to get elbow location - alpha and beta are clockwise from North
+        // But the home position has the lower arm at 180 degrees
         double alpha = d2r(rotDegrees._pt[0]);
-        double beta = d2r(rotDegrees._pt[1]);
-        double x1 = shoulderElbowMM * cos(alpha);
-        double y1 = shoulderElbowMM * sin(alpha);
+        double beta = d2r(wrapDegrees(rotDegrees._pt[1]+180));
+        double x1 = shoulderElbowMM * sin(alpha);
+        double y1 = shoulderElbowMM * cos(alpha);
 
         // Trig to get hand location
-        double x2 = x1 + elbowHandMM * cos(beta);
-        double y2 = y1 + elbowHandMM * sin(beta);
+        double x2 = x1 + elbowHandMM * sin(beta);
+        double y2 = y1 + elbowHandMM * cos(beta);
 
         // Output
         pt._pt[0] = x2;
         pt._pt[1] = y2;
 
-        Log.trace("rotatonsToPoint alpha %0.2fD beta %0.2fD => X %0.2f Y %0.2f shoulderElbowMM %0.2f elbowHandMM %0.2f",
+        Log.info("rotationsToPoint alpha %0.2fd beta %0.2fd => X %0.2f Y %0.2f shoulderElbowMM %0.2f elbowHandMM %0.2f",
                 rotDegrees._pt[0], rotDegrees._pt[1], pt._pt[0], pt._pt[1],
                 shoulderElbowMM, elbowHandMM);
 
     }
 
-    static void rotationToActuator(AxisFloats& rotationDegrees, AxisFloats& actuatorCoords, AxesParams& axesParams)
+    static void rotationToActuator(AxisFloats& rotationDegrees, AxisFloats& actuatorCoords,
+              AxisPosition& curPos, AxesParams& axesParams)
     {
         // Axis 0 positive steps clockwise, axis 1 postive steps are anticlockwise
         // Axis 0 zero steps is at 0 degrees, axis 1 zero steps is at 180 degrees
-        actuatorCoords._pt[0] = - rotationDegrees._pt[0] * axesParams.getstepsPerRot(0) / 360;
-        actuatorCoords._pt[1] = (rotationDegrees._pt[1] - 180) * axesParams.getstepsPerRot(1) / 360;
-        Log.trace("rotationToActuator a %0.2fD b %0.2fD ax1Steps %0.2f ax1Steps %0.2f",
+        double alphaVal = rotationDegrees._pt[0] * axesParams.getstepsPerRot(0) / 360;
+        double alphaDiff = wrapDegrees(alphaVal - curPos._stepsFromHome.getVal(0));
+        if (alphaDiff >= 0 && alphaDiff < axesParams.getstepsPerRot(0) / 2)
+            actuatorCoords._pt[0] = alphaVal;
+        else
+            actuatorCoords._pt[0] = alphaVal - axesParams.getstepsPerRot(0);
+        // Axis 1
+        double betaVal = (rotationDegrees._pt[1] - 180) * axesParams.getstepsPerRot(1) / 360;
+        double betaDiff = wrapDegrees(betaVal - curPos._stepsFromHome.getVal(1));
+        if (betaDiff >= 0 && betaDiff < axesParams.getstepsPerRot(1) / 2)
+            actuatorCoords._pt[1] = betaVal;
+        else
+            actuatorCoords._pt[1] = betaVal - axesParams.getstepsPerRot(1);
+
+        Log.info("rotationToActuator cur0 %ld cur1 %ld aDiff %0.2f, bDiff %0.2f, a %0.2fd b %0.2fd ax0Steps %0.2f ax1Steps %0.2f",
+                curPos._stepsFromHome.getVal(0), curPos._stepsFromHome.getVal(1), alphaDiff, betaDiff,
                 rotationDegrees._pt[0], rotationDegrees._pt[1], actuatorCoords._pt[0], actuatorCoords._pt[1]);
     }
 
@@ -201,27 +235,27 @@ private:
         // Axis 0 zero steps is at 0 degrees, axis 1 zero steps is at 180 degrees
         // All angles returned are in degrees anticlockwise from East
         double axis0Degrees = actuatorCoords._pt[0] * 360 / axesParams.getstepsPerRot(0);
-        double alpha = -axis0Degrees;
+        double alpha = axis0Degrees;
         double axis1Degrees = actuatorCoords._pt[1] * 360 / axesParams.getstepsPerRot(1);
         double beta = 180 + axis1Degrees;
         rotationDegrees.set(alpha, beta);
-        Log.trace("actuatorToRotation ax0Steps %0.2f ax1Steps %0.2f a %0.2fD b %0.2fD",
+        Log.info("actuatorToRotation ax0Steps %0.2f ax1Steps %0.2f a %0.2fd b %0.2fd",
                 actuatorCoords._pt[0], actuatorCoords._pt[1], rotationDegrees._pt[0], rotationDegrees._pt[1]);
     }
 
-    static void getCurrentRotation(AxisFloats& rotationDegrees, AxesParams& axesParams)
-    {
-        // Get current steps from home
-        AxisFloats actuatorCoords;
-        actuatorCoords.X(axesParams.gethomeOffSteps(0));
-        actuatorCoords.Y(axesParams.gethomeOffSteps(1));
-
-        actuatorToRotation(actuatorCoords, rotationDegrees, axesParams);
-
-        Log.trace("getCurrentRotation ax0FromHome %ld ax1FromHome %ld alpha %0.2fD beta %02.fD",
-                    axesParams.gethomeOffSteps(0), axesParams.gethomeOffSteps(1),
-                    rotationDegrees._pt[0], rotationDegrees._pt[1]);
-    }
+    // static void getCurrentRotation(AxisFloats& rotationDegrees, AxesParams& axesParams)
+    // {
+    //     // Get current steps from home
+    //     AxisFloats actuatorCoords;
+    //     actuatorCoords.X(axesParams.gethomeOffSteps(0));
+    //     actuatorCoords.Y(axesParams.gethomeOffSteps(1));
+    //
+    //     actuatorToRotation(actuatorCoords, rotationDegrees, axesParams);
+    //
+    //     Log.info("getCurrentRotation ax0FromHome %ld ax1FromHome %ld alpha %0.2fd beta %02.fd",
+    //                 axesParams.gethomeOffSteps(0), axesParams.gethomeOffSteps(1),
+    //                 rotationDegrees._pt[0], rotationDegrees._pt[1]);
+    // }
 
     static double calcMinAngleDiff(double target, float& finalAngle, double current)
     {
@@ -252,59 +286,71 @@ private:
         // Check valid
         bool checkDiff = finalAngle > current ? finalAngle - current : current - finalAngle;
         bool checkDest = isApprox(wrapDegrees(finalAngle), wrapTarget, 0.01);
-        Log.trace("calcMinAngleDiff %s %s tgt %0.2f cur %0.2f mindiff %0.2f (%02.f) final %0.2f, wrapFinal %0.2f, wrapTarget %0.2f",
+        Log.info("calcMinAngleDiff %s %s tgt %0.2f cur %0.2f mindiff %0.2f (%02.f) final %0.2f, wrapFinal %0.2f, wrapTarget %0.2f",
                     checkDiff ? "OK" : "DIFF_WRONG *********",
                     checkDest ? "OK" : "DEST_WRONG *********",
                     target, current, minDiff, diff, finalAngle, wrapDegrees(finalAngle), wrapTarget);
         return minDiff;
     }
 
-    static void getBestMovement(AxisFloats& option1, AxisFloats& option2, AxisFloats& curRotation,
-                    ROTATION_TYPE rotType, AxisFloats& outSolution)
-    {
-        // Check for point near centre
-        if (rotType == ROTATION_IS_NEAR_CENTRE)
-        {
-            // In this case leave the upper arm where it is
-            outSolution._pt[0] = curRotation._pt[0];
+    // static void getBestMovement(AxisFloats& prefSolnDegrees, AxisFloats& curRotation,
+    //                 ROTATION_TYPE rotType, AxisFloats& outSolution)
+    // {
+        // Select the solution which keeps the difference between 0 and 180 degrees
+        // double betweenArmsOpt1 = wrapDegrees(option1._pt[1] - option1._pt[0]);
+        // double betweenArmsOpt2 = wrapDegrees(option2._pt[1] - option2._pt[0]);
+        // Log.info("getBestMovement: opt1pt0 %0.2f opt1pt1 %0.2f bet1 %0.2f opt2pt0 %0.2f opt1pt1 %0.2f bet2 %0.2f",
+        //             option1._pt[0], option1._pt[1], betweenArmsOpt1, option2._pt[0], option2._pt[1], betweenArmsOpt2);
+        // if (betweenArmsOpt1 >= 0 && betweenArmsOpt1 <= 180)
+        //     outSolution = option1;
+        // else
+        //     outSolution = option2;
 
-            // Move lower arm to upper arm angle +/- 180
-            double angleDiff = curRotation._pt[0] + 180 - curRotation._pt[1];
-            if (angleDiff > 180)
-                outSolution._pt[1] = curRotation._pt[0] - 180;
-            else
-                outSolution._pt[1] = curRotation._pt[0] + 180;
-            Log.trace("getBestMovement 0,0 axis0Cur %0.2f axis1Cur %0.2f angleDiff %0.2fD alpha %0.2fD beta %0.2fD",
-                        curRotation._pt[0], curRotation._pt[1], angleDiff,
-                        outSolution._pt[0], outSolution._pt[1]);
-            return;
-        }
-
+        // // Check for point near centre
+        // if (rotType == ROTATION_IS_NEAR_CENTRE)
+        // {
+        //     // In this case leave the upper arm where it is
+        //     outSolution._pt[0] = curRotation._pt[0];
+        //
+        //     // Move lower arm to upper arm angle +/- 180
+        //     double angleDiff = curRotation._pt[0] + 180 - curRotation._pt[1];
+        //     if (angleDiff > 180)
+        //         outSolution._pt[1] = curRotation._pt[0] - 180;
+        //     else
+        //         outSolution._pt[1] = curRotation._pt[0] + 180;
+        //     Log.info("getBestMovement 0,0 axis0Cur %0.2f axis1Cur %0.2f angleDiff %0.2fD alpha %0.2fD beta %0.2fD",
+        //                 curRotation._pt[0], curRotation._pt[1], angleDiff,
+        //                 outSolution._pt[0], outSolution._pt[1]);
+        //     return;
+        // }
+        //
         // Option 1 and Option 2 are two solutions to the position required
         // Calculate the total angle differences for each axis in each case
-        AxisFloats newOption1, newOption2;
-        double ax0Opt1Diff = calcMinAngleDiff(option1._pt[0], newOption1._pt[0], curRotation._pt[0]);
-        double ax1Opt1Diff = calcMinAngleDiff(option1._pt[1], newOption1._pt[1], curRotation._pt[1]);
-        double ax0Opt2Diff = calcMinAngleDiff(option2._pt[0], newOption2._pt[0], curRotation._pt[0]);
-        double ax1Opt2Diff = calcMinAngleDiff(option2._pt[1], newOption2._pt[1], curRotation._pt[1]);
-        Log.trace("getBestMovement ax0 cur %0.2f newTgtOpt1 %0.2f newTgtOpt2 %0.2f diff1 %0.2f diff2 %0.2fD ",
-                    curRotation._pt[0], newOption1._pt[0], newOption2._pt[0], ax0Opt1Diff, ax0Opt2Diff);
-        Log.trace("getBestMovement ax1 cur %0.2f newTgtOpt1 %0.2f newTgtOpt2 %0.2f diff1 %0.2f diff2 %0.2fD ",
-                    curRotation._pt[1], newOption1._pt[1], newOption2._pt[1], ax1Opt1Diff, ax1Opt2Diff);
+        // AxisFloats newOption1, newOption2;
+        // double ax0Opt1Diff = calcMinAngleDiff(option1._pt[0], newOption1._pt[0], curRotation._pt[0]);
+        // double ax1Opt1Diff = calcMinAngleDiff(option1._pt[1], newOption1._pt[1], curRotation._pt[1]);
+        // double ax0Opt2Diff = calcMinAngleDiff(option2._pt[0], newOption2._pt[0], curRotation._pt[0]);
+        // double ax1Opt2Diff = calcMinAngleDiff(option2._pt[1], newOption2._pt[1], curRotation._pt[1]);
+        // Log.info("getBestMovement ax0 cur %0.2f newTgtOpt1 %0.2f newTgtOpt2 %0.2f diff1 %0.2f diff2 %0.2fD ",
+        //             curRotation._pt[0], newOption1._pt[0], newOption2._pt[0], ax0Opt1Diff, ax0Opt2Diff);
+        // Log.info("getBestMovement ax1 cur %0.2f newTgtOpt1 %0.2f newTgtOpt2 %0.2f diff1 %0.2f diff2 %0.2fD ",
+        //             curRotation._pt[1], newOption1._pt[1], newOption2._pt[1], ax1Opt1Diff, ax1Opt2Diff);
 
-        // Weight the turning of ax0 more than ax1
-        double AX0_WEIGHTING_FACTOR = 1.3;
-        double opt1TotalDiff = fabs(ax0Opt1Diff) * AX0_WEIGHTING_FACTOR + fabs(ax1Opt1Diff);
-        double opt2TotalDiff = fabs(ax0Opt2Diff) * AX0_WEIGHTING_FACTOR + fabs(ax1Opt2Diff);
-        Log.trace("getBestMovement option1Weighted %0.2f option2Weighted %0.2f ",
-                    opt1TotalDiff, opt2TotalDiff);
-
-        // Choose the option with the least total turning
-        if (opt1TotalDiff < opt2TotalDiff)
-            outSolution = newOption1;
-        else
-            outSolution = newOption2;
-    }
+        // // Weight the turning of ax0 more than ax1
+        // double AX0_WEIGHTING_FACTOR = 1.3;
+        // double opt1TotalDiff = fabs(ax0Opt1Diff) * AX0_WEIGHTING_FACTOR + fabs(ax1Opt1Diff);
+        // double opt2TotalDiff = fabs(ax0Opt2Diff) * AX0_WEIGHTING_FACTOR + fabs(ax1Opt2Diff);
+        // Log.info("getBestMovement option1Weighted %0.2f option2Weighted %0.2f ",
+        //             opt1TotalDiff, opt2TotalDiff);
+        //
+        // // Choose the option with the least total turning
+        // if (opt1TotalDiff < opt2TotalDiff)
+        //     outSolution = newOption1;
+        // else
+        //     outSolution = newOption2;
+    //
+    //     outSolution = prefSolnDegrees;
+    // }
 
     static double cosineRule(double a, double b, double c)
     {
@@ -418,7 +464,7 @@ private:
 
             //
             PointND finalPoint;
-            rotatonsToPoint(rotOut, finalPoint, axisParams);
+            rotationsToPoint(rotOut, finalPoint, axisParams);
             bool finalPtValid = isApprox(newPt._pt[0], finalPoint._pt[0],0.1) && isApprox(newPt._pt[1], finalPoint._pt[1],0.1);
             if (finalPtValid)
                 Log.trace("finalPtValid");

@@ -11,9 +11,9 @@
 
 #include "MotionPipeline.h"
 
-typedef bool (*ptToActuatorFnType) (AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams, bool allowOutOfBounds);
-typedef void (*actuatorToPtFnType) (AxisFloats& actuatorCoords, AxisFloats& pt, AxesParams& axesParams);
-typedef void (*correctStepOverflowFnType) (AxesParams& axesParams);
+typedef bool (*ptToActuatorFnType) (AxisFloats& targetPt, AxisFloats& outActuator, AxisPosition& curPos, AxesParams& axesParams, bool allowOutOfBounds);
+typedef void (*actuatorToPtFnType) (AxisFloats& targetActuator, AxisFloats& outPt, AxisPosition& curPos, AxesParams& axesParams);
+typedef void (*correctStepOverflowFnType) (AxisPosition& curPos, AxesParams& axesParams);
 
 class MotionPlanner
 {
@@ -197,7 +197,7 @@ public:
     // Return the change in actuator position
     for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
       curAxisPositions._stepsFromHome.setVal(axisIdx,
-                                             curAxisPositions._stepsFromHome.getVal(axisIdx) + block.getStepsToTarget(axisIdx));
+            curAxisPositions._stepsFromHome.getVal(axisIdx) + block.getStepsToTarget(axisIdx));
 
     return true;
   }
@@ -241,7 +241,6 @@ public:
     int        earliestBlockToReprocess = -1;
     float      previousBlockExitSpeed   = 0;
     float      followingBlockEntrySpeed = 0;
-    uint32_t   previousBlockExitStepRatePerTTicks;
     MotionBlock* pBlock          = NULL;
     MotionBlock* pFollowingBlock = NULL;
     while (true)
@@ -256,7 +255,6 @@ public:
       {
         // Get the exit speed from this executing block to use as the entry speed when going forwards
         previousBlockExitSpeed             = pBlock->_exitSpeedMMps;
-        previousBlockExitStepRatePerTTicks = pBlock->getExitStepRatePerTTicks();
         break;
       }
 
@@ -269,7 +267,6 @@ public:
 #endif
         //Get the exit speed from this block to use as the entry speed when going forwards
         previousBlockExitSpeed             = pBlock->_exitSpeedMMps;
-        previousBlockExitStepRatePerTTicks = pBlock->getExitStepRatePerTTicks();
         break;
       }
 
@@ -329,13 +326,84 @@ public:
         break;
 
       // Prepare this block for stepping
-      pBlock->prepareForStepping(axesParams, previousBlockExitStepRatePerTTicks);
-      previousBlockExitStepRatePerTTicks = pBlock->getExitStepRatePerTTicks();
+      pBlock->prepareForStepping(axesParams);
     }
 
 #ifdef DEBUG_MOTIONPLANNER_INFO
     Log.info(".................AFTER RECALC.......................");
     motionPipeline.debugShowBlocks(axesParams);
 #endif
+  }
+
+  // Entry point for adding a motion block
+  bool moveToStepwise(RobotCommandArgs& args,
+              AxisPosition& curAxisPositions,
+              AxesParams& axesParams, MotionPipeline& motionPipeline)
+  {
+    // Create a block for this movement which will end up on the pipeline
+    MotionBlock block;
+    block._entrySpeedMMps = 0;
+    block._exitSpeedMMps = 0;
+
+    // Find if there are any steps
+    bool hasSteps = false;
+    float minFeedrate = 1e8;
+    for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+    {
+      // Check if any steps to perform
+      int32_t steps = 0;
+      if (args.isValid(axisIdx))
+      {
+        // See if absolute or relative motion
+        if (args.getMoveType() == RobotMoveTypeArg_Relative)
+          steps = args.getPointSteps().getVal(axisIdx);
+        else
+          steps = args.getPointSteps().getVal(axisIdx) - curAxisPositions._stepsFromHome.vals[axisIdx];
+      }
+      // Set steps to target
+      if (steps != 0)
+      {
+        hasSteps = true;
+        if (minFeedrate > axesParams.getMaxSpeed(axisIdx))
+          minFeedrate = axesParams.getMaxSpeed(axisIdx);
+      }
+      // Value (and direction)
+      block.setStepsToTarget(axisIdx, steps);
+    }
+
+    // Check there are some actual steps
+    if (!hasSteps)
+      return false;
+
+    // set end-stop check requirements
+    block.setEndStopsToCheck(args.getEndstopCheck());
+
+    // Set numbered command index if present
+    block.setNumberedCommandIndex(args.getNumberedCommandIndex());
+
+    // feedrate override?
+    if (args.isFeedrateValid())
+      minFeedrate = args.getFeedrate();
+
+    block._feedrateMMps = minFeedrate;
+
+    // Prepare for stepping
+    block.prepareForStepping(axesParams);
+
+    // Add the block
+    motionPipeline.add(block);
+    _prevMotionBlockValid = true;
+
+    // Return the change in actuator position
+    for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+      curAxisPositions._stepsFromHome.setVal(axisIdx,
+            curAxisPositions._stepsFromHome.getVal(axisIdx) + block.getStepsToTarget(axisIdx));
+
+#ifdef DEBUG_MOTIONPLANNER_INFO
+    Log.info("^^^^^^^^^^^^^^^^^^^^^^^STEPWISE^^^^^^^^^^^^^^^^^^^^^^^^");
+    motionPipeline.debugShowBlocks(axesParams);
+#endif
+
+    return true;
   }
 };

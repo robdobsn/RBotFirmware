@@ -113,7 +113,10 @@ public:
   {
     return _ptInMM.anyValid();
   }
-
+  bool isStepwise()
+  {
+    return _ptUnitsSteps;
+  }
   // Indicate that all axes need to be homed
   void setAllAxesNeedHoming()
   {
@@ -139,6 +142,10 @@ public:
   void setPointSteps(AxisInt32s& ptInSteps)
   {
     _ptInSteps = ptInSteps;
+  }
+  AxisInt32s& getPointSteps()
+  {
+    return _ptInSteps;
   }
   void setMoveType(RobotMoveTypeArg moveType)
   {
@@ -243,30 +250,30 @@ public:
   String toJSON()
   {
     String jsonStr;
-    jsonStr = "{\"pos\":" + _ptInMM.toJSON();
-    jsonStr += ",\"steps\":" + _ptInSteps.toJSON();
+    jsonStr = "{\"XYZ\":" + _ptInMM.toJSON();
+    jsonStr += ",\"ABC\":" + _ptInSteps.toJSON();
     if (_feedrateValid)
     {
       String feedrateStr = String::format("%0.2f", _feedrateValue);
-      jsonStr += ", \"feedRt\":" + feedrateStr;
+      jsonStr += ", \"F\":" + feedrateStr;
     }
     if (_extrudeValid)
     {
       String extrudeStr = String::format("%0.2f", _extrudeValue);
-      jsonStr += ", \"extrude\":" + extrudeStr;
+      jsonStr += ", \"E\":" + extrudeStr;
     }
-    jsonStr += ", \"mvTyp\":";
+    jsonStr += ", \"mv\":";
     if (_moveType == RobotMoveTypeArg_Relative)
       jsonStr += "\"rel\"";
     else
       jsonStr += "\"abs\"";
-    jsonStr += ",\"endstops\":" + _endstops.toJSON();
-    jsonStr += ",\"allowOutOfBounds\":" + String(_allowOutOfBounds ? "\"Y\"" : "\"N\"");
+    jsonStr += ",\"end\":" + _endstops.toJSON();
+    jsonStr += ",\"OoB\":" + String(_allowOutOfBounds ? "\"Y\"" : "\"N\"");
     String numberedCmdStr = String::format("%d", _numberedCommandIndex);
-    jsonStr += ", \"numberedCmd\":" + numberedCmdStr;
+    jsonStr += ", \"num\":" + numberedCmdStr;
     String queuedCommandsStr = String::format("%d", _queuedCommands);
-    jsonStr += ", \"queued\":" + queuedCommandsStr;
-    jsonStr += String(", \"paused\":") + (_pause ? "1" : "0");
+    jsonStr += ", \"Qd\":" + queuedCommandsStr;
+    jsonStr += String(", \"pause\":") + (_pause ? "1" : "0");
     jsonStr += "}";
     return jsonStr;
   }

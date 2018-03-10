@@ -26,7 +26,7 @@ private:
 
 public:
 
-    static bool ptToActuator(AxisFloats& pt, AxisFloats& actuatorCoords, AxesParams& axesParams, bool allowOutOfBounds)
+    static bool ptToActuator(AxisFloats& targetPt, AxisFloats& outActuator, AxisPosition& curPos, AxesParams& axesParams, bool allowOutOfBounds)
     {
         // // Trig for required position (azimuth is measured clockwise from North)
         // PointND& pt = motionElem._pt2MM;
@@ -110,18 +110,18 @@ public:
         //     alphaSteps, alphaDegs, linearStepsFromHome, polarCoordsAzFirst[0] * 180 / M_PI, polarCoordsAzFirst[1]);
     }
 
-    static void actuatorToPt(AxisFloats& actuatorCoords, AxisFloats& pt, AxesParams& axesParams)
+    static void actuatorToPt(AxisFloats& targetActuator, AxisFloats& outPt, AxisPosition& curPos, AxesParams& axesParams)
     {
         float polarCoords[NUM_ROBOT_AXES];
-        actuatorToPolar(actuatorCoords, polarCoords, axesParams);
+        actuatorToPolar(targetActuator, polarCoords, axesParams);
 
         // Trig
-        pt._pt[0] = polarCoords[1] * sinf(polarCoords[0]);
-        pt._pt[1] = polarCoords[1] * cosf(polarCoords[0]);
+        outPt._pt[0] = polarCoords[1] * sinf(polarCoords[0]);
+        outPt._pt[1] = polarCoords[1] * cosf(polarCoords[0]);
         // Log.trace("actuatorToXy curX %0.2f curY %0.2f", xy[0], xy[1]);
     }
 
-    static void correctStepOverflow(AxesParams& axesParams)
+    static void correctStepOverflow(AxisPosition& curPos, AxesParams& axesParams)
     {
         int rotationSteps = (int)(axesParams.getstepsPerRot(0));
         // Debug

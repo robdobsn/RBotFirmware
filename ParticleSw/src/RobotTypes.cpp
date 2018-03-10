@@ -6,7 +6,7 @@
 const char* RobotTypes::_robotConfigs[] = {
 
    "{\"robotType\":\"MugBot\",\"xMaxMM\":150,\"yMaxMM\":120,"
-   "\"homingSeq\":\"Y-sx!;Y+r9sx;Y-1.0;Y=h$\","
+   "\"homingSeq\":\"B-x;B+r9X;B-1.0;B=h$\","
    "\"cmdsAtStart\":\"\","
    "\"stepEnablePin\":\"A2\",\"stepEnLev\":1,\"stepDisableSecs\":60.0,"
    "\"axis0\":{\"stepPin\":\"D2\",\"dirnPin\":\"D3\",\"maxSpeed\":10.0,\"maxAcc\":5.0,"
@@ -34,7 +34,7 @@ const char* RobotTypes::_robotConfigs[] = {
 
    "{\"robotType\":\"SandTableScara\",\"xMaxMM\":185,\"yMaxMM\":185, "
    "\"cmdsAtStart\":\"\","
-   "\"homingSeq\":\"X-r5sn!;X+r9sx;X=h;Y=h$\","
+   "\"homingSeq\":\"A-10000n;B-10000;#;A+50000N;B+50000;#;A=h;B=h;$\","
    "\"maxHomingSecs\":120,"
    "\"stepEnablePin\":\"A2\",\"stepEnLev\":1,\"stepDisableSecs\":1.0,"
    "\"blockDistanceMM\":1.0,\"homingAxis1OffsetDegs\":20.0,"
