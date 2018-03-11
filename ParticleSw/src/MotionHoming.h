@@ -215,7 +215,7 @@ public:
                 Log.info("MotionHoming: axis %d in sequence but not required to home", axisIdx);
                 continue;
               }
-              Log.info("MotionHoming: Axis %d Dist str %s, steps %ld (%ld), rate %0.2f", axisIdx, distStr.c_str(), distToMove,
+              Log.info("MotionHoming: Axis %d Dist str %s, steps %ld (%0.2f), rate %0.2f", axisIdx, distStr.c_str(), distToMove,
                           _curCommand.getValMM(axisIdx), _curCommand.getFeedrate());
               // Check endStop
               if (setEndstopTest)

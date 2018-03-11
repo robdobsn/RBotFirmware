@@ -77,11 +77,13 @@ public:
         return true;
     }
 
-    static void actuatorToPt(AxisFloats& targetActuator, AxisFloats& outPt, AxisPosition& curPos, AxesParams& axesParams)
+    static void actuatorToPt(AxisFloats& actuatorPos, AxisFloats& outPt, AxisPosition& curPos, AxesParams& axesParams)
     {
         // Convert to rotations
         AxisFloats rotDegrees;
-        actuatorToRotation(targetActuator, rotDegrees, axesParams);
+        AxisInt32s actuatorInt32s;
+        actuatorInt32s.set(int32_t(actuatorPos.getVal(0)), int32_t(actuatorPos.getVal(1)), int32_t(actuatorPos.getVal(2)));
+        actuatorToRotation(actuatorInt32s, rotDegrees, axesParams);
 
         // Convert rotations to point
         rotationsToPoint(rotDegrees, outPt, axesParams);
@@ -113,6 +115,8 @@ private:
         {
             // Special case
             Log.trace("ptToRotations x %0.2f y %0.2f close to origin", pt._pt[0], pt._pt[1]);
+
+            // NOTE: change this to leave alpha and just change beta
 
             // Return values
             prefSolnDegrees.set(0.0, 180.0);
@@ -148,18 +152,18 @@ private:
         double alpha2rads = delta1 + delta2;
         double beta2rads = alpha2rads + innerAngleOppThird - M_PI;
 
-        // Find the sign of the angle between the arms
-        double betweenArms1rads = alpha1rads + M_PI - beta1rads;
-        double betweenArms2rads = alpha2rads + M_PI - beta2rads;
-
         // Calculate the alpha and beta angles
         double alpha1 = r2d(wrapRadians(alpha1rads + 2 * M_PI));
         double beta1 = r2d(wrapRadians(beta1rads + 2 * M_PI));
         double alpha2 = r2d(wrapRadians(alpha2rads + 2 * M_PI));
         double beta2 = r2d(wrapRadians(beta2rads + 2 * M_PI));
 
+        // Find the angle between the arms
+        double betweenArms1 = wrapDegrees(beta1 - alpha1);
+        double betweenArms2 = wrapDegrees(beta2 - alpha2);
+
         // Return values
-        if (betweenArms1rads >= 0 && betweenArms1rads < M_PI)
+        if (betweenArms1 >= 0 && betweenArms1 < 180)
           prefSolnDegrees.set(alpha1, beta1);
         else
           prefSolnDegrees.set(alpha2, beta2);
@@ -169,7 +173,7 @@ private:
                   posValid ? "ok" : "OUT_OF_BOUNDS",
                   thirdSideMM, delta1 * 180 / M_PI, delta2 * 180 / M_PI, innerAngleOppThird * 180 / M_PI);
           Log.info("ptToRotationsDebug alpha1 %0.2fd, beta1 %0.2fd, betw1 %0.2fd, alpha2 %0.2fd, beta2 %0.2fd, betw2 %0.2fd, prefAlpha(%0.2f)",
-                  alpha1, beta1, r2d(betweenArms1rads), alpha2, beta2, r2d(betweenArms2rads), prefSolnDegrees.getVal(0));
+                  alpha1, beta1, betweenArms1, alpha2, beta2, betweenArms2, prefSolnDegrees.getVal(0));
 
         if (!posValid)
           return ROTATION_OUT_OF_BOUNDS;
@@ -205,42 +209,44 @@ private:
 
     }
 
-    static void rotationToActuator(AxisFloats& rotationDegrees, AxisFloats& actuatorCoords,
+    static void rotationToActuator(AxisFloats& targetDegrees, AxisFloats& actuatorCoords,
               AxisPosition& curPos, AxesParams& axesParams)
     {
         // Axis 0 positive steps clockwise, axis 1 postive steps are anticlockwise
         // Axis 0 zero steps is at 0 degrees, axis 1 zero steps is at 180 degrees
-        double alphaVal = rotationDegrees._pt[0] * axesParams.getstepsPerRot(0) / 360;
-        double alphaDiff = wrapDegrees(alphaVal - curPos._stepsFromHome.getVal(0));
-        if (alphaDiff >= 0 && alphaDiff < axesParams.getstepsPerRot(0) / 2)
-            actuatorCoords._pt[0] = alphaVal;
+        AxisFloats curRotationDegs;
+        actuatorToRotation(curPos._stepsFromHome, curRotationDegs, axesParams);
+        float alphaDiff = targetDegrees._pt[0] - curRotationDegs._pt[0];
+        // // For alpha always rotate the smallest angle
+        float alphaStepTarget = targetDegrees._pt[0] * axesParams.getstepsPerRot(0) / 360;
+        //if (alphaDiff >= 0 && alphaDiff < 180)
+            actuatorCoords._pt[0] = alphaStepTarget;
+        // else
+        //     actuatorCoords._pt[0] = alphaStepTarget - axesParams.getstepsPerRot(0);
+        // For beta values the rotation should always be between 0 steps and + 1/2 * stepsPerRotation
+        float betaStepTarget = axesParams.getstepsPerRot(1) - wrapDegrees(targetDegrees._pt[1] - 180) * axesParams.getstepsPerRot(1) / 360;
+        if (betaStepTarget >= 0 && betaStepTarget < axesParams.getstepsPerRot(1) / 2)
+            actuatorCoords._pt[1] = betaStepTarget;
         else
-            actuatorCoords._pt[0] = alphaVal - axesParams.getstepsPerRot(0);
-        // Axis 1
-        double betaVal = (rotationDegrees._pt[1] - 180) * axesParams.getstepsPerRot(1) / 360;
-        double betaDiff = wrapDegrees(betaVal - curPos._stepsFromHome.getVal(1));
-        if (betaDiff >= 0 && betaDiff < axesParams.getstepsPerRot(1) / 2)
-            actuatorCoords._pt[1] = betaVal;
-        else
-            actuatorCoords._pt[1] = betaVal - axesParams.getstepsPerRot(1);
-
-        Log.info("rotationToActuator cur0 %ld cur1 %ld aDiff %0.2f, bDiff %0.2f, a %0.2fd b %0.2fd ax0Steps %0.2f ax1Steps %0.2f",
-                curPos._stepsFromHome.getVal(0), curPos._stepsFromHome.getVal(1), alphaDiff, betaDiff,
-                rotationDegrees._pt[0], rotationDegrees._pt[1], actuatorCoords._pt[0], actuatorCoords._pt[1]);
+            actuatorCoords._pt[1] = betaStepTarget - axesParams.getstepsPerRot(1);
+        Log.info("rotationToActuator cur0 %ld cur1 %ld aDiff %0.2f, a %0.2fd b %0.2fd ax0Steps %0.2f ax1Steps %0.2f, betaStepTarget %0.2f, ax1RotSteps %0.2f",
+                curPos._stepsFromHome.getVal(0), curPos._stepsFromHome.getVal(1), alphaDiff,
+                targetDegrees._pt[0], targetDegrees._pt[1], actuatorCoords._pt[0], actuatorCoords._pt[1],
+                betaStepTarget, axesParams.getstepsPerRot(1));
     }
 
-    static void actuatorToRotation(AxisFloats& actuatorCoords, AxisFloats& rotationDegrees, AxesParams& axesParams)
+    static void actuatorToRotation(AxisInt32s& actuatorCoords, AxisFloats& rotationDegrees, AxesParams& axesParams)
     {
         // Axis 0 positive steps clockwise, axis 1 postive steps are anticlockwise
         // Axis 0 zero steps is at 0 degrees, axis 1 zero steps is at 180 degrees
-        // All angles returned are in degrees anticlockwise from East
-        double axis0Degrees = actuatorCoords._pt[0] * 360 / axesParams.getstepsPerRot(0);
+        // All angles returned are in degrees clockwise from North
+        double axis0Degrees = wrapDegrees(actuatorCoords.getVal(0) * 360 / axesParams.getstepsPerRot(0));
         double alpha = axis0Degrees;
-        double axis1Degrees = actuatorCoords._pt[1] * 360 / axesParams.getstepsPerRot(1);
-        double beta = 180 + axis1Degrees;
+        double axis1Degrees = wrapDegrees(540 - (actuatorCoords.getVal(1) * 360 / axesParams.getstepsPerRot(1)));
+        double beta = axis1Degrees;
         rotationDegrees.set(alpha, beta);
-        Log.info("actuatorToRotation ax0Steps %0.2f ax1Steps %0.2f a %0.2fd b %0.2fd",
-                actuatorCoords._pt[0], actuatorCoords._pt[1], rotationDegrees._pt[0], rotationDegrees._pt[1]);
+        Log.info("actuatorToRotation ax0Steps %ld ax1Steps %ld a %0.2fd b %0.2fd",
+                actuatorCoords.getVal(0), actuatorCoords.getVal(1), rotationDegrees._pt[0], rotationDegrees._pt[1]);
     }
 
     // static void getCurrentRotation(AxisFloats& rotationDegrees, AxesParams& axesParams)
@@ -257,41 +263,41 @@ private:
     //                 rotationDegrees._pt[0], rotationDegrees._pt[1]);
     // }
 
-    static double calcMinAngleDiff(double target, float& finalAngle, double current)
-    {
-        // Wrap angles to 0 <= angle < 360
-        double wrapTarget = wrapDegrees(target);
-        double wrapCurrent = wrapDegrees(current);
-
-        // Minimum difference (based on turning in the right direction)
-        double diff = wrapDegrees(target - current);
-        double minDiff = (diff > 180) ? 360 - diff : diff;
-
-        // Find the angle which involves minimal turning
-        if (wrapCurrent < 180)
-        {
-            if ((wrapTarget < wrapCurrent + 180) && (wrapTarget > wrapCurrent))
-                finalAngle = current + minDiff;
-            else
-                finalAngle = current - minDiff;
-        }
-        else
-        {
-            if ((wrapTarget > wrapCurrent - 180) && (wrapTarget < wrapCurrent))
-                finalAngle = current - minDiff;
-            else
-                finalAngle = current + minDiff;
-        }
-
-        // Check valid
-        bool checkDiff = finalAngle > current ? finalAngle - current : current - finalAngle;
-        bool checkDest = isApprox(wrapDegrees(finalAngle), wrapTarget, 0.01);
-        Log.info("calcMinAngleDiff %s %s tgt %0.2f cur %0.2f mindiff %0.2f (%02.f) final %0.2f, wrapFinal %0.2f, wrapTarget %0.2f",
-                    checkDiff ? "OK" : "DIFF_WRONG *********",
-                    checkDest ? "OK" : "DEST_WRONG *********",
-                    target, current, minDiff, diff, finalAngle, wrapDegrees(finalAngle), wrapTarget);
-        return minDiff;
-    }
+    // static double calcMinAngleDiff(double target, float& finalAngle, double current)
+    // {
+    //     // Wrap angles to 0 <= angle < 360
+    //     double wrapTarget = wrapDegrees(target);
+    //     double wrapCurrent = wrapDegrees(current);
+    //
+    //     // Minimum difference (based on turning in the right direction)
+    //     double diff = wrapDegrees(target - current);
+    //     double minDiff = (diff > 180) ? 360 - diff : diff;
+    //
+    //     // Find the angle which involves minimal turning
+    //     if (wrapCurrent < 180)
+    //     {
+    //         if ((wrapTarget < wrapCurrent + 180) && (wrapTarget > wrapCurrent))
+    //             finalAngle = current + minDiff;
+    //         else
+    //             finalAngle = current - minDiff;
+    //     }
+    //     else
+    //     {
+    //         if ((wrapTarget > wrapCurrent - 180) && (wrapTarget < wrapCurrent))
+    //             finalAngle = current - minDiff;
+    //         else
+    //             finalAngle = current + minDiff;
+    //     }
+    //
+    //     // Check valid
+    //     bool checkDiff = finalAngle > current ? finalAngle - current : current - finalAngle;
+    //     bool checkDest = isApprox(wrapDegrees(finalAngle), wrapTarget, 0.01);
+    //     Log.info("calcMinAngleDiff %s %s tgt %0.2f cur %0.2f mindiff %0.2f (%02.f) final %0.2f, wrapFinal %0.2f, wrapTarget %0.2f",
+    //                 checkDiff ? "OK" : "DIFF_WRONG *********",
+    //                 checkDest ? "OK" : "DEST_WRONG *********",
+    //                 target, current, minDiff, diff, finalAngle, wrapDegrees(finalAngle), wrapTarget);
+    //     return minDiff;
+    // }
 
     // static void getBestMovement(AxisFloats& prefSolnDegrees, AxisFloats& curRotation,
     //                 ROTATION_TYPE rotType, AxisFloats& outSolution)

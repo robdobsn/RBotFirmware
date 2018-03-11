@@ -34,7 +34,7 @@ const char* RobotTypes::_robotConfigs[] = {
 
    "{\"robotType\":\"SandTableScara\",\"xMaxMM\":185,\"yMaxMM\":185, "
    "\"cmdsAtStart\":\"\","
-   "\"homingSeq\":\"A-10000n;B-10000;#;A+50000N;B+50000;#;A=h;B=h;$\","
+   "\"homingSeq\":\"A-10000n;B10000;#;A+10000N;B-10000;#;A+500;B-500;#;B+10000n;#;B-10000N;#;B-560;#;A=h;B=h;$\","
    "\"maxHomingSecs\":120,"
    "\"stepEnablePin\":\"A2\",\"stepEnLev\":1,\"stepDisableSecs\":1.0,"
    "\"blockDistanceMM\":1.0,\"homingAxis1OffsetDegs\":20.0,"
