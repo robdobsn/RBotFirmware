@@ -82,6 +82,9 @@ public:
     // Create a block for this movement which will end up on the pipeline
     MotionBlock block;
 
+    // Set flag to indicate if more moves coming
+    block._blockIsFollowed = args.getMoreMovesComing();
+
     // set end-stop check requirements
     block.setEndStopsToCheck(args.getEndstopCheck());
 
@@ -254,7 +257,7 @@ public:
       if (pBlock->_isExecuting)
       {
         // Get the exit speed from this executing block to use as the entry speed when going forwards
-        previousBlockExitSpeed             = pBlock->_exitSpeedMMps;
+        previousBlockExitSpeed = pBlock->_exitSpeedMMps;
         break;
       }
 
@@ -266,7 +269,7 @@ public:
         Log.info("++++++++++++++++++++++++++++++ Optimizing block %d, prevSpeed %0.3f", blockIdx, pBlock->_exitSpeedMMps);
 #endif
         //Get the exit speed from this block to use as the entry speed when going forwards
-        previousBlockExitSpeed             = pBlock->_exitSpeedMMps;
+        previousBlockExitSpeed = pBlock->_exitSpeedMMps;
         break;
       }
 
@@ -317,7 +320,7 @@ public:
       previousBlockExitSpeed = pBlock->_exitSpeedMMps;
     }
 
-    // Recalculate trapezoid for blocks that need it
+    // Recalculate acceleration and deceleration curves
     for (blockIdx = earliestBlockToReprocess; blockIdx >= 0; blockIdx--)
     {
       // Get the block to calculate for
@@ -326,7 +329,17 @@ public:
         break;
 
       // Prepare this block for stepping
-      pBlock->prepareForStepping(axesParams);
+      if (pBlock->prepareForStepping(axesParams))
+      {
+        // Check if the block is part of a split block and has at least one more block following it
+        // in which case wait until at least two blocks are in the pipeline before locking down the
+        // first so that acceleration can be allowed to happen more smoothly
+        if ((!pBlock->_blockIsFollowed) || (motionPipeline.count() > 1))
+        {
+          // No more changes
+          pBlock->_canExecute = true;
+        }
+      }
     }
 
 #ifdef DEBUG_MOTIONPLANNER_INFO
@@ -388,7 +401,11 @@ public:
     block._feedrateMMps = minFeedrate;
 
     // Prepare for stepping
-    block.prepareForStepping(axesParams);
+    if (block.prepareForStepping(axesParams))
+    {
+      // No more changes
+      block._canExecute = true;
+    }
 
     // Add the block
     motionPipeline.add(block);

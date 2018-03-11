@@ -51,6 +51,8 @@ public:
     volatile bool _isExecuting : 1;
     // Flag indicating the block can start executing
     volatile bool _canExecute  : 1;
+    // Block is followed by others
+    bool _blockIsFollowed : 1;
   };
 
   // Steps to target and before deceleration
@@ -80,6 +82,7 @@ public:
     _exitSpeedMMps            = 0;
     _isExecuting              = false;
     _canExecute               = false;
+    _blockIsFollowed          = false;
     _axisIdxWithMaxSteps      = 0;
     _accStepsPerTTicksPerMS   = 0;
     _finalStepRatePerTTicks   = 0;
@@ -155,11 +158,11 @@ public:
   // The block's entry and exit speed are now known
   // The block can accelerate and decelerate as required as long as these criteria are met
   // We now compute the stepping parameters to make motion happen
-  void prepareForStepping(AxesParams& axesParams)
+  bool prepareForStepping(AxesParams& axesParams)
   {
     // If block is currently being executed don't change it
     if (_isExecuting)
-      return;
+      return false;
 
     // Find the max number of steps for any axis
     uint32_t absMaxStepsForAnyAxis = abs(_stepsTotalMaybeNeg[_axisIdxWithMaxSteps]);
@@ -223,8 +226,7 @@ public:
     _accStepsPerTTicksPerMS   = uint32_t(axesParams.getMaxAccStepsPerTTicksPerMs(_axisIdxWithMaxSteps, TTICKS_VALUE, TICKS_PER_SEC));
     _stepsBeforeDecel         = absMaxStepsForAnyAxis - stepsDecelerating;
 
-    // No more changes
-    _canExecute = true;
+    return true;
   }
 
 

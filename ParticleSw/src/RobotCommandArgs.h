@@ -24,6 +24,7 @@ private:
   bool _moveRapid : 1;
   bool _allowOutOfBounds : 1;
   bool _pause : 1;
+  bool _moreMovesComing : 1;
   int _queuedCommands;
   int _numberedCommandIndex;
   AxisFloats _ptInMM;
@@ -49,6 +50,7 @@ public:
     _feedrateValid = false;
     _moveClockwise = false;
     _moveRapid = false;
+    _moreMovesComing = false;
     _ptUnitsSteps  = false;
     _allowOutOfBounds = false;
     _pause = false;
@@ -70,6 +72,7 @@ private:
     _endstops       = copyFrom._endstops;
     _moveClockwise = copyFrom._moveClockwise;
     _moveRapid     = copyFrom._moveRapid;
+    _moreMovesComing = copyFrom._moreMovesComing;
     _pause         = copyFrom._pause;
     _dontSplitMove = copyFrom._dontSplitMove;
     _allowOutOfBounds = copyFrom._allowOutOfBounds;
@@ -158,6 +161,14 @@ public:
   void setMoveRapid(bool moveRapid)
   {
     _moveRapid = moveRapid;
+  }
+  void setMoreMovesComing(bool moreMovesComing)
+  {
+    _moreMovesComing = moreMovesComing;
+  }
+  bool getMoreMovesComing()
+  {
+    return _moreMovesComing;
   }
   void setFeedrate(float feedrate)
   {

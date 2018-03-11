@@ -219,10 +219,10 @@ private:
         float alphaDiff = targetDegrees._pt[0] - curRotationDegs._pt[0];
         // // For alpha always rotate the smallest angle
         float alphaStepTarget = targetDegrees._pt[0] * axesParams.getstepsPerRot(0) / 360;
-        //if (alphaDiff >= 0 && alphaDiff < 180)
+        if (alphaDiff >= 0 && alphaDiff < 180)
             actuatorCoords._pt[0] = alphaStepTarget;
-        // else
-        //     actuatorCoords._pt[0] = alphaStepTarget - axesParams.getstepsPerRot(0);
+        else
+             actuatorCoords._pt[0] = alphaStepTarget - axesParams.getstepsPerRot(0);
         // For beta values the rotation should always be between 0 steps and + 1/2 * stepsPerRotation
         float betaStepTarget = axesParams.getstepsPerRot(1) - wrapDegrees(targetDegrees._pt[1] - 180) * axesParams.getstepsPerRot(1) / 360;
         if (betaStepTarget >= 0 && betaStepTarget < axesParams.getstepsPerRot(1) / 2)

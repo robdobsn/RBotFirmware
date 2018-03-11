@@ -243,6 +243,7 @@ void MotionHelper::blocksToAddProcess()
 
     // Add to planner
     _blocksToAddCommandArgs.setPointMM(nextBlockDest);
+    _blocksToAddCommandArgs.setMoreMovesComing(_blocksToAddTotal != 0);
     addToPlanner(_blocksToAddCommandArgs);
 
     // Enable motors

@@ -36,13 +36,13 @@ const char* RobotTypes::_robotConfigs[] = {
    "\"cmdsAtStart\":\"\","
    "\"homingSeq\":\"A-10000n;B10000;#;A+10000N;B-10000;#;A+500;B-500;#;B+10000n;#;B-10000N;#;B-560;#;A=h;B=h;$\","
    "\"maxHomingSecs\":120,"
-   "\"stepEnablePin\":\"A2\",\"stepEnLev\":1,\"stepDisableSecs\":1.0,"
-   "\"blockDistanceMM\":1.0,\"homingAxis1OffsetDegs\":20.0,"
-   "\"axis0\":{\"stepPin\":\"D2\",\"dirnPin\":\"D3\",\"maxSpeed\":75.0,\"maxAcc\":5.0,"
+   "\"stepEnablePin\":\"A2\",\"stepEnLev\":1,\"stepDisableSecs\":1,"
+   "\"blockDistanceMM\":1,"
+   "\"axis0\":{\"stepPin\":\"D2\",\"dirnPin\":\"D3\",\"maxSpeed\":75,\"maxAcc\":50,"
    "\"stepsPerRot\":9600,\"unitsPerRot\":628.318,"
    "\"endStop0\":{\"sensePin\":\"A6\",\"actLvl\":0,\"inputType\":\"INPUT_PULLUP\"}},"
-   "\"axis1\":{\"stepPin\":\"D4\",\"dirnPin\":\"D5\",\"maxSpeed\":75.0,\"maxAcc\":5.0,"
-   "\"stepsPerRot\":9600,\"unitsPerRot\":628.318,\"homeOffSteps\": 0,"
+   "\"axis1\":{\"stepPin\":\"D4\",\"dirnPin\":\"D5\",\"maxSpeed\":75,\"maxAcc\":50,"
+   "\"stepsPerRot\":9600,\"unitsPerRot\":628.318,"
    "\"endStop0\":{\"sensePin\":\"A7\",\"actLvl\":0,\"inputType\":\"INPUT_PULLUP\"}}"
    "}",
 
