@@ -91,9 +91,9 @@ public:
     return _axesParams.getStepsPerUnit(axisIdx);
   }
 
-  double getstepsPerRot(int axisIdx)
+  double getStepsPerRot(int axisIdx)
   {
-    return _axesParams.getstepsPerRot(axisIdx);
+    return _axesParams.getStepsPerRot(axisIdx);
   }
 
   double getunitsPerRot(int axisIdx)

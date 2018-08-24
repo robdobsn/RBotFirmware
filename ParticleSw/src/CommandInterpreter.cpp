@@ -6,12 +6,15 @@
 #include "CommandExtender.h"
 #include "RobotController.h"
 #include "GCodeInterpreter.h"
+#include "RdWebServer.h"
 
 CommandInterpreter::CommandInterpreter(WorkflowManager* pWorkflowManager, RobotController* pRobotController)
 {
     _pWorkflowManager = pWorkflowManager;
     _pRobotController = pRobotController;
     _pCommandExtender = new CommandExtender(this);
+    _resetserverPending = false;
+    _beginServerPending = false;
 }
 
 void CommandInterpreter::setSequences(const char* configStr)
@@ -131,6 +134,24 @@ void CommandInterpreter::processSingle(const char* pCmdStr, String& retStr)
     //
     //     retStr = okRslt;
     // }
+    else if (strstr(pCmdStr, "reset") == pCmdStr)
+    {
+        Log.info("CmdInterp: Reset in 3s");
+        delay(3000);
+        System.reset();
+    }
+    else if (strstr(pCmdStr, "serverrestart") == pCmdStr)
+    {
+        Log.info("CmdInterp: Server Reset in 1s");
+        _resetserverPending = true;
+        _resetServerMs = millis();
+    }
+    else if (strstr(pCmdStr, "serverbegin") == pCmdStr)
+    {
+        Log.info("CmdInterp: Server Begin in 1s");
+        _beginServerPending = true;
+        _resetServerMs = millis();
+    }
     else if (_pWorkflowManager)
     {
         // Send the line to the workflow manager
@@ -196,7 +217,7 @@ void CommandInterpreter::process(const char* pCmdStr, String& retStr, int cmdIdx
     }
 }
 
-void CommandInterpreter::service()
+void CommandInterpreter::service(RdWebServer* pWebServer)
 {
     // Pump the workflow here
     // Check if the RobotController can accept more
@@ -222,4 +243,22 @@ void CommandInterpreter::service()
 
     // Service command extender (which pumps the state machines associated with extended commands)
     _pCommandExtender->service();
+
+    // Check if reset is pending
+    if (_resetserverPending || _beginServerPending)
+    {
+        if (Utils::isTimeout(millis(), _resetServerMs, BEFORE_RESET_SERVER_MS))
+        {
+            if (pWebServer)
+              if (_resetserverPending)
+              {
+                  pWebServer->restart(80);
+              }
+              else
+              {
+                  pWebServer->beginAgain();
+              }
+            _resetserverPending = false;
+        }
+    }
 }

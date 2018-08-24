@@ -30,13 +30,15 @@ public:
     // Angles of lower arm are calculated clockwise from North
 
     // Convert a cartesian point to actuator coordinates
-    static bool ptToActuator(AxisFloats& targetPt, AxisFloats& outActuator, AxisPosition& curPos, AxesParams& axesParams, bool allowOutOfBounds)
+    static bool ptToActuator(AxisFloats& targetPt, AxisFloats& outActuator, AxisPosition& curAxisPositions, AxesParams& axesParams, bool allowOutOfBounds)
     {
         // Target axis rotations
         AxisFloats prefSolnDegrees;
-        ROTATION_TYPE rotationResult = ptToRotations(targetPt, prefSolnDegrees, axesParams);
+        ROTATION_TYPE rotationResult = cartesianToActuator(targetPt, curAxisPositions, outActuator, axesParams);
         if ((rotationResult == ROTATION_OUT_OF_BOUNDS) && (!allowOutOfBounds))
             return false;
+
+        //
 
         // // Get current rotation
         // AxisFloats curRotation;
@@ -47,7 +49,7 @@ public:
         // getBestMovement(prefSolnDegrees, curRotation, rotationResult, reqdRotation);
 
         // Convert to actuatorCoords
-        rotationToActuator(prefSolnDegrees, outActuator, curPos, axesParams);
+        // rotationToActuator(prefSolnDegrees, outActuator, curPos, axesParams);
 
 //        testCoordTransforms(axisParams);
 
@@ -92,12 +94,26 @@ public:
 
     static void correctStepOverflow(AxisPosition& curPos, AxesParams& axesParams)
     {
-        Log.trace("correctStepOverflow - currently unimplemented");
+        AxisInt32s cpy = curPos._stepsFromHome;
+        for (int axisIdx = 0; axisIdx < 2; axisIdx++)
+        {
+            if (curPos._stepsFromHome.getVal(axisIdx) < 0)
+            {
+                int32_t intProp = 1 - curPos._stepsFromHome.getVal(axisIdx) / axesParams.getStepsPerRot(axisIdx);
+                curPos._stepsFromHome.setVal(axisIdx, curPos._stepsFromHome.getVal(axisIdx) + intProp * axesParams.getStepsPerRot(axisIdx));
+            }
+            if (curPos._stepsFromHome.getVal(axisIdx) >= axesParams.getStepsPerRot(axisIdx))
+            {
+              int32_t intProp = curPos._stepsFromHome.getVal(axisIdx) / axesParams.getStepsPerRot(axisIdx);
+              curPos._stepsFromHome.setVal(axisIdx, curPos._stepsFromHome.getVal(axisIdx) - intProp * axesParams.getStepsPerRot(axisIdx));
+            }
+        }
+        Log.info("correctStepOverflow: %ld %ld -> %ld %ld", cpy.getVal(0), cpy.getVal(1), curPos._stepsFromHome.getVal(0), curPos._stepsFromHome.getVal(1));
     }
 
 private:
 
-    static ROTATION_TYPE ptToRotations(AxisFloats& pt, AxisFloats& prefSolnDegrees, AxesParams& axesParams)
+    static ROTATION_TYPE cartesianToActuator(AxisFloats& targetPt, AxisPosition& curAxisPositions, AxisFloats& outActuator, AxesParams& axesParams)
     {
         // Calculate arm lengths
         // The _unitsPerRot values in the axisParams indicate the circumference of the circle
@@ -111,20 +127,19 @@ private:
         // All angles are calculated clockwise from North
 
         // Check for 0,0 point as this is a special case for this robot
-        if (isApprox(pt._pt[0],0,0.1) && (isApprox(pt._pt[1],0,0.1)))
+        if (isApprox(targetPt._pt[0],0,0.5) && (isApprox(targetPt._pt[1],0,0.5)))
         {
             // Special case
-            Log.trace("ptToRotations x %0.2f y %0.2f close to origin", pt._pt[0], pt._pt[1]);
+            Log.trace("ptToRotations x %0.2f y %0.2f close to origin", targetPt._pt[0], targetPt._pt[1]);
 
-            // NOTE: change this to leave alpha and just change beta
-
-            // Return values
-            prefSolnDegrees.set(0.0, 180.0);
+            // Keep the current position for alpha, set beta to alpha+180 (i.e. doubled-back so eng-effector is in centre)
+            outActuator.setVal(0, (float)curAxisPositions._stepsFromHome.getVal(0));
+            outActuator.setVal(1, (float)wrapDegrees(curAxisPositions._stepsFromHome.getVal(1) + 180));
             return ROTATION_IS_NEAR_CENTRE;
         }
 
         // Calculate distance from origin to pt (forms one side of triangle where arm segments form other sides)
-        double thirdSideMM = sqrt(pow(pt._pt[0],2) + pow(pt._pt[1], 2));
+        double thirdSideMM = sqrt(pow(targetPt._pt[0],2) + pow(targetPt._pt[1], 2));
 
         // Check validity of position (use max val for X axis as the robot is circular X and Y max will be the same)
         float maxValForXAxis = 0;
@@ -134,7 +149,7 @@ private:
           posValid &= thirdSideMM <= maxValForXAxis;
 
         // Calculate angle from North to the point (note in atan2 X and Y are flipped from normal as angles are clockwise)
-        double delta1 = atan2(pt._pt[0], pt._pt[1]);
+        double delta1 = atan2(targetPt._pt[0], targetPt._pt[1]);
         if (delta1 < 0)
           delta1 += M_PI * 2;
 
@@ -158,26 +173,68 @@ private:
         double alpha2 = r2d(wrapRadians(alpha2rads + 2 * M_PI));
         double beta2 = r2d(wrapRadians(beta2rads + 2 * M_PI));
 
-        // Find the angle between the arms
-        double betweenArms1 = wrapDegrees(beta1 - alpha1);
-        double betweenArms2 = wrapDegrees(beta2 - alpha2);
+        // Find step possibilities
+        AxisFloats actuator1, actuator2;
+        rotationToActuator(alpha1, beta1, actuator1, axesParams);
+        rotationToActuator(alpha2, beta2, actuator2, axesParams);
 
-        // Return values
-        if (betweenArms1 >= 0 && betweenArms1 < 180)
-          prefSolnDegrees.set(alpha1, beta1);
+        // Find the option with the minimum steps
+        float stepCount1 = minStepsForMove(actuator1.getVal(0), curAxisPositions._stepsFromHome.getVal(0), axesParams.getStepsPerRot(0)) +
+                            minStepsForMove(actuator1.getVal(1), curAxisPositions._stepsFromHome.getVal(1), axesParams.getStepsPerRot(1));
+        float stepCount2 = minStepsForMove(actuator2.getVal(0), curAxisPositions._stepsFromHome.getVal(0), axesParams.getStepsPerRot(0)) +
+                            minStepsForMove(actuator2.getVal(1), curAxisPositions._stepsFromHome.getVal(1), axesParams.getStepsPerRot(1));
+
+        if (stepCount1 < stepCount2)
+        {
+            outActuator.setVal(0, absStepForMove(actuator1.getVal(0), curAxisPositions._stepsFromHome.getVal(0), axesParams.getStepsPerRot(0)));
+            outActuator.setVal(1, absStepForMove(actuator1.getVal(1), curAxisPositions._stepsFromHome.getVal(1), axesParams.getStepsPerRot(1)));
+        }
         else
-          prefSolnDegrees.set(alpha2, beta2);
+        {
+            outActuator.setVal(0, absStepForMove(actuator2.getVal(0), curAxisPositions._stepsFromHome.getVal(0), axesParams.getStepsPerRot(0)));
+            outActuator.setVal(1, absStepForMove(actuator2.getVal(1), curAxisPositions._stepsFromHome.getVal(1), axesParams.getStepsPerRot(1)));
+        }
 
-          // Debug
-          Log.info("ptToRotationsDebug %s fromCtr %0.2fmm D1 %0.2fd D2 %0.2fd innerAng %0.2fd",
-                  posValid ? "ok" : "OUT_OF_BOUNDS",
-                  thirdSideMM, delta1 * 180 / M_PI, delta2 * 180 / M_PI, innerAngleOppThird * 180 / M_PI);
-          Log.info("ptToRotationsDebug alpha1 %0.2fd, beta1 %0.2fd, betw1 %0.2fd, alpha2 %0.2fd, beta2 %0.2fd, betw2 %0.2fd, prefAlpha(%0.2f)",
-                  alpha1, beta1, betweenArms1, alpha2, beta2, betweenArms2, prefSolnDegrees.getVal(0));
+        // Debug
+        Log.info("ptToRotationsDebug %s fromCtr %0.2fmm D1 %0.2fd D2 %0.2fd innerAng %0.2fd",
+                posValid ? "ok" : "OUT_OF_BOUNDS",
+                thirdSideMM, delta1 * 180 / M_PI, delta2 * 180 / M_PI, innerAngleOppThird * 180 / M_PI);
+        Log.info("ptToRotationsDebug alpha1 %0.2fd, beta1 %0.2fd, steps1 %0.2fd, alpha2 %0.2fd, beta2 %0.2fd, steps2 %0.2fd, prefOption %d",
+                alpha1, beta1, stepCount1, alpha2, beta2, stepCount2, stepCount1 < stepCount2 ? 1 : 2);
+        Log.info("ptToRotationsDebug -------------------------------------------------------------- curA %ld curB %ld stA %0.2f stB %0.2f",
+                      curAxisPositions._stepsFromHome.getVal(0), curAxisPositions._stepsFromHome.getVal(1),
+                      outActuator.getVal(0), outActuator.getVal(1));
 
         if (!posValid)
           return ROTATION_OUT_OF_BOUNDS;
         return ROTATION_NORMAL;
+    }
+
+    static float minStepsForMove(float absStepTarget, float absCurSteps, float stepsPerRotation)
+    {
+        float stepsAbsDiff = fabs(absStepTarget-absCurSteps);
+        if (stepsAbsDiff > stepsPerRotation/2)
+          stepsAbsDiff = stepsPerRotation - stepsAbsDiff;
+        return stepsAbsDiff;
+    }
+
+    static float absStepForMove(float absStepTarget, float absCurSteps, float stepsPerRotation)
+    {
+        if (absStepTarget > absCurSteps)
+        {
+            if (fabs(absStepTarget-absCurSteps) > stepsPerRotation/2)
+            {
+                return absStepTarget - stepsPerRotation;
+            }
+        }
+        else
+        {
+            if (fabs(absStepTarget-absCurSteps) > stepsPerRotation/2)
+            {
+                return absStepTarget + stepsPerRotation;
+            }
+        }
+        return absStepTarget;
     }
 
     static void rotationsToPoint(AxisFloats& rotDegrees, AxisFloats& pt, AxesParams& axesParams)
@@ -209,30 +266,18 @@ private:
 
     }
 
-    static void rotationToActuator(AxisFloats& targetDegrees, AxisFloats& actuatorCoords,
-              AxisPosition& curPos, AxesParams& axesParams)
+    static void rotationToActuator(float alpha, float beta, AxisFloats& actuatorCoords,
+              AxesParams& axesParams)
     {
         // Axis 0 positive steps clockwise, axis 1 postive steps are anticlockwise
         // Axis 0 zero steps is at 0 degrees, axis 1 zero steps is at 180 degrees
-        AxisFloats curRotationDegs;
-        actuatorToRotation(curPos._stepsFromHome, curRotationDegs, axesParams);
-        float alphaDiff = targetDegrees._pt[0] - curRotationDegs._pt[0];
-        // // For alpha always rotate the smallest angle
-        float alphaStepTarget = targetDegrees._pt[0] * axesParams.getstepsPerRot(0) / 360;
-        if (alphaDiff >= 0 && alphaDiff < 180)
-            actuatorCoords._pt[0] = alphaStepTarget;
-        else
-             actuatorCoords._pt[0] = alphaStepTarget - axesParams.getstepsPerRot(0);
+        float alphaStepTarget = alpha * axesParams.getStepsPerRot(0) / 360;
+        actuatorCoords._pt[0] = alphaStepTarget;
         // For beta values the rotation should always be between 0 steps and + 1/2 * stepsPerRotation
-        float betaStepTarget = axesParams.getstepsPerRot(1) - wrapDegrees(targetDegrees._pt[1] - 180) * axesParams.getstepsPerRot(1) / 360;
-        if (betaStepTarget >= 0 && betaStepTarget < axesParams.getstepsPerRot(1) / 2)
-            actuatorCoords._pt[1] = betaStepTarget;
-        else
-            actuatorCoords._pt[1] = betaStepTarget - axesParams.getstepsPerRot(1);
-        Log.info("rotationToActuator cur0 %ld cur1 %ld aDiff %0.2f, a %0.2fd b %0.2fd ax0Steps %0.2f ax1Steps %0.2f, betaStepTarget %0.2f, ax1RotSteps %0.2f",
-                curPos._stepsFromHome.getVal(0), curPos._stepsFromHome.getVal(1), alphaDiff,
-                targetDegrees._pt[0], targetDegrees._pt[1], actuatorCoords._pt[0], actuatorCoords._pt[1],
-                betaStepTarget, axesParams.getstepsPerRot(1));
+        float betaStepTarget = axesParams.getStepsPerRot(1) - wrapDegrees(beta - 180) * axesParams.getStepsPerRot(1) / 360;
+        actuatorCoords._pt[1] = betaStepTarget;
+        Log.info("rotationToActuator alpha %0.2fd beta %0.2fd ax0Steps %0.2f ax1Steps %0.2f",
+                alpha, beta, actuatorCoords._pt[0], actuatorCoords._pt[1]);
     }
 
     static void actuatorToRotation(AxisInt32s& actuatorCoords, AxisFloats& rotationDegrees, AxesParams& axesParams)
@@ -240,9 +285,9 @@ private:
         // Axis 0 positive steps clockwise, axis 1 postive steps are anticlockwise
         // Axis 0 zero steps is at 0 degrees, axis 1 zero steps is at 180 degrees
         // All angles returned are in degrees clockwise from North
-        double axis0Degrees = wrapDegrees(actuatorCoords.getVal(0) * 360 / axesParams.getstepsPerRot(0));
+        double axis0Degrees = wrapDegrees(actuatorCoords.getVal(0) * 360 / axesParams.getStepsPerRot(0));
         double alpha = axis0Degrees;
-        double axis1Degrees = wrapDegrees(540 - (actuatorCoords.getVal(1) * 360 / axesParams.getstepsPerRot(1)));
+        double axis1Degrees = wrapDegrees(540 - (actuatorCoords.getVal(1) * 360 / axesParams.getStepsPerRot(1)));
         double beta = axis1Degrees;
         rotationDegrees.set(alpha, beta);
         Log.info("actuatorToRotation ax0Steps %ld ax1Steps %ld a %0.2fd b %0.2fd",
@@ -527,8 +572,16 @@ public:
         _maxHomingSecs = maxHomingSecs_default;
         _timeBetweenHomingStepsUs = homingStepTimeUs_default;
         _motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
+
+        // Light
+        pinMode(A0, OUTPUT);
+        digitalWrite(A0, 1);
     }
 
+    ~RobotSandTableScara()
+    {
+        pinMode(A0, INPUT);
+    }
     // Set config
     // bool init(const char* robotConfigStr)
     // {

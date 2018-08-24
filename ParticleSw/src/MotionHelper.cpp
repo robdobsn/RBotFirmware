@@ -264,6 +264,8 @@ bool MotionHelper::addToPlanner(RobotCommandArgs& args)
   {
     // Update axisMotion
     _curAxisPosition._axisPositionMM = args.getPointMM();
+    // Correct overflows
+    _correctStepOverflowFn(_curAxisPosition, _axesParams);
   }
   return moveOk;
 }

@@ -51,7 +51,7 @@ public:
     return _axisParams[axisIdx].stepsPerUnit();
   }
 
-  float getstepsPerRot(int axisIdx)
+  float getStepsPerRot(int axisIdx)
   {
     if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
       return AxisParams::stepsPerRot_default;

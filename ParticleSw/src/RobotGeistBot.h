@@ -94,7 +94,7 @@ public:
     static void actuatorToPolar(AxisFloats& actuatorCoords, float polarCoordsAzFirst[], AxesParams& axesParams)
     {
         // Calculate azimuth
-        int alphaSteps = (abs(int(actuatorCoords._pt[0])) % (int)(axesParams.getstepsPerRot(0)));
+        int alphaSteps = (abs(int(actuatorCoords._pt[0])) % (int)(axesParams.getStepsPerRot(0)));
         double alphaDegs = alphaSteps / axesParams.getStepsPerUnit(0);
         if (actuatorCoords._pt[0] < 0)
             alphaDegs = axesParams.getunitsPerRot(0)-alphaDegs;
@@ -123,7 +123,7 @@ public:
 
     static void correctStepOverflow(AxisPosition& curPos, AxesParams& axesParams)
     {
-        int rotationSteps = (int)(axesParams.getstepsPerRot(0));
+        int rotationSteps = (int)(axesParams.getStepsPerRot(0));
         // Debug
         bool showDebug = false;
         if (axesParams.gethomeOffSteps(0) > rotationSteps || axesParams.gethomeOffSteps(0) <= -rotationSteps)

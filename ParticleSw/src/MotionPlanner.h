@@ -4,7 +4,7 @@
 #pragma once
 
 //#define DEBUG_TEST_DUMP 1
-#define DEBUG_MOTIONPLANNER_INFO 1
+//#define DEBUG_MOTIONPLANNER_INFO 1
 #ifdef DEBUG_MOTIONPLANNER_INFO
 #define DEBUG_BLOCK_TO_DUMP_OR_MINUS1_FOR_ALL    -1
 #endif
@@ -113,11 +113,8 @@ public:
       }
     }
 
-    // Calculate move time
-    double reciprocalTime = validFeedrateMMps / moveDist;
-
 #ifdef DEBUG_MOTIONPLANNER_INFO
-    Log.info("ValidatedFeedrate %0.3f, reciprocalTime %0.3f", validFeedrateMMps, reciprocalTime);
+    Log.info("ValidatedFeedrate %0.3f", validFeedrateMMps);
 #endif
 
     // Store values in the block

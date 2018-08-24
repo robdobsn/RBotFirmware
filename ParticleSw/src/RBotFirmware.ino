@@ -330,7 +330,7 @@ void loop()
 
         // Service the command interpreter (which pumps the workflow queue)
         debugLoopTimer.blockStart(1);
-        _commandInterpreter.service();
+        _commandInterpreter.service(pWebServer);
         debugLoopTimer.blockEnd(1);
 
         // Service the web server
