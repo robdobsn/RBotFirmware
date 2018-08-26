@@ -9,15 +9,14 @@
 
 class RobotBase
 {
-protected:
+  protected:
     String _robotTypeName;
     // MotionHelper for the robot motion
-    MotionHelper& _motionHelper;
+    MotionHelper &_motionHelper;
 
-public:
-    RobotBase(const char* pRobotTypeName, MotionHelper& motionHelper) :
-        _robotTypeName(pRobotTypeName),
-        _motionHelper(motionHelper)
+  public:
+    RobotBase(const char *pRobotTypeName, MotionHelper &motionHelper) : _robotTypeName(pRobotTypeName),
+                                                                        _motionHelper(motionHelper)
     {
     }
 
@@ -28,38 +27,38 @@ public:
     // Pause (or un-pause) all motion
     virtual void pause(bool pauseIt)
     {
-      _motionHelper.pause(pauseIt);
+        _motionHelper.pause(pauseIt);
     }
 
     // Check if paused
     virtual bool isPaused()
     {
-      return _motionHelper.isPaused();
+        return _motionHelper.isPaused();
     }
 
     // Stop
     virtual void stop()
     {
-      _motionHelper.stop();
+        _motionHelper.stop();
     }
 
-    virtual bool init(const char* robotConfigStr)
+    virtual bool init(const char *robotConfigStr)
     {
-      // Init motion controller from config
-      _motionHelper.configure(robotConfigStr);
-      return true;
+        // Init motion controller from config
+        _motionHelper.configure(robotConfigStr);
+        return true;
     }
 
     virtual bool canAcceptCommand()
     {
-      // Check if motionHelper is can accept a command
-      return _motionHelper.canAccept();
+        // Check if motionHelper is can accept a command
+        return _motionHelper.canAccept();
     }
 
     virtual void service()
     {
-      // Service the motion controller
-      _motionHelper.service();
+        // Service the motion controller
+        _motionHelper.service();
     }
 
     // Movement commands
@@ -67,36 +66,35 @@ public:
     {
     }
 
-    virtual void moveTo(RobotCommandArgs& args)
+    virtual void moveTo(RobotCommandArgs &args)
     {
         _motionHelper.moveTo(args);
     }
 
-    virtual void setMotionParams(RobotCommandArgs& args)
+    virtual void setMotionParams(RobotCommandArgs &args)
     {
         _motionHelper.setMotionParams(args);
     }
 
-    virtual void getCurStatus(RobotCommandArgs& args)
+    virtual void getCurStatus(RobotCommandArgs &args)
     {
         _motionHelper.getCurStatus(args);
     }
 
     // Homing commands
-    virtual void goHome(RobotCommandArgs& args)
+    virtual void goHome(RobotCommandArgs &args)
     {
-      _motionHelper.goHome(args);
+        _motionHelper.goHome(args);
     }
 
-    virtual void setHome(RobotCommandArgs& args)
+    virtual void setHome(RobotCommandArgs &args)
     {
     }
 
     virtual bool wasActiveInLastNSeconds(unsigned int nSeconds)
     {
-      time_t timeNow;
-      time(&timeNow);
-      return (timeNow < _motionHelper.getLastActiveUnixTime() + nSeconds);
+        time_t timeNow;
+        time(&timeNow);
+        return (timeNow < _motionHelper.getLastActiveUnixTime() + nSeconds);
     }
-
 };

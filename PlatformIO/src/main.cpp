@@ -2,16 +2,16 @@
 // Rob Dobson 2016-2017
 
 // System type
-const char* systemType = "RBotFirmware";
+const char *systemType = "RBotFirmware";
 
 // System version
-const char* systemVersion = "2.001.001";
+const char *systemVersion = "2.001.001";
 
 // Build date
-const char* buildDate = __DATE__;
+const char *buildDate = __DATE__;
 
 // Build date
-const char* buildTime = __TIME__;
+const char *buildTime = __TIME__;
 
 // Arduino
 #include <Arduino.h>
@@ -66,8 +66,7 @@ static const char *hwConfigJSON = {
     "\"OTAUpdate\":{\"enabled\":0,\"server\":\"domoticzoff\",\"port\":5076},"
     "\"wifiLed\":{\"ledPin\":\"\",\"ledOnMs\":200,\"ledShortOffMs\":200,\"ledLongOffMs\":750},"
     "\"serialConsole\":{\"portNum\":0}"
-    "}"
-};
+    "}"};
 
 // Config for hardware
 ConfigBase hwConfig(hwConfigJSON);
@@ -108,8 +107,8 @@ WorkflowManager _workflowManager;
 RestAPISystem restAPISystem(wifiManager);
 
 // REST API Robot
-//#include "RestAPIRobot.h"
-//RestAPIRobot restAPIRobot(_robotController, _workflowManager, _commandInterpreter, mqttManager, restAPISystem);
+// #include "RestAPIRobot.h"
+// RestAPIRobot restAPIRobot(_robotController, _workflowManager, _commandInterpreter, mqttManager, restAPISystem);
 
 // Debug loop used to time main loop
 #include "DebugLoopTimer.h"
@@ -240,5 +239,4 @@ void loop()
     // debugLoopTimer.blockStart(3);
     // _commandInterpreter.service();
     // debugLoopTimer.blockEnd(3);
-
 }

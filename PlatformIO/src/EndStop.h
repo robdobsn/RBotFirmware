@@ -8,53 +8,53 @@
 
 class EndStop
 {
-private:
-  int _pin;
-  bool _actLvl;
-  int _inputType;
+  private:
+    int _pin;
+    bool _actLvl;
+    int _inputType;
 
-public:
-  EndStop(int axisIdx, int endStopIdx, const char* endStopJSON)
-  {
-    // Get end stop
-    String pinName      = RdJson::getString("sensePin", "-1", endStopJSON);
-    long   actLvl  = RdJson::getLong("actLvl", 1, endStopJSON);
-    String inputTypeStr = RdJson::getString("inputType", "", endStopJSON);
-    long   pinId        = ConfigPinMap::getPinFromName(pinName.c_str());
-    int    inputType    = ConfigPinMap::getInputType(inputTypeStr.c_str());
-    Log.notice("Axis%dEndStop%d (sense %ld, level %ld, type %d)", axisIdx, endStopIdx, pinId,
-             actLvl, inputType);
-    setConfig(pinId, actLvl, inputType);
-  }
-  ~EndStop()
-  {
-    // Restore pin to input (may have had pullup)
-    if (_pin != -1)
-      pinMode(_pin, INPUT);
-  }
-  void setConfig(int pin, bool actLvl, int inputType)
-  {
-    _pin         = pin;
-    _actLvl = actLvl;
-    _inputType   = inputType;
-    if (_pin != -1)
+  public:
+    EndStop(int axisIdx, int endStopIdx, const char *endStopJSON)
     {
-      pinMode(_pin, _inputType);
+        // Get end stop
+        String pinName = RdJson::getString("sensePin", "-1", endStopJSON);
+        long actLvl = RdJson::getLong("actLvl", 1, endStopJSON);
+        String inputTypeStr = RdJson::getString("inputType", "", endStopJSON);
+        long pinId = ConfigPinMap::getPinFromName(pinName.c_str());
+        int inputType = ConfigPinMap::getInputType(inputTypeStr.c_str());
+        Log.notice("Axis%dEndStop%d (sense %ld, level %ld, type %d)", axisIdx, endStopIdx, pinId,
+                   actLvl, inputType);
+        setConfig(pinId, actLvl, inputType);
     }
-    // Log.notice("EndStop %d, %d, %d", _pin, _actLvl, _inputType);
-  }
-  bool isAtEndStop()
-  {
-    if (_pin != -1)
+    ~EndStop()
     {
-      bool val = digitalRead(_pin);
-      return val == _actLvl;
+        // Restore pin to input (may have had pullup)
+        if (_pin != -1)
+            pinMode(_pin, INPUT);
     }
-    return true;
-  }
-  void getPins(int& sensePin, bool& actLvl)
-  {
-    sensePin    = _pin;
-    actLvl = _actLvl;
-  }
+    void setConfig(int pin, bool actLvl, int inputType)
+    {
+        _pin = pin;
+        _actLvl = actLvl;
+        _inputType = inputType;
+        if (_pin != -1)
+        {
+            pinMode(_pin, _inputType);
+        }
+        // Log.notice("EndStop %d, %d, %d", _pin, _actLvl, _inputType);
+    }
+    bool isAtEndStop()
+    {
+        if (_pin != -1)
+        {
+            bool val = digitalRead(_pin);
+            return val == _actLvl;
+        }
+        return true;
+    }
+    void getPins(int &sensePin, bool &actLvl)
+    {
+        sensePin = _pin;
+        actLvl = _actLvl;
+    }
 };
