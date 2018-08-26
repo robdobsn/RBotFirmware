@@ -277,7 +277,7 @@ public:
   String getDebugStr()
   {
     char strBuf[200];
-    sprintf(strBuf, "ISR Mn/Mx/Av/# %0.2fuS/%0.2fuS/%0.2fus/%ld",
+    sprintf(strBuf, "ISR Mn/Mx/Av/# %0.2fuS/%0.2fuS/%0.2fus/%d",
              ((double) __isrDbgTickMin) / SystemTicksPerMicrosecond,
              ((double) __isrDbgTickMax) / SystemTicksPerMicrosecond,
              (__isrDbgTickCount != 0) ?

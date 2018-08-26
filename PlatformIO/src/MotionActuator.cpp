@@ -207,6 +207,10 @@ void MotionActuator::procTick()
             }
             break;
           }
+          default:
+          {
+            break;
+          }
         }
         // Log.notice("Ax %d, minMaxIdx %d, EndStopGet %08lx, Steps %ld, pinToTest %d, valToTestFor %d", axisIdx, minMaxIdx, pBlock->_endStopsToCheck.get(axisIdx, minMaxIdx),
         //               pBlock->_stepsTotalMaybeNeg[axisIdx], pinToTest, valToTestFor);

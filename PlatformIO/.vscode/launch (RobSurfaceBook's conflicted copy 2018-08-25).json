@@ -1,0 +1,29 @@
+// AUTOMATICALLY GENERATED FILE. PLEASE DO NOT MODIFY IT MANUALLY
+
+// PIO Unified Debugger
+//
+// Documentation: https://docs.platformio.org/page/plus/debugging.html
+// Configuration: https://docs.platformio.org/page/projectconf/section_env_debug.html
+
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "platformio-debug",
+            "request": "launch",
+            "name": "PIO Debug",
+            "executable": "c:/Users/rob/Dropbox (TheDobsons)/Main/RobDev/Projects/BotsCNC/RBotFirmware/PlatformIO/.pioenvs/featheresp32/firmware.elf",
+            "toolchainBinDir": "C:/Users/rob/.platformio/packages/toolchain-xtensa32/bin",
+            "preLaunchTask": "PlatformIO: Pre-Debug",
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "type": "platformio-debug",
+            "request": "launch",
+            "name": "PIO Debug (Skip Pre-Debug)",
+            "executable": "c:/Users/rob/Dropbox (TheDobsons)/Main/RobDev/Projects/BotsCNC/RBotFirmware/PlatformIO/.pioenvs/featheresp32/firmware.elf",
+            "toolchainBinDir": "C:/Users/rob/.platformio/packages/toolchain-xtensa32/bin",
+            "internalConsoleOptions": "openOnSessionStart"
+        }
+    ]
+}
