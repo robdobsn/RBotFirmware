@@ -51,7 +51,7 @@ void MotionActuator::process()
 // Handles all motor movement
 void MotionActuator::procTick()
 {
-    // Log.trace("MotionActuator: procTick, paused %d, qLen %d", _isPaused, _motionPipeline.count());
+    // Log.trace("MotionActuator: procTick, paused %d, qLen %d\n", _isPaused, _motionPipeline.count());
 
     // Instrumentation
     TEST_MOTION_ACTUATOR_STEP_END
@@ -74,7 +74,7 @@ void MotionActuator::procTick()
     }
     if (anyPinReset)
     {
-        // Log.notice("MotionActuator: ResetPin return");
+        // Log.notice("MotionActuator: ResetPin return\n");
         return;
     }
 
@@ -90,7 +90,7 @@ void MotionActuator::procTick()
     // Check if the element can be executed
     if (!pBlock->_canExecute)
     {
-        // Log.notice("MotionActuator: No exec return");
+        // Log.notice("MotionActuator: No exec return\n");
         return;
     }
 
@@ -131,7 +131,7 @@ void MotionActuator::procTick()
         // Step rate
         _curStepRatePerTTicks = pBlock->_initialStepRatePerTTicks;
 
-        // Log.notice("MotionActuator: New Block XSt %ld, YSt %ld, ZSt %ld, MaxStpAx %d, initRt %ld, maxRt %ld, endRt %ld, acc %ld",
+        // Log.notice("MotionActuator: New Block XSt %ld, YSt %ld, ZSt %ld, MaxStpAx %d, initRt %ld, maxRt %ld, endRt %ld, acc %ld\n",
         //             _stepsTotalAbs[0], _stepsTotalAbs[1], _stepsTotalAbs[2],
         //             pBlock->_axisIdxWithMaxSteps,
         //             pBlock->_initialStepRatePerTTicks,
@@ -212,15 +212,15 @@ void MotionActuator::procTick()
                     break;
                 }
                 }
-                // Log.notice("Ax %d, minMaxIdx %d, EndStopGet %08lx, Steps %ld, pinToTest %d, valToTestFor %d", axisIdx, minMaxIdx, pBlock->_endStopsToCheck.get(axisIdx, minMaxIdx),
+                // Log.notice("Ax %d, minMaxIdx %d, EndStopGet %08lx, Steps %ld, pinToTest %d, valToTestFor %d\n", axisIdx, minMaxIdx, pBlock->_endStopsToCheck.get(axisIdx, minMaxIdx),
                 //               pBlock->_stepsTotalMaybeNeg[axisIdx], pinToTest, valToTestFor);
             }
 
             // Check if anything to test
-            // Log.notice("End-stop ax%d PINTO %d toTest %d curVal %d", axisIdx, pinToTest, valToTestFor, pinToTest >= 0 ? (pinReadFast(pinToTest) != 0) : -1);
+            // Log.notice("End-stop ax%d PINTO %d toTest %d curVal %d\n", axisIdx, pinToTest, valToTestFor, pinToTest >= 0 ? (pinReadFast(pinToTest) != 0) : -1);
             if (pinToTest >= 0)
             {
-// Log.notice("End-stop TEST %d, %d, cur %d", pinToTest, valToTestFor, pinReadFast(pinToTest));
+// Log.notice("End-stop TEST %d, %d, cur %d\n", pinToTest, valToTestFor, pinReadFast(pinToTest));
 #ifdef USE_FAST_PIN_ACCESS
                 bool pinVal = pinReadFast(pinToTest);
 #else
@@ -236,7 +236,7 @@ void MotionActuator::procTick()
                     {
                         _lastDoneNumberedCmdIdx = pBlock->getNumberedCommandIndex();
                     }
-                    // Log.notice("End-stop reached %d, %d", pinToTest, valToTestFor);
+                    // Log.notice("End-stop reached %d, %d\n", pinToTest, valToTestFor);
                     return;
                 }
             }
@@ -255,14 +255,14 @@ void MotionActuator::procTick()
         // Check if decelerating
         if (_curStepCount[pBlock->_axisIdxWithMaxSteps] > pBlock->_stepsBeforeDecel)
         {
-            // Log.notice("MotionActuator: Decel Steps/s %ld Accel %ld", _curStepRatePerTTicks, pBlock->_accStepsPerTTicksPerMS);
+            // Log.notice("MotionActuator: Decel Steps/s %ld Accel %ld\n", _curStepRatePerTTicks, pBlock->_accStepsPerTTicksPerMS);
             if (_curStepRatePerTTicks > std::max(MIN_STEP_RATE_PER_TTICKS + pBlock->_accStepsPerTTicksPerMS,
                                                  pBlock->_finalStepRatePerTTicks + pBlock->_accStepsPerTTicksPerMS))
                 _curStepRatePerTTicks -= pBlock->_accStepsPerTTicksPerMS;
         }
         else if (_curStepRatePerTTicks < pBlock->_maxStepRatePerTTicks)
         {
-            // Log.notice("MotionActuator: Accel Steps/s %ld Accel %ld", _curStepRatePerTTicks, pBlock->_accStepsPerTTicksPerMS);
+            // Log.notice("MotionActuator: Accel Steps/s %ld Accel %ld\n", _curStepRatePerTTicks, pBlock->_accStepsPerTTicksPerMS);
             if (_curStepRatePerTTicks + pBlock->_accStepsPerTTicksPerMS < MotionBlock::TTICKS_VALUE)
                 _curStepRatePerTTicks += pBlock->_accStepsPerTTicksPerMS;
         }
@@ -285,7 +285,7 @@ void MotionActuator::procTick()
         {
             // Step this axis
             RobotConsts::RawMotionAxis_t *pAxisInfo = &_rawMotionHwInfo._axis[axisIdxMaxSteps];
-            // Log.notice("pinSetFast: %d (ax %d major)", pAxisInfo->_pinStep, axisIdxMaxSteps);
+            // Log.notice("pinSetFast: %d (ax %d major)\n", pAxisInfo->_pinStep, axisIdxMaxSteps);
             if (pAxisInfo->_pinStep != -1)
             {
 #ifdef USE_FAST_PIN_ACCESS
@@ -326,7 +326,7 @@ void MotionActuator::procTick()
                     digitalWrite(pAxisInfo->_pinStep, 1);
 #endif
                 }
-                //  Log.trace("pinSetFast: %d (ax %d)", pAxisInfo->_pinStep, axisIdx);
+                //  Log.trace("pinSetFast: %d (ax %d)\n", pAxisInfo->_pinStep, axisIdx);
                 pAxisInfo->_pinStepCurLevel = 1;
                 _curStepCount[axisIdx]++;
                 if (_curStepCount[axisIdx] < _stepsTotalAbs[axisIdx])
@@ -342,7 +342,7 @@ void MotionActuator::procTick()
         {
             // If not this block is complete
             _motionPipeline.remove();
-            // Log.notice("Block done");
+            // Log.notice("Block done\n");
             // Check if this is a numbered block - if so record its completion
             if (pBlock->getNumberedCommandIndex() != RobotConsts::NUMBERED_COMMAND_NONE)
             {

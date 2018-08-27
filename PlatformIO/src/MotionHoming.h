@@ -47,7 +47,7 @@ class MotionHoming
         // No homing currently
         _homingStrPos = 0;
         _commandInProgress = false;
-        Log.notice("MotionHoming: sequence %s", _homingSequence.c_str());
+        Log.notice("MotionHoming: sequence %s\n", _homingSequence.c_str());
     }
 
     bool isHomingInProgress()
@@ -63,7 +63,7 @@ class MotionHoming
         _commandInProgress = false;
         _isHomedOk = false;
         _homeReqMillis = millis();
-        Log.notice("MotionHoming: start, seq = %s", _homingSequence.c_str());
+        Log.notice("MotionHoming: start, seq = %s\n", _homingSequence.c_str());
     }
 
     void service(AxesParams &axesParams)
@@ -86,7 +86,7 @@ class MotionHoming
         // Check for timeout
         if (millis() > _homeReqMillis + (_maxHomingSecs * 1000))
         {
-            Log.notice("MotionHoming: Timed Out");
+            Log.notice("MotionHoming: Timed Out\n");
             _isHomedOk = false;
             _homingInProgress = false;
             _commandInProgress = false;
@@ -115,7 +115,7 @@ class MotionHoming
             {
                 // Check if homing commands complete
                 // Log.notice("MotionHoming: command in prog %d, %d", _homingStrPos, _homingSequence.length());
-                Log.notice("MotionHoming: Homed ok");
+                Log.notice("MotionHoming: Homed ok\n");
                 _isHomedOk = true;
                 _homingInProgress = false;
                 _commandInProgress = false;
@@ -134,7 +134,7 @@ class MotionHoming
                 // Command complete so exec
                 _commandInProgress = true;
                 moveTo(_curCommand);
-                Log.notice("MotionHoming: %s", _curCommand.toJSON().c_str());
+                Log.notice("MotionHoming: %s\n", _curCommand.toJSON().c_str());
                 _homingStrPos++;
                 return true;
             }
@@ -199,7 +199,7 @@ class MotionHoming
                         }
                     }
                     // Endstops
-                    // Log.notice("MotionHoming: testingCh %c, speed %0.3f, dist %0.3f", _homingSequence.charAt(_homingStrPos),
+                    // Log.notice("MotionHoming: testingCh %c, speed %0.3f, dist %0.3f\n", _homingSequence.charAt(_homingStrPos),
                     //             _curCommand.getFeedrate(), _curCommand.getValMM(axisIdx));
                     int endStopIdx = 0;
                     bool checkActive = false;
@@ -215,15 +215,15 @@ class MotionHoming
                     // Check axis should be homed
                     if (!_axesToHome.isValid(axisIdx))
                     {
-                        Log.notice("MotionHoming: axis %d in sequence but not required to home", axisIdx);
+                        Log.notice("MotionHoming: axis %d in sequence but not required to home\n", axisIdx);
                         continue;
                     }
-                    Log.notice("MotionHoming: Axis %d Dist str %s, steps %ld (%0.2f), rate %0.2f", axisIdx, distStr.c_str(), distToMove,
+                    Log.notice("MotionHoming: Axis %d Dist str %s, steps %ld (%0.2f), rate %0.2f\n", axisIdx, distStr.c_str(), distToMove,
                                _curCommand.getValMM(axisIdx), _curCommand.getFeedrate());
                     // Check endStop
                     if (setEndstopTest)
                     {
-                        Log.notice("MotionHoming: axis %d Setting endstop %d, %d", axisIdx, endStopIdx, checkActive ? AxisMinMaxBools::END_STOP_HIT : AxisMinMaxBools::END_STOP_NOT_HIT);
+                        Log.notice("MotionHoming: axis %d Setting endstop %d, %d\n", axisIdx, endStopIdx, checkActive ? AxisMinMaxBools::END_STOP_HIT : AxisMinMaxBools::END_STOP_NOT_HIT);
                         _curCommand.setTestEndStop(axisIdx, endStopIdx, checkActive ? AxisMinMaxBools::END_STOP_HIT : AxisMinMaxBools::END_STOP_NOT_HIT);
                     }
                     // Set dist to move
@@ -238,7 +238,7 @@ class MotionHoming
                         setAtHomePos(axisIdx);
                         _homingStrPos++;
                     }
-                    Log.notice("MotionHoming: Setting at home for axis %d", axisIdx);
+                    Log.notice("MotionHoming: Setting at home for axis %d\n", axisIdx);
                     break;
                 }
                 }

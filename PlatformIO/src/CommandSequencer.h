@@ -1,7 +1,7 @@
 // RBotFirmware
 // Rob Dobson 2017
 
-class CommandInterpreter;
+#include "CommandInterface.h"
 
 class CommandSequencer
 {
@@ -30,12 +30,12 @@ public:
         // Find the command info
         bool isValid = false;
         String seqStr = RdJson::getString(cmdStr, "{}", _jsonConfigStr.c_str(), isValid);
-        // Log.trace("CommandSequencer cmdStr %s seqStr %s", cmdStr, seqStr.c_str());
+        // Log.trace("CommandSequencer cmdStr %s seqStr %s\n", cmdStr, seqStr.c_str());
         if (isValid)
         {
             _numCmdsToProcess = 0;
             String cmdList = RdJson::getString("commands", "", seqStr.c_str(), isValid);
-            Log.trace("CommandSequencer cmdStr %s isValid %d seqStr %s cmdList %s", cmdStr, isValid, seqStr.c_str(), cmdList.c_str());
+            Log.trace("CommandSequencer cmdStr %s isValid %d seqStr %s cmdList %s\n", cmdStr, isValid, seqStr.c_str(), cmdList.c_str());
             if (isValid)
             {
                 _commandList = cmdList;
@@ -52,19 +52,19 @@ public:
                         pStr++;
                     }
                     _numCmdsToProcess = numSeps + 1;
-                    Log.trace("CommandSequencer cmdStr %s seqStr %s cmdList %s numCmds %d", cmdStr, seqStr.c_str(), cmdList.c_str(), _numCmdsToProcess);
+                    Log.trace("CommandSequencer cmdStr %s seqStr %s cmdList %s numCmds %d\n", cmdStr, seqStr.c_str(), cmdList.c_str(), _numCmdsToProcess);
                 }
             }
         }
         return isValid;
     }
 
-    void service(CommandInterpreter* pCommandInterpreter)
+    void service(CommandInterface* pCommandInterface)
     {
         // if (millis() > _lastMillis + 10000)
         // {
         //     _lastMillis = millis();
-        //     Log.trace("CommandSequencer process cmdStr %s cmdIdx %d numToProc %d isEmpty %d", _commandList.c_str(), _curCmdIdx, _numCmdsToProcess,
+        //     Log.trace("CommandSequencer process cmdStr %s cmdIdx %d numToProc %d isEmpty %d\n", _commandList.c_str(), _curCmdIdx, _numCmdsToProcess,
         //                     pCommandInterpreter->queueIsEmpty());
         // }
         // Check there is something left to do
@@ -72,13 +72,13 @@ public:
             return;
 
         // Only add process commands at this level if the queue is completely empty
-        if (!pCommandInterpreter->queueIsEmpty())
+        if (!pCommandInterface->queueIsEmpty())
             return;
 
         // Process the next command
-        Log.trace("CommandSequencer ->cmdInterp cmdStr %s cmdIdx %d numToProc %d", _commandList.c_str(), _curCmdIdx, _numCmdsToProcess);
+        Log.trace("CommandSequencer ->cmdInterp cmdStr %s cmdIdx %d numToProc %d\n", _commandList.c_str(), _curCmdIdx, _numCmdsToProcess);
         String retStr;
-        pCommandInterpreter->process(_commandList.c_str(), retStr, _curCmdIdx++);
+        pCommandInterface->process(_commandList.c_str(), retStr, _curCmdIdx++);
     }
 
     void stop()

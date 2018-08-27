@@ -22,7 +22,7 @@ class EndStop
         String inputTypeStr = RdJson::getString("inputType", "", endStopJSON);
         long pinId = ConfigPinMap::getPinFromName(pinName.c_str());
         int inputType = ConfigPinMap::getInputType(inputTypeStr.c_str());
-        Log.notice("Axis%dEndStop%d (sense %ld, level %ld, type %d)", axisIdx, endStopIdx, pinId,
+        Log.notice("Axis%dEndStop%d (sense %ld, level %ld, type %d)\n", axisIdx, endStopIdx, pinId,
                    actLvl, inputType);
         setConfig(pinId, actLvl, inputType);
     }
@@ -41,7 +41,7 @@ class EndStop
         {
             pinMode(_pin, _inputType);
         }
-        // Log.notice("EndStop %d, %d, %d", _pin, _actLvl, _inputType);
+        // Log.notice("EndStop %d, %d, %d\n", _pin, _actLvl, _inputType);
     }
     bool isAtEndStop()
     {

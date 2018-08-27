@@ -151,7 +151,7 @@ class MotionBlock
 
     void setEndStopsToCheck(AxisMinMaxBools &endStopCheck)
     {
-        Log.trace("Set test enstops %08lx", endStopCheck.uintVal());
+        Log.trace("Set test enstops %08lx\n", endStopCheck.uintVal());
         _endStopsToCheck = endStopCheck;
     }
 
@@ -232,12 +232,12 @@ class MotionBlock
 
     void debugShowBlkHead()
     {
-        Log.notice("#i EntMMps ExtMMps StTotX StTotY StTotZ St>Dec    Init      Pk     Fin     Acc");
+        Log.notice("#i EntMMps ExtMMps StTotX StTotY StTotZ St>Dec    Init      Pk     Fin     Acc\n");
     }
 
     void debugShowBlock(int elemIdx, AxesParams &axesParams)
     {
-        Log.notice("%2d%8.3f%8.3f%7ld%7ld%7ld%7lu%8.3f%8.3f%8.3f%8lu", elemIdx,
+        Log.notice("%2d%8.3f%8.3f%7d%7d%7d%7u%8.3f%8.3f%8.3f%8u\n", elemIdx,
                    _entrySpeedMMps, _exitSpeedMMps,
                    getStepsToTarget(0),
                    getStepsToTarget(1),

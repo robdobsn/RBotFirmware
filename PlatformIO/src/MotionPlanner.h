@@ -114,7 +114,7 @@ class MotionPlanner
         }
 
 #ifdef DEBUG_MOTIONPLANNER_INFO
-        Log.notice("ValidatedFeedrate %0.3f", validFeedrateMMps);
+        Log.notice("ValidatedFeedrate %0.3f\n", validFeedrateMMps);
 #endif
 
         // Store values in the block
@@ -177,7 +177,7 @@ class MotionPlanner
         block._maxEntrySpeedMMps = vmaxJunction;
 
 #ifdef DEBUG_MOTIONPLANNER_INFO
-        Log.notice("PrevMoveInQueue %d, JunctionDeviation %0.3f, VmaxJunction %0.3f",
+        Log.notice("PrevMoveInQueue %d, JunctionDeviation %0.3f, VmaxJunction %0.3f\n",
                    motionPipeline.canGet(), junctionDeviation, vmaxJunction);
 #endif
 
@@ -208,7 +208,7 @@ class MotionPlanner
         int curIdx = 0;
         while (MotionBlock *pCurBlock = motionPipeline.peekNthFromGet(curIdx))
         {
-            Log.notice("%s #%d En %0.3f Ex %0.3f (maxEntry %0.3f, maxParam %0.3f)", comStr, curIdx,
+            Log.notice("%s #%d En %0.3f Ex %0.3f (maxEntry %0.3f, maxParam %0.3f)\n", comStr, curIdx,
                        pCurBlock->_entrySpeedMMps, pCurBlock->_exitSpeedMMps,
                        pCurBlock->_maxEntrySpeedMMps, pCurBlock->_feedrateMMps);
             // Next
@@ -230,7 +230,7 @@ class MotionPlanner
         // Finally prepare the block for stepper motor actuation
 
 #ifdef DEBUG_MOTIONPLANNER_INFO
-        Log.notice("^^^^^^^^^^^^^^^^^^^^^^^BEFORE RECALC^^^^^^^^^^^^^^^^^^^^^^^^");
+        Log.notice("^^^^^^^^^^^^^^^^^^^^^^^BEFORE RECALC^^^^^^^^^^^^^^^^^^^^^^^^\n");
         motionPipeline.debugShowBlocks(axesParams);
 #endif
 
@@ -261,7 +261,7 @@ class MotionPlanner
             if (pBlock->_entrySpeedMMps == pBlock->_maxEntrySpeedMMps && blockIdx > 1)
             {
 #ifdef DEBUG_MOTIONPLANNER_INFO
-                Log.notice("++++++++++++++++++++++++++++++ Optimizing block %d, prevSpeed %0.3f", blockIdx, pBlock->_exitSpeedMMps);
+                Log.notice("++++++++++++++++++++++++++++++ Optimizing block %d, prevSpeed %0.3f\n", blockIdx, pBlock->_exitSpeedMMps);
 #endif
                 //Get the exit speed from this block to use as the entry speed when going forwards
                 previousBlockExitSpeed = pBlock->_exitSpeedMMps;
@@ -338,7 +338,7 @@ class MotionPlanner
         }
 
 #ifdef DEBUG_MOTIONPLANNER_INFO
-        Log.notice(".................AFTER RECALC.......................");
+        Log.notice(".................AFTER RECALC.......................\n");
         motionPipeline.debugShowBlocks(axesParams);
 #endif
     }
@@ -412,7 +412,7 @@ class MotionPlanner
                                                    curAxisPositions._stepsFromHome.getVal(axisIdx) + block.getStepsToTarget(axisIdx));
 
 #ifdef DEBUG_MOTIONPLANNER_INFO
-        Log.notice("^^^^^^^^^^^^^^^^^^^^^^^STEPWISE^^^^^^^^^^^^^^^^^^^^^^^^");
+        Log.notice("^^^^^^^^^^^^^^^^^^^^^^^STEPWISE^^^^^^^^^^^^^^^^^^^^^^^^\n");
         motionPipeline.debugShowBlocks(axesParams);
 #endif
 

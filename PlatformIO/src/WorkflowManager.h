@@ -23,7 +23,7 @@ public:
     void init(const char* configStr)
     {
         String cmdQueueCfg = RdJson::getString("commandQueue", "{}", configStr);
-        Log.notice("Constructing WorkflowManager from %s", cmdQueueCfg.c_str());
+        Log.notice("Constructing WorkflowManager from %s\n", cmdQueueCfg.c_str());
 
         _cmdQueue.init(cmdQueueCfg.c_str());
     }
@@ -44,7 +44,7 @@ public:
     bool add(const char* pCmdStr)
     {
         bool rslt = _cmdQueue.add(pCmdStr);
-        Log.trace("WorkflowManager add %s rslt %d numInQueue %d",
+        Log.trace("WorkflowManager add %s rslt %d numInQueue %d\n",
                         pCmdStr, rslt, _cmdQueue.size());
         return rslt;
     }

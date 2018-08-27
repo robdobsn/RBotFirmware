@@ -42,7 +42,7 @@ public:
         String robotType = RdJson::getString("robotType", "NONE", configStr);
         if (robotType.equalsIgnoreCase("MugBot"))
         {
-            Log.notice("Constructing %s", robotType.c_str());
+            Log.notice("Constructing %s\n", robotType.c_str());
             _pRobot = new RobotMugBot(robotType.c_str(), _motionHelper);
             if (!_pRobot)
                 return false;
@@ -50,7 +50,7 @@ public:
         }
         else if (robotType.equalsIgnoreCase("GeistBot"))
         {
-            Log.notice("Constructing %s", robotType.c_str());
+            Log.notice("Constructing %s\n", robotType.c_str());
             _pRobot = new RobotGeistBot(robotType.c_str(), _motionHelper);
             if (!_pRobot)
                 return false;
@@ -58,7 +58,7 @@ public:
         }
         else if (robotType.equalsIgnoreCase("SandTableScara"))
         {
-            Log.notice("Constructing %s", robotType.c_str());
+            Log.notice("Constructing %s\n", robotType.c_str());
             _pRobot = new RobotSandTableScara(robotType.c_str(), _motionHelper);
             if (!_pRobot)
                 return false;
@@ -66,7 +66,7 @@ public:
         }
         else if (robotType.equalsIgnoreCase("HockeyBot"))
         {
-            Log.notice("Constructing %s", robotType.c_str());
+            Log.notice("Constructing %s\n", robotType.c_str());
             _pRobot = new RobotHockeyBot(robotType.c_str(), _motionHelper);
             if (!_pRobot)
                 return false;
@@ -74,7 +74,7 @@ public:
         }
         else if (robotType.equalsIgnoreCase("XYBot"))
         {
-            Log.notice("Constructing %s", robotType.c_str());
+            Log.notice("Constructing %s\n", robotType.c_str());
             _pRobot = new RobotXYBot(robotType.c_str(), _motionHelper);
             if (!_pRobot)
                 return false;
@@ -82,7 +82,7 @@ public:
         }
         else
         {
-            Log.notice("Cannot determine robotType %s", robotType.c_str());
+            Log.notice("Cannot determine robotType %s\n", robotType.c_str());
         }
 
         if (_pRobot)
@@ -98,9 +98,9 @@ public:
     void pause(bool pauseIt)
     {
         if (pauseIt)
-            Log.notice("RobotController: pausing");
+            Log.notice("RobotController: pausing\n");
         else
-            Log.notice("RobotController: resuming");
+            Log.notice("RobotController: resuming\n");
         if (!_pRobot)
             return;
         _pRobot->pause(pauseIt);
@@ -109,7 +109,7 @@ public:
     // Stop
     void stop()
     {
-        Log.notice("RobotController: stop");
+        Log.notice("RobotController: stop\n");
         if (!_pRobot)
             return;
         _pRobot->stop();
@@ -149,7 +149,7 @@ public:
 
     void moveTo(RobotCommandArgs& args)
     {
-        Log.trace("RobotController moveTo");
+        Log.trace("RobotController moveTo\n");
         if (!_pRobot)
             return;
         _pRobot->moveTo(args);

@@ -4,14 +4,19 @@
 #include "PatternEvaluator.h"
 #include "CommandSequencer.h"
 
-class CommandInterpreter;
+class CommandInterface;
 
 class CommandExtender
 {
 public:
-    CommandExtender(CommandInterpreter* pCommandInterpreter)
+    CommandExtender()
     {
-        _pCommandInterpreter = pCommandInterpreter;
+        _pCommandInterface = NULL;
+    }
+
+    void setup(CommandInterface* pCommandInterface)
+    {
+        _pCommandInterface = pCommandInterface;
     }
 
     void setSequences(const char* configStr)
@@ -42,10 +47,12 @@ public:
 
     void service()
     {
+        if (!_pCommandInterface)
+            return;
         // Service pattern evaluator
-        _patternEvaluator.service(_pCommandInterpreter);
+        _patternEvaluator.service(_pCommandInterface);
         // Service command sequencer
-        _commandSequencer.service(_pCommandInterpreter);
+        _commandSequencer.service(_pCommandInterface);
     }
 
     bool procCommand(const char* pCmdStr)
@@ -71,7 +78,7 @@ private:
 
 private:
     static constexpr int MAX_PATTERN_GENERATORS = 2;
-    CommandInterpreter* _pCommandInterpreter;
+    CommandInterface* _pCommandInterface;
     PatternEvaluator _patternEvaluator;
     CommandSequencer _commandSequencer;
 };

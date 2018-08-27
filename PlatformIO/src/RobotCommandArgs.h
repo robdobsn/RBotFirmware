@@ -204,7 +204,7 @@ class RobotCommandArgs
     void setTestAllEndStops()
     {
         _endstops.all();
-        Log.notice("Test all endstops");
+        Log.notice("Test all endstops\n");
     }
 
     void setTestNoEndStops()

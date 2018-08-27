@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "CommandInterface.h"
 #include "PatternEvaluator_Vars.h"
 #include "tinyexpr.h"
 #include <vector>
@@ -68,7 +69,7 @@ public:
                 int err = 0;
                 te_variable* vars = _patternVars.getVars();
                 te_expr* compiledExpr = te_compile(outExpr.c_str(), vars, _patternVars.getNumVars(), &err);
-                // Log.trace("PatternEval compile %s hex %02x%02x%02x%02x%02x%02x result %ld err %d", outExpr.c_str(),
+                // Log.trace("PatternEval compile %s hex %02x%02x%02x%02x%02x%02x result %ld err %d\n", outExpr.c_str(),
                 //             outExpr.c_str()[0], outExpr.c_str()[1], outExpr.c_str()[2],
                 //             outExpr.c_str()[3], outExpr.c_str()[4], outExpr.c_str()[5],
                 //             compiledExpr, err);
@@ -81,7 +82,7 @@ public:
                     varIdxAndCompExpr._varIdx = varIdx;
                     varIdxAndCompExpr._isInitialValue = isInitialValue;
                     _varIdxAndCompiledExprs.push_back(varIdxAndCompExpr);
-                    Log.trace("PatternEval addLoop addedCompiledExpr (Count=%d)", _varIdxAndCompiledExprs.size());
+                    Log.trace("PatternEval addLoop addedCompiledExpr (Count=%d)\n", _varIdxAndCompiledExprs.size());
                 }
             }
 
@@ -117,7 +118,7 @@ public:
             // Compute value of expression
 			double val = te_eval(_varIdxAndCompiledExprs[i]._pCompExpr);
 			_patternVars.setValByIdx(varIdx, val);
-			// Log.trace("EVAL %d: %s varIdx %d exprRslt %f isInitialValue=%d",
+			// Log.trace("EVAL %d: %s varIdx %d exprRslt %f isInitialValue=%d\n",
             //                     i, _patternVars.getVariableName(varIdx).c_str(), varIdx, val, isInitialValue);
 		}
     }
@@ -152,14 +153,14 @@ public:
         _isRunning = false;
     }
 
-    void service(CommandInterpreter* pCommandInterpreter)
+    void service(CommandInterface* pCommandInterface)
     {
         // Check running
         if (!_isRunning)
             return;
 
         // Check if the command interpreter can accept new stuff
-        if (!pCommandInterpreter->canAcceptCommand())
+        if (!pCommandInterface->canAcceptCommand())
             return;
 
         // Evaluate expressions
@@ -170,28 +171,28 @@ public:
         bool isValid = getPoint(pt);
         if (!isValid)
         {
-            Log.notice("PatternEval stopped X and Y must be specified");
+            Log.notice("PatternEval stopped X and Y must be specified\n");
             _isRunning = false;
             return;
         }
         char cmdStr[100];
         sprintf(cmdStr, "G0 X%0.2f Y%0.2f", pt._pt[0], pt._pt[1]);
-        Log.trace("PatternEval ->cmdInterp %s", cmdStr);
+        Log.trace("PatternEval ->cmdInterp %s\n", cmdStr);
         String retStr;
-        pCommandInterpreter->process(cmdStr, retStr);
+        pCommandInterface->process(cmdStr, retStr);
 
         // Check if we reached a limit
         bool stopReqd = 0;
         isValid = getStopVar(stopReqd);
         if (!isValid)
         {
-            Log.notice("PatternEval stopped STOP variable not specified");
+            Log.notice("PatternEval stopped STOP variable not specified\n");
             _isRunning = false;
             return;
         }
         if (stopReqd)
         {
-            Log.notice("PatternEval stopped STOP = TRUE");
+            Log.notice("PatternEval stopped STOP = TRUE\n");
             _isRunning = false;
             return;
         }
@@ -202,7 +203,7 @@ public:
         // Find the pattern matching the command
         bool isValid = false;
         String patternJson = RdJson::getString(cmdStr, "{}", _jsonConfigStr.c_str(), isValid);
-        Log.trace("PatternEval::procCmd cmdStr %s seqStr %s", cmdStr, patternJson.c_str());
+        Log.trace("PatternEval::procCmd cmdStr %s seqStr %s\n", cmdStr, patternJson.c_str());
         if (isValid)
         {
             // Remove existing pattern
@@ -212,9 +213,9 @@ public:
             _curPattern = cmdStr;
             String setupExprs = RdJson::getString("setup", "", patternJson.c_str());
             String loopExprs = RdJson::getString("loop", "", patternJson.c_str());
-            Log.trace("PatternEval patternName %s setup %s",
+            Log.trace("PatternEval patternName %s setup %s\n",
                             _curPattern.c_str(), setupExprs.c_str());
-            Log.trace("PatternEval patternName %s loop %s",
+            Log.trace("PatternEval patternName %s loop %s\n",
                             _curPattern.c_str(), loopExprs.c_str());
 
             // Add to the pattern evaluator expressions

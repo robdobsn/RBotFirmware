@@ -34,7 +34,7 @@ public:
         //     reqAlphaRads = 2 * M_PI + reqAlphaRads;
         // double reqLinearMM = sqrt(pt._pt[0] * pt._pt[0] + pt._pt[1] * pt._pt[1]);
         //
-        // // Log.trace("xyToActuator x %0.2f y %0.2f ax0StNow %d ax1StNow %d rqAlphaD %0.2f rqLinMM %0.2f",
+        // // Log.trace("xyToActuator x %0.2f y %0.2f ax0StNow %d ax1StNow %d rqAlphaD %0.2f rqLinMM %0.2f\n",
         // //         xy[0], xy[1], axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome,
         // //         reqAlphaRads * 180 / M_PI, reqLinearMM);
         //
@@ -65,11 +65,11 @@ public:
         // actuatorCoords._pt[0] = axisParams[0]._stepsFromHome + actuator0Diff;
         // actuatorCoords._pt[1] = axisParams[1]._stepsFromHome + actuator1Diff;
         //
-        // // Log.trace("xyToActuator reqAlphaD %0.2f curAlphaD %0.2f alphaDiffD %0.2f aRotCw %d linDiffMM %0.2f ax0Diff %0.2f ax1Diff %0.2f ax0Tgt %0.2f ax1Tgt %0.2f",
+        // // Log.trace("xyToActuator reqAlphaD %0.2f curAlphaD %0.2f alphaDiffD %0.2f aRotCw %d linDiffMM %0.2f ax0Diff %0.2f ax1Diff %0.2f ax0Tgt %0.2f ax1Tgt %0.2f\n",
         // //                 reqAlphaRads * 180 / M_PI, currentPolar[0] * 180 / M_PI, alphaDiffDegs, alphaRotateCw,
         // //                 linearDiffMM, actuator0Diff, actuator1Diff, actuatorCoords[0], actuatorCoords[1]);
         // //
-        // // Log.trace("bounds check X (En%d) %d, Y (En%d) %d", axisParams[1]._minValValid, reqLinearMM < axisParams[1]._minVal,
+        // // Log.trace("bounds check X (En%d) %d, Y (En%d) %d\n", axisParams[1]._minValValid, reqLinearMM < axisParams[1]._minVal,
         // //             axisParams[1]._maxValValid, reqLinearMM > axisParams[1]._maxVal);
         //
         // // Cross check
@@ -79,7 +79,7 @@ public:
         // double checkY = checkPolarCoords[1] * cos(checkPolarCoords[0]);
         // double checkErr = sqrt((checkX-pt._pt[0]) * (checkX-pt._pt[0]) + (checkY-pt._pt[1]) * (checkY-pt._pt[1]));
         // if (checkErr > 0.1)
-        //     Log.trace("check reqX %02.f checkX %0.2f, reqY %0.2f checkY %0.2f, error %0.2f, %s", pt._pt[0], checkX, pt._pt[1], checkY,
+        //     Log.trace("check reqX %02.f checkX %0.2f, reqY %0.2f checkY %0.2f, error %0.2f, %s\n", pt._pt[0], checkX, pt._pt[1], checkY,
         //                     checkErr, (checkErr>0.1) ? "****** FAILED ERROR CHECK" : "");
         //
         // // Check machine bounds for linear axis
@@ -105,7 +105,7 @@ public:
         long linearStepsFromHome = actuatorCoords._pt[1] - actuatorCoords._pt[0];
         polarCoordsAzFirst[1] = linearStepsFromHome / axesParams.getStepsPerUnit(1);
 
-        // Log.trace("actuatorToPolar c0 %0.2f c1 %0.2f alphaSteps %d alphaDegs %0.2f linStpHm %d rotD %0.2f lin %0.2f", actuatorCoords[0], actuatorCoords[1],
+        // Log.trace("actuatorToPolar c0 %0.2f c1 %0.2f alphaSteps %d alphaDegs %0.2f linStpHm %d rotD %0.2f lin %0.2f\n", actuatorCoords[0], actuatorCoords[1],
         //     alphaSteps, alphaDegs, linearStepsFromHome, polarCoordsAzFirst[0] * 180 / M_PI, polarCoordsAzFirst[1]);
     }
 
@@ -117,7 +117,7 @@ public:
         // Trig
         outPt._pt[0] = polarCoords[1] * sinf(polarCoords[0]);
         outPt._pt[1] = polarCoords[1] * cosf(polarCoords[0]);
-        // Log.trace("actuatorToXy curX %0.2f curY %0.2f", xy[0], xy[1]);
+        // Log.trace("actuatorToXy curX %0.2f curY %0.2f\n", xy[0], xy[1]);
     }
 
     static void correctStepOverflow(AxisPosition& curPos, AxesParams& axesParams)
@@ -127,7 +127,7 @@ public:
         bool showDebug = false;
         if (axesParams.gethomeOffSteps(0) > rotationSteps || axesParams.gethomeOffSteps(0) <= -rotationSteps)
         {
-            Log.trace("CORRECTING ax0 %ld ax1 %ld",
+            Log.trace("CORRECTING ax0 %ld ax1 %ld\n",
                             axesParams.gethomeOffSteps(0), axesParams.gethomeOffSteps(1));
             showDebug = true;
         }
@@ -143,7 +143,7 @@ public:
             axesParams.sethomeOffSteps(1, axesParams.gethomeOffSteps(1) + rotationSteps);
         }
         if (showDebug)
-            Log.trace("CORRECTED ax0 %ld ax1 %ld",
+            Log.trace("CORRECTED ax0 %ld ax1 %ld\n",
                             axesParams.gethomeOffSteps(0), axesParams.gethomeOffSteps(1));
     }
 
@@ -203,7 +203,7 @@ public:
 //     bool init(const char* robotConfigStr)
 //     {
 //         // Info
-//         // Log.notice("Constructing %s from %s", _robotTypeName.c_str(), robotConfigStr);
+//         // Log.notice("Constructing %s from %s\n", _robotTypeName.c_str(), robotConfigStr);
 //
 //         // Init motion controller from config
 //         _motionHelper.configure(robotConfigStr);
@@ -215,7 +215,7 @@ public:
 //         _homingRotCentreDegs = RdJson::getDouble("homingRotCentreDegs", homingRotCentreDegs_default, robotConfigStr);
 //
 //         // Info
-//         Log.notice("%s maxHome %lds linOff %0.3fd ctrOff %0.3fmm rotCtr %0.3fd",
+//         Log.notice("%s maxHome %lds linOff %0.3fd ctrOff %0.3fmm rotCtr %0.3fd\n",
 //                     _robotTypeName.c_str(), _maxHomingSecs, _homingLinOffsetDegs, _homingCentreOffsetMM, _homingRotCentreDegs);
 //
 //         return true;
@@ -224,7 +224,7 @@ public:
 //     // void goHome(RobotCommandArgs& args)
 //     // {
 //     //     // GeistBot can only home X & Y axes together so ignore params
-//     //     Log.notice("%s goHome", _robotTypeName.c_str());
+//     //     Log.notice("%s goHome\n", _robotTypeName.c_str());
 //     //
 //     //     // Set homing state
 //     //     homingSetNewState(HOMING_STATE_INIT);
@@ -265,7 +265,7 @@ public:
 //     // {
 //     //     // Debug
 //     //     if (_homingStepsDone != 0)
-//     //         Log.trace("Changing state ... HomingSteps %d", _homingStepsDone);
+//     //         Log.trace("Changing state ... HomingSteps %d\n", _homingStepsDone);
 //     //
 //     //     // Reset homing vars
 //     //     _homingStepsDone = 0;
@@ -294,7 +294,7 @@ public:
 //     //             _homingAxis0Step = HSTEP_FORWARDS;
 //     //             _homingAxis1Step = HSTEP_FORWARDS;
 //     //             _timeBetweenHomingStepsUs = _homingRotateFastStepTimeUs;
-//     //             Log.notice("Homing started");
+//     //             Log.notice("Homing started\n");
 //     //             break;
 //     //         }
 //     //         case ROTATE_TO_ENDSTOP:
@@ -305,7 +305,7 @@ public:
 //     //             // To purely rotate both steppers must turn in the same direction
 //     //             _homingAxis0Step = HSTEP_BACKWARDS;
 //     //             _homingAxis1Step = HSTEP_BACKWARDS;
-//     //             Log.trace("Homing - rotating to end stop 0");
+//     //             Log.trace("Homing - rotating to end stop 0\n");
 //     //             break;
 //     //         }
 //     //         case ROTATE_FOR_HOME_SET:
@@ -317,7 +317,7 @@ public:
 //     //             // To purely rotate both steppers must turn in the same direction
 //     //             _homingAxis0Step = HSTEP_BACKWARDS;
 //     //             _homingAxis1Step = HSTEP_BACKWARDS;
-//     //             Log.trace("Homing - rotating to home position 0");
+//     //             Log.trace("Homing - rotating to home position 0\n");
 //     //             break;
 //     //         }
 //     //         case ROTATE_TO_LINEAR_SEEK_ANGLE:
@@ -329,7 +329,7 @@ public:
 //     //             // To purely rotate both steppers must turn in the same direction
 //     //             _homingAxis0Step = HSTEP_FORWARDS;
 //     //             _homingAxis1Step = HSTEP_FORWARDS;
-//     //             Log.trace("Homing - at rotate endstop, prep linear seek %d steps back", _homingStepsLimit);
+//     //             Log.trace("Homing - at rotate endstop, prep linear seek %d steps back\n", _homingStepsLimit);
 //     //             break;
 //     //         }
 //     //         case LINEAR_SEEK_ENDSTOP:
@@ -342,7 +342,7 @@ public:
 //     //             _homingAxis0Step = HSTEP_NONE;
 //     //             _homingAxis1Step = HSTEP_BACKWARDS;
 //     //             _timeBetweenHomingStepsUs = _homingLinearFastStepTimeUs;
-//     //             Log.trace("Homing - linear seek");
+//     //             Log.trace("Homing - linear seek\n");
 //     //             break;
 //     //         }
 //     //         case LINEAR_CLEAR_ENDSTOP:
@@ -354,7 +354,7 @@ public:
 //     //             // - forwards is towards the centre in this case
 //     //             _homingAxis0Step = HSTEP_NONE;
 //     //             _homingAxis1Step = HSTEP_FORWARDS;
-//     //             Log.trace("Homing - clear endstop");
+//     //             Log.trace("Homing - clear endstop\n");
 //     //             break;
 //     //         }
 //     //         case LINEAR_FULLY_CLEAR_ENDSTOP:
@@ -367,7 +367,7 @@ public:
 //     //             // - forwards is towards the centre in this case
 //     //             _homingAxis0Step = HSTEP_NONE;
 //     //             _homingAxis1Step = HSTEP_FORWARDS;
-//     //             Log.trace("Homing - nudge away from linear endstop");
+//     //             Log.trace("Homing - nudge away from linear endstop\n");
 //     //             break;
 //     //         }
 //     //         case LINEAR_SLOW_ENDSTOP:
@@ -380,7 +380,7 @@ public:
 //     //             _homingAxis0Step = HSTEP_NONE;
 //     //             _homingAxis1Step = HSTEP_BACKWARDS;
 //     //             _timeBetweenHomingStepsUs = _homingLinearSlowStepTimeUs;
-//     //             Log.trace("Homing - linear seek");
+//     //             Log.trace("Homing - linear seek\n");
 //     //             break;
 //     //         }
 //     //         case OFFSET_TO_CENTRE:
@@ -393,7 +393,7 @@ public:
 //     //             // - forwards is towards the centre in this case
 //     //             _homingAxis0Step = HSTEP_NONE;
 //     //             _homingAxis1Step = HSTEP_BACKWARDS;
-//     //             Log.trace("Homing - offet to centre");
+//     //             Log.trace("Homing - offet to centre\n");
 //     //             break;
 //     //         }
 //     //         case ROTATE_TO_HOME:
@@ -404,14 +404,14 @@ public:
 //     //             // To purely rotate both steppers must turn in the same direction
 //     //             _homingAxis0Step = HSTEP_BACKWARDS;
 //     //             _homingAxis1Step = HSTEP_BACKWARDS;
-//     //             Log.trace("Homing - rotating back home %d steps", _homingStepsLimit);
+//     //             Log.trace("Homing - rotating back home %d steps\n", _homingStepsLimit);
 //     //             break;
 //     //         }
 //     //         case HOMING_STATE_COMPLETE:
 //     //         {
 //     //             _motionHelper.setCurPositionAsHome(false,true,false);
 //     //             _homingState = HOMING_STATE_IDLE;
-//     //             Log.notice("Homing - complete");
+//     //             Log.notice("Homing - complete\n");
 //     //             break;
 //     //         }
 //     //     }
@@ -426,7 +426,7 @@ public:
 //         // // Check for timeout
 //         // if (millis() > _homeReqMillis + (_maxHomingSecs * 1000))
 //         // {
-//         //     Log.notice("Homing Timed Out");
+//         //     Log.notice("Homing Timed Out\n");
 //         //     homingSetNewState(HOMING_STATE_IDLE);
 //         // }
 //         //
@@ -481,7 +481,7 @@ public:
 //         //     //     {
 //         //     //         pStr = "ROT_CW";
 //         //     //     }
-//         //     //     Log.trace("HomingSteps %d %s", _homingStepsDone, pStr);
+//         //     //     Log.trace("HomingSteps %d %s\n", _homingStepsDone, pStr);
 //         //     // }
 //         // }
 //         //
@@ -493,7 +493,7 @@ public:
 //         // //         _homingState = OFFSET_TO_CENTRE;
 //         // //         _homingStepsLimit = _homingCentreOffsetMM * _motionHelper.getAxisParams(1)._stepsPerUnit;
 //         // //         _homingStepsDone = 0;
-//         // //         Log.notice("Homing - %d steps to centre", _homingStepsLimit);
+//         // //         Log.notice("Homing - %d steps to centre\n", _homingStepsLimit);
 //         // //         break;
 //         // //     }
 //         // // }

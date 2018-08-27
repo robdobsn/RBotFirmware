@@ -99,16 +99,28 @@ ConfigNVS netLogConfig("netLog", 200);
 // Robot controller
 RobotController _robotController;
 
-// workflow manager
+// Workflow manager
 WorkflowManager _workflowManager;
 
 // REST API System
 #include "RestAPISystem.h"
-RestAPISystem restAPISystem(wifiManager);
+RestAPISystem restAPISystem(wifiManager, mqttManager, otaUpdate, netLog, systemType, systemVersion);
+
+// Command extender
+#include "CommandExtender.h"
+CommandExtender _commandExtender;
+
+// Command interface
+#include "CommandInterface.h"
+CommandInterface _commandInterface(robotConfig, 
+                _robotController,
+                _workflowManager,
+                restAPISystem,
+                _commandExtender);
 
 // REST API Robot
-// #include "RestAPIRobot.h"
-// RestAPIRobot restAPIRobot(_robotController, _workflowManager, _commandInterpreter, mqttManager, restAPISystem);
+#include "RestAPIRobot.h"
+RestAPIRobot restAPIRobot(_commandInterface);
 
 // Debug loop used to time main loop
 #include "DebugLoopTimer.h"
@@ -171,20 +183,24 @@ void setup()
     mqttManager.setup(hwConfig, &mqttConfig);
 
     // Network logging
-    netLog.setup(&netLogConfig);
+    netLog.setup(&netLogConfig, wifiManager.getHostname().c_str());
+
+    // Command extender
+    _commandExtender.setup(&_commandInterface);
 
     // Add debug blocks
     debugLoopTimer.blockAdd(0, "Web");
     debugLoopTimer.blockAdd(1, "Serial");
     debugLoopTimer.blockAdd(2, "MQTT");
-    debugLoopTimer.blockAdd(3, "Cmd");
+    debugLoopTimer.blockAdd(3, "OTA");
     debugLoopTimer.blockAdd(4, "Robot");
+    debugLoopTimer.blockAdd(5, "CMD");
 
     // Reconfigure the robot and other settings
-    // reconfigure();
+    _commandInterface.reconfigure();
 
     // Handle statup commands
-    // handleStartupCommands();
+    _commandInterface.handleStartupCommands();
 }
 
 // Loop
@@ -235,8 +251,8 @@ void loop()
     _robotController.service();
     debugLoopTimer.blockEnd(4);
 
-    // // Service the command interpreter (which pumps the workflow queue)
-    // debugLoopTimer.blockStart(3);
-    // _commandInterpreter.service();
-    // debugLoopTimer.blockEnd(3);
+    // Service the command interface (which pumps the workflow queue)
+    debugLoopTimer.blockStart(5);
+    _commandInterface.service();
+    debugLoopTimer.blockEnd(5);
 }

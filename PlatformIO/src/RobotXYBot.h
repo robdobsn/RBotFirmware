@@ -26,7 +26,7 @@ public:
             outActuator.setVal(axisIdx, axisValFromHome * axesParams.getStepsPerUnit(axisIdx)
                             + axesParams.gethomeOffSteps(axisIdx));
 
-            Log.trace("ptToActuator %f -> %f (homeOffVal %f, homeOffSteps %ld)",
+            Log.trace("ptToActuator %f -> %f (homeOffVal %f, homeOffSteps %ld)\n",
                     targetPt.getVal(axisIdx), outActuator._pt[axisIdx],
                     axesParams.getHomeOffsetVal(axisIdx), axesParams.gethomeOffSteps(axisIdx));
         }
@@ -41,7 +41,7 @@ public:
             float ptVal = targetActuator.getVal(axisIdx) - axesParams.gethomeOffSteps(axisIdx);
             ptVal = ptVal / axesParams.getStepsPerUnit(axisIdx) + axesParams.getHomeOffsetVal(axisIdx);
             outPt.setVal(axisIdx, ptVal);
-            Log.trace("actuatorToPt %d %f -> %f (perunit %f)", axisIdx, targetActuator.getVal(axisIdx),
+            Log.trace("actuatorToPt %d %f -> %f (perunit %f)\n", axisIdx, targetActuator.getVal(axisIdx),
                             ptVal, axesParams.getStepsPerUnit(axisIdx));
         }
     }
@@ -62,7 +62,7 @@ public:
     // bool init(const char* robotConfigStr)
     // {
     //     // Info
-    //     // Log.notice("Constructing %s from %s", _robotTypeName.c_str(), robotConfigStr);
+    //     // Log.notice("Constructing %s from %s\n", _robotTypeName.c_str(), robotConfigStr);
     //
     //     // Init motion controller from config
     //     _motionHelper.configure(robotConfigStr);

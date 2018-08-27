@@ -95,7 +95,7 @@ class MotionIO
             String dirnPinName = RdJson::getString("dirnPin", "-1", axisJSON);
             int stepPin = ConfigPinMap::getPinFromName(stepPinName.c_str());
             int dirnPin = ConfigPinMap::getPinFromName(dirnPinName.c_str());
-            Log.notice("Axis%d (step pin %d, dirn pin %d)", axisIdx, stepPin, dirnPin);
+            Log.notice("Axis%d (step pin %d, dirn pin %d)\n", axisIdx, stepPin, dirnPin);
             if ((stepPin != -1 && dirnPin != -1))
                 _stepperMotors[axisIdx] = new StepperMotor(RobotConsts::MOTOR_TYPE_DRIVER, stepPin, dirnPin);
         }
@@ -104,7 +104,7 @@ class MotionIO
             // Create a servo motor for the axis
             String servoPinName = RdJson::getString("servoPin", "-1", axisJSON);
             long servoPin = ConfigPinMap::getPinFromName(servoPinName.c_str());
-            Log.notice("Axis%d (servo pin %ld)", axisIdx, servoPin);
+            Log.notice("Axis%d (servo pin %ld)\n", axisIdx, servoPin);
             if ((servoPin != -1))
             {
                 _servoMotors[axisIdx] = new Servo();
@@ -136,7 +136,7 @@ class MotionIO
         _stepEnLev = RdJson::getLong("stepEnLev", 1, robotConfigJSON);
         _stepEnablePin = ConfigPinMap::getPinFromName(stepEnablePinName.c_str());
         _stepDisableSecs = float(RdJson::getDouble("stepDisableSecs", stepDisableSecs_default, robotConfigJSON));
-        Log.notice("MotorIO (pin %d, actLvl %d, disableAfter %0.2fs)", _stepEnablePin, _stepEnLev, _stepDisableSecs);
+        Log.notice("MotorIO (pin %d, actLvl %d, disableAfter %0.2fs)\n", _stepEnablePin, _stepEnLev, _stepDisableSecs);
 
         // Enable pin - initially disable
         pinMode(_stepEnablePin, OUTPUT);
@@ -251,14 +251,14 @@ class MotionIO
 
     void enableMotors(bool en, bool timeout)
     {
-        // Log.trace("Enable %d, disable level %d, disable after time %0.2f",
+        // Log.trace("Enable %d, disable level %d, disable after time %0.2f\n",
         //							en, !_stepEnLev, _stepDisableSecs);
         if (en)
         {
             if (_stepEnablePin != -1)
             {
                 if (!_motorsAreEnabled)
-                    Log.notice("MotionIO: motors enabled, disable after time %0.2f", _stepDisableSecs);
+                    Log.notice("MotionIO: motors enabled, disable after time %0.2f\n", _stepDisableSecs);
                 digitalWrite(_stepEnablePin, _stepEnLev);
             }
             _motorsAreEnabled = true;
@@ -270,7 +270,7 @@ class MotionIO
             if (_stepEnablePin != -1)
             {
                 if (_motorsAreEnabled)
-                    Log.notice("MotionIO: motors disabled by %s", timeout ? "timeout" : "command");
+                    Log.notice("MotionIO: motors disabled by %s\n", timeout ? "timeout" : "command");
                 digitalWrite(_stepEnablePin, !_stepEnLev);
             }
             _motorsAreEnabled = false;

@@ -30,7 +30,7 @@ public:
         //     //     thisAxisValid = false;
         // bool axis0Valid = true;
         // bool axis1Valid = true;
-        // Log.trace("ptToActuator X (%s) %f -> %f Y (%s) %f -> %f",
+        // Log.trace("ptToActuator X (%s) %f -> %f Y (%s) %f -> %f\n",
         //     axis0Valid ? "OK" : "INVALID",
         //     motionElem._pt2MM.getVal(0), actuatorCoords._pt[0],
         //     axis1Valid ? "OK" : "INVALID",
@@ -52,7 +52,7 @@ public:
         // pt.setVal(0, x);
         // pt.setVal(1, y);
         //
-        // Log.trace("actuatorToPt 0 %f -> %f (perunit %f) 1 %f -> %f (perunit %f)",
+        // Log.trace("actuatorToPt 0 %f -> %f (perunit %f) 1 %f -> %f (perunit %f)\n",
         //         actuatorCoords.getVal(0), x, axisParams[0].stepsPerUnit(),
         //         actuatorCoords.getVal(1), y, axisParams[1].stepsPerUnit());
     }
@@ -72,7 +72,7 @@ public:
     // bool init(const char* robotConfigStr)
     // {
     //     // Info
-    //     // Log.notice("Constructing %s from %s", _robotTypeName.c_str(), robotConfigStr);
+    //     // Log.notice("Constructing %s from %s\n", _robotTypeName.c_str(), robotConfigStr);
     //
     //     // Init motion controller from config
     //     _motionHelper.configure(robotConfigStr);

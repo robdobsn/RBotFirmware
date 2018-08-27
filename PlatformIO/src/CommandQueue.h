@@ -27,11 +27,11 @@ public:
     // Set configuration
     void init(const char* configStr)
     {
-//        Log.notice("Configuring CommandQueue from %s", configStr);
+//        Log.notice("Configuring CommandQueue from %s\n", configStr);
         _cmdQueueMaxLen = (int) RdJson::getLong("cmdQueueMaxLen",
                                             _cmdQueueMaxLenDefault, configStr);
         clear();
-//        Log.notice("CmdQueueMaxLen %d", _cmdQueueMaxLen);
+//        Log.notice("CmdQueueMaxLen %d\n", _cmdQueueMaxLen);
     }
 
     // Check if queue full
@@ -60,7 +60,7 @@ public:
         // Check if queue is full
         if (_cmdElemQueue.size() >= _cmdQueueMaxLen)
         {
-//            Log.notice("Command Queue FULL size %d max %d", _cmdElemQueue.size(), _cmdQueueMaxLen);
+//            Log.notice("Command Queue FULL size %d max %d\n", _cmdElemQueue.size(), _cmdQueueMaxLen);
             return false;
         }
 

@@ -13,13 +13,13 @@ class RobotTypes
 
     static const char *getConfig(const char *robotTypeName)
     {
-        Log.notice("RobotTypes: Requesting %s, there are %d default types", robotTypeName, _numRobotTypes);
+        Log.notice("RobotTypes: Requesting %s, there are %d default types\n", robotTypeName, _numRobotTypes);
         for (int configIdx = 0; configIdx < _numRobotTypes; configIdx++)
         {
             String robotType = RdJson::getString("robotType", "", _robotConfigs[configIdx]);
             if (robotType.equals(robotTypeName))
             {
-                Log.notice("RobotTypes: Config for %s found", robotTypeName);
+                Log.notice("RobotTypes: Config for %s found\n", robotTypeName);
                 return _robotConfigs[configIdx];
             }
         }
@@ -38,5 +38,13 @@ class RobotTypes
             retStr += "\"" + robotType + "\"";
         }
         retStr += "]";
+    }
+
+    // Get Nth robot type name
+    static void getNthRobotTypeName(int n, String& robotTypeName)
+    {
+        if ((n < 0) || (n > _numRobotTypes))
+            robotTypeName = "";
+        robotTypeName = RdJson::getString("robotType", "", _robotConfigs[n]);
     }
 };

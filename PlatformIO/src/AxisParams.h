@@ -100,9 +100,9 @@ class AxisParams
 
     void debugLog(int axisIdx)
     {
-        Log.notice("Axis%d params maxSpeed %02.f, acceleration %0.2f, stepsPerRot %0.2f, unitsPerRot %0.2f",
+        Log.notice("Axis%d params maxSpeed %02.f, acceleration %0.2f, stepsPerRot %0.2f, unitsPerRot %0.2f\n",
                    axisIdx, _maxSpeedMMps, _maxAccelMMps2, _stepsPerRot, _unitsPerRot);
-        Log.notice("Axis%d params minVal %02.f (%d), maxVal %0.2f (%d), isDominant %d, isServo %d, homeOffVal %0.2f, homeOffSteps %ld",
+        Log.notice("Axis%d params minVal %02.f (%d), maxVal %0.2f (%d), isDominant %d, isServo %d, homeOffVal %0.2f, homeOffSteps %d\n",
                    axisIdx, _minVal, _minValValid, _maxVal, _maxValValid, _isDominantAxis, _isServoAxis, _homeOffsetVal, _homeOffSteps);
     }
 };

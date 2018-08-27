@@ -73,7 +73,7 @@ class MotionActuator
         {
             _pMotionActuatorInstance = this;
             _isrMotionTimer.begin(_isrStepperMotion, ISR_TIMER_PERIOD_US, uSec);
-            Log.notice("MotionActuator: Starting ISR timer");
+            Log.notice("MotionActuator: Starting ISR timer\n");
         }
 #endif
     }

@@ -37,7 +37,7 @@ public:
             outActuator.setVal(axisIdx, axisValFromHome * axesParams.getStepsPerUnit(axisIdx)
                             + axesParams.gethomeOffSteps(axisIdx));
 
-            // Log.notice("ptToActuator %f -> %f (homeOffVal %f, homeOffSteps %ld)",
+            // Log.notice("ptToActuator %f -> %f (homeOffVal %f, homeOffSteps %ld)\n",
             //         pt.getVal(axisIdx), actuatorCoords._pt[axisIdx],
             //         axesParams.getHomeOffsetVal(axisIdx), axesParams.gethomeOffSteps(axisIdx));
         }
@@ -52,7 +52,7 @@ public:
             float ptVal = targetActuator.getVal(axisIdx) - axesParams.gethomeOffSteps(axisIdx);
             ptVal = ptVal / axesParams.getStepsPerUnit(axisIdx) + axesParams.getHomeOffsetVal(axisIdx);
             outPt.setVal(axisIdx, ptVal);
-            // Log.notice("actuatorToPt %d %f -> %f (perunit %f)", axisIdx, actuatorCoords.getVal(axisIdx),
+            // Log.notice("actuatorToPt %d %f -> %f (perunit %f)\n", axisIdx, actuatorCoords.getVal(axisIdx),
             //                 ptVal, axesParams.getStepsPerUnit(axisIdx));
         }
     }
@@ -106,7 +106,7 @@ public:
     // bool init(const char* robotConfigStr)
     // {
         // Info
-        // Log.notice("Constructing %s from %s", _robotTypeName.c_str(), robotConfigStr);
+        // Log.notice("Constructing %s from %s\n", _robotTypeName.c_str(), robotConfigStr);
 
         // // Set current position to be home (will be overridden when we do homing)
         // _motionHelper.setCurPositionAsHome(true, true, true);
@@ -115,7 +115,7 @@ public:
         // _maxHomingSecs = RdJson::getLong("maxHomingSecs", maxHomingSecs_default, robotConfigStr);
 
         // // Info
-        // Log.notice("%s maxHome %lds", _robotTypeName.c_str(), _maxHomingSecs);
+        // Log.notice("%s maxHome %ds\n", _robotTypeName.c_str(), _maxHomingSecs);
 
     //     return true;
     // }
@@ -129,7 +129,7 @@ public:
         // _homeZ = args.isValid(2);
         // if (!_homeX && !_homeY && !_homeZ)
         //     _homeX = _homeY = _homeZ = true;
-        // Log.notice("%s goHome x%d, y%d, z%d", _robotTypeName.c_str(),
+        // Log.notice("%s goHome x%d, y%d, z%d\n", _robotTypeName.c_str(),
         //                 _homeX, _homeY, _homeZ);
         //
         // // Set homing state
@@ -155,9 +155,9 @@ public:
     // {
     //     // Debug
     //     // if (_homingStepsDone != 0)
-    //     Log.notice("Changing state to %d ... HomingSteps %d", newState, _homingStepsDone);
+    //     Log.notice("Changing state to %d ... HomingSteps %d\n", newState, _homingStepsDone);
     //     // else
-    //     //     Log.trace("Changing state to %d ... HomingSteps %d", _homingStepsDone);
+    //     //     Log.trace("Changing state to %d ... HomingSteps %d\n", _homingStepsDone);
     //
     //     // Reset homing vars
     //     _homingStepsDone = 0;
@@ -191,7 +191,7 @@ public:
     //                 _homingAxis1Step = HSTEP_BACKWARDS;
     //                 _timeBetweenHomingStepsUs = _homingLinearFastStepTimeUs;
     //                 bool endstop1Val = _motionHelper.isAtEndStop(1,0);
-    //                 Log.notice("Homing started%s", endstop1Val ? " moving from endstop" : "");
+    //                 Log.notice("Homing started%s\n", endstop1Val ? " moving from endstop" : "");
     //                 break;
     //             }
     //             else
@@ -207,7 +207,7 @@ public:
     //             _homingSeekAxis1Endstop0 = HSEEK_ON;
     //             _homingAxis1Step = HSTEP_FORWARDS;
     //             _timeBetweenHomingStepsUs = _homingLinearSlowStepTimeUs;
-    //             Log.notice("Homing to end stop");
+    //             Log.notice("Homing to end stop\n");
     //             break;
     //         }
     //         case HOMING_STATE_BACK_OFF:
@@ -219,7 +219,7 @@ public:
     //             _timeBetweenHomingStepsUs = _homingLinearSlowStepTimeUs;
     //             _homingStepsLimit = 4000;
     //             _homingApplyStepLimit = true;
-    //             Log.notice("Homing to end stop");
+    //             Log.notice("Homing to end stop\n");
     //             break;
     //         }
     //         case HOMING_STATE_COMPLETE:
@@ -227,7 +227,7 @@ public:
     //             AxisFloats homeVals(0,0);
     //             _motionHelper.setCurPositionAsHome(homeVals);
     //             _homingState = HOMING_STATE_IDLE;
-    //             Log.notice("Homing - complete");
+    //             Log.notice("Homing - complete\n");
     //             break;
     //         }
     //     }
@@ -242,7 +242,7 @@ public:
     //     // Check for timeout
     //     if (millis() > _homeReqMillis + (_maxHomingSecs * 1000))
     //     {
-    //         Log.notice("Homing Timed Out");
+    //         Log.notice("Homing Timed Out\n");
     //         homingSetNewState(HOMING_STATE_IDLE);
     //     }
     //
@@ -250,7 +250,7 @@ public:
     //     bool endstop1Val = _motionHelper.isAtEndStop(1,0);
     //     if (((_homingSeekAxis1Endstop0 == HSEEK_ON) && endstop1Val) || ((_homingSeekAxis1Endstop0 == HSEEK_OFF) && !endstop1Val))
     //     {
-    //         Log.notice("Mugbot at endstop setting new state %d", _homingStateNext);
+    //         Log.notice("Mugbot at endstop setting new state %d\n", _homingStateNext);
     //         homingSetNewState(_homingStateNext);
     //     }
     //
@@ -268,7 +268,7 @@ public:
     //         // Check for step limit in this stage
     //         if (_homingApplyStepLimit && (_homingStepsDone >= _homingStepsLimit))
     //         {
-    //             Log.notice("Mugbot steps done setting new state %d", _homingStateNext);
+    //             Log.notice("Mugbot steps done setting new state %d\n", _homingStateNext);
     //             homingSetNewState(_homingStateNext);
     //         }
     //     }
