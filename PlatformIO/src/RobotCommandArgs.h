@@ -259,10 +259,12 @@ class RobotCommandArgs
     {
         _pause = pause;
     }
-    String toJSON()
+    String toJSON(bool includeBraces = true)
     {
         String jsonStr;
-        jsonStr = "{\"XYZ\":" + _ptInMM.toJSON();
+        if (includeBraces)
+            jsonStr = "{";
+        jsonStr = "\"XYZ\":" + _ptInMM.toJSON();
         jsonStr += ",\"ABC\":" + _ptInSteps.toJSON();
         if (_feedrateValid)
         {
@@ -286,7 +288,8 @@ class RobotCommandArgs
         String queuedCommandsStr = String(_queuedCommands);
         jsonStr += ", \"Qd\":" + queuedCommandsStr;
         jsonStr += String(", \"pause\":") + (_pause ? "1" : "0");
-        jsonStr += "}";
+        if (includeBraces)
+            jsonStr += "}";
         return jsonStr;
     }
 };

@@ -21,7 +21,7 @@ void CommandInterface::queryStatus(String &respStr)
     // Robot info
     RobotCommandArgs cmdArgs;
     _robotController.getCurStatus(cmdArgs);
-    String healthStrRobot = cmdArgs.toJSON();
+    String healthStrRobot = cmdArgs.toJSON(false);
     if (innerJsonStr.length() > 0)
         innerJsonStr += ",";
     innerJsonStr += healthStrRobot;

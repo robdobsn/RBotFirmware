@@ -49,7 +49,7 @@ class RestAPIRobot
 
     void apiPostSettingsBody(uint8_t *pData, size_t len, size_t index, size_t total)
     {
-        Log.notice("RestAPIRobot: PostSettings len %d", len);
+        Log.notice("RestAPIRobot: PostSettings len %d\n", len);
         // Store the settings
         _commandInterface.setRobotConfig(pData, len);
     }

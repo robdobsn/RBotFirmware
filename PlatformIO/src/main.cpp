@@ -168,6 +168,7 @@ void setup()
 
     // Add API endpoints
     restAPISystem.setup(restAPIEndpoints);
+    restAPIRobot.setup(restAPIEndpoints);
 
     // Serial console
     serialConsole.setup(hwConfig, restAPIEndpoints);
