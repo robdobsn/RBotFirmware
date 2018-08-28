@@ -339,7 +339,7 @@ class AxisMinMaxBools
         _uint = other._uint;
         return *this;
     }
-    bool isValid()
+    bool IRAM_ATTR isValid()
     {
         return _uint & (1 << MIN_MAX_VALID_BIT);
     }
@@ -351,7 +351,7 @@ class AxisMinMaxBools
         _uint |= checkType << valIdx;
         _uint |= (1 << MIN_MAX_VALID_BIT);
     }
-    AxisMinMaxEnum get(int axisIdx, int endStopIdx)
+    AxisMinMaxEnum IRAM_ATTR get(int axisIdx, int endStopIdx)
     {
         int valIdx = (axisIdx * VALS_PER_AXIS + endStopIdx) * BITS_PER_VAL;
         return (AxisMinMaxEnum)((_uint >> valIdx) & BITS_PER_VAL_MASK);
@@ -372,7 +372,7 @@ class AxisMinMaxBools
         }
         _uint = newUint |= (1 << MIN_MAX_VALID_BIT);
     }
-    bool any()
+    bool IRAM_ATTR any()
     {
         if (isValid())
             return (_uint & MIN_MAX_VALUES_MASK) != 0;

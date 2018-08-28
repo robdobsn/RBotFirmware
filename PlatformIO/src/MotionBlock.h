@@ -99,7 +99,7 @@ class MotionBlock
     {
         _numberedCommandIndex = cmdIdx;
     }
-    int getNumberedCommandIndex()
+    int IRAM_ATTR getNumberedCommandIndex()
     {
         return _numberedCommandIndex;
     }

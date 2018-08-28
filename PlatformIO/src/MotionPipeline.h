@@ -55,13 +55,13 @@ class MotionPipeline
     }
 
     // Can get from queue (i.e. not empty)
-    bool canGet()
+    bool IRAM_ATTR canGet()
     {
         return _pipelinePosn.canGet();
     }
 
     // Get from queue
-    bool get(MotionBlock &block)
+    bool IRAM_ATTR get(MotionBlock &block)
     {
         // Check if queue is empty
         if (!_pipelinePosn.canGet())
@@ -74,7 +74,7 @@ class MotionPipeline
     }
 
     // Remove last element from queue
-    bool remove()
+    bool IRAM_ATTR remove()
     {
         // Check if queue is empty
         if (!_pipelinePosn.canGet())
@@ -86,7 +86,7 @@ class MotionPipeline
     }
 
     // Peek the block which would be got (if there is one)
-    MotionBlock *peekGet()
+    MotionBlock* IRAM_ATTR peekGet()
     {
         // Check if queue is empty
         if (!_pipelinePosn.canGet())

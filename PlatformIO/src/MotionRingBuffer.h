@@ -45,7 +45,7 @@ class MotionRingBufferPosn
         return false;
     }
 
-    bool canGet()
+    bool IRAM_ATTR canGet()
     {
         return _putPos != _getPos;
     }
@@ -57,7 +57,7 @@ class MotionRingBufferPosn
             _putPos = 0;
     }
 
-    void hasGot()
+    void IRAM_ATTR hasGot()
     {
         _getPos++;
         if (_getPos >= _bufLen)

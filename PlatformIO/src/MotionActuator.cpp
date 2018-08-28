@@ -16,7 +16,7 @@ TEST_MOTION_ACTUATOR_DEF
 hw_timer_t *MotionActuator::_isrMotionTimer;
 
 // Static refrerence to a single MotionActuator instance
-MotionActuator *MotionActuator::_pMotionActuatorInstance = NULL;
+MotionActuator *MotionActuator::_pISRMotAct = NULL;
 
 // Function that handles ISR calls based on a timer
 // When ISR is enabled this is called every MotionBlock::TICK_INTERVAL_NS nanoseconds
@@ -25,9 +25,170 @@ void IRAM_ATTR MotionActuator::_isrStepperMotion(void)
     // Instrumentation code to time ISR execution (if enabled - see TestMotionActuator.h)
     TEST_MOTION_ACTUATOR_TIME_START
 
-    // Process block
-    if (_pMotionActuatorInstance)
-        _pMotionActuatorInstance->procTick();
+    // Do a step-end for any motor which needs one - return here to avoid too short a pulse
+    bool anyPinReset = false;
+    for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+    {
+        RobotConsts::RawMotionAxis_t *pAxisInfo = &_pISRMotAct->_rawMotionHwInfo._axis[axisIdx];
+        if (pAxisInfo->_pinStepCurLevel == 1)
+        {
+            digitalWrite(pAxisInfo->_pinStep, 0);
+            anyPinReset = true;
+        }
+        pAxisInfo->_pinStepCurLevel = 0;
+    }
+    if (anyPinReset)
+        return;
+
+    // Check if paused
+    if (_pISRMotAct->_isPaused)
+        return;
+
+    // Peek a MotionPipelineElem from the queue
+    MotionBlock *pBlock = _pISRMotAct->_motionPipeline.peekGet();
+    if (!pBlock)
+        return;
+
+    // Check if the element can be executed
+    if (!pBlock->_canExecute)
+        return;
+
+    // See if the block was already executing and set isExecuting if not
+    bool newBlock = !pBlock->_isExecuting;
+    pBlock->_isExecuting = true;
+
+    // New block
+    if (newBlock)
+    {
+        // Step counts and direction for each axis
+        for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+        {
+            int32_t stepsTotal = pBlock->_stepsTotalMaybeNeg[axisIdx];
+            _pISRMotAct->_stepsTotalAbs[axisIdx] = abs(stepsTotal);
+            _pISRMotAct->_curStepCount[axisIdx] = 0;
+            _pISRMotAct->_curAccumulatorRelative[axisIdx] = 0;
+            // Set direction for the axis
+            RobotConsts::RawMotionAxis_t *pAxisInfo = &_pISRMotAct->_rawMotionHwInfo._axis[axisIdx];
+            if (pAxisInfo->_pinDirection != -1)
+            {
+                digitalWrite(pAxisInfo->_pinDirection,
+                             (stepsTotal >= 0) == pAxisInfo->_pinDirectionReversed);
+            }
+            // Instrumentation
+            TEST_MOTION_ACTUATOR_STEP_DIRN
+        }
+
+        // Accumulator reset
+        _pISRMotAct->_curAccumulatorStep = 0;
+        _pISRMotAct->_curAccumulatorNS = 0;
+
+        // Step rate
+        _pISRMotAct->_curStepRatePerTTicks = pBlock->_initialStepRatePerTTicks;
+
+        // Return here to reduce the maximum time this function takes
+        // Assuming this function is called frequently (<50uS intervals say)
+        // then it will make little difference if we return now and pick up on the next tick
+        return;
+    }
+
+    // Bump the millisec accumulator
+    _pISRMotAct->_curAccumulatorNS += MotionBlock::TICK_INTERVAL_NS;
+
+    // Check for millisec accumulator overflow
+    if (_pISRMotAct->_curAccumulatorNS >= MotionBlock::NS_IN_A_MS)
+    {
+        // Subtract from accumulator leaving remainder to combat rounding errors
+        _pISRMotAct->_curAccumulatorNS -= MotionBlock::NS_IN_A_MS;
+
+        // Check if decelerating
+        if (_pISRMotAct->_curStepCount[pBlock->_axisIdxWithMaxSteps] > pBlock->_stepsBeforeDecel)
+        {
+            if (_pISRMotAct->_curStepRatePerTTicks > std::max(MIN_STEP_RATE_PER_TTICKS + pBlock->_accStepsPerTTicksPerMS,
+                                                 pBlock->_finalStepRatePerTTicks + pBlock->_accStepsPerTTicksPerMS))
+                _pISRMotAct->_curStepRatePerTTicks -= pBlock->_accStepsPerTTicksPerMS;
+        }
+        else if (_pISRMotAct->_curStepRatePerTTicks < pBlock->_maxStepRatePerTTicks)
+        {
+            // Log.notice("MotionActuator: Accel Steps/s %d Accel %d\n", _curStepRatePerTTicks, pBlock->_accStepsPerTTicksPerMS);
+            if (_pISRMotAct->_curStepRatePerTTicks + pBlock->_accStepsPerTTicksPerMS < MotionBlock::TTICKS_VALUE)
+                _pISRMotAct->_curStepRatePerTTicks += pBlock->_accStepsPerTTicksPerMS;
+        }
+    }
+
+    // Bump the step accumulator
+    _pISRMotAct->_curAccumulatorStep += _pISRMotAct->_curStepRatePerTTicks;
+
+    // Check for step accumulator overflow
+    if (_pISRMotAct->_curAccumulatorStep >= MotionBlock::TTICKS_VALUE)
+    {
+        bool anyAxisMoving = false;
+        int axisIdxMaxSteps = pBlock->_axisIdxWithMaxSteps;
+
+        // Subtract from accumulator leaving remainder
+        _pISRMotAct->_curAccumulatorStep -= MotionBlock::TTICKS_VALUE;
+
+        // Step the axis with the greatest step count if needed
+        if (_pISRMotAct->_curStepCount[axisIdxMaxSteps] < _pISRMotAct->_stepsTotalAbs[axisIdxMaxSteps])
+        {
+            // Step this axis
+            RobotConsts::RawMotionAxis_t *pAxisInfo = &_pISRMotAct->_rawMotionHwInfo._axis[axisIdxMaxSteps];
+            // Log.notice("MotionActuator::procTick mainAxisStep %d (ax %d major)\n", pAxisInfo->_pinStep, axisIdxMaxSteps);
+            if (pAxisInfo->_pinStep != -1)
+            {
+                digitalWrite(pAxisInfo->_pinStep, 1);
+            }
+            pAxisInfo->_pinStepCurLevel = 1;
+            _pISRMotAct->_curStepCount[axisIdxMaxSteps]++;
+            if (_pISRMotAct->_curStepCount[axisIdxMaxSteps] < _pISRMotAct->_stepsTotalAbs[axisIdxMaxSteps])
+                anyAxisMoving = true;
+
+            // Instrumentation
+            TEST_MOTION_ACTUATOR_STEP_START(axisIdxMaxSteps)
+        }
+
+        // Check if other axes need stepping
+        for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+        {
+            if ((axisIdx == axisIdxMaxSteps) || (_pISRMotAct->_curStepCount[axisIdx] == _pISRMotAct->_stepsTotalAbs[axisIdx]))
+                continue;
+
+            // Bump the relative accumulator
+            _pISRMotAct->_curAccumulatorRelative[axisIdx] += _pISRMotAct->_stepsTotalAbs[axisIdx];
+            if (_pISRMotAct->_curAccumulatorRelative[axisIdx] >= _pISRMotAct->_stepsTotalAbs[axisIdxMaxSteps])
+            {
+                // Do the remainder calculation
+                _pISRMotAct->_curAccumulatorRelative[axisIdx] -= _pISRMotAct->_stepsTotalAbs[axisIdxMaxSteps];
+
+                // Step the axis
+                RobotConsts::RawMotionAxis_t *pAxisInfo = &_pISRMotAct->_rawMotionHwInfo._axis[axisIdx];
+                if (pAxisInfo->_pinStep != -1)
+                {
+                    digitalWrite(pAxisInfo->_pinStep, 1);
+                }
+                // Log.trace("MotionActuator::procTick otherAxisStep: %d (ax %d)\n", pAxisInfo->_pinStep, axisIdx);
+                pAxisInfo->_pinStepCurLevel = 1;
+                _pISRMotAct->_curStepCount[axisIdx]++;
+                if (_pISRMotAct->_curStepCount[axisIdx] < _pISRMotAct->_stepsTotalAbs[axisIdx])
+                    anyAxisMoving = true;
+
+                // Instrumentation
+                TEST_MOTION_ACTUATOR_STEP_START(axisIdx)
+            }
+        }
+
+        // Any axes still moving?
+        if (!anyAxisMoving)
+        {
+            // If not this block is complete
+            _pISRMotAct->_motionPipeline.remove();
+            // Log.notice("Block done\n");
+            // Check if this is a numbered block - if so record its completion
+            if (pBlock->getNumberedCommandIndex() != RobotConsts::NUMBERED_COMMAND_NONE)
+            {
+                _pISRMotAct->_lastDoneNumberedCmdIdx = pBlock->getNumberedCommandIndex();
+            }
+        }
+    }
 
     // Time execution
     TEST_MOTION_ACTUATOR_TIME_END
@@ -49,11 +210,8 @@ void MotionActuator::process()
 
 // procTick method called either by ISR or via the main program loop
 // Handles all motor movement
-#ifdef USE_ESP32_TIMER_ISR
+#ifndef USE_ESP32_TIMER_ISR
 void MotionActuator::procTick()
-#else
-void IRAM_ATTR MotionActuator::procTick()
-#endif
 {
     // Log.trace("MotionActuator: procTick, paused %d, qLen %d\n", _isPaused, _motionPipeline.count());
 
@@ -67,11 +225,7 @@ void IRAM_ATTR MotionActuator::procTick()
         RobotConsts::RawMotionAxis_t *pAxisInfo = &_rawMotionHwInfo._axis[axisIdx];
         if (pAxisInfo->_pinStepCurLevel == 1)
         {
-#ifdef USE_FAST_PIN_ACCESS
-            pinResetFast(pAxisInfo->_pinStep);
-#else
             digitalWrite(pAxisInfo->_pinStep, 0);
-#endif
             anyPinReset = true;
         }
         pAxisInfo->_pinStepCurLevel = 0;
@@ -116,13 +270,8 @@ void IRAM_ATTR MotionActuator::procTick()
             RobotConsts::RawMotionAxis_t *pAxisInfo = &_rawMotionHwInfo._axis[axisIdx];
             if (pAxisInfo->_pinDirection != -1)
             {
-#ifdef USE_FAST_PIN_ACCESS
-                digitalWriteFast(pAxisInfo->_pinDirection,
-                                 (stepsTotal >= 0) == pAxisInfo->_pinDirectionReversed);
-#else
                 digitalWrite(pAxisInfo->_pinDirection,
                              (stepsTotal >= 0) == pAxisInfo->_pinDirectionReversed);
-#endif
             }
             // Instrumentation
             TEST_MOTION_ACTUATOR_STEP_DIRN
@@ -226,11 +375,7 @@ void IRAM_ATTR MotionActuator::procTick()
             if (pinToTest >= 0)
             {
                 // Log.notice("End-stop TEST %d, %d, cur %d\n", pinToTest, valToTestFor, digitalRead(pinToTest));
-#ifdef USE_FAST_PIN_ACCESS
-                bool pinVal = pinReadFast(pinToTest);
-#else
                 bool pinVal = digitalRead(pinToTest);
-#endif
                 if ((pinVal != 0) == valToTestFor)
                 {
                     // Cancel motion as end-stop reached
@@ -293,11 +438,7 @@ void IRAM_ATTR MotionActuator::procTick()
             // Log.notice("MotionActuator::procTick mainAxisStep %d (ax %d major)\n", pAxisInfo->_pinStep, axisIdxMaxSteps);
             if (pAxisInfo->_pinStep != -1)
             {
-#ifdef USE_FAST_PIN_ACCESS
-                pinSetFast(pAxisInfo->_pinStep);
-#else
                 digitalWrite(pAxisInfo->_pinStep, 1);
-#endif
             }
             pAxisInfo->_pinStepCurLevel = 1;
             _curStepCount[axisIdxMaxSteps]++;
@@ -325,11 +466,7 @@ void IRAM_ATTR MotionActuator::procTick()
                 RobotConsts::RawMotionAxis_t *pAxisInfo = &_rawMotionHwInfo._axis[axisIdx];
                 if (pAxisInfo->_pinStep != -1)
                 {
-#ifdef USE_FAST_PIN_ACCESS
-                    pinSetFast(pAxisInfo->_pinStep);
-#else
                     digitalWrite(pAxisInfo->_pinStep, 1);
-#endif
                 }
                 // Log.trace("MotionActuator::procTick otherAxisStep: %d (ax %d)\n", pAxisInfo->_pinStep, axisIdx);
                 pAxisInfo->_pinStepCurLevel = 1;
@@ -356,6 +493,7 @@ void IRAM_ATTR MotionActuator::procTick()
         }
     }
 }
+#endif
 
 String MotionActuator::getDebugStr()
 {
