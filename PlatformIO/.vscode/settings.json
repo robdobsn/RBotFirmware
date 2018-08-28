@@ -4,6 +4,17 @@
         "PLATFORMIO_CALLER": "vscode"
     },
     "files.associations": {
-        "fstream": "cpp"
+        "fstream": "cpp",
+        "array": "cpp",
+        "deque": "cpp",
+        "unordered_map": "cpp",
+        "unordered_set": "cpp",
+        "vector": "cpp",
+        "initializer_list": "cpp",
+        "*.tcc": "cpp",
+        "functional": "cpp",
+        "istream": "cpp",
+        "tuple": "cpp",
+        "utility": "cpp"
     }
 }

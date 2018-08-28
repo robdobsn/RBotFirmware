@@ -10,17 +10,17 @@ TEST_MOTION_ACTUATOR_DEF
 
 // Code here is using the SparkIntervalTimer from PKourany
 // https://github.com/pkourany/Spark-Interval-Timer
-#ifdef USE_SPARK_INTERVAL_TIMER_ISR
+#ifdef USE_ESP32_TIMER_ISR
 
 // Static interval timer
-IntervalTimer MotionActuator::_isrMotionTimer;
+hw_timer_t *MotionActuator::_isrMotionTimer;
 
 // Static refrerence to a single MotionActuator instance
 MotionActuator *MotionActuator::_pMotionActuatorInstance = NULL;
 
 // Function that handles ISR calls based on a timer
 // When ISR is enabled this is called every MotionBlock::TICK_INTERVAL_NS nanoseconds
-void MotionActuator::_isrStepperMotion(void)
+void IRAM_ATTR MotionActuator::_isrStepperMotion(void)
 {
     // Instrumentation code to time ISR execution (if enabled - see TestMotionActuator.h)
     TEST_MOTION_ACTUATOR_TIME_START
@@ -39,7 +39,7 @@ void MotionActuator::_isrStepperMotion(void)
 void MotionActuator::process()
 {
     // If not using ISR call procTick on every process call
-#ifndef USE_SPARK_INTERVAL_TIMER_ISR
+#ifndef USE_ESP32_TIMER_ISR
     procTick();
 #endif
 
@@ -49,7 +49,11 @@ void MotionActuator::process()
 
 // procTick method called either by ISR or via the main program loop
 // Handles all motor movement
+#ifdef USE_ESP32_TIMER_ISR
 void MotionActuator::procTick()
+#else
+void IRAM_ATTR MotionActuator::procTick()
+#endif
 {
     // Log.trace("MotionActuator: procTick, paused %d, qLen %d\n", _isPaused, _motionPipeline.count());
 
@@ -144,6 +148,7 @@ void MotionActuator::procTick()
         // then it will make little difference if we return now and pick up on the next tick
         return;
     }
+
 
     // Check for any end-stops either hit or not hit
     if (pBlock->_endStopsToCheck.any())

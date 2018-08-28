@@ -3,16 +3,13 @@
 
 #pragma once
 
-#ifdef SPARK
-#define USE_SPARK_INTERVAL_TIMER_ISR 1
+#ifdef ESP32
+// #define USE_ESP32_TIMER_ISR 1
 #endif
 
 #include <ArduinoLog.h>
 #include "MotionPipeline.h"
 #include "MotionIO.h"
-#ifdef USE_SPARK_INTERVAL_TIMER_ISR
-#include "SparkIntervalTimer.h"
-#endif
 #include "TestMotionActuator.h"
 
 class MotionActuator
@@ -37,11 +34,12 @@ class MotionActuator
     static TestMotionActuator *_pTestMotionActuator;
 #endif
 
-#ifdef USE_SPARK_INTERVAL_TIMER_ISR
+#ifdef USE_ESP32_TIMER_ISR
     // ISR based interval timer
-    static IntervalTimer _isrMotionTimer;
+    static hw_timer_t *_isrMotionTimer;
     static MotionActuator *_pMotionActuatorInstance;
-    static constexpr uint16_t ISR_TIMER_PERIOD_US = uint16_t(MotionBlock::TICK_INTERVAL_NS / 1000l);
+    static constexpr uint32_t CLOCK_RATE_MHZ = 80;
+    static constexpr uint32_t ISR_TIMER_PERIOD_US = uint32_t(MotionBlock::TICK_INTERVAL_NS / 1000l);
 #endif
 
   private:
@@ -68,11 +66,14 @@ class MotionActuator
         clear();
 
         // If we are using the ISR then create the Spark Interval Timer and start it
-#ifdef USE_SPARK_INTERVAL_TIMER_ISR
+#ifdef USE_ESP32_TIMER_ISR
         if (_pMotionActuatorInstance == NULL)
         {
             _pMotionActuatorInstance = this;
-            _isrMotionTimer.begin(_isrStepperMotion, ISR_TIMER_PERIOD_US, uSec);
+            _isrMotionTimer = timerBegin(0, CLOCK_RATE_MHZ, true);
+            timerAttachInterrupt(_isrMotionTimer, _isrStepperMotion, true);
+            timerAlarmWrite(_isrMotionTimer, ISR_TIMER_PERIOD_US, true);
+            timerAlarmEnable(_isrMotionTimer);
             Log.notice("MotionActuator: Starting ISR timer\n");
         }
 #endif
@@ -134,7 +135,7 @@ class MotionActuator
     void showDebug();
 
   private:
-#ifdef USE_SPARK_INTERVAL_TIMER_ISR
+#ifdef USE_ESP32_TIMER_ISR
     static void _isrStepperMotion(void);
 #endif
     void procTick();

@@ -21,7 +21,7 @@ struct RawMotionAxis_t
     int _pinDirection;
     bool _pinDirectionReversed;
     int _pinStep;
-    int _pinStepCurLevel;
+    volatile int _pinStepCurLevel;
     int _pinEndStopMin;
     bool _pinEndStopMinactLvl;
     int _pinEndStopMax;
