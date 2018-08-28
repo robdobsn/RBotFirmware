@@ -176,7 +176,7 @@ public:
             return;
         }
         char cmdStr[100];
-        sprintf(cmdStr, "G0 X%0.2f Y%0.2f", pt._pt[0], pt._pt[1]);
+        sprintf(cmdStr, "G0 X%F Y%F", pt._pt[0], pt._pt[1]);
         Log.trace("PatternEval ->cmdInterp %s\n", cmdStr);
         String retStr;
         pCommandInterface->process(cmdStr, retStr);

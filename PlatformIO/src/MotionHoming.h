@@ -199,7 +199,7 @@ class MotionHoming
                         }
                     }
                     // Endstops
-                    // Log.notice("MotionHoming: testingCh %c, speed %0.3f, dist %0.3f\n", _homingSequence.charAt(_homingStrPos),
+                    // Log.notice("MotionHoming: testingCh %c, speed %F, dist %F\n", _homingSequence.charAt(_homingStrPos),
                     //             _curCommand.getFeedrate(), _curCommand.getValMM(axisIdx));
                     int endStopIdx = 0;
                     bool checkActive = false;
@@ -218,7 +218,7 @@ class MotionHoming
                         Log.notice("MotionHoming: axis %d in sequence but not required to home\n", axisIdx);
                         continue;
                     }
-                    Log.notice("MotionHoming: Axis %d Dist str %s, steps %ld (%0.2f), rate %0.2f\n", axisIdx, distStr.c_str(), distToMove,
+                    Log.notice("MotionHoming: Axis %d Dist str %s, steps %ld (%F), rate %F\n", axisIdx, distStr.c_str(), distToMove,
                                _curCommand.getValMM(axisIdx), _curCommand.getFeedrate());
                     // Check endStop
                     if (setEndstopTest)

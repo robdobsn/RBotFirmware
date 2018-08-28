@@ -125,7 +125,7 @@ public:
 //		Log.trace("PatternVars NumVars = %d\n", _numTeVars);
 		// for (int i = 0; i < _numTeVars; i++)
 		// {
-		// 	Log.trace("PatternVars Var %d %s = %f flags %04x context %ld\n", i, _pTeVars[i].name,
+		// 	Log.trace("PatternVars Var %d %s = %f flags %x context %ld\n", i, _pTeVars[i].name,
         //             *((double*)(_pTeVars[i].address)), _pTeVarFlags[i], _pTeVars[i].context);
 		// }
         return newVarIdx;
@@ -152,7 +152,7 @@ public:
 				// Create the variable using this value
                 unsigned int flags = TEVARS_FREE_VALUE_ADDR_REQD;
 				varIdx = addVariable(varName.c_str(), pVal, flags);
-				Log.trace("PatternVars AddVar %s, expr %s, val %f, flags %02x, err %d, numVars %d\n",
+				Log.trace("PatternVars AddVar %s, expr %s, val %f, flags 0x%x, err %d, numVars %d\n",
 					varName.c_str(), expr.c_str(), *pVal, flags, err, _numTeVars);
 			}
 

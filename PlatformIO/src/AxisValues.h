@@ -221,7 +221,7 @@ class AxisFloats
     }
     void logDebugStr(const char *prefixStr)
     {
-        Log.trace("%s X %0.2f Y %0.2f Z %0.2f\n", prefixStr, _pt[0], _pt[1], _pt[2]);
+        Log.trace("%s X %F Y %F Z %F\n", prefixStr, _pt[0], _pt[1], _pt[2]);
     }
     String toJSON()
     {

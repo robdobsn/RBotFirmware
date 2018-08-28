@@ -36,14 +36,14 @@ const char *RobotTypes::_robotConfigs[] = {
     "\"cmdsAtStart\":\"\","
     "\"homingSeq\":\"A-10000n;B10000;#;A+10000N;B-10000;#;A+500;B-500;#;B+10000n;#;B-10000N;#;B-560;#;A=h;B=h;$\","
     "\"maxHomingSecs\":120,"
-    "\"stepEnablePin\":\"A2\",\"stepEnLev\":1,\"stepDisableSecs\":1,"
+    "\"stepEnablePin\":\"4\",\"stepEnLev\":1,\"stepDisableSecs\":1,"
     "\"blockDistanceMM\":1,"
-    "\"axis0\":{\"stepPin\":\"A6\",\"dirnPin\":\"A12\",\"maxSpeed\":75,\"maxAcc\":50,"
+    "\"axis0\":{\"stepPin\":\"14\",\"dirnPin\":\"13\",\"maxSpeed\":75,\"maxAcc\":50,"
     "\"stepsPerRot\":9600,\"unitsPerRot\":628.318,"
-    "\"endStop0\":{\"sensePin\":\"A4\",\"actLvl\":0,\"inputType\":\"INPUT_PULLUP\"}},"
-    "\"axis1\":{\"stepPin\":\"A8\",\"dirnPin\":\"21\",\"maxSpeed\":75,\"maxAcc\":50,"
+    "\"endStop0\":{\"sensePin\":\"36\",\"actLvl\":0,\"inputType\":\"INPUT_PULLUP\"}},"
+    "\"axis1\":{\"stepPin\":\"15\",\"dirnPin\":\"21\",\"maxSpeed\":75,\"maxAcc\":50,"
     "\"stepsPerRot\":9600,\"unitsPerRot\":628.318,"
-    "\"endStop0\":{\"sensePin\":\"A3\",\"actLvl\":0,\"inputType\":\"INPUT_PULLUP\"}}"
+    "\"endStop0\":{\"sensePin\":\"39\",\"actLvl\":0,\"inputType\":\"INPUT_PULLUP\"}}"
     "}",
 
     // static const char* ROBOT_CONFIG_STR_AIRHOCKEY =

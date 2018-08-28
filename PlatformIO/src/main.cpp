@@ -163,6 +163,9 @@ void setup()
     // NetLog Config
     netLogConfig.setup();
 
+    // Robot config
+    robotConfig.setup();
+
     // Firmware update
     otaUpdate.setup(hwConfig, systemType, systemVersion);
 

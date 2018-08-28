@@ -151,7 +151,7 @@ class MotionBlock
 
     void setEndStopsToCheck(AxisMinMaxBools &endStopCheck)
     {
-        Log.trace("Set test enstops %08lx\n", endStopCheck.uintVal());
+        Log.trace("Set test endstops %x\n", endStopCheck.uintVal());
         _endStopsToCheck = endStopCheck;
     }
 

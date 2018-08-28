@@ -49,7 +49,7 @@ void MotionHelper::configure(const char *robotConfigJSON)
     // Pipeline length and block size
     int pipelineLen = int(RdJson::getLong("pipelineLen", pipelineLen_default, robotConfigJSON));
     _blockDistanceMM = float(RdJson::getDouble("blockDistanceMM", blockDistanceMM_default, robotConfigJSON));
-    Log.notice("MotionHelper configMotionPipeline len %d, _blockDistanceMM %0.2f (0=no-max)\n",
+    Log.notice("MotionHelper configMotionPipeline len %d, _blockDistanceMM %F (0=no-max)\n",
                pipelineLen, _blockDistanceMM);
     _motionPipeline.init(pipelineLen);
 
@@ -198,7 +198,7 @@ bool MotionHelper::moveTo(RobotCommandArgs &args)
         numBlocks = int(lineLen / _blockDistanceMM);
     if (numBlocks == 0)
         numBlocks = 1;
-    // Log.trace("MotionHelper numBlocks %d (lineLen %0.2f / blockDistMM %02.f)\n",
+    // Log.trace("MotionHelper numBlocks %d (lineLen %F / blockDistMM %F)\n",
     //  numBlocks, lineLen, _blockDistanceMM);
 
     // Setup for adding blocks to the pipe

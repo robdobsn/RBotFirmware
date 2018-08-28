@@ -61,6 +61,8 @@ bool CommandInterface::setRobotConfig(const uint8_t *pData, int len)
     _commandExtender.setPatterns(patternsStr.c_str());
     String sequencesStr = RdJson::getString("/sequences", "{}", _robotConfig.getConfigData());
     _commandExtender.setSequences(sequencesStr.c_str());
+    // Store the configuration permanently
+    _robotConfig.writeConfig();
     return true;
 }
 

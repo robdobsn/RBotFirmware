@@ -57,19 +57,19 @@ class RestAPIRobot
     void apiExec(String &reqStr, String &respStr)
     {
         Log.notice("RestAPIRobot: Exec\n");
-        _commandInterface.process(reqStr.c_str(), respStr);
+        _commandInterface.process(RestAPIEndpoints::removeFirstArgStr(reqStr.c_str()).c_str(), respStr);
     }
 
     void apiPattern(String &reqStr, String &respStr)
     {
         Log.notice("RestAPIRobot: Pattern\n");
-        _commandInterface.process(reqStr.c_str(), respStr);
+        _commandInterface.process(RestAPIEndpoints::removeFirstArgStr(reqStr.c_str()).c_str(), respStr);
     }
 
     void apiSequence(String &reqStr, String &respStr)
     {
         Log.notice("RestAPIRobot: Sequence\n");
-        _commandInterface.process(reqStr.c_str(), respStr);
+        _commandInterface.process(RestAPIEndpoints::removeFirstArgStr(reqStr.c_str()).c_str(), respStr);
     }
 
      void setup(RestAPIEndpoints &endpoints)

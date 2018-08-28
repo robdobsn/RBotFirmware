@@ -34,7 +34,7 @@ public:
         //     reqAlphaRads = 2 * M_PI + reqAlphaRads;
         // double reqLinearMM = sqrt(pt._pt[0] * pt._pt[0] + pt._pt[1] * pt._pt[1]);
         //
-        // // Log.trace("xyToActuator x %0.2f y %0.2f ax0StNow %d ax1StNow %d rqAlphaD %0.2f rqLinMM %0.2f\n",
+        // // Log.trace("xyToActuator x %F y %F ax0StNow %d ax1StNow %d rqAlphaD %F rqLinMM %F\n",
         // //         xy[0], xy[1], axisParams[0]._stepsFromHome, axisParams[1]._stepsFromHome,
         // //         reqAlphaRads * 180 / M_PI, reqLinearMM);
         //
@@ -65,7 +65,7 @@ public:
         // actuatorCoords._pt[0] = axisParams[0]._stepsFromHome + actuator0Diff;
         // actuatorCoords._pt[1] = axisParams[1]._stepsFromHome + actuator1Diff;
         //
-        // // Log.trace("xyToActuator reqAlphaD %0.2f curAlphaD %0.2f alphaDiffD %0.2f aRotCw %d linDiffMM %0.2f ax0Diff %0.2f ax1Diff %0.2f ax0Tgt %0.2f ax1Tgt %0.2f\n",
+        // // Log.trace("xyToActuator reqAlphaD %F curAlphaD %F alphaDiffD %F aRotCw %d linDiffMM %F ax0Diff %F ax1Diff %F ax0Tgt %F ax1Tgt %F\n",
         // //                 reqAlphaRads * 180 / M_PI, currentPolar[0] * 180 / M_PI, alphaDiffDegs, alphaRotateCw,
         // //                 linearDiffMM, actuator0Diff, actuator1Diff, actuatorCoords[0], actuatorCoords[1]);
         // //
@@ -79,7 +79,7 @@ public:
         // double checkY = checkPolarCoords[1] * cos(checkPolarCoords[0]);
         // double checkErr = sqrt((checkX-pt._pt[0]) * (checkX-pt._pt[0]) + (checkY-pt._pt[1]) * (checkY-pt._pt[1]));
         // if (checkErr > 0.1)
-        //     Log.trace("check reqX %02.f checkX %0.2f, reqY %0.2f checkY %0.2f, error %0.2f, %s\n", pt._pt[0], checkX, pt._pt[1], checkY,
+        //     Log.trace("check reqX %F checkX %F, reqY %F checkY %F, error %F, %s\n", pt._pt[0], checkX, pt._pt[1], checkY,
         //                     checkErr, (checkErr>0.1) ? "****** FAILED ERROR CHECK" : "");
         //
         // // Check machine bounds for linear axis
@@ -105,7 +105,7 @@ public:
         long linearStepsFromHome = actuatorCoords._pt[1] - actuatorCoords._pt[0];
         polarCoordsAzFirst[1] = linearStepsFromHome / axesParams.getStepsPerUnit(1);
 
-        // Log.trace("actuatorToPolar c0 %0.2f c1 %0.2f alphaSteps %d alphaDegs %0.2f linStpHm %d rotD %0.2f lin %0.2f\n", actuatorCoords[0], actuatorCoords[1],
+        // Log.trace("actuatorToPolar c0 %F c1 %F alphaSteps %d alphaDegs %F linStpHm %d rotD %F lin %F\n", actuatorCoords[0], actuatorCoords[1],
         //     alphaSteps, alphaDegs, linearStepsFromHome, polarCoordsAzFirst[0] * 180 / M_PI, polarCoordsAzFirst[1]);
     }
 
@@ -117,7 +117,7 @@ public:
         // Trig
         outPt._pt[0] = polarCoords[1] * sinf(polarCoords[0]);
         outPt._pt[1] = polarCoords[1] * cosf(polarCoords[0]);
-        // Log.trace("actuatorToXy curX %0.2f curY %0.2f\n", xy[0], xy[1]);
+        // Log.trace("actuatorToXy curX %F curY %F\n", xy[0], xy[1]);
     }
 
     static void correctStepOverflow(AxisPosition& curPos, AxesParams& axesParams)
@@ -215,7 +215,7 @@ public:
 //         _homingRotCentreDegs = RdJson::getDouble("homingRotCentreDegs", homingRotCentreDegs_default, robotConfigStr);
 //
 //         // Info
-//         Log.notice("%s maxHome %lds linOff %0.3fd ctrOff %0.3fmm rotCtr %0.3fd\n",
+//         Log.notice("%s maxHome %lds linOff %Fd ctrOff %Fmm rotCtr %Fd\n",
 //                     _robotTypeName.c_str(), _maxHomingSecs, _homingLinOffsetDegs, _homingCentreOffsetMM, _homingRotCentreDegs);
 //
 //         return true;

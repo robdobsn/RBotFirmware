@@ -136,7 +136,7 @@ class MotionIO
         _stepEnLev = RdJson::getLong("stepEnLev", 1, robotConfigJSON);
         _stepEnablePin = ConfigPinMap::getPinFromName(stepEnablePinName.c_str());
         _stepDisableSecs = float(RdJson::getDouble("stepDisableSecs", stepDisableSecs_default, robotConfigJSON));
-        Log.notice("MotorIO (pin %d, actLvl %d, disableAfter %0.2fs)\n", _stepEnablePin, _stepEnLev, _stepDisableSecs);
+        Log.notice("MotorIO (pin %d, actLvl %d, disableAfter %Fs)\n", _stepEnablePin, _stepEnLev, _stepDisableSecs);
 
         // Enable pin - initially disable
         pinMode(_stepEnablePin, OUTPUT);
@@ -251,14 +251,14 @@ class MotionIO
 
     void enableMotors(bool en, bool timeout)
     {
-        // Log.trace("Enable %d, disable level %d, disable after time %0.2f\n",
+        // Log.trace("Enable %d, disable level %d, disable after time %F\n",
         //							en, !_stepEnLev, _stepDisableSecs);
         if (en)
         {
             if (_stepEnablePin != -1)
             {
                 if (!_motorsAreEnabled)
-                    Log.notice("MotionIO: motors enabled, disable after time %0.2f\n", _stepDisableSecs);
+                    Log.notice("MotionIO: motors enabled, disable after time %F\n", _stepDisableSecs);
                 digitalWrite(_stepEnablePin, _stepEnLev);
             }
             _motorsAreEnabled = true;

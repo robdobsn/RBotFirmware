@@ -291,7 +291,7 @@ class TestMotionActuator
     String getDebugStr()
     {
         char strBuf[200];
-        sprintf(strBuf, "ISR Mn/Mx/Av/# %0.2fuS/%0.2fuS/%0.2fus/%d",
+        sprintf(strBuf, "ISR Mn/Mx/Av/# %FuS/%FuS/%Fus/%d",
                 ((double)__isrDbgTickMin) / SystemTicksPerMicrosecond,
                 ((double)__isrDbgTickMax) / SystemTicksPerMicrosecond,
                 (__isrDbgTickCount != 0) ? ((double)(__isrDbgTickSum * 1.0 / __isrDbgTickCount) / SystemTicksPerMicrosecond) : 0,
