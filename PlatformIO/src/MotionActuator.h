@@ -137,6 +137,11 @@ class MotionActuator
   private:
 #ifdef USE_ESP32_TIMER_ISR
     static void _isrStepperMotion(void);
+    static bool handleStepEnd();
+    static void setupNewBlock(MotionBlock *pBlock);
+    static void updateMSAccumulator(MotionBlock *pBlock);
+    static bool handleStepMotion(MotionBlock *pBlock);
+    static bool checkEndStops(MotionBlock *pBlock);
 #endif
     void procTick();
 };
