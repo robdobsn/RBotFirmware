@@ -346,7 +346,7 @@ public:
     	if (!myStr.equals("TESTSTR"))
     		thisTestResult = false;
     	Log.trace("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
-    	testSuccess &= thisTestResult;
+    	testSuccess &&= thisTestResult;
 
     	Log.trace("---------------------------------");
     	thisTestResult = true;
@@ -359,7 +359,7 @@ public:
     	if (objType != JSMNR_OBJECT)
     		thisTestResult = false;
     	Log.trace("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
-    	testSuccess &= thisTestResult;
+    	testSuccess &&= thisTestResult;
 
     	Log.trace("---------------------------------");
     	thisTestResult = true;
@@ -380,7 +380,7 @@ public:
     	if (objType != JSMNR_STRING)
     		thisTestResult = false;
     	Log.trace("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
-    	testSuccess &= thisTestResult;
+    	testSuccess &&= thisTestResult;
 
     	Log.trace("---------------------------------");
     	thisTestResult = true;
@@ -399,7 +399,7 @@ public:
     	 if (!myVal.equals("veniam"))
     	     thisTestResult = false;
     	 Log.trace("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
-    	 testSuccess &= thisTestResult;
+    	 testSuccess &&= thisTestResult;
 
     	Log.trace("---------------------------------");
     	thisTestResult = true;
@@ -410,7 +410,7 @@ public:
     	if (myStr.length() != 53)
     		thisTestResult = false;
     	Log.trace("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
-    	testSuccess &= thisTestResult;
+    	testSuccess &&= thisTestResult;
 
     	Log.trace("---------------------------------");
     	thisTestResult = true;
@@ -421,7 +421,7 @@ public:
     	if (!myStr.equals("GilmoreBray"))
     		thisTestResult = false;
     	Log.trace("TEST %d: %s", ++testIdx, thisTestResult ? "PASSED" : "FAILED");
-    	testSuccess &= thisTestResult;
+    	testSuccess &&= thisTestResult;
 
     	Log.trace("---------------------------------");
     	Log.trace("");

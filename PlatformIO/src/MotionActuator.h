@@ -16,13 +16,13 @@ class MotionActuator
 {
   private:
     // If this is true nothing will move
-    volatile bool _isPaused;
+    static volatile bool _isPaused;
 
     // Pipeline of blocks to be processed
-    MotionPipeline &_motionPipeline;
+    static MotionPipeline* _pMotionPipeline;
 
     // Raw access to motors and endstops
-    RobotConsts::RawMotionHwInfo_t _rawMotionHwInfo;
+    static RobotConsts::RawMotionHwInfo_t _rawMotionHwInfo;
 
     // This is to ensure that the robot never goes to 0 tick rate - which would leave it
     // immobile forever
@@ -37,54 +37,58 @@ class MotionActuator
 #ifdef USE_ESP32_TIMER_ISR
     // ISR based interval timer
     static hw_timer_t *_isrMotionTimer;
-    static MotionActuator *_pISRMotAct;
     static constexpr uint32_t CLOCK_RATE_MHZ = 80;
     static constexpr uint32_t ISR_TIMER_PERIOD_US = uint32_t(MotionBlock::TICK_INTERVAL_NS / 1000l);
 #endif
 
   private:
     // Execution info for the currently executing block
-    bool _isEnabled;
+    static bool _isEnabled;
     // End-stop reached
-    bool _endStopReached;
+    static bool _endStopReached;
     // Last completed numbered command
-    int _lastDoneNumberedCmdIdx;
+    static int _lastDoneNumberedCmdIdx;
     // Steps
-    uint32_t _stepsTotalAbs[RobotConsts::MAX_AXES];
-    uint32_t _curStepCount[RobotConsts::MAX_AXES];
+    static uint32_t _stepsTotalAbs[RobotConsts::MAX_AXES];
+    static uint32_t _curStepCount[RobotConsts::MAX_AXES];
     // Current step rate (in steps per K ticks)
-    uint32_t _curStepRatePerTTicks;
+    static uint32_t _curStepRatePerTTicks;
     // Accumulators for stepping and acceleration increments
-    uint32_t _curAccumulatorStep;
-    uint32_t _curAccumulatorNS;
-    uint32_t _curAccumulatorRelative[RobotConsts::MAX_AXES];
+    static uint32_t _curAccumulatorStep;
+    static uint32_t _curAccumulatorNS;
+    static uint32_t _curAccumulatorRelative[RobotConsts::MAX_AXES];
+
+    static int _endStopCheckNum;
+    struct EndStopChecks
+    {
+        int pin;
+        bool val;
+    };
+    static EndStopChecks _endStopChecks[RobotConsts::MAX_AXES];
 
   public:
-    MotionActuator(MotionIO &motionIO, MotionPipeline &motionPipeline) : _motionPipeline(motionPipeline)
+    MotionActuator(MotionIO &motionIO, MotionPipeline* pMotionPipeline)
     {
         // Init
+        _pMotionPipeline = pMotionPipeline;
         clear();
 
         // If we are using the ISR then create the Spark Interval Timer and start it
 #ifdef USE_ESP32_TIMER_ISR
-        if (_pISRMotAct == NULL)
-        {
-            _pISRMotAct = this;
-            _isrMotionTimer = timerBegin(0, CLOCK_RATE_MHZ, true);
-            timerAttachInterrupt(_isrMotionTimer, _isrStepperMotion, true);
-            timerAlarmWrite(_isrMotionTimer, ISR_TIMER_PERIOD_US, true);
-            timerAlarmEnable(_isrMotionTimer);
-            Log.notice("MotionActuator: Starting ISR timer\n");
-        }
+        _isrMotionTimer = timerBegin(0, CLOCK_RATE_MHZ, true);
+        timerAttachInterrupt(_isrMotionTimer, _isrStepperMotion, true);
+        timerAlarmWrite(_isrMotionTimer, ISR_TIMER_PERIOD_US, true);
+        timerAlarmEnable(_isrMotionTimer);
+        Log.notice("MotionActuator: Starting ISR timer\n");
 #endif
     }
 
-    void setRawMotionHwInfo(RobotConsts::RawMotionHwInfo_t &rawMotionHwInfo)
+    static void setRawMotionHwInfo(RobotConsts::RawMotionHwInfo_t &rawMotionHwInfo)
     {
         _rawMotionHwInfo = rawMotionHwInfo;
     }
 
-    void setTestMode(const char *testModeStr)
+    static void setTestMode(const char *testModeStr)
     {
 #ifdef TEST_MOTION_ACTUATOR_ENABLE
         _pTestMotionActuator = new TestMotionActuator();
@@ -92,11 +96,11 @@ class MotionActuator
 #endif
     }
 
-    void config()
+    static void config()
     {
     }
 
-    void clear()
+    static void clear()
     {
         _isPaused = true;
         _endStopReached = false;
@@ -106,7 +110,7 @@ class MotionActuator
 #endif
     }
 
-    void pause(bool pauseIt)
+    static void pause(bool pauseIt)
     {
         _isPaused = pauseIt;
         if (!_isPaused)
@@ -115,33 +119,30 @@ class MotionActuator
         }
     }
 
-    void clearEndstopReached()
+    static void clearEndstopReached()
     {
         _endStopReached = false;
     }
 
-    bool isEndStopReached()
+    static bool isEndStopReached()
     {
         return _endStopReached;
     }
 
-    int getLastCompletedNumberedCmdIdx()
+    static int getLastCompletedNumberedCmdIdx()
     {
         return _lastDoneNumberedCmdIdx;
     }
-    void process();
+    static void process();
 
-    String getDebugStr();
-    void showDebug();
+    static String getDebugStr();
+    static void showDebug();
 
   private:
-#ifdef USE_ESP32_TIMER_ISR
     static void _isrStepperMotion(void);
     static bool handleStepEnd();
     static void setupNewBlock(MotionBlock *pBlock);
     static void updateMSAccumulator(MotionBlock *pBlock);
     static bool handleStepMotion(MotionBlock *pBlock);
-    static bool checkEndStops(MotionBlock *pBlock);
-#endif
-    void procTick();
+    static void endMotion(MotionBlock *pBlock);
 };

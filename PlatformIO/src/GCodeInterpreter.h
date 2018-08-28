@@ -60,7 +60,7 @@ public:
                             cmdArgs.setTestAllEndStops();
                         else if (endstopIdx == 0)
                             cmdArgs.setTestNoEndStops();
-                        Log.notice("Set to check endstops %s\n", cmdArgs.toJSON().c_str());
+                        Log.trace("Set to check endstops %s\n", cmdArgs.toJSON().c_str());
                         break;
                     }
                 default:
@@ -91,7 +91,7 @@ public:
         RobotCommandArgs cmdArgs;
         rslt = getGcodeCmdArgs(pArgsStr, cmdArgs);
 
-        Log.notice("GCodeInterpreter Cmd G%d %s\n", cmdNum, pArgsStr);
+        Log.trace("GCodeInterpreter Cmd G%d %s\n", cmdNum, pArgsStr);
 
         // Switch on number
         switch(cmdNum)

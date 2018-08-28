@@ -35,7 +35,7 @@ public:
         //     motionElem._pt2MM.getVal(0), actuatorCoords._pt[0],
         //     axis1Valid ? "OK" : "INVALID",
         //     motionElem._pt2MM.getVal(1), actuatorCoords._pt[1]);
-        //     // isValid &= thisAxisValid;
+        //     // isValid &&= thisAxisValid;
         // // }
         return true;
     }

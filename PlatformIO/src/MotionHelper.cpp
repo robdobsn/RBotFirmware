@@ -6,7 +6,7 @@
 #include "MotionHelper.h"
 #include "Utils.h"
 
-MotionHelper::MotionHelper() : _motionActuator(_motionIO, _motionPipeline),
+MotionHelper::MotionHelper() : _motionActuator(_motionIO, &_motionPipeline),
                                _motionHoming(this)
 {
     // Init

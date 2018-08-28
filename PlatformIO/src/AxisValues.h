@@ -339,7 +339,7 @@ class AxisMinMaxBools
         _uint = other._uint;
         return *this;
     }
-    bool IRAM_ATTR isValid()
+    bool isValid()
     {
         return _uint & (1 << MIN_MAX_VALID_BIT);
     }
@@ -372,11 +372,9 @@ class AxisMinMaxBools
         }
         _uint = newUint |= (1 << MIN_MAX_VALID_BIT);
     }
-    bool IRAM_ATTR any()
+    inline bool IRAM_ATTR any()
     {
-        if (isValid())
-            return (_uint & MIN_MAX_VALUES_MASK) != 0;
-        return false;
+        return (_uint & (1 << MIN_MAX_VALID_BIT)) && (_uint & MIN_MAX_VALUES_MASK);
     }
     uint32_t uintVal()
     {

@@ -63,7 +63,7 @@ public:
         // // else if ((targetPolarCoords._pt[1] - currentPolarCoords._pt[1]) < -M_PI)
         // //     targetPolarCoords._pt[1] += 2 * M_PI;
 
-        // Log.trace("ptToActuator final targetPolarCoords a %F b %F\n",
+        // Log.verbose("ptToActuator final targetPolarCoords a %F b %F\n",
         //        targetPolarCoords._pt[0], targetPolarCoords._pt[1]);
 
         // // Coordinates for axis0
@@ -107,7 +107,7 @@ public:
               curPos._stepsFromHome.setVal(axisIdx, curPos._stepsFromHome.getVal(axisIdx) - intProp * axesParams.getStepsPerRot(axisIdx));
             }
         }
-        Log.notice("SandTableScara::correctStepOverflow: %d %d -> %d %d\n", cpy.getVal(0), cpy.getVal(1), curPos._stepsFromHome.getVal(0), curPos._stepsFromHome.getVal(1));
+        Log.verbose("SandTableScara::correctStepOverflow: %d %d -> %d %d\n", cpy.getVal(0), cpy.getVal(1), curPos._stepsFromHome.getVal(0), curPos._stepsFromHome.getVal(1));
     }
 
 private:
@@ -129,7 +129,7 @@ private:
         if (isApprox(targetPt._pt[0],0,0.5) && (isApprox(targetPt._pt[1],0,0.5)))
         {
             // Special case
-            Log.trace("SandTableScara::cartesianToActuator x %F y %F close to origin\n", targetPt._pt[0], targetPt._pt[1]);
+            Log.verbose("SandTableScara::cartesianToActuator x %F y %F close to origin\n", targetPt._pt[0], targetPt._pt[1]);
 
             // Keep the current position for alpha, set beta to alpha+180 (i.e. doubled-back so eng-effector is in centre)
             outActuator.setVal(0, (float)curAxisPositions._stepsFromHome.getVal(0));
@@ -145,7 +145,7 @@ private:
         bool maxValid = axesParams.getMaxVal(0, maxValForXAxis);
         bool posValid = thirdSideMM <= shoulderElbowMM + elbowHandMM;
         if (maxValid)
-          posValid &= thirdSideMM <= maxValForXAxis;
+          posValid = posValid && (thirdSideMM <= maxValForXAxis);
 
         // Calculate angle from North to the point (note in atan2 X and Y are flipped from normal as angles are clockwise)
         double delta1 = atan2(targetPt._pt[0], targetPt._pt[1]);
@@ -195,12 +195,12 @@ private:
         }
 
         // Debug
-        Log.notice("SandTableScara::ptToRotations %s fromCtr %Fmm D1 %Fd D2 %Fd innerAng %Fd\n",
+        Log.verbose("SandTableScara::ptToRotations %s fromCtr %Fmm D1 %Fd D2 %Fd innerAng %Fd\n",
                 posValid ? "ok" : "OUT_OF_BOUNDS",
                 thirdSideMM, delta1 * 180 / M_PI, delta2 * 180 / M_PI, innerAngleOppThird * 180 / M_PI);
-        Log.notice("SandTableScara::ptToRotations alpha1 %Fd, beta1 %Fd, steps1 %F, alpha2 %Fd, beta2 %Fd, steps2 %F, prefOption %d\n",
+        Log.verbose("SandTableScara::ptToRotations alpha1 %Fd, beta1 %Fd, steps1 %F, alpha2 %Fd, beta2 %Fd, steps2 %F, prefOption %d\n",
                 alpha1, beta1, stepCount1, alpha2, beta2, stepCount2, stepCount1 < stepCount2 ? 1 : 2);
-        Log.notice("SandTableScara::ptToRotations ----------- curA %d curB %d stA %F stB %F\n",
+        Log.verbose("SandTableScara::ptToRotations ----------- curA %d curB %d stA %F stB %F\n",
                       curAxisPositions._stepsFromHome.getVal(0), curAxisPositions._stepsFromHome.getVal(1),
                       outActuator.getVal(0), outActuator.getVal(1));
 
@@ -259,7 +259,7 @@ private:
         pt._pt[0] = x2;
         pt._pt[1] = y2;
 
-        Log.notice("rotationsToPoint alpha %Fd beta %Fd => X %F Y %F shoulderElbowMM %F elbowHandMM %F\n",
+        Log.verbose("SandTableScara::rotationsToPoint: alpha %Fd beta %Fd => X %F Y %F shoulderElbowMM %F elbowHandMM %F\n",
                 rotDegrees._pt[0], rotDegrees._pt[1], pt._pt[0], pt._pt[1],
                 shoulderElbowMM, elbowHandMM);
 
@@ -275,7 +275,7 @@ private:
         // For beta values the rotation should always be between 0 steps and + 1/2 * stepsPerRotation
         float betaStepTarget = axesParams.getStepsPerRot(1) - wrapDegrees(beta - 180) * axesParams.getStepsPerRot(1) / 360;
         actuatorCoords._pt[1] = betaStepTarget;
-        Log.notice("rotationToActuator alpha %Fd beta %Fd ax0Steps %F ax1Steps %F\n",
+        Log.verbose("SandTableScara::rotationToActuator: alpha %Fd beta %Fd ax0Steps %F ax1Steps %F\n",
                 alpha, beta, actuatorCoords._pt[0], actuatorCoords._pt[1]);
     }
 
@@ -289,7 +289,7 @@ private:
         double axis1Degrees = wrapDegrees(540 - (actuatorCoords.getVal(1) * 360 / axesParams.getStepsPerRot(1)));
         double beta = axis1Degrees;
         rotationDegrees.set(alpha, beta);
-        Log.notice("actuatorToRotation ax0Steps %d ax1Steps %d a %Fd b %Fd\n",
+        Log.verbose("SandTableScara::actuatorToRotation: ax0Steps %d ax1Steps %d a %Fd b %Fd\n",
                 actuatorCoords.getVal(0), actuatorCoords.getVal(1), rotationDegrees._pt[0], rotationDegrees._pt[1]);
     }
 
@@ -302,7 +302,7 @@ private:
     //
     //     actuatorToRotation(actuatorCoords, rotationDegrees, axesParams);
     //
-    //     Log.notice("getCurrentRotation ax0FromHome %ld ax1FromHome %ld alpha %Fd beta %Fd\n",
+    //     Log.verbose("getCurrentRotation ax0FromHome %ld ax1FromHome %ld alpha %Fd beta %Fd\n",
     //                 axesParams.gethomeOffSteps(0), axesParams.gethomeOffSteps(1),
     //                 rotationDegrees._pt[0], rotationDegrees._pt[1]);
     // }
@@ -336,7 +336,7 @@ private:
     //     // Check valid
     //     bool checkDiff = finalAngle > current ? finalAngle - current : current - finalAngle;
     //     bool checkDest = isApprox(wrapDegrees(finalAngle), wrapTarget, 0.01);
-    //     Log.notice("calcMinAngleDiff %s %s tgt %F cur %F mindiff %F (%F) final %F, wrapFinal %F, wrapTarget %F\n",
+    //     Log.verbose("calcMinAngleDiff %s %s tgt %F cur %F mindiff %F (%F) final %F, wrapFinal %F, wrapTarget %F\n",
     //                 checkDiff ? "OK" : "DIFF_WRONG *********",
     //                 checkDest ? "OK" : "DEST_WRONG *********",
     //                 target, current, minDiff, diff, finalAngle, wrapDegrees(finalAngle), wrapTarget);
@@ -349,7 +349,7 @@ private:
         // Select the solution which keeps the difference between 0 and 180 degrees
         // double betweenArmsOpt1 = wrapDegrees(option1._pt[1] - option1._pt[0]);
         // double betweenArmsOpt2 = wrapDegrees(option2._pt[1] - option2._pt[0]);
-        // Log.notice("getBestMovement: opt1pt0 %F opt1pt1 %F bet1 %F opt2pt0 %F opt1pt1 %F bet2 %F\n",
+        // Log.verbose("getBestMovement: opt1pt0 %F opt1pt1 %F bet1 %F opt2pt0 %F opt1pt1 %F bet2 %F\n",
         //             option1._pt[0], option1._pt[1], betweenArmsOpt1, option2._pt[0], option2._pt[1], betweenArmsOpt2);
         // if (betweenArmsOpt1 >= 0 && betweenArmsOpt1 <= 180)
         //     outSolution = option1;
@@ -368,7 +368,7 @@ private:
         //         outSolution._pt[1] = curRotation._pt[0] - 180;
         //     else
         //         outSolution._pt[1] = curRotation._pt[0] + 180;
-        //     Log.notice("getBestMovement 0,0 axis0Cur %F axis1Cur %F angleDiff %FD alpha %FD beta %FD\n",
+        //     Log.verbose("getBestMovement 0,0 axis0Cur %F axis1Cur %F angleDiff %FD alpha %FD beta %FD\n",
         //                 curRotation._pt[0], curRotation._pt[1], angleDiff,
         //                 outSolution._pt[0], outSolution._pt[1]);
         //     return;
@@ -381,16 +381,16 @@ private:
         // double ax1Opt1Diff = calcMinAngleDiff(option1._pt[1], newOption1._pt[1], curRotation._pt[1]);
         // double ax0Opt2Diff = calcMinAngleDiff(option2._pt[0], newOption2._pt[0], curRotation._pt[0]);
         // double ax1Opt2Diff = calcMinAngleDiff(option2._pt[1], newOption2._pt[1], curRotation._pt[1]);
-        // Log.notice("getBestMovement ax0 cur %F newTgtOpt1 %F newTgtOpt2 %F diff1 %F diff2 %FD \n",
+        // Log.verbose("getBestMovement ax0 cur %F newTgtOpt1 %F newTgtOpt2 %F diff1 %F diff2 %FD \n",
         //             curRotation._pt[0], newOption1._pt[0], newOption2._pt[0], ax0Opt1Diff, ax0Opt2Diff);
-        // Log.notice("getBestMovement ax1 cur %F newTgtOpt1 %F newTgtOpt2 %F diff1 %F diff2 %FD \n",
+        // Log.verbose("getBestMovement ax1 cur %F newTgtOpt1 %F newTgtOpt2 %F diff1 %F diff2 %FD \n",
         //             curRotation._pt[1], newOption1._pt[1], newOption2._pt[1], ax1Opt1Diff, ax1Opt2Diff);
 
         // // Weight the turning of ax0 more than ax1
         // double AX0_WEIGHTING_FACTOR = 1.3;
         // double opt1TotalDiff = fabs(ax0Opt1Diff) * AX0_WEIGHTING_FACTOR + fabs(ax1Opt1Diff);
         // double opt2TotalDiff = fabs(ax0Opt2Diff) * AX0_WEIGHTING_FACTOR + fabs(ax1Opt2Diff);
-        // Log.notice("getBestMovement option1Weighted %F option2Weighted %F \n",
+        // Log.verbose("getBestMovement option1Weighted %F option2Weighted %F \n",
         //             opt1TotalDiff, opt2TotalDiff);
         //
         // // Choose the option with the least total turning
@@ -405,7 +405,7 @@ private:
     static double cosineRule(double a, double b, double c)
     {
         // Calculate angle C of a triangle using the cosine rule
-        // Log.trace("cosineRule a %F b %F c %F acos %F = %F\n",
+        // Log.verbose("cosineRule a %F b %F c %F acos %F = %F\n",
         //         a, b, c, (a*a + b*b - c*c) / (2 * a * b), acos((a*a + b*b - c*c) / (2 * a * b)));
         double val = (a*a + b*b - c*c) / (2 * a * b);
         if (val > 1) val = 1;
@@ -416,17 +416,17 @@ private:
     static inline double wrapRadians( double angle )
     {
         static const double twoPi = 2.0 * M_PI;
-        // Log.trace("wrapRadians %F %F\n", angle, angle - twoPi * floor( angle / twoPi ));
+        // Log.verbose("wrapRadians %F %F\n", angle, angle - twoPi * floor( angle / twoPi ));
         return angle - twoPi * floor( angle / twoPi );
     }
     static inline double wrapDegrees( double angle )
     {
-        // Log.trace("wrapDegrees %F %F\n", angle, angle - 360 * floor( angle / 360 ));
+        // Log.verbose("wrapDegrees %F %F\n", angle, angle - 360 * floor( angle / 360 ));
         return angle - 360.0 * floor( angle / 360.0 );
     }
     static inline double r2d(double angleRadians)
     {
-        // Log.trace("r2d %F %F\n", angleRadians, angleRadians * 180.0 / M_PI);
+        // Log.verbose("r2d %F %F\n", angleRadians, angleRadians * 180.0 / M_PI);
         return angleRadians * 180.0 / M_PI;
     }
     static inline double d2r(double angleDegrees)
@@ -435,12 +435,12 @@ private:
     }
     static bool isApprox(double v1, double v2, double withinRng = 0.0001)
     {
-        // Log.trace("isApprox %F %F = %d\n", v1, v2, fabs(v1 - v2) < withinRng);
+        // Log.verbose("isApprox %F %F = %d\n", v1, v2, fabs(v1 - v2) < withinRng);
         return fabs(v1 - v2) < withinRng;
     }
     static bool isApproxWrap(double v1, double v2, double wrapSize=360.0, double withinRng = 0.0001)
     {
-        // Log.trace("isApprox %F %F = %d\n", v1, v2, fabs(v1 - v2) < withinRng);
+        // Log.verbose("isApprox %F %F = %d\n", v1, v2, fabs(v1 - v2) < withinRng);
         double t1 = v1 - wrapSize * floor(v1 / wrapSize);
         double t2 = v2 - wrapSize * floor(v2 / wrapSize);
         return (fabs(t1 - t2) < withinRng) || (fabs(t1 - wrapSize - t2) < withinRng) || (fabs(t1 + wrapSize - t2) < withinRng);
@@ -489,37 +489,37 @@ private:
             // Check forward conversion
             PointND newPt(testPts[testIdx][0], testPts[testIdx][1]);
             PointND outPt1, outPt2;
-            Log.trace("TestPoint x %F y %F\n", newPt._pt[0], newPt._pt[1]);
+            Log.verbose("TestPoint x %F y %F\n", newPt._pt[0], newPt._pt[1]);
             bool valid = ptToRotations(newPt, outPt1, outPt2, axisParams);
             bool outPt1Valid = ((isApproxWrap(outPt1._pt[0], checkOutPts[testIdx][0][0]) && isApproxWrap(outPt1._pt[1], checkOutPts[testIdx][0][1])) ||
                 (isApproxWrap(outPt1._pt[0], checkOutPts[testIdx][1][0]) && isApproxWrap(outPt1._pt[1], checkOutPts[testIdx][1][1])));
             bool outPt2Valid = ((isApproxWrap(outPt2._pt[0], checkOutPts[testIdx][0][0]) && isApproxWrap(outPt2._pt[1], checkOutPts[testIdx][0][1])) ||
                 (isApproxWrap(outPt2._pt[0], checkOutPts[testIdx][1][0]) && isApproxWrap(outPt2._pt[1], checkOutPts[testIdx][1][1])));
             if (outPt1Valid && outPt2Valid)
-                Log.trace("outPts Valid\n");
+                Log.verbose("outPts Valid\n");
             else
-                Log.trace("outPt1 or outPt2 INVALID a1 %F b1 %F a2 %F b2 %F ****************************************************************\n",
+                Log.verbose("outPt1 or outPt2 INVALID a1 %F b1 %F a2 %F b2 %F ****************************************************************\n",
                         checkOutPts[testIdx][0][0], checkOutPts[testIdx][0][1], checkOutPts[testIdx][1][0], checkOutPts[testIdx][1][1]);
             // Reverse process
             PointND actuatorCoords;
             rotationToActuator(outPt1, actuatorCoords, axisParams);
-            Log.trace("Actuator ax0Steps %ld ax1Steps %ld", long(actuatorCoords._pt[0]), long(actuatorCoords._pt[1]));
+            Log.verbose("Actuator ax0Steps %ld ax1Steps %ld", long(actuatorCoords._pt[0]), long(actuatorCoords._pt[1]));
             PointND rotOut;
             actuatorToRotation(actuatorCoords, rotOut, axisParams);
             bool rotOutValid = isApproxWrap(rotOut._pt[0], outPt1._pt[0]) && isApproxWrap(rotOut._pt[1], outPt1._pt[1]);
             if (rotOutValid)
-                Log.trace("rotOutValid\n");
+                Log.verbose("rotOutValid\n");
             else
-                Log.trace("rotOut INVALID ****************************************************************\n");
+                Log.verbose("rotOut INVALID ****************************************************************\n");
 
             //
             PointND finalPoint;
             rotationsToPoint(rotOut, finalPoint, axisParams);
             bool finalPtValid = isApprox(newPt._pt[0], finalPoint._pt[0],0.1) && isApprox(newPt._pt[1], finalPoint._pt[1],0.1);
             if (finalPtValid)
-                Log.trace("finalPtValid\n");
+                Log.verbose("finalPtValid\n");
             else
-                Log.trace("finalPoint INVALID x %F y %F ****************************************************************\n",
+                Log.verbose("finalPoint INVALID x %F y %F ****************************************************************\n",
                         finalPoint._pt[0], finalPoint._pt[1]);
         }
     }
@@ -585,7 +585,7 @@ public:
     // bool init(const char* robotConfigStr)
     // {
     //     // Info
-    //     // Log.notice("Constructing %s from %s\n", _robotTypeName.c_str(), robotConfigStr);
+    //     // Log.verbose("Constructing %s from %s\n", _robotTypeName.c_str(), robotConfigStr);
     //
     //     // Init motion controller from config
     //     _motionHelper.configure(robotConfigStr);
@@ -594,7 +594,7 @@ public:
     //     _maxHomingSecs = RdJson::getLong("maxHomingSecs", maxHomingSecs_default, robotConfigStr);
     //
     //     // Info
-    //     Log.notice("%s maxHome %lds\n",
+    //     Log.verbose("%s maxHome %lds\n",
     //             _robotTypeName.c_str(), _maxHomingSecs);
     //
     //     return true;
@@ -603,7 +603,7 @@ public:
     // void goHome(RobotCommandArgs& args)
     // {
     //     // Info
-    //     Log.notice("%s goHome\n", _robotTypeName.c_str());
+    //     Log.verbose("%s goHome\n", _robotTypeName.c_str());
     //
     //     // Set homing state
     //     homingSetNewState(HOMING_STATE_INIT);
@@ -621,7 +621,7 @@ public:
 //
 //     void moveTo(RobotCommandArgs& args)
 //     {
-// //        Log.trace("SandTableScara moveTo\n");
+// //        Log.verbose("SandTableScara moveTo\n");
 //         _motionHelper.moveTo(args);
 //     }
 //
@@ -639,7 +639,7 @@ public:
     // {
     //     // Debug
     //     if (_homingStepsDone != 0)
-    //         Log.trace("RobotSandTableScara homingState %d ... HomingSteps %d\n", newState, _homingStepsDone);
+    //         Log.verbose("RobotSandTableScara homingState %d ... HomingSteps %d\n", newState, _homingStepsDone);
     //
     //     // Reset homing vars
     //     int prevHomingSteps = _homingStepsDone;
@@ -667,7 +667,7 @@ public:
     //             _homingSeekAxis0Endstop0 = HSEEK_OFF;
     //             // Moving axis 0 only
     //             _homingAxis0Step = HSTEP_BACKWARDS;
-    //             Log.notice("Homing started\n");
+    //             Log.verbose("Homing started\n");
     //             break;
     //         }
     //         case AXIS0_TO_ENDSTOP:
@@ -677,7 +677,7 @@ public:
     //             _homingSeekAxis0Endstop0 = HSEEK_ON;
     //             // Axis 0 only
     //             _homingAxis0Step = HSTEP_FORWARDS;
-    //             Log.trace("Homing - rotating to axis 0 end stop\n");
+    //             Log.verbose("Homing - rotating to axis 0 end stop\n");
     //             break;
     //         }
     //         case AXIS0_AT_ENDSTOP:
@@ -694,7 +694,7 @@ public:
     //             // We now know how many steps the endstop is active for - so halve this and move
     //             // back that amount and we are in the centre of the home range
     //             int homingAxis0Centre = prevHomingSteps / 2;
-    //             Log.trace("Homing - PastEndstop - axis0CentreSteps = %d\n", homingAxis0Centre);
+    //             Log.verbose("Homing - PastEndstop - axis0CentreSteps = %d\n", homingAxis0Centre);
     //             _homingStepsLimit = homingAxis0Centre;
     //             _homingApplyStepLimit = true;
     //             _homingStateNext = AXIS0_HOMED;
@@ -710,7 +710,7 @@ public:
     //             _homingSeekAxis1Endstop0 = HSEEK_OFF;
     //             // Axis 1 only
     //             _homingAxis1Step = HSTEP_BACKWARDS;
-    //             Log.trace("Homing - rotating away from axis 1 endstop if required\n");
+    //             Log.verbose("Homing - rotating away from axis 1 endstop if required\n");
     //             break;
     //         }
     //         case AXIS1_TO_ENDSTOP:
@@ -720,7 +720,7 @@ public:
     //             _homingSeekAxis1Endstop0 = HSEEK_ON;
     //             // Axis 1 only
     //             _homingAxis1Step = HSTEP_FORWARDS;
-    //             Log.trace("Homing - rotating to axis 1 endstop\n");
+    //             Log.verbose("Homing - rotating to axis 1 endstop\n");
     //             break;
     //         }
     //         case AXIS1_AT_ENDSTOP:
@@ -737,7 +737,7 @@ public:
     //             // We now know how many steps the endstop is active for - so halve this and move
     //             // back that amount and we are in the centre of the home range
     //             int homingAxis1Centre = prevHomingSteps / 2 + _motionHelper.gethomeOffSteps(1);
-    //             Log.trace("Homing - PastEndstop - axis1CentreSteps = %d (offset is %ld)\n",
+    //             Log.verbose("Homing - PastEndstop - axis1CentreSteps = %d (offset is %ld)\n",
     //                                     homingAxis1Centre, _motionHelper.gethomeOffSteps(1));
     //             _homingStepsLimit = homingAxis1Centre;
     //             _homingApplyStepLimit = true;
@@ -750,7 +750,7 @@ public:
     //         {
     //             _motionHelper.setCurPositionAsHome(false,true,false);
     //             _homingState = HOMING_STATE_IDLE;
-    //             Log.notice("Homing - complete\n");
+    //             Log.verbose("Homing - complete\n");
     //             break;
     //         }
     //     }
@@ -765,7 +765,7 @@ public:
         // // Check for timeout
         // if (millis() > _homeReqMillis + (_maxHomingSecs * 1000))
         // {
-        //     Log.notice("Homing Timed Out\n");
+        //     Log.verbose("Homing Timed Out\n");
         //     homingSetNewState(HOMING_STATE_IDLE);
         // }
         //
@@ -820,7 +820,7 @@ public:
         //     //     {
         //     //         pStr = "ROT_CW";
         //     //     }
-        //     //     Log.trace("HomingSteps %d %s\n", _homingStepsDone, pStr);
+        //     //     Log.verbose("HomingSteps %d %s\n", _homingStepsDone, pStr);
         //     // }
         // }
         //
@@ -832,7 +832,7 @@ public:
         // //         _homingState = OFFSET_TO_CENTRE;
         // //         _homingStepsLimit = _homingCentreOffsetMM * _motionHelper.getAxisParams(1)._stepsPerUnit;
         // //         _homingStepsDone = 0;
-        // //         Log.notice("Homing - %d steps to centre\n", _homingStepsLimit);
+        // //         Log.verbose("Homing - %d steps to centre\n", _homingStepsLimit);
         // //         break;
         // //     }
         // // }

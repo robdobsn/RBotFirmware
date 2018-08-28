@@ -174,7 +174,7 @@ class MotionIO
         for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
         {
             if (_stepperMotors[axisIdx])
-                aStepEnded |= _stepperMotors[axisIdx]->stepEnd();
+                aStepEnded = aStepEnded || _stepperMotors[axisIdx]->stepEnd();
         }
         return aStepEnded;
     }
