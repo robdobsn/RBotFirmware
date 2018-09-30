@@ -1,6 +1,16 @@
 # Python intermediates
 *.pyc
 
+# Intermediates
+fastmathparser.sdf
+TestArstParser.sdf
+*.ipch
+.browse*
+*.pdb
+Browse.VC.*
+*.pch
+*.idb
+
 # User-specific stuff:
 .idea/**/workspace.xml
 .idea/**/tasks.xml
