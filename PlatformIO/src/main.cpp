@@ -65,7 +65,8 @@ static const char *hwConfigJSON = {
     "\"webServerPort\":80,"
     "\"OTAUpdate\":{\"enabled\":0,\"server\":\"domoticzoff\",\"port\":5076},"
     "\"wifiLed\":{\"ledPin\":\"\",\"ledOnMs\":200,\"ledShortOffMs\":200,\"ledLongOffMs\":750},"
-    "\"serialConsole\":{\"portNum\":0}"
+    "\"serialConsole\":{\"portNum\":0},"
+    "\"defaultRobotType\":\"SandTableScara\""
     "}"};
 
 // Config for hardware
@@ -112,7 +113,8 @@ CommandExtender _commandExtender;
 
 // Command interface
 #include "CommandInterface.h"
-CommandInterface _commandInterface(robotConfig, 
+CommandInterface _commandInterface(hwConfig,
+                robotConfig, 
                 _robotController,
                 _workflowManager,
                 restAPISystem,

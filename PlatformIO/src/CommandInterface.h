@@ -6,6 +6,7 @@
 #include <Arduino.h>
 
 class ConfigNVS;
+class ConfigBase;
 class RobotController;
 class WorkflowManager;
 class RestAPISystem;
@@ -15,6 +16,7 @@ class CommandExtender;
 class CommandInterface
 {
   private:
+    ConfigBase& _mainConfig;
     ConfigNVS& _robotConfig;
     RobotController& _robotController;
     WorkflowManager& _workflowManager;
@@ -22,11 +24,13 @@ class CommandInterface
     CommandExtender& _commandExtender;
 
   public:
-    CommandInterface(ConfigNVS &robotConfig, 
+    CommandInterface(ConfigBase& mainConfig,
+                ConfigNVS &robotConfig, 
                 RobotController &robotController,
                 WorkflowManager &workflowManager,
                 RestAPISystem &restAPISystem,
                 CommandExtender& commandExtender) :
+                _mainConfig(mainConfig),
                 _robotConfig(robotConfig),
                 _robotController(robotController),
                 _workflowManager(workflowManager),

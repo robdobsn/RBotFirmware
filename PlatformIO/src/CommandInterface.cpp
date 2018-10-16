@@ -192,7 +192,7 @@ void CommandInterface::reconfigure()
     {
         Log.notice("CommandInterface: No robotConfig found - defaulting\n");
         // See if there is a robotType specified in the main config
-        String robotType = RdJson::getString("/robotType", "", configData.c_str());
+        String robotType = RdJson::getString("/defaultRobotType", "", _mainConfig.getConfigData());
         if (robotType.length() <= 0)
             RobotTypes::getNthRobotTypeName(0, robotType);
         // Set the default robot type
