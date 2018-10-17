@@ -12,7 +12,7 @@
     <meta name="description" content="WebUI for RBotFirmware CNC">
     <meta name="author" content="Rob Dobson">
 
-    <title id="title">Mug Bot</title>
+    <title id="title">RBot</title>
     <link rel="shortcut icon" type="image/x-icon" href="data:image/x-icon;,">
     <script>
         var favIcon =
@@ -161,6 +161,8 @@
                 opt.innerHTML = window.RBotUIVars.robotTypes[i];
                 opt.value = window.RBotUIVars.robotTypes[i];
                 selec.appendChild(opt);
+                if (window.RBotUIVars.settings.robotType === opt.value)
+                    selec.value = opt.value;
             }
             // Show current settings
             showSettings();

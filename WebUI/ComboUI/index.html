@@ -1,0 +1,88 @@
+<!-- RBotFirmware CNC Control
+        by Rob Dobson (c) 2017
+        MIT license
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="description" content="WebUI for RBotFirmware">
+    <meta name="author" content="Rob Dobson">
+    <title id="title">RBot</title>
+    <script>
+	    function bodyIsLoaded()
+        {
+            console.log("Body loaded");
+            window.stState = {
+                runInTestMode: (location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.hostname === "")
+            };
+            if (window.stState.runInTestMode) {
+                const splashText = document.getElementById("splashPageText");
+                splashPageText.innerHTML = "I must run on a server!";
+            } else {
+                callAjax("/getsettings", settingsCallback);
+            }
+        }
+        function settingsCallback(json)
+        {
+        	console.log(json);
+            const settings = JSON.parse(json);
+            if ((settings.uiType !== null) && (settings.uiType === "SandUI"))
+            {
+                window.location.replace("sandUI.html");             
+            }
+            else 
+            {
+                if (settings.robotType === "SandTableScara")
+                    window.location.replace("sandUI.html");
+                else
+                    window.location.replace("cncUI.html");
+            }
+        }
+        function callAjax(url, okCallback, failCallback)
+        {
+            var xmlhttp = new XMLHttpRequest();
+            xmlhttp.onreadystatechange = function()
+            {
+                if (xmlhttp.readyState === 4) {
+                    if (xmlhttp.status === 200) {
+                        if ((okCallback !== undefined) && (typeof okCallback !== 'undefined'))
+                            okCallback(xmlhttp.responseText);
+                    }
+                    else {
+                        if ((failCallback !== undefined) && (typeof failCallback !== 'undefined'))
+                            failCallback(xmlhttp);
+                    }
+                }
+            };
+
+            xmlhttp.open("GET", url, true);
+            xmlhttp.send();
+        }
+</script>
+</head>
+    <style>
+        body{
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        #container {
+            display: flex;
+            flex-wrap: wrap;
+
+        }
+    </style>
+
+</head>
+<body onload="bodyIsLoaded(event)">
+    <!-- Master layout -->
+    <div id="container">
+        <p id="splashPageText"></p>
+    </div>
+</body>
+</html>
