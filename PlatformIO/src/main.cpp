@@ -148,7 +148,7 @@ void setup()
 {
     // Logging
     Serial.begin(115200);
-    Log.begin(LOG_LEVEL_NOTICE, &Serial);
+    Log.begin(LOG_LEVEL_VERBOSE, &Serial);
 
     // Message
     Log.notice("%s %s (built %s %s)\n", systemType, systemVersion, buildDate, buildTime);

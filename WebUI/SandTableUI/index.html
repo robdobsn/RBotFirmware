@@ -132,10 +132,14 @@
         }
 		function sandTableInfoCallback(jsonResp)
 		{
-			jsonData = JSON.parse(jsonResp);
-			// Make a copy so that if the max length is exceeded we can fall back
-			window.prevSandTableState = JSON.parse(JSON.stringify(window.sandTableState));
-			window.sandTableState = jsonData;
+			// Check for empty status info
+			if (jsonResp !== "" && jsonResp !== "{}")
+			{
+				const jsonData = JSON.parse(jsonResp);
+				// Make a copy so that if the max length is exceeded we can fall back
+				window.prevSandTableState = JSON.parse(JSON.stringify(window.sandTableState));
+				window.sandTableState = jsonData;
+			}
             genPageHeader();
 			genPageBody();
 			iconGen("logoCanvas");
