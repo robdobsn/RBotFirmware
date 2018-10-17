@@ -1,47 +1,48 @@
 <!DOCTYPE html>
 <html>
 	<head>
+    <meta charset="utf-8"/>
 	<title>Sand Table</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
     <script type="text/javascript">
-		var tVal, x, y, stop;
-		var logoWidth = 400, logoHeight = 400;
-		var logoCanvasWidth = 100, logoCanvasHeight = 100;
-		var logoCentreX = logoCanvasWidth / 2, logoCentreY = logoCanvasHeight / 2;
-	    var startRadius = 180;
-		var overRotationFactor=1.03;
-    	var segmentsPerRev = 200;
-    	var modulationFreqMult = 20;
-	    var endRadius = 10;
-	    var outstepPerRev = -13;
-	    var modulationDampingFactor = 0.6;
-    	var modulationAmp = 10;
+		let logoCanvasWidth = 100, logoCanvasHeight = 100;
 
 		function iconGen(canvasID)
 		{
+			let logoWidth = 400, logoHeight = 400;
+			let tVal, x, y, stop;
+			let logoCentreX = logoCanvasWidth / 2, logoCentreY = logoCanvasHeight / 2;
+		    let startRadius = 180;
+			let overRotationFactor=1.03;
+	    	let segmentsPerRev = 200;
+	    	let modulationFreqMult = 20;
+		    let endRadius = 10;
+		    let outstepPerRev = -13;
+		    let modulationDampingFactor = 0.6;
+	    	let modulationAmp = 10;
 			function logoSetup() {
                 tVal = 0;
                 stop=false;
             }
 			function logoLoop() {
-				var rRadians = tVal * 2 * Math.PI * overRotationFactor / segmentsPerRev;
-				var curModu = Math.sin(tVal * modulationFreqMult * 2 * Math.PI / segmentsPerRev);
-				var curRadius = startRadius + outstepPerRev * tVal / segmentsPerRev;
-				var radiusProp = (curRadius-Math.min(startRadius,endRadius))/Math.abs(startRadius-endRadius);
-				var modDampFact = (1 - radiusProp) * modulationDampingFactor;
-				var modAmpl = curRadius + curModu * modulationAmp * (1 - modDampFact);
+				const rRadians = tVal * 2 * Math.PI * overRotationFactor / segmentsPerRev;
+				const curModu = Math.sin(tVal * modulationFreqMult * 2 * Math.PI / segmentsPerRev);
+				const curRadius = startRadius + outstepPerRev * tVal / segmentsPerRev;
+				const radiusProp = (curRadius-Math.min(startRadius,endRadius))/Math.abs(startRadius-endRadius);
+				const modDampFact = (1 - radiusProp) * modulationDampingFactor;
+				const modAmpl = curRadius + curModu * modulationAmp * (1 - modDampFact);
 				x = modAmpl * Math.sin(rRadians) * logoCanvasWidth / logoWidth;
 				y = modAmpl * Math.cos(rRadians) * logoCanvasHeight / logoHeight;
 				tVal += 1;
 				stop = (curRadius > Math.max(startRadius, endRadius)) || (curRadius < Math.min(startRadius, endRadius));
 			}
 
-			var c = document.getElementById(canvasID);
-			var ctx = c.getContext("2d");
+			const c = document.getElementById(canvasID);
+			const ctx = c.getContext("2d");
 			ctx.beginPath();
 			ctx.lineWidth = 2;
 			logoSetup();
-			var ctr = 0;
+			let ctr = 0;
 			while(!stop)
 			{
 				logoLoop();
@@ -59,10 +60,10 @@
 		}
 		function bodyIsLoaded()
 		{
-		    window.stState =
-				{
-					curPage: ''
-				};
+		    window.stState = {
+				curPage: '',
+                runInTestMode: (location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.hostname === "")
+			};
 			window.sandTableState = {
 			    "maxCfgLen": 2000,
                 "name": "Sand Table",
@@ -78,11 +79,18 @@
 			};
 			// Make a copy so that if the max length is exceeded we can fall back
 			window.prevSandTableState = window.sandTableState;
-			updateDisplay();
+			// Handle running directly in browser
+			if (window.stState.runInTestMode) {
+				window.sandTableState.name = "Sand Table - I must run on a server!"
+				sandTableInfoCallback(
+					JSON.stringify(window.sandTableState));
+			} else {
+				updateDisplay();
+			}
 		}
         function callAjax(url, okCallback, failCallback)
         {
-            var xmlhttp = new XMLHttpRequest();
+            const xmlhttp = new XMLHttpRequest();
             xmlhttp.onreadystatechange = function()
             {
                 if (xmlhttp.readyState === 4) {
@@ -104,7 +112,7 @@
         }
         function postJson(url, jsonStrToPos, okCallback, failCallback)
         {
-            var xmlhttp = new XMLHttpRequest();
+            const xmlhttp = new XMLHttpRequest();
             xmlhttp.onreadystatechange = function()
             {
                 if (xmlhttp.readyState === 4) {
@@ -166,11 +174,11 @@
 		    else if (cmdStr === "save") {
 		        // Get values from form
                 if (itemTypeStr === "pat") {
-                    var patname = document.getElementById('patname').value.trim();
+                    let patname = document.getElementById('patname').value.trim();
                     patname = patname.replace('"','');
                     patname = patname.replace('\\','');
-                    var patsetup = document.getElementById('patsetup').value;
-                    var patloop = document.getElementById('patloop').value;
+                    const patsetup = document.getElementById('patsetup').value;
+                    const patloop = document.getElementById('patloop').value;
                     // Check name is valid
                     if (patname.trim().length > 0) {
                         if ((patname === argStr.trim()) || (!(patname in window.sandTableState.patterns))) {
@@ -186,10 +194,10 @@
                     }
                 }
                 else {
-                    var seqname = document.getElementById('seqname').value.trim();
+                    let seqname = document.getElementById('seqname').value.trim();
                     seqname = seqname.replace('"','');
                     seqname = seqname.replace('\\','');
-                    var seqcommands = document.getElementById('seqcommands').value;
+                    const seqcommands = document.getElementById('seqcommands').value;
                     // Check name is valid
                     if (seqname.trim().length > 0) {
                         if ((seqname === argStr.trim()) || (!(seqname in window.sandTableState.sequences))) {
@@ -232,10 +240,10 @@
 			{
 				argStr = argStr.replace('"','');
 				argStr = argStr.replace('\\','');
-			    var curRunAtStartVal = 0;
+			    let curRunAtStartVal = 0;
 			    if (argStr in window.sandTableState.sequences)
 			        curRunAtStartVal = window.sandTableState.sequences[argStr].runAtStart;
-			    for (var seq in window.sandTableState.sequences)
+			    for (const seq in window.sandTableState.sequences)
 			        window.sandTableState.sequences[seq].runAtStart = 0;
 			    if (argStr in window.sandTableState.sequences)
 			        window.sandTableState.sequences[argStr].runAtStart = curRunAtStartVal ? 0 : 1;
@@ -261,7 +269,7 @@
 		function genButton(clickFn, keyVal, label, cssClass, curState)
 		{
 //		    console.log("Gen BUTTON url " + url + " clickFn " + clickFn + " label " + label);
-			var oStr = "";
+			let oStr = "";
 			clickFn = clickFn.replace("~key~", keyVal);
 			oStr += "<span class='" + cssClass + "' onclick='" + clickFn + "'>";
 			if (label === "Edit")
@@ -305,9 +313,9 @@
 		}
 		function genPageHeader()
 		{
-			var sandTableState = window.sandTableState;
-			var headerDiv = document.getElementById("pageHeader");
-			var headStr = "<div class='page-header backHead'>";
+			const sandTableState = window.sandTableState;
+			const headerDiv = document.getElementById("pageHeader");
+			let headStr = "<div class='page-header backHead'>";
 			headStr += "<div class='page-header-logo'>";
 			headStr += '<canvas id="logoCanvas" class="page-logo backHead" width="' + logoCanvasWidth + '" height="' + logoCanvasHeight + '">Oops</canvas>';
 			headStr += '</div>';
@@ -320,7 +328,7 @@
 		function genBodyHeadingSection()
 		{
 			// Control section
-			var oStr = "<div class='body-group backGrad1'>";
+			let oStr = "<div class='body-group backGrad1'>";
 //			oStr += "<div class='body-group-header'>Control</div>";
 			oStr += "<div class='body-commands'>";
 			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/pause", "", "Pause", 'body-commands-button') + "</div>";
@@ -335,14 +343,17 @@
 		function genPatternsBody()
 		{
 			// Patterns section
-			var listStr = "<div class='body-group backGrad2'>";
+			let listStr = "<div class='body-group backGrad2'>";
 			listStr += "<div class='body-group-header'>Patterns";
 			listStr += "<div class='body-group-actions'>";
 			listStr += genButton("userAction(\"pat\",\"add\",\"\")", "", "Add", 'body-group-button', false);
 			listStr += "</div>";
 			listStr += "</div>";
 			listStr += "<div class='body-list'>";
-			Object.keys(window.sandTableState.patterns).forEach(function(key,index) {
+			let patterns = window.sandTableState.patterns;
+			if (!patterns)
+				patterns = []
+			Object.keys(patterns).forEach(function(key,index) {
 				listStr += "<div class='body-list-line'>";
           		listStr += "<div class='body-list-item'>";
 				listStr += genAjaxButton("/pattern/"+key, "", key, 'body-group-button');
@@ -358,7 +369,7 @@
 		}
 		function genSequencesBody() {
 			// Sequences section
-			var listStr = "<div class='body-group backGrad3'>";
+			let listStr = "<div class='body-group backGrad3'>";
 			listStr += "<div class='body-group-header'>Sequences";
 			listStr += "<div class='body-group-actions'>";
 			listStr += genButton("userAction(\"seq\",\"add\",\"\")", "", "Add", 'body-group-button', false);
@@ -371,7 +382,7 @@
 				listStr += genAjaxButton("/sequence/"+key, "", key, 'body-group-button');
 				listStr += "</div>";
 				listStr += "<div class='body-list-actions'>";
-				var UAStr = "userAction(\"seq\",\"runAtStart\",\"~key~\"," + ((sandTableState.sequences[key].runAtStart) ? 0 : 1) + ")";
+				let UAStr = "userAction(\"seq\",\"runAtStart\",\"~key~\"," + ((sandTableState.sequences[key].runAtStart) ? 0 : 1) + ")";
 				listStr += genButton(UAStr, key, "RunAtStart", 'body-group-button button-spacing', sandTableState.sequences[key].runAtStart);
 				listStr += genButton("userAction(\"seq\",\"edit\",\"~key~\")", key, "Edit", 'body-group-button', false);
 				listStr += "</div>";
@@ -383,11 +394,11 @@
         }
 		function genHomePageBody()
 		{
-			var sandTableState = window.sandTableState;
-			var pageBodyDiv = document.getElementById("pageBody");
+			const sandTableState = window.sandTableState;
+			const pageBodyDiv = document.getElementById("pageBody");
 
 			// Body heading
-			var listStr = genBodyHeadingSection();
+			let listStr = genBodyHeadingSection();
 			listStr += genPatternsBody();
 			listStr += genSequencesBody();
 
@@ -397,7 +408,7 @@
 
 		function genEditPageActions(itemTypeStr, argStr)
         {
-			var listStr = "<div class='body-group'>";
+			let listStr = "<div class='body-group'>";
 			listStr += "<div class='body-group-header'>";
 			listStr += "<div class='body-group-actions'>";
 			listStr += genButton("userAction(\"" + itemTypeStr + "\",\"delete\",\"~key~\")", argStr, "Delete", 'body-group-button', false);
@@ -413,15 +424,15 @@
         }
 
 		function genPatEditBody() {
-            var sandTableState = window.sandTableState;
-            var patName = window.stState.curItem;
-            var patternInfo = { setup:"", loop:""};
+            const sandTableState = window.sandTableState;
+            const patName = window.stState.curItem;
+            let patternInfo = { setup:"", loop:""};
             if (patName in window.sandTableState.patterns)
 			    patternInfo = window.sandTableState.patterns[patName];
-            var pageBodyDiv = document.getElementById("pageBody");
+            const pageBodyDiv = document.getElementById("pageBody");
 
 			// Body heading
-			var listStr = genBodyHeadingSection();
+			let listStr = genBodyHeadingSection();
 
             // Action buttons
             listStr += genEditPageActions("pat", patName);
@@ -448,15 +459,15 @@
         }
 
   		function genSeqEditBody() {
-            var sandTableState = window.sandTableState;
-            var seqName = window.stState.curItem;
-            var sequenceInfo = { commands: "" };
+            const sandTableState = window.sandTableState;
+            const seqName = window.stState.curItem;
+            let sequenceInfo = { commands: "" };
             if (seqName in window.sandTableState.sequences)
 			    sequenceInfo = window.sandTableState.sequences[seqName];
-            var pageBodyDiv = document.getElementById("pageBody");
+            const pageBodyDiv = document.getElementById("pageBody");
 
 			// Body heading
-			var listStr = genBodyHeadingSection();
+			let listStr = genBodyHeadingSection();
 
             // Action buttons
             listStr += genEditPageActions("seq", seqName);
