@@ -5,6 +5,8 @@
 
 class MotionHelper;
 
+#define DBG_HOMING_LVL notice
+
 class MotionHoming
 {
   public:
@@ -47,7 +49,7 @@ class MotionHoming
         // No homing currently
         _homingStrPos = 0;
         _commandInProgress = false;
-        Log.notice("MotionHoming: sequence %s\n", _homingSequence.c_str());
+        Log.notice("MotionHoming: config sequence %s\n", _homingSequence.c_str());
     }
 
     bool isHomingInProgress()
@@ -77,7 +79,6 @@ class MotionHoming
         // Progress homing if possible
         if (_commandInProgress)
         {
-            // Log.notice("LastCompleted %d, %d", getLastCompletedNumberedCmdIdx(), _homingCurCommandIndex);
             // Check if a command has completed execution
             if (getLastCompletedNumberedCmdIdx() != _homingCurCommandIndex)
                 return;
@@ -86,7 +87,7 @@ class MotionHoming
         // Check for timeout
         if (millis() > _homeReqMillis + (_maxHomingSecs * 1000))
         {
-            Log.notice("MotionHoming: Timed Out\n");
+            Log.warning("MotionHoming: Timed Out\n");
             _isHomedOk = false;
             _homingInProgress = false;
             _commandInProgress = false;
@@ -114,7 +115,7 @@ class MotionHoming
             case '$': // All done ok
             {
                 // Check if homing commands complete
-                // Log.notice("MotionHoming: command in prog %d, %d", _homingStrPos, _homingSequence.length());
+                Log.DBG_HOMING_LVL("MotionHoming: command in prog %d, len %d", _homingStrPos, _homingSequence.length());
                 Log.notice("MotionHoming: Homed ok\n");
                 _isHomedOk = true;
                 _homingInProgress = false;
@@ -134,7 +135,7 @@ class MotionHoming
                 // Command complete so exec
                 _commandInProgress = true;
                 moveTo(_curCommand);
-                Log.notice("MotionHoming: %s\n", _curCommand.toJSON().c_str());
+                Log.DBG_HOMING_LVL("MotionHoming: exec command %s\n", _curCommand.toJSON().c_str());
                 _homingStrPos++;
                 return true;
             }
@@ -215,16 +216,22 @@ class MotionHoming
                     // Check axis should be homed
                     if (!_axesToHome.isValid(axisIdx))
                     {
-                        Log.notice("MotionHoming: axis %d in sequence but not required to home\n", axisIdx);
+                        Log.DBG_HOMING_LVL("MotionHoming: Axis%d in sequence but not required to home\n", axisIdx);
                         continue;
                     }
-                    Log.notice("MotionHoming: Axis %d Dist str %s, steps %ld (%F), rate %F\n", axisIdx, distStr.c_str(), distToMove,
-                               _curCommand.getValMM(axisIdx), _curCommand.getFeedrate());
                     // Check endStop
                     if (setEndstopTest)
                     {
-                        Log.notice("MotionHoming: axis %d Setting endstop %d, %d\n", axisIdx, endStopIdx, checkActive ? AxisMinMaxBools::END_STOP_HIT : AxisMinMaxBools::END_STOP_NOT_HIT);
+                        Log.DBG_HOMING_LVL("MotionHoming: Axis%d steps %d, rate %F, stop at endstop%d=%s\n", 
+                                axisIdx, distToMove, _curCommand.getFeedrate(),
+                                endStopIdx, (checkActive ? "Hit" : "NotHit"));
                         _curCommand.setTestEndStop(axisIdx, endStopIdx, checkActive ? AxisMinMaxBools::END_STOP_HIT : AxisMinMaxBools::END_STOP_NOT_HIT);
+                    }
+                    else
+                    {
+                        Log.DBG_HOMING_LVL("MotionHoming: Axis%d steps %d, rate %F, no enstop check\n", 
+                                axisIdx, distToMove, _curCommand.getFeedrate());
+
                     }
                     // Set dist to move
                     _curCommand.setAxisSteps(axisIdx, distToMove, true);
