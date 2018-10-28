@@ -53,8 +53,10 @@ class ConfigPinMap
     {
         if (strcasecmp(inputTypeStr, "INPUT_PULLUP") == 0)
             return INPUT_PULLUP;
+    #if !defined(ESP8266)
         if (strcasecmp(inputTypeStr, "INPUT_PULLDOWN") == 0)
             return INPUT_PULLDOWN;
+    #endif
         return INPUT;
     }
 };
