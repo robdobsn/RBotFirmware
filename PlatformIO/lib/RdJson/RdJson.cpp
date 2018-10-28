@@ -18,7 +18,7 @@ static int RdJson::recreateJson(const char* js, jsmnrtok_t* t,
     if (t->type == JSMNR_PRIMITIVE) {
         Log.trace(F("#Found primitive size %dCR), start %d, end %d",
                   t->size, t->start, t->end);
-        Log.trace(F("%.*s"CR), t->end - t->start, js + t->start);
+        Log.trace("%.*s", t->end - t->start, js + t->start);
         char* pStr = safeStringDup(js + t->start,
                                    t->end - t->start);
         outStr.concat(pStr);
@@ -26,9 +26,9 @@ static int RdJson::recreateJson(const char* js, jsmnrtok_t* t,
         return 1;
     }
     else if (t->type == JSMNR_STRING) {
-        Log.trace(F("#Found string size %d, start %d, end %d"CR),
+        Log.trace("#Found string size %d, start %d, end %d"),
                   t->size, t->start, t->end);
-        Log.trace(F("'%.*s'"CR), t->end - t->start, js + t->start);
+        Log.trace("'%.*s'"), t->end - t->start, js + t->start);
         char* pStr = safeStringDup(js + t->start,
                                    t->end - t->start);
         outStr.concat("\"");
@@ -38,7 +38,7 @@ static int RdJson::recreateJson(const char* js, jsmnrtok_t* t,
         return 1;
     }
     else if (t->type == JSMNR_OBJECT) {
-        Log.trace(F("#Found object size %d, start %d, end %d"CR),
+        Log.trace("#Found object size %d, start %d, end %d"),
                   t->size, t->start, t->end);
         j = 0;
         outStr.concat("{");
@@ -59,7 +59,7 @@ static int RdJson::recreateJson(const char* js, jsmnrtok_t* t,
         return j + 1;
     }
     else if (t->type == JSMNR_ARRAY) {
-        Log.trace(F("#Found array size %d, start %d, end %d"CR),
+        Log.trace("#Found array size %d, start %d, end %d"),
                   t->size, t->start, t->end);
         j = 0;
         outStr.concat("[");
@@ -88,7 +88,7 @@ static bool RdJson::doPrint(const char* jsonStr)
     int tokenCountRslt = JSMNR_parse(&parser, jsonStr, strlen(jsonStr),
                                      NULL, 1000);
     if (tokenCountRslt < 0) {
-        Log.info(F("JSON parse result: %d"CR), tokenCountRslt);
+        Log.info("JSON parse result: %d", tokenCountRslt);
         return false;
     }
     jsmnrtok_t* pTokens = new jsmnrtok_t[tokenCountRslt];
@@ -96,17 +96,17 @@ static bool RdJson::doPrint(const char* jsonStr)
     tokenCountRslt = JSMNR_parse(&parser, jsonStr, strlen(jsonStr),
                                  pTokens, tokenCountRslt);
     if (tokenCountRslt < 0) {
-        Log.info(F("JSON parse result: %d"CR), tokenCountRslt);
+        Log.info("JSON parse result: %d"), tokenCountRslt);
         delete pTokens;
         return false;
     }
     // Top level item must be an object
     if (tokenCountRslt < 1 || pTokens[0].type != JSMNR_OBJECT) {
-        Log.error(F("JSON must have top level object"CR);
+        Log.error("JSON must have top level object");
         delete pTokens;
         return false;
     }
-    Log.trace(F("Dumping"CR));
+    Log.trace("Dumping"));
     recreateJson(jsonStr, pTokens, parser.toknext, 0);
     delete pTokens;
     return true;
