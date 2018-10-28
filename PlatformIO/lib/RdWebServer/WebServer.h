@@ -5,7 +5,11 @@
 
 #include <Arduino.h>
 #include <FS.h>
-#include <AsyncTCP.h>
+#if defined (ESP8266)
+#include "ESPAsyncTCP.h"
+#else
+#include "AsyncTCP.h"
+#endif
 #include <ESPAsyncWebServer.h>
 #include "RestAPIEndpoints.h"
 #include "WebAutogenResources.h"
@@ -13,7 +17,7 @@
 class WebServer
 {
   public:
-    AsyncWebServer *_pServer;
+    AsyncWebServer* _pServer;
     bool _begun;
     bool _webServerEnabled;
 
@@ -109,7 +113,9 @@ class WebServer
                 
                 // Handler for upload (as in a file upload)
                 [pEndpoint](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
-                    pEndpoint->callbackUpload(filename, index, data, len, final);
+                    pEndpoint->callbackUpload(filename, 
+                                request ? request->contentLength() : 0, 
+                                index, data, len, final);
                 },
                 
                 // Handler for body

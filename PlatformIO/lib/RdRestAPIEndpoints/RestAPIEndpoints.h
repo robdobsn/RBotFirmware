@@ -9,7 +9,7 @@
 // Callback function for any endpoint
 typedef std::function<void(String &reqStr, String &respStr)> RestAPIFunction;
 typedef std::function<void(uint8_t *pData, size_t len, size_t index, size_t total)> RestAPIFnBody;
-typedef std::function<void(String filename, size_t index, uint8_t *data, size_t len, bool final)> RestAPIFnUpload;
+typedef std::function<void(String filename, size_t contentLen, size_t index, uint8_t *data, size_t len, bool final)> RestAPIFnUpload;
 
 // Definition of an endpoint
 class RestAPIEndpointDef
@@ -81,10 +81,11 @@ class RestAPIEndpointDef
             _callbackBody(pData, len, index, total);
     }
 
-    void callbackUpload(String &filename, size_t index, uint8_t *data, size_t len, bool final)
+    void callbackUpload(String &filename, size_t contentLen, size_t index,
+                         uint8_t *data, size_t len, bool final)
     {
         if (_callbackUpload)
-            _callbackUpload(filename, index, data, len, final);
+            _callbackUpload(filename, contentLen, index, data, len, final);
     }
 
 };

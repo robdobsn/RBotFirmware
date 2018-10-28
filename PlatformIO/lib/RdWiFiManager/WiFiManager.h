@@ -71,7 +71,7 @@ class WiFiManager
                 WiFi.begin(_ssid.c_str(), _password.c_str());
                 WiFi.setHostname(_hostname.c_str());
                 _lastWifiBeginAttemptMs = millis();
-                Log.notice("WiFiManager: WiFi not connected - WiFi.begin with SSID %s\n", _ssid.c_str());
+                Log.notice("WiFiManager: notConn WiFi.begin SSID %s\n", _ssid.c_str());
             }
         }
     }

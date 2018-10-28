@@ -2,10 +2,11 @@
 // Rob Dobson 2016-2017
 
 // System type
-const char *systemType = "RBotFirmware";
+#define SYSTEM_TYPE_NAME "RBotFirmware"
+const char* systemType = SYSTEM_TYPE_NAME;
 
 // System version
-const char *systemVersion = "2.002.001";
+const char *systemVersion = "2.003.001";
 
 // Build date
 const char *buildDate = __DATE__;
@@ -48,10 +49,6 @@ WebServer webServer;
 #include "MQTTManager.h"
 MQTTManager mqttManager(wifiManager, restAPIEndpoints);
 
-// MQTTLog
-#include "NetLog.h"
-NetLog netLog(Serial, mqttManager);
-
 // Firmware update
 #include <RdOTAUpdate.h>
 RdOTAUpdate otaUpdate;
@@ -64,8 +61,9 @@ static const char *hwConfigJSON = {
     "\"webServerEnabled\":1,"
     "\"webServerPort\":80,"
     "\"OTAUpdate\":{\"enabled\":0,\"server\":\"domoticzoff\",\"port\":5076},"
-    "\"wifiLed\":{\"ledPin\":\"\",\"ledOnMs\":200,\"ledShortOffMs\":200,\"ledLongOffMs\":750},"
     "\"serialConsole\":{\"portNum\":0},"
+    "\"commandSerial\":{\"portNum\":-1,\"baudRate\":115200},"
+    "\"wifiLed\":{\"ledPin\":\"\",\"ledOnMs\":200,\"ledShortOffMs\":200,\"ledLongOffMs\":750},"
     "\"defaultRobotType\":\"SandTableScara\""
     "}"};
 
@@ -88,6 +86,22 @@ ConfigNVS mqttConfig("mqtt", 200);
 // Config for network logging
 ConfigNVS netLogConfig("netLog", 200);
 
+// CommandSerial port - used to monitor activity remotely and send commands
+#include "CommandSerial.h"
+CommandSerial commandSerial;
+
+// Serial console - for configuration
+#include "SerialConsole.h"
+SerialConsole serialConsole;
+
+// NetLog
+#include "NetLog.h"
+NetLog netLog(Serial, mqttManager, commandSerial);
+
+// REST API System
+#include "RestAPISystem.h"
+RestAPISystem restAPISystem(wifiManager, mqttManager, otaUpdate, netLog, systemType, systemVersion);
+
 //define RUN_TESTS_CONFIG
 //#define RUN_TEST_WORKFLOW
 #ifdef RUN_TEST_CONFIG
@@ -102,10 +116,6 @@ RobotController _robotController;
 
 // Workflow manager
 WorkflowManager _workflowManager;
-
-// REST API System
-#include "RestAPISystem.h"
-RestAPISystem restAPISystem(wifiManager, mqttManager, otaUpdate, netLog, systemType, systemVersion);
 
 // Command extender
 #include "CommandExtender.h"
@@ -138,10 +148,6 @@ void debugLoopInfoCallback(String &infoStr)
     infoStr += _robotController.getDebugStr();
 }
 DebugLoopTimer debugLoopTimer(10000, debugLoopInfoCallback);
-
-// Serial console - for configuration
-#include "SerialConsole.h"
-SerialConsole serialConsole;
 
 // Setup
 void setup()

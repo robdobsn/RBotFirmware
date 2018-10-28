@@ -159,4 +159,29 @@ class Utils
         }
         return (val);
     }
+
+    static String escapeJSON(const String& inStr)
+    {
+        String outStr;
+        // Reserve a bit more than the inStr length
+        outStr.reserve((inStr.length() * 3) / 2);
+        // Replace chars with escapes as needed
+        for (int i = 0; i < inStr.length(); i++) 
+        {
+            int c = inStr.charAt(i);
+            if (c == '"' || c == '\\' || ('\x00' <= c && c <= '\x1f')) 
+            {
+                outStr += "\\u";
+                String cx = String(c, HEX);
+                for (int j = 0; j < 4-cx.length(); j++)
+                    outStr += "0";
+                outStr += cx;
+            } 
+            else
+            {
+                outStr += (char)c;
+            }
+        }
+        return outStr;
+    }
 };

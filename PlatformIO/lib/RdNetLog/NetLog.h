@@ -1,5 +1,5 @@
-// MQTT Log
-// Used to log data to MQTT from ArduinoLog module
+// NetLog
+// Used to log data to various places (MQTT, commandSerial, HTTP) from ArduinoLog module
 // Rob Dobson 2018
 
 #pragma once
@@ -7,10 +7,17 @@
 #include <ArduinoLog.h>
 #include <WiFiClient.h>
 #include "MQTTManager.h"
+#include "CommandSerial.h"
+#include "RdRingBufferPosn.h"
 
 class NetLog : public Print
 {
-  private:
+public:
+    // Used to pause and resume logging
+    static constexpr char ASCII_XOFF = 0x13;
+    static constexpr char ASCII_XON = 0x11;
+
+private:
     // Log message needs to be built up from parts
     String _msgToLog;
     bool _firstChOnLine;
@@ -31,11 +38,13 @@ class NetLog : public Print
     String _httpLogUrl;
     int _logToSerial;
     int _serialPort;
+    int _logToCommandSerial;
+    CommandSerial& _commandSerial;
     
     // Logging control
     int _loggingThreshold;
     
-    // MQTT configuration (object held elsewhere and pointer kept
+    // Configuration (object held elsewhere and pointer kept
     // to allow config changes to be written back)
     ConfigBase *_pConfigBase;
 
@@ -46,10 +55,20 @@ class NetLog : public Print
     // System name
     String _systemName;
 
+    // Pause functionality
+    bool _isPaused;
+    uint32_t _pauseTimeMs;
+    uint32_t _pauseStartedMs;
+    uint8_t *_pChBuffer;
+    RingBufferPosn _chBufferPosn;
+
   public:
-    NetLog(Print& output, MQTTManager& mqttManager) :
+    NetLog(Print& output, MQTTManager& mqttManager, CommandSerial& commandSerial,
+            int pauseBufferMaxChars = 1000, uint32_t pauseTimeMs = 15000) :
         _output(output),
-        _mqttManager(mqttManager)
+        _mqttManager(mqttManager),
+        _commandSerial(commandSerial),
+        _chBufferPosn(pauseBufferMaxChars)
     {
         _firstChOnLine = true;
         _collectLineForLog = false;
@@ -61,7 +80,12 @@ class NetLog : public Print
         _pConfigBase = NULL;
         _httpPort = 5076;
         _logToSerial = true;
+        _logToCommandSerial = false;
         _serialPort = 0;
+        _pauseStartedMs = 0;
+        _pauseTimeMs = pauseTimeMs;
+        _isPaused = false;
+        _pChBuffer = new uint8_t[pauseBufferMaxChars];
     }
 
     void setLogLevel(const char* logLevelStr)
@@ -70,12 +94,12 @@ class NetLog : public Print
         int logLevel = LOG_LEVEL_SILENT;
         switch(toupper(*logLevelStr))
         {
-            case 'F': logLevel = LOG_LEVEL_FATAL; break;
-            case 'E': logLevel = LOG_LEVEL_ERROR; break;
-            case 'W': logLevel = LOG_LEVEL_WARNING; break;
-            case 'N': logLevel = LOG_LEVEL_NOTICE; break;
-            case 'T': logLevel = LOG_LEVEL_TRACE; break;
-            case 'V': logLevel = LOG_LEVEL_VERBOSE; break;
+            case 'F': case 1: logLevel = LOG_LEVEL_FATAL; break;
+            case 'E': case 2: logLevel = LOG_LEVEL_ERROR; break;
+            case 'W': case 3: logLevel = LOG_LEVEL_WARNING; break;
+            case 'N': case 4: logLevel = LOG_LEVEL_NOTICE; break;
+            case 'T': case 5: logLevel = LOG_LEVEL_TRACE; break;
+            case 'V': case 6: logLevel = LOG_LEVEL_VERBOSE; break;
         }
         // Store result
         bool logLevelChanged = (_loggingThreshold != logLevel);
@@ -88,11 +112,13 @@ class NetLog : public Print
                 _pConfigBase->setConfigData(formConfigStr().c_str());
                 _pConfigBase->writeConfig();
             }
+            if (_logToSerial && _serialPort == 0)
+                Serial.printf("NetLog: LogLevel set to %d\n", _loggingThreshold);
         }
         else
         {
             if (_logToSerial && _serialPort == 0)
-                Serial.printf("NetLog: LogLevel unchanged\n");
+                Serial.printf("NetLog: LogLevel unchanged at %d\n", _loggingThreshold);
         }
     }
 
@@ -119,6 +145,22 @@ class NetLog : public Print
         bool dataChanged = ((_logToSerial != onOffFlag) || (String(_serialPort) != String(serialPortStr)));
         _logToSerial = onOffFlag;
         _serialPort = atoi(serialPortStr);
+        // Persist if changed
+        if (dataChanged)
+        {
+            if (_pConfigBase)
+            {
+                _pConfigBase->setConfigData(formConfigStr().c_str());
+                _pConfigBase->writeConfig();
+            }
+        }
+    }
+
+    void setCmdSerial(bool onOffFlag)
+    {
+        // Set values
+        bool dataChanged = (_logToCommandSerial != onOffFlag);
+        _logToCommandSerial = onOffFlag;
         // Persist if changed
         if (dataChanged)
         {
@@ -183,15 +225,17 @@ class NetLog : public Print
         _httpPort = pConfig->getLong("HTTPPort", 5076);
         _httpLogUrl = pConfig->getString("HTTPUrl", "");
         // Get Serial settings
-        _logToSerial = pConfig->getLong("SerialFlag", 0) != 0;
-        _serialPort = pConfig->getLong("SerialPort", 5076);
+        _logToSerial = pConfig->getLong("SerialFlag", 1) != 0;
+        _serialPort = pConfig->getLong("SerialPort", 0);
+        // Get CommandSerial settings
+        _logToCommandSerial = pConfig->getLong("CmdSerial", 0) != 0;
         
         // Debug
         if (_logToSerial && _serialPort == 0)
-            Serial.printf("NetLog: logLevel %d, mqttFlag %d topic %s, httpFlag %d, ip %s, port %d, url %s, serialFlag %d, serialPort %d\n",
+            Serial.printf("NetLog: logLevel %d, mqttFlag %d topic %s, httpFlag %d, ip %s, port %d, url %s, serialFlag %d, serialPort %d, cmdSerial %d\n",
                     _loggingThreshold, _logToMQTT, _mqttLogTopic.c_str(),
                     _logToHTTP, _httpIpAddr.c_str(), _httpPort, _httpLogUrl.c_str(),
-                    _logToSerial, _serialPort);
+                    _logToSerial, _serialPort, _logToCommandSerial);
     }
 
     String formConfigStr()
@@ -206,13 +250,42 @@ class NetLog : public Print
                         "\",\"HTTPUrl\":\"" + _httpLogUrl +
                         "\",\"SerialFlag\":\"" + _logToSerial + 
                         "\",\"SerialPort\":\"" + String(_serialPort) + 
+                        "\",\"CmdSerial\":\"" + String(_logToCommandSerial) + 
                         "\"}";
+    }
+
+    void pause()
+    {
+        _isPaused = true;
+        _pauseStartedMs = millis();
+    }
+
+    void resume()
+    {
+        if (_isPaused)
+        {
+            _isPaused = false;
+            handleLoggedDuringPause();
+        }
     }
 
     size_t write(uint8_t ch)
     {
-        // Check for log to serial
         int retVal = 0;
+        // Check if paused
+        if (_isPaused)
+        {
+            // Check if we can put into the circular buffer
+            if ((_pChBuffer != NULL) && _chBufferPosn.canPut())
+            {
+                _pChBuffer[_chBufferPosn.posToPut()] = ch;
+                _chBufferPosn.hasPut();
+            }
+            // Serial.printf("<LEN%d>",_chBufferPosn.count());
+            return retVal;
+        }
+
+        // Check for log to serial
         if (_logToSerial)
         {
             if (_serialPort == 0)
@@ -220,7 +293,7 @@ class NetLog : public Print
         }
 
         // Check for log to MQTT or HTTP
-        if (!(_logToMQTT || _logToHTTP))
+        if (!(_logToMQTT || _logToHTTP || _logToCommandSerial))
             return retVal;
         
         // Check for first char on line
@@ -231,12 +304,12 @@ class NetLog : public Print
             int msgLevel = LOG_LEVEL_SILENT;
             switch(ch)
             {
-                case 'F': msgLevel = LOG_LEVEL_FATAL; break;
-                case 'E': msgLevel = LOG_LEVEL_ERROR; break;
-                case 'W': msgLevel = LOG_LEVEL_WARNING; break;
-                case 'N': msgLevel = LOG_LEVEL_NOTICE; break;
-                case 'T': msgLevel = LOG_LEVEL_TRACE; break;
-                case 'V': msgLevel = LOG_LEVEL_VERBOSE; break;
+                case 'F': case 1: msgLevel = LOG_LEVEL_FATAL; break;
+                case 'E': case 2: msgLevel = LOG_LEVEL_ERROR; break;
+                case 'W': case 3: msgLevel = LOG_LEVEL_WARNING; break;
+                case 'N': case 4: msgLevel = LOG_LEVEL_NOTICE; break;
+                case 'T': case 5: msgLevel = LOG_LEVEL_TRACE; break;
+                case 'V': case 6: msgLevel = LOG_LEVEL_VERBOSE; break;
             }
             if (msgLevel <= _loggingThreshold)
             {
@@ -262,12 +335,14 @@ class NetLog : public Print
                     // Remove linefeeds
                     _msgToLog.replace("\n","");
                     _msgToLog.replace("\r","");
-                    // Form str
-                    if (_logToMQTT)
+                    if (_logToMQTT || _logToCommandSerial)
                     {
                         String logStr = "{\"logLevel\":" + String(_curMsgLogLevel) + ",\"logMsg\":\"" + String(_msgToLog.c_str()) + "\"}";
                         logStr.replace("\n","");
-                        _mqttManager.reportSilent(logStr.c_str());
+                        if (_logToMQTT)
+                            _mqttManager.reportSilent(logStr.c_str());
+                        if (_logToCommandSerial)
+                            _commandSerial.logMessage(logStr);
                     }
                     if (_logToHTTP)
                     {
@@ -304,12 +379,12 @@ class NetLog : public Print
         return retVal;
     }
 
-    void service()
+    void service(char xonXoffChar = 0)
     {
-        // Handle connected - pump any data
+        // Handle WiFi connected - pump any data
         if (_wifiClient.connected())
         {
-            // Check for data available
+            // Check for data available on TCP socket
             int numAvail = _wifiClient.available();
             int numToRead = numAvail;
             if (numAvail > MAX_RX_BUFFER_SIZE)
@@ -321,7 +396,38 @@ class NetLog : public Print
                 uint8_t rxBuf[MAX_RX_BUFFER_SIZE];
                 int numRead = _wifiClient.read(rxBuf, numToRead);
                 Log.verbose("OTAUpdate: wifiClient reading %d available %d read %d\n", numToRead, numAvail, numRead);
+                // Currently just discard received data on the TCP socket
             }
+        }
+
+        // Check for busy indicator
+        if (xonXoffChar == ASCII_XOFF)
+        {
+            // Serial.printf("<Logging paused>");
+            pause();
+        }
+        else if (xonXoffChar == ASCII_XON)
+        {
+            // Serial.printf("<Logging resumed>");
+            resume();
+        }
+
+        // Check for pause timeout
+        if (_isPaused && Utils::isTimeout(millis(), _pauseStartedMs, _pauseTimeMs))
+        {
+            _isPaused = false;
+            handleLoggedDuringPause();
+        }
+    }
+
+private:
+    void handleLoggedDuringPause()
+    {
+        // Empty the circular buffer
+        while ((_pChBuffer != NULL) && _chBufferPosn.canGet())
+        {
+            write(_pChBuffer[_chBufferPosn.posToGet()]);
+            _chBufferPosn.hasGot();
         }
     }
 };

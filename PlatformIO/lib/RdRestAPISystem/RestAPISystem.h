@@ -155,17 +155,26 @@ class RestAPISystem
         String onOffFlag = RestAPIEndpoints::getNthArgStr(reqStr.c_str(), 1);
         String topicStr = RestAPIEndpoints::getNthArgStr(reqStr.c_str(), 2);
         Log.trace("RestAPISystem: NetLogMQTT %s, topic %s\n", onOffFlag.c_str(), topicStr.c_str());
-        _netLog.setMQTT(onOffFlag == "1", topicStr.c_str());
+        _netLog.setMQTT(onOffFlag != "0", topicStr.c_str());
         Utils::setJsonBoolResult(respStr, true);
     }
 
     void apiNetLogSerial(String &reqStr, String &respStr)
     {
-        // Set MQTT as a destination for logging
+        // Set Serial as a destination for logging
         String onOffFlag = RestAPIEndpoints::getNthArgStr(reqStr.c_str(), 1);
         String portStr = RestAPIEndpoints::getNthArgStr(reqStr.c_str(), 2);
-        Log.trace("RestAPISystem: NetLogSerial %s, port %s\n", onOffFlag.c_str(), portStr.c_str());
-        _netLog.setSerial(onOffFlag == "1", portStr.c_str());
+        Log.trace("RestAPISystem: NetLogSerial enabled %s, port %s\n", onOffFlag.c_str(), portStr.c_str());
+        _netLog.setSerial(onOffFlag != "0", portStr.c_str());
+        Utils::setJsonBoolResult(respStr, true);
+    }
+
+    void apiNetLogCmdSerial(String &reqStr, String &respStr)
+    {
+        // Set CommandSerial as a destination for logging
+        String onOffFlag = RestAPIEndpoints::getNthArgStr(reqStr.c_str(), 1);
+        Log.trace("RestAPISystem: NetLogCmdSerial enabled %s\n", onOffFlag.c_str());
+        _netLog.setCmdSerial(onOffFlag != "0");
         Utils::setJsonBoolResult(respStr, true);
     }
 
@@ -178,7 +187,7 @@ class RestAPISystem
         String urlStr = RestAPIEndpoints::getNthArgStr(reqStr.c_str(), 4);
         Log.trace("RestAPISystem: NetLogHTTP %s, ipHost %s, port %s, url %s\n", 
                             onOffFlag.c_str(), ipAddrOrHostname.c_str(), httpPortStr.c_str(), urlStr.c_str());
-        _netLog.setHTTP(onOffFlag == "1", ipAddrOrHostname.c_str(), httpPortStr.c_str(), urlStr.c_str());
+        _netLog.setHTTP(onOffFlag != "0", ipAddrOrHostname.c_str(), httpPortStr.c_str(), urlStr.c_str());
         Utils::setJsonBoolResult(respStr, true);
     }
 
@@ -226,16 +235,19 @@ class RestAPISystem
                         "Get version info");
         endpoints.addEndpoint("loglevel", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
                         std::bind(&RestAPISystem::apiNetLogLevel, this, std::placeholders::_1, std::placeholders::_2), 
-                        "Set network log level");
+                        "Set log level");
         endpoints.addEndpoint("logmqtt", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
                         std::bind(&RestAPISystem::apiNetLogMQTT, this, std::placeholders::_1, std::placeholders::_2), 
-                        "Set network log to MQTT");
+                        "Set log to MQTT /enable/topic");
         endpoints.addEndpoint("loghttp", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
                         std::bind(&RestAPISystem::apiNetLogHTTP, this, std::placeholders::_1, std::placeholders::_2), 
-                        "Set network log to HTTP");
+                        "Set log to HTTP /enable/host/port/url");
         endpoints.addEndpoint("logserial", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
                         std::bind(&RestAPISystem::apiNetLogSerial, this, std::placeholders::_1, std::placeholders::_2), 
-                        "Set network log to serial and port");
+                        "Set log to serial /enable/port");
+        endpoints.addEndpoint("logcmd", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                        std::bind(&RestAPISystem::apiNetLogCmdSerial, this, std::placeholders::_1, std::placeholders::_2), 
+                        "Set log to cmdSerial /enable/port");
     }
 
     String getWifiStatusStr()

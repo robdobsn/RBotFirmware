@@ -137,6 +137,11 @@ class MQTTManager
         }
     }
 
+    void reportJson(String& msg)
+    {
+        report(msg.c_str());
+    }
+
     void report(const char *reportStr)
     {
         // Check if enabled
