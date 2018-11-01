@@ -44,7 +44,7 @@ def writeFileContentsAsHex(filePath, outFile, minifyHtml, lineHexIndentChars, li
         shutil.copyfile(filePath, inFileName)
         # Try to minify using npm html-minifier
         print("Running minifier on", filePath)
-        rslt = subprocess.run(["html-minifier", filePath, "--minify-js", "--minify-css"], shell=True, stdout=subprocess.PIPE)
+        rslt = subprocess.run(["html-minifier", filePath, "--minify-js", "--minify-css", "--remove-comments"], shell=True, stdout=subprocess.PIPE)
         if (rslt.returncode == 0):
             # print(rslt)
             with open(inFileName, "wb") as text_file:
@@ -90,6 +90,8 @@ def generateResourceFile(settings = None):
             DEFAULT_TITLE = settings["DEFAULT_TITLE"]
         if "DEFAULT_DESTPATH" in settings:
             DEFAULT_DESTPATH = settings["DEFAULT_DESTPATH"]
+        if "MINIFY" in settings:
+            MINIFY_HTML = settings["MINIFY"]
         uiFolder = "./" + DEFAULT_UI
     else:
         # Get command line argument to determine which UI to generate
@@ -99,7 +101,7 @@ def generateResourceFile(settings = None):
         parser.add_argument('--DESTPATH', type=str, default=DEFAULT_DESTPATH, help=GEN_HELP_TEXT)
         args = parser.parse_args()
         uiFolder = "./" + args.UI + "UI"
-    print("Generating UI from " + uiFolder)
+    print("Generating UI from " + uiFolder + " minify = " + str(MINIFY_HTML))
 
     resFileInfo = []
     lineNormalIndentChars = 4

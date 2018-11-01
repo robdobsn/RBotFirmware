@@ -6,7 +6,7 @@
 const char* systemType = SYSTEM_TYPE_NAME;
 
 // System version
-const char *systemVersion = "2.003.001";
+const char *systemVersion = "2.004.001";
 
 // Build date
 const char *buildDate = __DATE__;
@@ -37,6 +37,10 @@ StatusLed wifiStatusLed;
 #include "WiFiManager.h"
 WiFiManager wifiManager;
 
+// File manager
+#include "FileManager.h"
+FileManager fileManager;
+
 // API Endpoints
 #include "RestAPIEndpoints.h"
 RestAPIEndpoints restAPIEndpoints;
@@ -63,6 +67,7 @@ static const char *hwConfigJSON = {
     "\"OTAUpdate\":{\"enabled\":0,\"server\":\"domoticzoff\",\"port\":5076},"
     "\"serialConsole\":{\"portNum\":0},"
     "\"commandSerial\":{\"portNum\":-1,\"baudRate\":115200},"
+    "\"fileManager\":{\"spiffsEnabled\":1,\"spiffsFormatIfCorrupt\",1},"
     "\"wifiLed\":{\"ledPin\":\"\",\"ledOnMs\":200,\"ledShortOffMs\":200,\"ledLongOffMs\":750},"
     "\"defaultRobotType\":\"SandTableScara\""
     "}"};
@@ -100,7 +105,9 @@ NetLog netLog(Serial, mqttManager, commandSerial);
 
 // REST API System
 #include "RestAPISystem.h"
-RestAPISystem restAPISystem(wifiManager, mqttManager, otaUpdate, netLog, systemType, systemVersion);
+RestAPISystem restAPISystem(wifiManager, mqttManager, 
+            otaUpdate, netLog, fileManager,
+            systemType, systemVersion);
 
 //define RUN_TESTS_CONFIG
 //#define RUN_TEST_WORKFLOW
@@ -132,7 +139,7 @@ CommandInterface _commandInterface(hwConfig,
 
 // REST API Robot
 #include "RestAPIRobot.h"
-RestAPIRobot restAPIRobot(_commandInterface);
+RestAPIRobot restAPIRobot(_commandInterface, fileManager);
 
 // Debug loop used to time main loop
 #include "DebugLoopTimer.h"
@@ -154,7 +161,7 @@ void setup()
 {
     // Logging
     Serial.begin(115200);
-    Log.begin(LOG_LEVEL_NOTICE, &Serial);
+    Log.begin(LOG_LEVEL_TRACE, &Serial);
 
     // Message
     Log.notice("%s %s (built %s %s)\n", systemType, systemVersion, buildDate, buildTime);
@@ -164,6 +171,9 @@ void setup()
 
     // WiFi Config
     wifiConfig.setup();
+
+    // File system
+    fileManager.setup(hwConfig);
 
     // MQTT Config
     mqttConfig.setup();

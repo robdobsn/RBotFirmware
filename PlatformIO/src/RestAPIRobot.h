@@ -6,14 +6,17 @@
 #include "RestAPIEndpoints.h"
 #include "CommandInterface.h"
 #include "RobotTypes.h"
+#include "FileManager.h"
 
 class RestAPIRobot
 {
   private:
     CommandInterface &_commandInterface;
+    FileManager& _fileManager;
 
   public:
-    RestAPIRobot(CommandInterface &commandInterface) : _commandInterface(commandInterface)
+    RestAPIRobot(CommandInterface &commandInterface, FileManager& fileManager) :
+                _commandInterface(commandInterface), _fileManager(fileManager)
     {
     }
  
@@ -72,7 +75,34 @@ class RestAPIRobot
         _commandInterface.process(RestAPIEndpoints::removeFirstArgStr(reqStr.c_str()).c_str(), respStr);
     }
 
-     void setup(RestAPIEndpoints &endpoints)
+    void apiFileUploadComplete(String &reqStr, String &respStr)
+    {
+        Log.trace("RestAPIRobot: apiUploadComplete %s\n", reqStr.c_str());
+        Utils::setJsonBoolResult(respStr, true);
+    }
+
+    void apiFileUploadAndRunComplete(String &reqStr, String &respStr)
+    {
+        Log.trace("RestAPIRobot: apiUploadAndRunComplete %s\n", reqStr.c_str());
+        // _fileManager.sendTargetCommand("ProgramAndReset");
+        Utils::setJsonBoolResult(respStr, true);
+    }
+
+    void apiPlayFile(String &reqStr, String &respStr)
+    {
+        Log.notice("RestAPIRobot: playFile\n");
+        _commandInterface.process(RestAPIEndpoints::removeFirstArgStr(reqStr.c_str()).c_str(), respStr);
+    }
+
+    void apiFileUploadPart(String filename, size_t contentLen, size_t index, 
+                    uint8_t *data, size_t len, bool final)
+    {
+        Log.verbose("apiUp %d, %d, %d, %d\n", contentLen, index, len, final);
+        if (contentLen > 0)
+            _fileManager.fileUploadPart(filename, contentLen, index, data, len, final);
+    }
+
+    void setup(RestAPIEndpoints &endpoints)
     {
         // Get robot types
         endpoints.addEndpoint("getRobotTypes", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET,
@@ -101,6 +131,11 @@ class RestAPIRobot
                               std::bind(&RestAPIRobot::apiExec, this, std::placeholders::_1, std::placeholders::_2),
                               "Exec robot command");
 
+        // Play file
+        endpoints.addEndpoint("playFile", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET,
+                              std::bind(&RestAPIRobot::apiPlayFile, this, std::placeholders::_1, std::placeholders::_2),
+                              "Play file filename ... ~ for / in filename");
+
         // Run pattern
         endpoints.addEndpoint("pattern", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET,
                               std::bind(&RestAPIRobot::apiPattern, this, std::placeholders::_1, std::placeholders::_2),
@@ -115,7 +150,36 @@ class RestAPIRobot
         endpoints.addEndpoint("status", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET,
                               std::bind(&RestAPIRobot::apiQueryStatus, this, std::placeholders::_1, std::placeholders::_2),
                               "Query status");
-
+        // Upload to file system
+        endpoints.addEndpoint("upload", 
+                            RestAPIEndpointDef::ENDPOINT_CALLBACK, 
+                            RestAPIEndpointDef::ENDPOINT_POST,
+                            std::bind(&RestAPIRobot::apiFileUploadComplete, this, 
+                                    std::placeholders::_1, std::placeholders::_2),
+                            "Upload file", "application/json", 
+                            NULL, 
+                            true, 
+                            NULL,
+                            NULL,
+                            std::bind(&RestAPIRobot::apiFileUploadPart, this, 
+                                    std::placeholders::_1, std::placeholders::_2, 
+                                    std::placeholders::_3, std::placeholders::_4,
+                                    std::placeholders::_5, std::placeholders::_6));
+        // Upload and run
+        endpoints.addEndpoint("uploadandrun", 
+                            RestAPIEndpointDef::ENDPOINT_CALLBACK, 
+                            RestAPIEndpointDef::ENDPOINT_POST,
+                            std::bind(&RestAPIRobot::apiFileUploadAndRunComplete, this, 
+                                    std::placeholders::_1, std::placeholders::_2),
+                            "Upload and run file", "application/json", 
+                            NULL, 
+                            true, 
+                            NULL,
+                            NULL,
+                            std::bind(&RestAPIRobot::apiFileUploadPart, this, 
+                                    std::placeholders::_1, std::placeholders::_2, 
+                                    std::placeholders::_3, std::placeholders::_4,
+                                    std::placeholders::_5, std::placeholders::_6));        
     }
 
 

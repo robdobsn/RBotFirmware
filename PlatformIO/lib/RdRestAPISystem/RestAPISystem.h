@@ -8,6 +8,7 @@
 #include "RdOTAUpdate.h"
 #include "MQTTManager.h"
 #include "NetLog.h"
+#include "FileManager.h"
 
 class RestAPISystem
 {
@@ -26,13 +27,18 @@ class RestAPISystem
     MQTTManager& _mqttManager;
     RdOTAUpdate& _otaUpdate;
     NetLog& _netLog;
+    FileManager& _fileManager;
     String _systemType;
     String _systemVersion;
     
   public:
-    RestAPISystem(WiFiManager& wifiManager, MQTTManager& mqttManager, RdOTAUpdate& otaUpdate, NetLog& netLog, 
+    RestAPISystem(WiFiManager& wifiManager, MQTTManager& mqttManager,
+                RdOTAUpdate& otaUpdate, NetLog& netLog,
+                FileManager& fileManager,
                 const char* systemType, const char* systemVersion) :
-                _wifiManager(wifiManager), _mqttManager(mqttManager), _otaUpdate(otaUpdate), _netLog(netLog)
+                _wifiManager(wifiManager), _mqttManager(mqttManager), 
+                _otaUpdate(otaUpdate), _netLog(netLog),
+                _fileManager(fileManager)
     {
         _deviceRestartPending = false;
         _deviceRestartMs = 0;
@@ -207,6 +213,32 @@ class RestAPISystem
         respStr = "{\"sysType\":\""+ _systemType + "\", \"version\":\"" + _systemVersion + "\"}";
     }
 
+    void apiFileList(String &reqStr, String& respStr)
+    {
+        // File system
+        String fileSystemStr = RestAPIEndpoints::getNthArgStr(reqStr.c_str(), 1);
+        // Folder
+        String folderStr = RestAPIEndpoints::getNthArgStr(reqStr.c_str(), 2);
+        if (folderStr.length() == 0)
+            folderStr = "/";
+        _fileManager.getFilesJSON(fileSystemStr, folderStr, respStr);
+    }
+
+    void apiDeleteFile(String &reqStr, String& respStr)
+    {
+        // File system
+        String fileSystemStr = RestAPIEndpoints::getNthArgStr(reqStr.c_str(), 1);
+        // Filename
+        String filenameStr = RestAPIEndpoints::getNthArgStr(reqStr.c_str(), 2);
+        bool rslt = false;
+        if (filenameStr.length() != 0)
+            rslt = _fileManager.deleteFile(fileSystemStr, filenameStr);
+        Utils::setJsonBoolResult(respStr, rslt);
+        Log.trace("RestAPISystem: deleteFile fs %s, filename %s rslt %s\n", 
+                            fileSystemStr.c_str(), filenameStr.c_str(),
+                            rslt ? "ok" : "fail");
+    }
+
     void setup(RestAPIEndpoints &endpoints)
     {
         endpoints.addEndpoint("w", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
@@ -248,7 +280,13 @@ class RestAPISystem
         endpoints.addEndpoint("logcmd", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
                         std::bind(&RestAPISystem::apiNetLogCmdSerial, this, std::placeholders::_1, std::placeholders::_2), 
                         "Set log to cmdSerial /enable/port");
-    }
+        endpoints.addEndpoint("filelist", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                        std::bind(&RestAPISystem::apiFileList, this, std::placeholders::_1, std::placeholders::_2), 
+                        "List files in folder /SPIFFS/folder ... ~ for / in folder");
+        endpoints.addEndpoint("deleteFile", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                        std::bind(&RestAPISystem::apiDeleteFile, this, std::placeholders::_1, std::placeholders::_2), 
+                        "Delete file /SPIFFS/filename ... ~ for / in filename");
+        }
 
     String getWifiStatusStr()
     {
