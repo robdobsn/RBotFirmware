@@ -126,7 +126,7 @@ WorkflowManager _workflowManager;
 
 // Command extender
 #include "CommandExtender.h"
-CommandExtender _commandExtender;
+CommandExtender _commandExtender(fileManager);
 
 // Command interface
 #include "CommandInterface.h"

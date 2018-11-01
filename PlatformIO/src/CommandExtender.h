@@ -3,13 +3,14 @@
 
 #include "PatternEvaluator.h"
 #include "CommandSequencer.h"
+#include "FileSerializer.h"
 
 class CommandInterface;
 
 class CommandExtender
 {
 public:
-    CommandExtender()
+    CommandExtender(FileManager& fileManager) : _fileSerializer(fileManager)
     {
         _pCommandInterface = NULL;
     }
@@ -53,6 +54,8 @@ public:
         _patternEvaluator.service(_pCommandInterface);
         // Service command sequencer
         _commandSequencer.service(_pCommandInterface);
+        // Service file serializer
+        _fileSerializer.service(_pCommandInterface);
     }
 
     bool procCommand(const char* pCmdStr)
@@ -65,6 +68,10 @@ public:
             return handledOk;
         // See if it is a command sequencer
         handledOk = _commandSequencer.procCommand(pCmdStr);
+        if (handledOk)
+            return handledOk;
+        // See if it is a file
+        handledOk = _fileSerializer.procFile(pCmdStr);
         return handledOk;
     }
 
@@ -77,8 +84,8 @@ private:
     }
 
 private:
-    static constexpr int MAX_PATTERN_GENERATORS = 2;
     CommandInterface* _pCommandInterface;
     PatternEvaluator _patternEvaluator;
     CommandSequencer _commandSequencer;
+    FileSerializer _fileSerializer;
 };
