@@ -1,18 +1,37 @@
 // RBotFirmware
 // Rob Dobson 2016-2017
 
+// API used for web, MQTT and BLE (future)
+//   Get version:    /v                   - returns version info
+//   Set WiFi:       /w/ssss/pppp/hhhh    - ssss = ssid, pppp = password - assumes WPA2, hhhh = hostname
+//                                        - does not clear previous WiFi so clear first if required
+//   Clear WiFi:     /wc                  - clears all stored SSID, etc
+//   Set MQTT:       /mq/ss/ii/oo/pp      - ss = server, ii and oo are in/out topics, pp = port
+//                                        - in topics / should be replaced by ~ 
+//                                        - (e.g. /devicename/in becomes ~devicename~in)
+//   Check updates:  /checkupdate         - check for updates on the update server
+//   Reset:          /reset               - reset device
+//   Log level:      /loglevel/lll        - Logging level (for MQTT and HTTP)
+//                                        - lll one of v (verbose), t (trace), n (notice), w (warning), e (error), f (fatal)
+//   Log to MQTT:    /logmqtt/oo/topic    - Control logging to MQTT
+//                                        - oo = 0 or 1 for off/on, topic is the topic logging messages are sent to
+//   Log to HTTP:    /loghttp/oo/ip/po/ur - Control logging to HTTP
+//                                        - oo = 0 or 1 for off/on
+//                                        - ip is the IP address of the computer to log to (or hostname) and po is the port
+//                                        - ur is the HTTP url logging messages are POSTed to
+
 // System type
 #define SYSTEM_TYPE_NAME "RBotFirmware"
 const char* systemType = SYSTEM_TYPE_NAME;
 
 // System version
-const char *systemVersion = "2.004.001";
+const char* systemVersion = "2.004.001";
 
 // Build date
-const char *buildDate = __DATE__;
+const char* buildDate = __DATE__;
 
 // Build date
-const char *buildTime = __TIME__;
+const char* buildTime = __TIME__;
 
 // Arduino
 #include <Arduino.h>
@@ -60,6 +79,7 @@ RdOTAUpdate otaUpdate;
 // Hardware config
 static const char *hwConfigJSON = {
     "{"
+    "\"unitName\":" SYSTEM_TYPE_NAME ","
     "\"wifiEnabled\":1,"
     "\"mqttEnabled\":0,"
     "\"webServerEnabled\":1,"
@@ -150,7 +170,7 @@ void debugLoopInfoCallback(String &infoStr)
     if (wifiManager.isEnabled())
         infoStr = wifiManager.getHostname() + " SSID " + WiFi.SSID() + " IP " + WiFi.localIP().toString() + " Heap " + String(ESP.getFreeHeap());
     else
-        infoStr = "Heap " + String(ESP.getFreeHeap());
+        infoStr = "WiFi Disabled, Heap " + String(ESP.getFreeHeap());
     // infoStr += " Q " + String(_workflowManager.numWaiting()) + " R " + String(_commandInterpreter.canAcceptCommand();
     infoStr += _robotController.getDebugStr();
 }
@@ -181,6 +201,12 @@ void setup()
     // NetLog Config
     netLogConfig.setup();
 
+    // Serial console
+    serialConsole.setup(hwConfig, restAPIEndpoints);
+
+    // WiFi Manager
+    wifiManager.setup(hwConfig, &wifiConfig, systemType, &wifiStatusLed);
+
     // Robot config
     robotConfig.setup();
 
@@ -190,12 +216,6 @@ void setup()
     // Add API endpoints
     restAPISystem.setup(restAPIEndpoints);
     restAPIRobot.setup(restAPIEndpoints);
-
-    // Serial console
-    serialConsole.setup(hwConfig, restAPIEndpoints);
-
-    // WiFi Manager
-    wifiManager.setup(hwConfig, &wifiConfig, systemType, &wifiStatusLed);
 
     // Web server
     webServer.setup(hwConfig);

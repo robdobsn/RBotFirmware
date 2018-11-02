@@ -2,10 +2,19 @@
 // Rob Dobson 2018
 
 #pragma once
+
+#define MQTT_USE_ASYNC_MQTT 1
+
 #include "WiFiManager.h"
 #include "RestAPIEndpoints.h"
 #include "ConfigNVS.h"
+#ifdef MQTT_USE_ASYNC_MQTT
+#include <AsyncMqttClient.h>
+#else
 #include <PubSubClient.h>
+#endif
+
+// #define STRESS_TEST_MQTT 1
 
 class MQTTManager
 {
@@ -15,11 +24,14 @@ class MQTTManager
 
   private:
 
+    // Max accepted payload length
+    static const int MAX_PAYLOAD_LEN = 5000;
+
     // Enabled
     bool _mqttEnabled;
 
     // Retry delay if connection fails
-    static constexpr int CONNECT_RETRY_MS = 2000;
+    static constexpr int CONNECT_RETRY_MS = 10000;
 
     // WiFi manager & client
     WiFiManager &_wifiManager;
@@ -29,7 +41,11 @@ class MQTTManager
     RestAPIEndpoints &_restAPIEndpoints;
 
     // MQTT client
+#ifdef MQTT_USE_ASYNC_MQTT
+    AsyncMqttClient _mqttClient;
+#else
     PubSubClient _mqttClient;
+#endif
 
     // MQTT details
     String _mqttServer;
@@ -48,19 +64,151 @@ class MQTTManager
     // Pending MQTT messages to be published when connected
     String _mqttMsgToSendWhenConnected;
 
+#ifdef STRESS_TEST_MQTT
+int curRxHelloCount;
+unsigned long  _stressTestLastSendTime;
+int _stressTestCounts[3];
+#endif
+
   public:
+#ifdef MQTT_USE_ASYNC_MQTT
     MQTTManager(WiFiManager &wifiManager, RestAPIEndpoints &endpoints) : 
-            _wifiManager(wifiManager), _restAPIEndpoints(endpoints), _mqttClient(_wifiClient)
+            _wifiManager(wifiManager), _restAPIEndpoints(endpoints)
+#else
+    MQTTManager(WiFiManager &wifiManager, RestAPIEndpoints &endpoints) : 
+            _wifiManager(wifiManager), _restAPIEndpoints(endpoints), 
+            _mqttClient(_wifiClient)
+#endif
     {
         _mqttEnabled = false;
         _mqttPort = DEFAULT_MQTT_PORT;
         _wasConnected = false;
-        _lastConnectRetryMs = millis();
+        _lastConnectRetryMs = 0;
+#ifdef STRESS_TEST_MQTT
+        curRxHelloCount = -1;
+        _stressTestLastSendTime = millis();
+        _stressTestCounts[0] = _stressTestCounts[1] = _stressTestCounts[2] = 0;
+#endif
     }
+
+#ifdef MQTT_USE_ASYNC_MQTT
+
+    void onMqttConnect(bool sessionPresent)
+    {
+        Log.notice("MQTTManager: Connected to MQTT, session \n", sessionPresent ? "yes" : "no");
+        if (_mqttInTopic.length() > 0)
+        {
+            uint16_t packetIdSub = _mqttClient.subscribe(_mqttInTopic.c_str(), 2);
+            Log.notice("MQTTManager: Subscribing to %s at QoS 2, packetId: %d\n", _mqttInTopic.c_str(), packetIdSub);
+        }
+        if (_mqttOutTopic.length() > 0 && _mqttMsgToSendWhenConnected.length() > 0)
+        {
+            // Send message "queued" to be sent
+            uint16_t packetIdPub1 = _mqttClient.publish(_mqttOutTopic.c_str(), 1, true, _mqttMsgToSendWhenConnected.c_str());
+            Log.trace("MQTTManager: Published to %s at QoS 1, packetId: %d\n", _mqttOutTopic.c_str(), packetIdPub1);
+            _mqttMsgToSendWhenConnected = "";
+        }
+    }
+
+    void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
+    {
+        if (_wasConnected)
+        {
+            // Set last connected time here so we hold off for a short time after disconnect
+            // before trying to reconnect
+            _lastConnectRetryMs = millis();
+            Log.notice("MQTTManager: Disconnect (was connected) reason\n", reason);
+            // Set server for next connection (in case it was changed)
+            _mqttClient.setServer(_mqttServer.c_str(), _mqttPort);
+            _wasConnected = false;
+            return;
+        }
+
+        Log.notice("MQTTManager: Disconnect reason %d\n", reason);
+        // Set server for next connection (in case it was changed)
+        _mqttClient.setServer(_mqttServer.c_str(), _mqttPort);
+        _wasConnected = false;
+    }
+
+    void onMqttSubscribe(uint16_t packetId, uint8_t qos)
+    {
+        Log.verbose("MQTTManager: Subscribe acknowledged packetId: %d qos: %d\n", packetId, qos);
+    }
+
+    void onMqttUnsubscribe(uint16_t packetId)
+    {
+        Log.verbose("MQTTManager: Unsubscribe acknowledged packetId: %d\n", packetId);
+    }
+
+    void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)
+    {
+        if (len > MAX_PAYLOAD_LEN)
+        {
+            Log.warning("MQTTManager: received topic %s msgTooLong qos %d dup %d retain %d index %d total %d\n",
+                        topic, properties.qos, properties.dup, properties.retain, index, total);
+            len = MAX_PAYLOAD_LEN;
+        }
+
+        Log.verbose("MQTTManager: rx topic %s qos %d dup %d retain %d len %d idx %d total %d\n",
+                   topic, properties.qos, properties.dup, properties.retain,
+                   len, index, total);
+
+        // Copy the message and ensure terminated
+        char *payloadStr = new char[len + 1];
+        memcpy(payloadStr, payload, len);
+        payloadStr[len] = 0;
+        // Log.verbose("MQTTManager: rx payload: %s\n", reqStr);
+        String respStr;
+        _restAPIEndpoints.handleApiRequest(payloadStr, respStr);
+
+        // const int MAX_RESTAPI_REQ_LEN = 200;
+        // if (len < MAX_RESTAPI_REQ_LEN)
+        // {
+        //     char reqStr[len + 1];
+        //     for (int i = 0; i < len; i++)
+        //         reqStr[i] = payload[i];
+        //     reqStr[len] = 0;
+        //     Log.notice("MQTTManager: rx payload: %s\n", reqStr);
+        //     String respStr;
+        //     _restAPIEndpoints.handleApiRequest(reqStr, respStr);
+        // }
+
+#ifdef STRESS_TEST_MQTT
+        char* pHello = strstr(payloadStr, "Hello_");
+        if (!pHello)
+        {
+            Log.trace("NoHELLO topic %s msg %s qos %d dup %d retain %d index %d total %d\n", 
+                topic, payloadStr, properties.qos, properties.dup, properties.retain, index, total);
+        }
+        else
+        {
+            int count = atoi(payloadStr+6);
+            if (curRxHelloCount != -1)
+            {
+                if (curRxHelloCount + 1 != count)
+                {
+                    Log.trace("RxCountMismatch exp %d topic %s msg %s qos %d dup %d retain %d index %d total %d\n", 
+                        curRxHelloCount + 1, topic, payloadStr, properties.qos, properties.dup, properties.retain, index, total);
+                }
+            }
+            curRxHelloCount = count;
+        }
+#endif
+
+        // Cleanup
+        delete[] payloadStr;
+    }
+
+    void onMqttPublish(uint16_t packetId)
+    {
+        Log.verbose("MQTTManager: Publish acknowledged packetId: %d\n", packetId);
+    }
+
+#else
 
     void onMqttMessage(char *topic, byte *payload, unsigned int len)
     {
-        Log.notice("MQTTManager: rx topic: %s len %d\n", topic, len);
+        Log.verbose("MQTTManager: rx topic: %s len %d\n", topic, len);
         const int MAX_RESTAPI_REQ_LEN = 200;
         if (len < MAX_RESTAPI_REQ_LEN)
         {
@@ -73,6 +221,7 @@ class MQTTManager
             _restAPIEndpoints.handleApiRequest(reqStr, respStr);
         }
     }
+#endif
 
     void setup(ConfigBase& hwConfig, ConfigBase *pConfig)
     {
@@ -92,12 +241,26 @@ class MQTTManager
             return;
 
         // Debug
-        Log.trace("MQTTManager: server %s:%d, inTopic %s, outTopic %s\n", _mqttServer.c_str(), _mqttPort, _mqttInTopic.c_str(), _mqttOutTopic.c_str());
+        Log.notice("MQTTManager: server %s:%d, inTopic %s, outTopic %s\n", _mqttServer.c_str(), _mqttPort, _mqttInTopic.c_str(), _mqttOutTopic.c_str());
+
+#ifdef MQTT_USE_ASYNC_MQTT
+        // Setup handlers for MQTT events
+        _mqttClient.onConnect(std::bind(&MQTTManager::onMqttConnect, this, std::placeholders::_1));
+        _mqttClient.onDisconnect(std::bind(&MQTTManager::onMqttDisconnect, this, std::placeholders::_1));
+        _mqttClient.onSubscribe(std::bind(&MQTTManager::onMqttSubscribe, this, std::placeholders::_1, std::placeholders::_2));
+        _mqttClient.onUnsubscribe(std::bind(&MQTTManager::onMqttUnsubscribe, this, std::placeholders::_1));
+        _mqttClient.onMessage(std::bind(&MQTTManager::onMqttMessage, this, std::placeholders::_1, std::placeholders::_2,
+                                        std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
+        _mqttClient.onPublish(std::bind(&MQTTManager::onMqttPublish, this, std::placeholders::_1));
+#endif
 
         // Setup server and callback on receive
         _mqttClient.setServer(_mqttServer.c_str(), _mqttPort);
+
+#ifndef MQTT_USE_ASYNC_MQTT
         _mqttClient.setCallback(std::bind(&MQTTManager::onMqttMessage, this, std::placeholders::_1, std::placeholders::_2,
                                          std::placeholders::_3));
+#endif
     }
 
     String formConfigStr()
@@ -128,11 +291,17 @@ class MQTTManager
         if (_mqttClient.connected())
         {
             Log.trace("MQTTManager: setMQTTServer disconnecting to allow new connection\n");
+#ifdef MQTT_USE_ASYNC_MQTT
+            _mqttClient.disconnect(false);
+#else
             _mqttClient.disconnect();
+#endif
+            // Indicate that server credentials need to be set when disconnect is complete
+            _wasConnected = true;
         }
         else
         {
-            Log.trace("MQTTManager: setMQTTServer %s:%n\n", _mqttServer.c_str(), _mqttPort);
+            Log.notice("MQTTManager: setMQTTServer %s:%n\n", _mqttServer.c_str(), _mqttPort);
             _mqttClient.setServer(_mqttServer.c_str(), _mqttPort);
         }
     }
@@ -158,8 +327,12 @@ class MQTTManager
         }
 
         // Send immediately
-        bool publishedOk = _mqttClient.publish(_mqttOutTopic.c_str(), reportStr, true);
-        Log.verbose("MQTTManager: Published to %s at QoS 0, publishedOk %d\n", _mqttOutTopic.c_str(), publishedOk);
+#ifdef MQTT_USE_ASYNC_MQTT
+        int publishRslt = _mqttClient.publish(_mqttOutTopic.c_str(), 1, true, reportStr);
+#else
+        int publishRslt = _mqttClient.publish(_mqttOutTopic.c_str(), reportStr, true);
+#endif
+        Log.verbose("MQTTManager: Published to %s at QoS 0, publishRslt %d\n", _mqttOutTopic.c_str(), publishRslt);
     }
 
     // Note do not put any Log messages in here as MQTT may be used for logging
@@ -180,7 +353,11 @@ class MQTTManager
         }
 
         // Send immediately
+#ifdef MQTT_USE_ASYNC_MQTT
+        _mqttClient.publish(_mqttOutTopic.c_str(), 1, true, reportStr);
+#else
         _mqttClient.publish(_mqttOutTopic.c_str(), reportStr, true);
+#endif
     }
 
     void service()
@@ -189,6 +366,34 @@ class MQTTManager
         if (!_mqttEnabled)
             return;
 
+#ifdef MQTT_USE_ASYNC_MQTT
+        if (!_mqttClient.connected())
+        {
+            if (_wifiManager.isConnected() && _mqttServer.length() > 0)
+            {
+                if (Utils::isTimeout(millis(), _lastConnectRetryMs, CONNECT_RETRY_MS))
+                {
+                    Log.notice("MQTTManager: Connecting to MQTT client\n");
+                    _mqttClient.connect();
+                    _lastConnectRetryMs = millis();
+                }
+            }
+        }
+
+#ifdef STRESS_TEST_MQTT
+    if (millis() > _stressTestLastSendTime + 500)
+    {
+        String testMsg = "test 0_" + String(_stressTestCounts[0]++);
+        _mqttClient.publish("test/lol", 0, true, testMsg.c_str());
+        testMsg = "test 1_" + String(_stressTestCounts[1]++);
+        _mqttClient.publish("test/lol", 1, true, testMsg.c_str());
+        testMsg = "test 2_" + String(_stressTestCounts[2]++);
+        _mqttClient.publish("test/lol", 2, true, testMsg.c_str());
+        _stressTestLastSendTime = millis();
+    }
+#endif
+
+#else
         // See if we are connected
         if (_mqttClient.connected())
         {
@@ -236,7 +441,7 @@ class MQTTManager
                         {
                             // Send message "queued" to be sent
                             bool publishedOk = _mqttClient.publish(_mqttOutTopic.c_str(), _mqttMsgToSendWhenConnected.c_str(), true);
-                            Log.trace("MQTTManager: Published to %s at QoS 0, result %s\n", _mqttOutTopic.c_str(), 
+                            Log.verbose("MQTTManager: Published to %s at QoS 0, result %s\n", _mqttOutTopic.c_str(), 
                                                     publishedOk ? "OK" : "Failed");
                             _mqttMsgToSendWhenConnected = "";
                         }
@@ -250,6 +455,7 @@ class MQTTManager
                 }
             }
         }
+#endif
     }
 };
 

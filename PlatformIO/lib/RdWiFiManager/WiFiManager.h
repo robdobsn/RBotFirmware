@@ -56,7 +56,12 @@ class WiFiManager
         _hostname = pSysConfig->getString("WiFiHostname", _defaultHostname.c_str());
         // Set an event handler for WiFi events
         if (_wifiEnabled)
+        {
             WiFi.onEvent(wiFiEventHandler);
+            // Set the mode to STA
+            WiFi.mode(WIFI_STA);
+        }
+
     }
 
     void service()
@@ -119,6 +124,7 @@ class WiFiManager
 
     static void wiFiEventHandler(WiFiEvent_t event)
     {
+        Log.trace("WiFiManager: Event %s\n", getEventName(event));
         switch (event)
         {
         case SYSTEM_EVENT_STA_GOT_IP:
@@ -154,5 +160,42 @@ class WiFiManager
             // Log.notice("WiFiManager: unknown event %d\n", event);
             break;
         }
+    }
+
+    static const char* getEventName(WiFiEvent_t event)
+    {
+        static const char* sysEventNames [] {
+            "SYSTEM_EVENT_WIFI_READY",           
+            "SYSTEM_EVENT_SCAN_DONE",                
+            "SYSTEM_EVENT_STA_START",                
+            "SYSTEM_EVENT_STA_STOP",                 
+            "SYSTEM_EVENT_STA_CONNECTED",            
+            "SYSTEM_EVENT_STA_DISCONNECTED",         
+            "SYSTEM_EVENT_STA_AUTHMODE_CHANGE",      
+            "SYSTEM_EVENT_STA_GOT_IP",               
+            "SYSTEM_EVENT_STA_LOST_IP",              
+            "SYSTEM_EVENT_STA_WPS_ER_SUCCESS",       
+            "SYSTEM_EVENT_STA_WPS_ER_FAILED",        
+            "SYSTEM_EVENT_STA_WPS_ER_TIMEOUT",       
+            "SYSTEM_EVENT_STA_WPS_ER_PIN",           
+            "SYSTEM_EVENT_AP_START",                 
+            "SYSTEM_EVENT_AP_STOP",                  
+            "SYSTEM_EVENT_AP_STACONNECTED",          
+            "SYSTEM_EVENT_AP_STADISCONNECTED",       
+            "SYSTEM_EVENT_AP_STAIPASSIGNED",         
+            "SYSTEM_EVENT_AP_PROBEREQRECVED",        
+            "SYSTEM_EVENT_GOT_IP6",                 
+            "SYSTEM_EVENT_ETH_START",                
+            "SYSTEM_EVENT_ETH_STOP",                 
+            "SYSTEM_EVENT_ETH_CONNECTED",            
+            "SYSTEM_EVENT_ETH_DISCONNECTED",         
+            "SYSTEM_EVENT_ETH_GOT_IP"
+            };
+
+        if (event < 0 || event > SYSTEM_EVENT_MAX)
+        {
+            return "UNKNOWN";
+        }
+        return sysEventNames[event];
     }
 };

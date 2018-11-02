@@ -20,13 +20,14 @@ public:
 
     void service(CommandInterface* pCommandInterface)
     {
+        // Read a line from the file
 
     }
 
     bool procFile(const char* filename)
     {
         // Check if file exists in file system
-
+        
     }
 
 };

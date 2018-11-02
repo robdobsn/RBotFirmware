@@ -30,7 +30,7 @@
         {
             console.log("Body loaded");
             // Location for program data
-            window.RBotUIVars = {
+            window.pageState = {
                 fileToStream: null,
                 streamingInProgress: false,
                 MAX_POST_CHUNK_SIZE: 1000,
@@ -59,7 +59,7 @@
             // Get robotTypes (and then settings
             callAjax("/getRobotTypes", robotTypesCallback);
             // Status update timer
-            window.RBotUIVars.statusUpdateTimer = setTimeout(statusUpdate, 1000);
+            window.pageState.statusUpdateTimer = setTimeout(statusUpdate, 1000);
             // Request file list to display
             fileListUpdate();
         }
@@ -71,7 +71,7 @@
 
         function statusUpdateFail()
         {
-            window.RBotUIVars.isConnected = false;
+            window.pageState.isConnected = false;
             let connButton = document.getElementById("button-connect");
             connButton.disabled = false;
         }
@@ -79,14 +79,14 @@
         function statusCallback(resp)
         {
             // Now connected
-            window.RBotUIVars.isConnected = true;
+            window.pageState.isConnected = true;
             const connButton = document.getElementById("button-connect");
             connButton.disabled = true;
 
             // Parse status received
             const machineStatus = JSON.parse(resp);
-            const axisNames = window.RBotUIVars.axisNames;
-            const endstopNames = window.RBotUIVars.endstopNames;
+            const axisNames = window.pageState.axisNames;
+            const endstopNames = window.pageState.endstopNames;
             if (machineStatus.hasOwnProperty("XYZ"))
             {
                 for (let i = 0; i < axisNames.length; i++)
@@ -125,13 +125,13 @@
             {
                 document.getElementById("td_robotQueueLen").innerHTML = machineStatus.Qd;
             }
-            window.RBotUIVars.statusUpdateTimer = setTimeout(statusUpdate, 500);
+            window.pageState.statusUpdateTimer = setTimeout(statusUpdate, 500);
         }
 
         function robotTypesCallback(resp)
         {
             // Store robot types
-            window.RBotUIVars.robotTypes = JSON.parse(resp);
+            window.pageState.robotTypes = JSON.parse(resp);
             // Get settings
             callAjax("/getsettings", settingsCallback);
         }
@@ -139,7 +139,7 @@
         function showSettings()
         {
             // Settings
-            const settings = window.RBotUIVars.settings;
+            const settings = window.pageState.settings;
             if (settings.hasOwnProperty("robotConfig"))
             {
                 document.getElementById("td_RobotConfig_input").readOnly = false;
@@ -160,9 +160,9 @@
             if (settings.hasOwnProperty("robotType"))
             {
                 let selSet = false;
-                for (let i = 0; i < window.RBotUIVars.robotTypes.length; i++)
+                for (let i = 0; i < window.pageState.robotTypes.length; i++)
                 {
-                    if (window.RBotUIVars.robotTypes[i] === settings["robotType"])
+                    if (window.pageState.robotTypes[i] === settings["robotType"])
                     {
                         document.getElementById('td_RobotTypeSelect').setAttribute("selected", settings["robotType"]);
                         selSet = true;
@@ -183,7 +183,7 @@
 
         function settingsCallback(resp)
         {
-            window.RBotUIVars.settings = JSON.parse(resp);
+            window.pageState.settings = JSON.parse(resp);
             // Add the robot types to list
             const selec = document.getElementById('td_RobotTypeSelect');
             selec.innerHTML = "";
@@ -191,13 +191,13 @@
             opt.innerHTML = "Custom";
             opt.value = "Custom";
             selec.appendChild(opt);
-            for (let i = 0; i < window.RBotUIVars.robotTypes.length; i++)
+            for (let i = 0; i < window.pageState.robotTypes.length; i++)
             {
                 opt = document.createElement('option');
-                opt.innerHTML = window.RBotUIVars.robotTypes[i];
-                opt.value = window.RBotUIVars.robotTypes[i];
+                opt.innerHTML = window.pageState.robotTypes[i];
+                opt.value = window.pageState.robotTypes[i];
                 selec.appendChild(opt);
-                if (window.RBotUIVars.settings.robotType === opt.value)
+                if (window.pageState.settings.robotType === opt.value)
                     selec.value = opt.value;
             }
             // Show current settings
@@ -220,7 +220,7 @@
                 // Validate JSON
                 try
                 {
-                    window.RBotUIVars.settings.patterns = JSON.parse(document.getElementById('td_Patterns_input').value);
+                    window.pageState.settings.patterns = JSON.parse(document.getElementById('td_Patterns_input').value);
                 }
                 catch (e)
                 {
@@ -228,7 +228,7 @@
                 }
                 try
                 {
-                    window.RBotUIVars.settings.sequences = JSON.parse(document.getElementById('td_Sequences_input').value);
+                    window.pageState.settings.sequences = JSON.parse(document.getElementById('td_Sequences_input').value);
                 }
                 catch (e)
                 {
@@ -236,7 +236,7 @@
                 }
                 try
                 {
-                    window.RBotUIVars.settings.robotConfig = JSON.parse(document.getElementById('td_RobotConfig_input').value);
+                    window.pageState.settings.robotConfig = JSON.parse(document.getElementById('td_RobotConfig_input').value);
                 }
                 catch (e)
                 {
@@ -256,13 +256,13 @@
                 return;
             }
             // Robot name
-            window.RBotUIVars.settings.name = document.getElementById('td_RobotName_input').value;
+            window.pageState.settings.name = document.getElementById('td_RobotName_input').value;
             // Robot type and config
             const selIdx = document.getElementById('td_RobotTypeSelect').selectedIndex;
             const selType = document.getElementById('td_RobotTypeSelect').options[selIdx];
-            window.RBotUIVars.settings.robotType = selType.text;
+            window.pageState.settings.robotType = selType.text;
             // Check valid and remove extraneous values
-            const configStr = window.RBotUIVars.settings;
+            const configStr = window.pageState.settings;
             if (configStr.hasOwnProperty("robotType"))
             {
                 if (configStr.robotType === "Custom")
@@ -281,9 +281,9 @@
                     delete configStr.robotConfig;
             }
             // Check length of config string
-            if (JSON.stringify(configStr).length > window.RBotUIVars.MAX_CONFIG_LEN)
+            if (JSON.stringify(configStr).length > window.pageState.MAX_CONFIG_LEN)
             {
-                alert("Settings JSON is too long for EEPROM (max " + window.RBotUIVars.MAX_CONFIG_LEN + ") please shorten");
+                alert("Settings JSON is too long for EEPROM (max " + window.pageState.MAX_CONFIG_LEN + ") please shorten");
             }
             else
             {
@@ -311,19 +311,19 @@
             {
                 // Custom type
                 console.log("Robot type custom - NOT getting new settings");
-                window.RBotUIVars.settings["robotType"] = selType.text;
+                window.pageState.settings["robotType"] = selType.text;
                 showSettings()
             }
             else
             {
-                window.RBotUIVars.settings["robotType"] = selType.text;
+                window.pageState.settings["robotType"] = selType.text;
                 callAjax("/getRobotTypeConfig/" + selType.text, gotRobotTypeConfig);
             }
         }
 
         function gotRobotTypeConfig(resp)
         {
-            window.RBotUIVars.settings["robotConfig"] = JSON.parse(resp);
+            window.pageState.settings["robotConfig"] = JSON.parse(resp);
             showSettings()
         }
 
@@ -391,10 +391,10 @@
 
         function reconnect(event)
         {
-            if (window.RBotUIVars.statusUpdateTimer)
+            if (window.pageState.statusUpdateTimer)
             {
-                clearTimeout(window.RBotUIVars.statusUpdateTimer);
-                window.RBotUIVars.statusUpdateTimer = setTimeout(statusUpdate, 100);
+                clearTimeout(window.pageState.statusUpdateTimer);
+                window.pageState.statusUpdateTimer = setTimeout(statusUpdate, 100);
             }
         }
 
@@ -417,20 +417,20 @@
 
         function moveClick(axis, dist)
         {
-            const axisNames = window.RBotUIVars.axisNames;
+            const axisNames = window.pageState.axisNames;
             // Set relative positioning and restore to absolute afterwards
             streamGCodeLines("G91\nG0 " + axisNames[axis].toUpperCase() + dist.toString() + "\nG90");
         }
 
         function goHomeClick(axis)
         {
-            const axisNames = window.RBotUIVars.axisNames;
+            const axisNames = window.pageState.axisNames;
             callAjax("/exec/G28 " + axisNames[axis].toUpperCase());
         }
 
         function setHomeClick(axis)
         {
-            const axisNames = window.RBotUIVars.axisNames;
+            const axisNames = window.pageState.axisNames;
             callAjax("/exec/G92 " + axisNames[axis].toUpperCase());
         }
 
@@ -438,7 +438,7 @@
         {
             if (this.files.length > 0)
             {
-                if (window.RBotUIVars.fileDialogType == "filesystem")
+                if (window.pageState.fileDialogType == "filesystem")
                     startFileSystemUpload(this.files);
                 else
                     startGCodeStream(this.files[0])
@@ -450,12 +450,12 @@
         function btnStreamGcode(e)
         {
             // See if streaming in progress
-            if (window.RBotUIVars.streamingInProgress)
+            if (window.pageState.streamingInProgress)
             {
                 alert("Streaming in progress");
                 return;
             }
-            window.RBotUIVars.fileDialogType = "streamgcode";
+            window.pageState.fileDialogType = "streamgcode";
             const inputFileUpload = document.getElementById("input_file_upload");
             inputFileUpload.click();
             e.preventDefault();
@@ -463,7 +463,7 @@
 
         function btnUploadCancel(e)
         {
-            clearTimeout(window.RBotUIVars.streamGCodeRetryTimer);
+            clearTimeout(window.pageState.streamGCodeRetryTimer);
             callAjax("/exec/stop");
             setStreamGCodeState(false);
             streamGCodeShowStatus("Cancelled");
@@ -486,7 +486,7 @@
 
         function setStreamGCodeState(streamingInProgress)
         {
-            window.RBotUIVars.streamingInProgress = streamingInProgress;
+            window.pageState.streamingInProgress = streamingInProgress;
             const btnStreamGCode = document.getElementById("btnStreamGCode");
             if (streamingInProgress)
                 btnStreamGCode.classList.add("disabled");
@@ -502,27 +502,27 @@
         function startGCodeStream(fileToStream)
         {
             // See if streaming in progress
-            if (window.RBotUIVars.streamingInProgress)
+            if (window.pageState.streamingInProgress)
             {
                 console.log("Streaming in progress");
                 return;
             }
             // Check if the file is within bounds
-            if (fileToStream.size > window.RBotUIVars.MAX_FILE_SIZE)
+            if (fileToStream.size > window.pageState.MAX_FILE_SIZE)
             {
                 alert("Stream file is too large");
                 return;
             }
             // Setup a new stream
-            window.RBotUIVars.fileToStream = fileToStream;
-            window.RBotUIVars.fileToStreamStartTime = new Date();
-            window.RBotUIVars.streamGcodeLines = [];
-            window.RBotUIVars.streamGcodeCurLine = 0;
-            window.RBotUIVars.streamGcodeRetryCount = 0;
+            window.pageState.fileToStream = fileToStream;
+            window.pageState.fileToStreamStartTime = new Date();
+            window.pageState.streamGcodeLines = [];
+            window.pageState.streamGcodeCurLine = 0;
+            window.pageState.streamGcodeRetryCount = 0;
             // Set status
             setStreamGCodeState(true);
             // Show status
-            streamGCodeShowStatus("Streaming " + window.RBotUIVars.fileToStream.name);
+            streamGCodeShowStatus("Streaming " + window.pageState.fileToStream.name);
             // Read the file and start sending
             streamGCodeReadFile().then(streamGCodeLines, streamGCodeReadFailed);
         }
@@ -530,9 +530,9 @@
         function streamGCodeLines(dataToSend)
         {
             // Split file into lines
-            window.RBotUIVars.streamGcodeLines = dataToSend.toString().split("\n");
-            window.RBotUIVars.streamGcodeCurLine = 0;
-            window.RBotUIVars.streamGcodeRetryCount = 0;
+            window.pageState.streamGcodeLines = dataToSend.toString().split("\n");
+            window.pageState.streamGcodeCurLine = 0;
+            window.pageState.streamGcodeRetryCount = 0;
             streamGCodeSendNextChunk();
             // console.log("Success");
 
@@ -578,7 +578,7 @@
                     reject(err);
                 };
                 // Read in the image file as a data URL.
-                reader.readAsText(window.RBotUIVars.fileToStream);
+                reader.readAsText(window.pageState.fileToStream);
             });
         }
 
@@ -633,11 +633,11 @@
             // Find next line to send
             while (true)
             {
-                let validGCodeLineFound = gCodeCheckLineValid(window.RBotUIVars.streamGcodeLines[window.RBotUIVars.streamGcodeCurLine]);
+                let validGCodeLineFound = gCodeCheckLineValid(window.pageState.streamGcodeLines[window.pageState.streamGcodeCurLine]);
                 if (validGCodeLineFound)
                     break;
-                window.RBotUIVars.streamGcodeCurLine += 1;
-                if (window.RBotUIVars.streamGcodeCurLine >= window.RBotUIVars.streamGcodeLines.length)
+                window.pageState.streamGcodeCurLine += 1;
+                if (window.pageState.streamGcodeCurLine >= window.pageState.streamGcodeLines.length)
                 {
                     console.log("Streaming complete");
                     setStreamGCodeState(false);
@@ -645,21 +645,21 @@
                     return;
                 }
             }
-            const gcodeToSend = gCodeStripComments(window.RBotUIVars.streamGcodeLines[window.RBotUIVars.streamGcodeCurLine]);
+            const gcodeToSend = gCodeStripComments(window.pageState.streamGcodeLines[window.pageState.streamGcodeCurLine]);
             // Send a line
             sendLineOfGCode(gcodeToSend).then(streamGCodeMoveNext, streamGCodeRetry);
         }
 
         function streamGCodeMoveNext()
         {
-            console.log("Sent line " + window.RBotUIVars.streamGcodeCurLine + "... " + window.RBotUIVars.streamGcodeLines[window.RBotUIVars.streamGcodeCurLine]);
-            window.RBotUIVars.streamGcodeRetryCount = 0;
-            window.RBotUIVars.streamGcodeCurLine += 1;
-            while (window.RBotUIVars.streamGcodeCurLine < window.RBotUIVars.streamGcodeLines.length)
+            console.log("Sent line " + window.pageState.streamGcodeCurLine + "... " + window.pageState.streamGcodeLines[window.pageState.streamGcodeCurLine]);
+            window.pageState.streamGcodeRetryCount = 0;
+            window.pageState.streamGcodeCurLine += 1;
+            while (window.pageState.streamGcodeCurLine < window.pageState.streamGcodeLines.length)
             {
-                if (window.RBotUIVars.streamGcodeLines[window.RBotUIVars.streamGcodeCurLine].trim().length === 0)
+                if (window.pageState.streamGcodeLines[window.pageState.streamGcodeCurLine].trim().length === 0)
                 {
-                    window.RBotUIVars.streamGcodeCurLine += 1;
+                    window.pageState.streamGcodeCurLine += 1;
                     continue
                 }
                 streamGCodeSendNextChunk();
@@ -672,19 +672,19 @@
 
         function streamGCodeRetry(xmlHttpReq)
         {
-            window.RBotUIVars.streamGcodeRetryCount += 1;
+            window.pageState.streamGcodeRetryCount += 1;
             console.log("Failed to send,response " + xmlHttpReq.status.toString() + "... " + xmlHttpReq.response);
             // Check status for i'm-busy codes
             if (xmlHttpReq.status === 218 || xmlHttpReq.status === 503 ||
                 (xmlHttpReq.status === 200 && xmlHttpReq.response.rslt === "busy"))
             {
-                if (window.RBotUIVars.streamGcodeRetryCount > window.RBotUIVars.MAX_STREAMING_RETRIES)
+                if (window.pageState.streamGcodeRetryCount > window.pageState.MAX_STREAMING_RETRIES)
                 {
-                    console.log("Failed after " + window.RBotUIVars.MAX_STREAMING_RETRIES + " retries");
+                    console.log("Failed after " + window.pageState.MAX_STREAMING_RETRIES + " retries");
                 }
                 else
                 {
-                    window.RBotUIVars.streamGCodeRetryTimer = setTimeout(streamGCodeSendNextChunk, window.RBotUIVars.STREAMING_RETRY_TIME_MS);
+                    window.pageState.streamGCodeRetryTimer = setTimeout(streamGCodeSendNextChunk, window.pageState.STREAMING_RETRY_TIME_MS);
                     return;
                 }
             }
@@ -729,7 +729,7 @@
         {
             // Parse status received
             let fileListInfo = JSON.parse(resp);
-            window.RBotUIVars.latestfileListInfo = fileListInfo;
+            window.pageState.latestfileListInfo = fileListInfo;
 
             // Show info
             if (fileListInfo.diskSize)
@@ -782,12 +782,12 @@
         function btnUploadToFileSystem(e)
         {
             // See if upload in progress
-            if (window.RBotUIVars.streamingInProgress)
+            if (window.pageState.streamingInProgress)
             {
                 alert("Previous upload in progress");
                 return;
             }
-            window.RBotUIVars.fileDialogType = "filesystem";
+            window.pageState.fileDialogType = "filesystem";
             const inputFileUpload = document.getElementById("input_file_upload");
             inputFileUpload.click();
             e.preventDefault();
@@ -795,19 +795,19 @@
         }
 
         function initializeProgress(numFiles, progressBarName) {
-            window.RBotUIVars.uploadProgress = []
+            window.pageState.uploadProgress = []
             let progressBar = document.getElementById(progressBarName);
             progressBar.value = 0;
             for (let i = numFiles; i > 0; i--) {
-                window.RBotUIVars.uploadProgress.push(0);
+                window.pageState.uploadProgress.push(0);
             }
             progressBar.display="block";
         }
 
         function updateProgress(fileNumber, percent, progressBarName) {
             let progressBar = document.getElementById(progressBarName);
-            window.RBotUIVars.uploadProgress[fileNumber] = percent;
-            let total = window.RBotUIVars.uploadProgress.reduce((tot, curr) => tot + curr, 0) / window.RBotUIVars.uploadProgress.length;
+            window.pageState.uploadProgress[fileNumber] = percent;
+            let total = window.pageState.uploadProgress.reduce((tot, curr) => tot + curr, 0) / window.pageState.uploadProgress.length;
             // console.debug('update', fileNumber, percent, total);
             progressBar.value = total;
             if (progressBar.value > 99.99)
@@ -824,11 +824,11 @@
             firstFile = files[0]
             // Get disk size
             let sizeLeft = 0;            
-            if (window.RBotUIVars.latestfileListInfo)
+            if (window.pageState.latestfileListInfo)
             {
-                if ((window.RBotUIVars.latestfileListInfo.diskSize) && 
-                    (window.RBotUIVars.latestfileListInfo.diskUsed))
-                    sizeLeft = window.RBotUIVars.latestfileListInfo.diskSize - window.RBotUIVars.latestfileListInfo.diskUsed;
+                if ((window.pageState.latestfileListInfo.diskSize) && 
+                    (window.pageState.latestfileListInfo.diskUsed))
+                    sizeLeft = window.pageState.latestfileListInfo.diskSize - window.pageState.latestfileListInfo.diskUsed;
 
             }
             // Check size ok
@@ -1582,7 +1582,7 @@
                     </button>
                     <div class="btn-clear"></div>
                 </div>
-                <div id="file-system-info" class="uiPanelSub"><span></span></div>
+            <div id="file-system-info" class="uiPanelSub"><span></span></div>
                 <progress class="progress-file" id="progress-bar-file" max=100 value=20 style="display: none;"></progress>
                 <table class="uiTable uiTableBordered uiTableFiles uiTableStripe" id="table_files">
                     <thead>
@@ -1610,23 +1610,23 @@
             <g>
                 <path d="M550 1100h400q165 0 257.5 -92.5t92.5 -257.5v-400q0 -165 -92.5 -257.5t-257.5 -92.5h-400q-21 0 -35.5 14.5t-14.5 35.5v100q0 21 14.5 35.5t35.5 14.5h450q41 0 70.5 29.5t29.5 70.5v500q0 41 -29.5 70.5t-70.5 29.5h-450q-21 0 -35.5 14.5t-14.5 35.5v100 q0 21 14.5 35.5t35.5 14.5zM338 867l324 -284q16 -14 16 -33t-16 -33l-324 -284q-16 -14 -27 -9t-11 26v150h-250q-21 0 -35.5 14.5t-14.5 35.5v200q0 21 14.5 35.5t35.5 14.5h250v150q0 21 11 26t27 -9z"></path>
             </g>
-        </symbol >
+        </symbol>
         <symbol id="icon-send" viewBox="0 0 1200 1200" >
             <g>
                 <path d="M1200 103l-483 276l-314 -399v423h-399l1196 796v-1096zM483 424v-230l683 953z"
                       transform="scale(1,-1) translate(0,-1200)"></path>
             </g>
-        </symbol >
+        </symbol>
         <symbol id="ico-lc" viewBox="0 0 1200 1200">
             <g>
                 <path d="M885 900l-352 -353l352 -353l-197 -198l-552 552l552 550z"></path>
             </g>
-        </symbol >
+        </symbol>
         <symbol id="ico-rc" viewBox="0 0 1200 1200">
             <g>
                 <path d="M1064 547l-551 -551l-198 198l353 353l-353 353l198 198z"></path>
             </g>
-        </symbol >
+        </symbol>
         <symbol id="icon-upload" viewBox="0 0 1200 1200">
             <g>
                 <path d="M502 1089q110 0 201 -59.5t135 -156.5q43 15 89 15q121 0 206 -86.5t86 -206.5q0 -99 -60 -181t-150 -110l-378
@@ -1635,37 +1635,37 @@
                  -7.5h-150q-10 0 -17.5 7.5t-7.5 17.5v275h-137q-21 0 -26 11.5t8 27.5q199 204 223 228q19 19 31.5 19t32.5 -19z"
                  transform="scale(1,-1) translate(0,-1100)"></path>
             </g>
-        </symbol >
+        </symbol>
         <symbol id="ico-cncl" viewBox="0 0 510 510">
             <g>
                 <path d="M255,0C114.75,0,0,114.75,0,255s114.75,255,255,255s255-114.75,255-255S395.25,0,255,0z M382.5,346.8l-35.7,35.7
 			L255,290.7l-91.8,91.8l-35.7-35.7l91.8-91.8l-91.8-91.8l35.7-35.7l91.8,91.8l91.8-91.8l35.7,35.7L290.7,255L382.5,346.8z"></path>
             </g>
-        </symbol >
+        </symbol>
         <symbol id="ico-stop" viewBox="0 0 191 191">
             <g>
                 <path d="M158.912,0H31.782C14.239,0,0,14.239,0,31.782v127.13c0,17.544,14.239,31.782,31.782,31.782
 				h127.13c17.544,0,31.782-14.239,31.782-31.782V31.782C190.695,14.239,176.456,0,158.912,0z"></path>
             </g>
-        </symbol >
+        </symbol>
         <symbol id="ico-pause" viewBox="0 0 46 46">
             <g>
                 <path d="M13.987,0c-2.762,0-5,2.239-5,5v35.975c0,2.763,2.238,5,5,5s5-2.238,5-5V5C18.987,2.238,16.75,0,13.987,0z"/>
                 <path d="M31.987,0c-2.762,0-5,2.239-5,5v35.975c0,2.762,2.238,5,5,5s5-2.238,5-5V5C36.987,2.239,34.749,0,31.987,0z"/>
             </g>
-        </symbol >
+        </symbol>
         <symbol id="ico-play" viewBox="0 0 233 233">
             <g>
                 <path d="M203.791,99.628L49.307,2.294c-4.567-2.719-10.238-2.266-14.521-2.266
 		c-17.132,0-17.056,13.227-17.056,16.578v198.94c0,2.833-0.075,16.579,17.056,16.579c4.283,0,9.955,0.451,14.521-2.267
 		l154.483-97.333c12.68-7.545,10.489-16.449,10.489-16.449S216.471,107.172,203.791,99.628z"/>
             </g>
-        </symbol >
+        </symbol>
         <symbol id="ico-delete" viewBox="0 0 26 26">
             <g>
                 <path d="M 11 -0.03125 C 10.164063 -0.03125 9.34375 0.132813 8.75 0.71875 C 8.15625 1.304688 7.96875 2.136719 7.96875 3 L 4 3 C 3.449219 3 3 3.449219 3 4 L 2 4 L 2 6 L 24 6 L 24 4 L 23 4 C 23 3.449219 22.550781 3 22 3 L 18.03125 3 C 18.03125 2.136719 17.84375 1.304688 17.25 0.71875 C 16.65625 0.132813 15.835938 -0.03125 15 -0.03125 Z M 11 2.03125 L 15 2.03125 C 15.546875 2.03125 15.71875 2.160156 15.78125 2.21875 C 15.84375 2.277344 15.96875 2.441406 15.96875 3 L 10.03125 3 C 10.03125 2.441406 10.15625 2.277344 10.21875 2.21875 C 10.28125 2.160156 10.453125 2.03125 11 2.03125 Z M 4 7 L 4 23 C 4 24.652344 5.347656 26 7 26 L 19 26 C 20.652344 26 22 24.652344 22 23 L 22 7 Z M 8 10 L 10 10 L 10 22 L 8 22 Z M 12 10 L 14 10 L 14 22 L 12 22 Z M 16 10 L 18 10 L 18 22 L 16 22 Z "/>
             </g>
-        </symbol >
+        </symbol>
     </svg>
 
     <!-- Modal dialogs -->

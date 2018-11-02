@@ -55,7 +55,7 @@ class CommandSerial
 
         // Get config
         ConfigBase csConfig(config.getString("commandSerial", "").c_str());
-        Serial.printf("CommandSerial: config %s\n", csConfig.getConfigData());
+        Log.notice("CommandSerial: config %s\n", csConfig.getConfigData());
 
         // Get serial port
         _serialPortNum = csConfig.getLong("portNum", -1);
@@ -72,25 +72,25 @@ class CommandSerial
             if (_serialPortNum == 1)
             {
                 _pSerial->begin(_baudRate, SERIAL_8N1, 16, 17, false);
-                Serial.printf("CommandSerial: portNum %d, baudRate %d, rxPin %d, txPin %d\n",
+                Log.notice("CommandSerial: portNum %d, baudRate %d, rxPin %d, txPin %d\n",
                              _serialPortNum, _baudRate, 16, 17);
             }
             else if (_serialPortNum == 2)
             {
                 _pSerial->begin(_baudRate, SERIAL_8N1, 26, 25, false);
-                Serial.printf("CommandSerial: portNum %d, baudRate %d, rxPin %d, txPin %d\n",
+                Log.notice("CommandSerial: portNum %d, baudRate %d, rxPin %d, txPin %d\n",
                              _serialPortNum, _baudRate, 26, 25);
             }
             else
             {
                 _pSerial->begin(_baudRate);
-                Serial.printf("CommandSerial: portNum %d, baudRate %d, rxPin %d, txPin %d\n",
+                Log.notice("CommandSerial: portNum %d, baudRate %d, rxPin %d, txPin %d\n",
                              _serialPortNum, _baudRate, 3, 1);
             }
         }
         else
         {
-            Serial.printf("CommandSerial: failed portNum %d, baudRate %d\n",
+            Log.notice("CommandSerial: failed portNum %d, baudRate %d\n",
                             _serialPortNum, _baudRate);
         }
     }
@@ -120,7 +120,15 @@ class CommandSerial
     {
         // Serial.printf("CommandSerial: response Msg %s\n", msgJson.c_str());
 
-        String frame = "{\"cmdName\":\"respMsg\"," + msgJson + "}\0";
+        String frame;
+        if (msgJson.startsWith("{"))
+        {
+            frame = "{\"cmdName\":\"respMsg\",\"msg\":" + msgJson + "}\0";
+        }
+        else
+        {
+            frame = "{\"cmdName\":\"respMsg\"," + msgJson + "}\0";
+        }
         _miniHDLC.sendFrame((const uint8_t*)frame.c_str(), frame.length());
     }
 
@@ -148,12 +156,12 @@ class CommandSerial
             if (Utils::isTimeout(millis(), _uploadLastBlockMs, MAX_BETWEEN_BLOCKS_MS))
             {
                 _uploadInProgress = false;
-                Serial.printf("CommandSerial: Upload timed out\n");
+                Log.notice("CommandSerial: Upload timed out\n");
             }
             if (Utils::isTimeout(millis(), _uploadStartMs, MAX_UPLOAD_MS))
             {
                 _uploadInProgress = false;
-                Serial.printf("CommandSerial: Upload timed out\n");
+                Log.notice("CommandSerial: Upload timed out\n");
             }
         }
     }
@@ -184,6 +192,8 @@ class CommandSerial
 
     void sendTargetCommand(const String& targetCmd)
     {
+        // Serial.printf("CommandSerial: targetCommand Msg %s\n", targetCmd.c_str());
+
         String frame = "{\"cmdName\":\"" + targetCmd + "\"}\0";
         _miniHDLC.sendFrame((const uint8_t*)frame.c_str(), frame.length());
     }
@@ -202,7 +212,7 @@ class CommandSerial
 
     void fileUploadPart(String& filename, int fileLength, size_t index, uint8_t *data, size_t len, bool final)
     {
-        Serial.printf("CommandSerial: %s, total %d, idx %d, len %d, final %d\n", filename.c_str(), fileLength, index, len, final);
+        Log.verbose("CommandSerial: %s, total %d, idx %d, len %d, final %d\n", filename.c_str(), fileLength, index, len, final);
 
         // Check if first block in an upload
         if (!_uploadInProgress)

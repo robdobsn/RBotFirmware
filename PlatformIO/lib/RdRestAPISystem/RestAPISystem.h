@@ -288,7 +288,7 @@ class RestAPISystem
                         "Delete file /SPIFFS/filename ... ~ for / in filename");
         }
 
-    String getWifiStatusStr()
+    static String getWifiStatusStr()
     {
         if (WiFi.status() == WL_CONNECTED)
             return "C";
@@ -307,7 +307,7 @@ class RestAPISystem
         return "D";
     }
 
-    int reportHealth(int bitPosStart, unsigned long *pOutHash, String *pOutStr)
+    static int reportHealth(int bitPosStart, unsigned long *pOutHash, String *pOutStr)
     {
         // Generate hash if required
         if (pOutHash)

@@ -193,7 +193,7 @@ class RestAPIEndpoints
         }
         // Check against valid commands
         int numEndpoints = getNumEndpoints();
-        Log.trace("RestAPIEndpoints: reqStr %s requestEndpoint %s, num endpoints %d\n", 
+        Log.verbose("RestAPIEndpoints: reqStr %s requestEndpoint %s, num endpoints %d\n", 
                     requestStr, requestEndpoint.c_str(), numEndpoints);
         for (int i = 0; i < numEndpoints; i++)
         {
