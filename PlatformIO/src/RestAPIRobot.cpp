@@ -44,25 +44,29 @@ void RestAPIRobot::apiPostSettingsBody(String& reqStr, uint8_t *pData, size_t le
 void RestAPIRobot::apiExec(String &reqStr, String &respStr)
 {
     Log.notice("RestAPIRobot: Exec\n");
-    _commandInterface.process(RestAPIEndpoints::removeFirstArgStr(reqStr.c_str()).c_str(), respStr);
+    WorkItem workItem(RestAPIEndpoints::removeFirstArgStr(reqStr.c_str()).c_str());
+    _commandInterface.addWorkItem(workItem, respStr);
 }
 
 void RestAPIRobot::apiPattern(String &reqStr, String &respStr)
 {
     Log.notice("RestAPIRobot: Pattern\n");
-    _commandInterface.process(RestAPIEndpoints::removeFirstArgStr(reqStr.c_str()).c_str(), respStr);
+    WorkItem workItem(RestAPIEndpoints::removeFirstArgStr(reqStr.c_str()).c_str());
+    _commandInterface.addWorkItem(workItem, respStr);
 }
 
 void RestAPIRobot::apiSequence(String &reqStr, String &respStr)
 {
     Log.notice("RestAPIRobot: Sequence\n");
-    _commandInterface.process(RestAPIEndpoints::removeFirstArgStr(reqStr.c_str()).c_str(), respStr);
+    WorkItem workItem(RestAPIEndpoints::removeFirstArgStr(reqStr.c_str()).c_str());
+    _commandInterface.addWorkItem(workItem, respStr);
 }
 
 void RestAPIRobot::apiPlayFile(String &reqStr, String &respStr)
 {
     Log.notice("RestAPIRobot: playFile\n");
-    _commandInterface.process(RestAPIEndpoints::removeFirstArgStr(reqStr.c_str()).c_str(), respStr);
+    WorkItem workItem(RestAPIEndpoints::removeFirstArgStr(reqStr.c_str()).c_str());
+    _commandInterface.addWorkItem(workItem, respStr);
 }
 
 void RestAPIRobot::setup(RestAPIEndpoints &endpoints)

@@ -17,16 +17,16 @@ class FileManager;
 class WorkManager
 {
 private:
-    ConfigBase& _mainConfig;
+    ConfigBase& _systemConfig;
     ConfigBase& _robotConfig;
     RobotController& _robotController;
-    WorkItemQueue _workflowManager;
+    WorkItemQueue _workItemQueue;
     RestAPISystem& _restAPISystem;
     FileManager& _fileManager;
 
     // Evaluators
-    EvaluatorPatterns _patternEvaluator;
-    EvaluatorSequences _commandSequencer;
+    EvaluatorPatterns _evaluatorPatterns;
+    EvaluatorSequences _evaluatorSequences;
 
 public:
     WorkManager(ConfigBase& mainConfig,
@@ -34,7 +34,7 @@ public:
                 RobotController &robotController,
                 RestAPISystem &restAPISystem,
                 FileManager& fileManager) :
-                _mainConfig(mainConfig),
+                _systemConfig(mainConfig),
                 _robotConfig(robotConfig),
                 _robotController(robotController),
                 _restAPISystem(restAPISystem),
@@ -42,21 +42,36 @@ public:
     {
     }
 
-    bool canAcceptCommand();
+    // Check if queue can accept a work item
+    bool canAcceptWorkItem();
+
+    // Queue info
     bool queueIsEmpty();
+
+    // Call frequently to pump the queue
     void service();
 
+    // Configuration of the robot
     void getRobotConfig(String& respStr);
     bool setRobotConfig(const uint8_t* pData, int len);
 
+    // Apply configuration
     void reconfigure();
+
+    // Process startup actions
     void handleStartupCommands();
 
+    // Get status report
     void queryStatus(String &respStr);
-    void processSingle(const char *pCmdStr, String &retStr);
-    void process(const char *pCmdStr, String &retStr, int cmdIdx = -1);
+
+    // Add a work item to the queue
+    void addWorkItem(WorkItem& workItem, String &retStr, int cmdIdx = -1);
 
 private:
-  bool execWorkItem(WorkItem& workItem);
+    // Execute an item of work
+    bool execWorkItem(WorkItem& workItem);
+
+    // Process a single 
+    void processSingle(const char *pCmdStr, String &retStr);
 
 };

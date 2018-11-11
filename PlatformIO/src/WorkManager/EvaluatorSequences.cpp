@@ -56,11 +56,13 @@ bool EvaluatorSequences::execWorkItem(WorkItem& workItem)
 
 void EvaluatorSequences::service(WorkManager* pWorkManager)
 {
+    // TODO check this is valid ...
+
     // if (millis() > _lastMillis + 10000)
     // {
     //     _lastMillis = millis();
     //     Log.trace("EvaluatorSequences process cmdStr %s cmdIdx %d numToProc %d isEmpty %d\n", _commandList.c_str(), _curCmdIdx, _numCmdsToProcess,
-    //                     pCommandInterpreter->queueIsEmpty());
+    //                     pWorkManager->queueIsEmpty());
     // }
     // Check there is something left to do
     if (_numCmdsToProcess <= _curCmdIdx)
@@ -73,7 +75,8 @@ void EvaluatorSequences::service(WorkManager* pWorkManager)
     // Process the next command
     Log.trace("EvaluatorSequences ->cmdInterp cmdStr %s cmdIdx %d numToProc %d\n", _commandList.c_str(), _curCmdIdx, _numCmdsToProcess);
     String retStr;
-    pWorkManager->process(_commandList.c_str(), retStr, _curCmdIdx++);
+    WorkItem workItem(_commandList);
+    pWorkManager->addWorkItem(workItem, retStr, _curCmdIdx++);
 }
 
 void EvaluatorSequences::stop()

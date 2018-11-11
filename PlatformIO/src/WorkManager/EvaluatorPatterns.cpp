@@ -149,13 +149,13 @@ void EvaluatorPatterns::service(WorkManager* pWorkManager)
         return;
 
     // Check if the command interpreter can accept new stuff
-    if (!pWorkManager->canAcceptCommand())
+    if (!pWorkManager->canAcceptWorkItem())
         return;
 
     // Evaluate expressions
     evalExpressions(false, true);
 
-    // Get next point and send to commandInterpreter
+    // Get next point
     AxisFloats pt;
     bool isValid = getPoint(pt);
     if (!isValid)
@@ -168,7 +168,8 @@ void EvaluatorPatterns::service(WorkManager* pWorkManager)
     sprintf(cmdStr, "G0 X%F Y%F", pt._pt[0], pt._pt[1]);
     Log.trace("PatternEval ->cmdInterp %s\n", cmdStr);
     String retStr;
-    pWorkManager->process(cmdStr, retStr);
+    WorkItem workItem(cmdStr);
+    pWorkManager->addWorkItem(workItem, retStr);
 
     // Check if we reached a limit
     bool stopReqd = 0;

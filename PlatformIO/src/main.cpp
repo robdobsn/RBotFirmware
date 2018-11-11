@@ -30,7 +30,7 @@
 const char* systemType = SYSTEM_TYPE_NAME;
 
 // System version
-const char* systemVersion = "2.005.001";
+const char* systemVersion = "2.007.001";
 
 // Build date
 const char* buildDate = __DATE__;
@@ -132,15 +132,6 @@ RestAPISystem restAPISystem(wifiManager, mqttManager,
             otaUpdate, netLog, fileManager,
             systemType, systemVersion);
 
-//define RUN_TESTS_CONFIG
-//#define RUN_TEST_WORKFLOW
-#ifdef RUN_TEST_CONFIG
-#include "TestConfigManager.h"
-#endif
-#ifdef RUN_TEST_WORKFLOW
-#include "TestWorkflowGCode.h"
-#endif
-
 // Robot controller
 #include "RobotMotion/RobotController.h"
 RobotController _robotController;
@@ -167,7 +158,7 @@ void debugLoopInfoCallback(String &infoStr)
         infoStr = wifiManager.getHostname() + " SSID " + WiFi.SSID() + " IP " + WiFi.localIP().toString() + " Heap " + String(ESP.getFreeHeap());
     else
         infoStr = "WiFi Disabled, Heap " + String(ESP.getFreeHeap());
-    // infoStr += " Q " + String(_workflowManager.numWaiting()) + " R " + String(_commandInterpreter.canAcceptCommand();
+    // infoStr += " Q " + String(_workItemQueue.size()) + " R " + String(_workItemQueue.canAcceptWorkItem();
     infoStr += _robotController.getDebugStr();
 }
 DebugLoopTimer debugLoopTimer(10000, debugLoopInfoCallback);

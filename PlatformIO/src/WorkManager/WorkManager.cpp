@@ -29,14 +29,14 @@ void WorkManager::queryStatus(String &respStr)
     respStr = "{" + innerJsonStr + "}";
 }
 
-bool WorkManager::canAcceptCommand()
+bool WorkManager::canAcceptWorkItem()
 {
-    return !_workflowManager.isFull();
+    return !_workItemQueue.isFull();
 }
 
 bool WorkManager::queueIsEmpty()
 {
-    return _workflowManager.isEmpty();
+    return _workItemQueue.isEmpty();
 }
 
 void WorkManager::getRobotConfig(String &respStr)
@@ -58,9 +58,9 @@ bool WorkManager::setRobotConfig(const uint8_t *pData, int len)
     reconfigure();
     // Apply the config data
     String patternsStr = RdJson::getString("/patterns", "{}", _robotConfig.getConfigData());
-    _patternEvaluator.setConfig(patternsStr.c_str());
+    _evaluatorPatterns.setConfig(patternsStr.c_str());
     String sequencesStr = RdJson::getString("/sequences", "{}", _robotConfig.getConfigData());
-    _commandSequencer.setConfig(sequencesStr.c_str());
+    _evaluatorSequences.setConfig(sequencesStr.c_str());
     // Store the configuration permanently
     _robotConfig.writeConfig();
     return true;
@@ -85,9 +85,9 @@ void WorkManager::processSingle(const char *pCmdStr, String &retStr)
     else if (strcasecmp(pCmdStr, "stop") == 0)
     {
         _robotController.stop();
-        _workflowManager.clear();
-        _patternEvaluator.stop();
-        _commandSequencer.stop();
+        _workItemQueue.clear();
+        _evaluatorPatterns.stop();
+        _evaluatorSequences.stop();
         retStr = okRslt;
     }
     else
@@ -95,7 +95,7 @@ void WorkManager::processSingle(const char *pCmdStr, String &retStr)
         // Send the line to the workflow manager
         if (strlen(pCmdStr) != 0)
         {
-            bool rslt = _workflowManager.add(pCmdStr);
+            bool rslt = _workItemQueue.add(pCmdStr);
             if (!rslt)
                 retStr = "{\"rslt\":\"busy\"}";
             else
@@ -105,19 +105,19 @@ void WorkManager::processSingle(const char *pCmdStr, String &retStr)
     Log.trace("WorkManager: procSingle rslt %s\n", retStr.c_str());
 }
 
-void WorkManager::process(const char *pCmdStr, String &retStr, int cmdIdx)
+void WorkManager::addWorkItem(WorkItem& workItem, String &retStr, int cmdIdx)
 {
     // Handle the case of a single string
-    if (strstr(pCmdStr, ";") == NULL)
+    if (strstr(workItem.getCString(), ";") == NULL)
     {
-        return processSingle(pCmdStr, retStr);
+        return processSingle(workItem.getCString(), retStr);
     }
 
     // Handle multiple commands (semicolon delimited)
     /*Log.trace("CmdInterp process %s\n", pCmdStr);*/
     const int MAX_TEMP_CMD_STR_LEN = 1000;
-    const char *pCurStr = pCmdStr;
-    const char *pCurStrEnd = pCmdStr;
+    const char *pCurStr = workItem.getCString();
+    const char *pCurStrEnd = pCurStr;
     int curCmdIdx = 0;
     while (true)
     {
@@ -160,11 +160,11 @@ bool WorkManager::execWorkItem(WorkItem& workItem)
     // See if the command is a pattern generator
     bool handledOk = false;
     // See if it is a pattern evaluator
-    handledOk = _patternEvaluator.execWorkItem(workItem);
+    handledOk = _evaluatorPatterns.execWorkItem(workItem);
     if (handledOk)
         return handledOk;
     // See if it is a command sequencer
-    handledOk = _commandSequencer.execWorkItem(workItem);
+    handledOk = _evaluatorSequences.execWorkItem(workItem);
     if (handledOk)
         return handledOk;    
     // Not handled
@@ -178,11 +178,11 @@ void WorkManager::service()
     if (_robotController.canAcceptCommand())
     {
         WorkItem workItem;
-        bool rslt = _workflowManager.get(workItem);
+        bool rslt = _workItemQueue.get(workItem);
         if (rslt)
         {
             Log.trace("WorkManager: getWorkflow rlst=%d (waiting %d), %s\n", rslt,
-                      _workflowManager.size(),
+                      _workItemQueue.size(),
                       workItem.getString().c_str());
 
             // Check for extended commands
@@ -195,8 +195,8 @@ void WorkManager::service()
     }
 
     // Service command extender (which pumps the state machines associated with extended commands)
-    _patternEvaluator.service(this);
-    _commandSequencer.service(this);
+    _evaluatorPatterns.service(this);
+    _evaluatorSequences.service(this);
 }
 
 void WorkManager::reconfigure()
@@ -213,7 +213,7 @@ void WorkManager::reconfigure()
         String robotType = RdJson::getString("/robotType", "", configData.c_str());
         if (robotType.length() <= 0)
             // If not see if there is a default robot type
-            robotType = RdJson::getString("/defaultRobotType", "", _mainConfig.getConfigData());
+            robotType = RdJson::getString("/defaultRobotType", "", _systemConfig.getConfigData());
         if (robotType.length() <= 0)
             // Just use first type
             RobotConfigurations::getNthRobotTypeName(0, robotType);
@@ -223,15 +223,15 @@ void WorkManager::reconfigure()
 
     // Init robot controller and workflow manager
     _robotController.init(robotConfigStr.c_str());
-    _workflowManager.init(robotConfigStr.c_str(), "workItemQueue");
+    _workItemQueue.init(robotConfigStr.c_str(), "workItemQueue");
 
     // Configure the command interpreter
     Log.notice("WorkManager: setting config\n");
     String patternsStr = RdJson::getString("/patterns", "{}", _robotConfig.getConfigData());
-    _patternEvaluator.setConfig(patternsStr.c_str());
+    _evaluatorPatterns.setConfig(patternsStr.c_str());
     Log.notice("WorkManager: patterns %s\n", patternsStr.c_str());
     String sequencesStr = RdJson::getString("/sequences", "{}", _robotConfig.getConfigData());
-    _commandSequencer.setConfig(sequencesStr.c_str());
+    _evaluatorSequences.setConfig(sequencesStr.c_str());
     Log.notice("WorkManager: sequences %s\n", sequencesStr.c_str());
 }
 
@@ -243,7 +243,8 @@ void WorkManager::handleStartupCommands()
     if (cmdsAtStart.length() > 0)
     {
         String retStr;
-        process(cmdsAtStart.c_str(), retStr);
+        WorkItem workItem(cmdsAtStart);
+        addWorkItem(workItem, retStr);
     }
 
     // Check for startup commands in the EEPROM config
@@ -253,6 +254,7 @@ void WorkManager::handleStartupCommands()
     if (runAtStart.length() > 0)
     {
         String retStr;
-        process(runAtStart.c_str(), retStr);
+        WorkItem workItem(runAtStart);
+        addWorkItem(workItem, retStr);
     }
 }

@@ -19,6 +19,16 @@ public:
         _str = pCmdStr;
     }
 
+    WorkItem(const String& cmdStr)
+    {
+        _str = cmdStr;
+    }
+
+    const char* getCString()
+    {
+        return _str.c_str();
+    }
+
     const String getString()
     {
         return _str;
