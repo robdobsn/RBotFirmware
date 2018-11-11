@@ -5,7 +5,7 @@
 
 class WebServerResource
 {
-  public:
+public:
     WebServerResource(const char *pResId, const char *pMimeType,
                       const char *pContentEncoding,
                       const char *pAccessControlAllowOrigin,

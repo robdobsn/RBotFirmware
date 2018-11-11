@@ -1,5 +1,5 @@
 // RBotFirmware
-// Rob Dobson 2016-2017
+// Rob Dobson 2016-2018
 
 // API used for web, MQTT and BLE (future)
 //   Get version:    /v                   - returns version info
@@ -13,19 +13,24 @@
 //   Reset:          /reset               - reset device
 //   Log level:      /loglevel/lll        - Logging level (for MQTT and HTTP)
 //                                        - lll one of v (verbose), t (trace), n (notice), w (warning), e (error), f (fatal)
-//   Log to MQTT:    /logmqtt/oo/topic    - Control logging to MQTT
-//                                        - oo = 0 or 1 for off/on, topic is the topic logging messages are sent to
-//   Log to HTTP:    /loghttp/oo/ip/po/ur - Control logging to HTTP
-//                                        - oo = 0 or 1 for off/on
+//   Log to MQTT:    /logmqtt/en/topic    - Control logging to MQTT
+//                                        - en = 0 or 1 for off/on, topic is the topic logging messages are sent to
+//   Log to HTTP:    /loghttp/en/ip/po/ur - Control logging to HTTP
+//                                        - en = 0 or 1 for off/on
 //                                        - ip is the IP address of the computer to log to (or hostname) and po is the port
 //                                        - ur is the HTTP url logging messages are POSTed to
+//   Log to serial:  /logserial/en/port   - Control logging to serial
+//                                        - en = 0 or 1 for off/on
+//                                        - port is the port number 0 = standard USB port
+//   Log to cmd:     /logcmd/en           - Control logging to command port (extra serial if configured)
+//                                        - en = 0 or 1 for off/on
 
 // System type
 #define SYSTEM_TYPE_NAME "RBotFirmware"
 const char* systemType = SYSTEM_TYPE_NAME;
 
 // System version
-const char* systemVersion = "2.004.001";
+const char* systemVersion = "2.005.001";
 
 // Build date
 const char* buildDate = __DATE__;
@@ -46,11 +51,12 @@ const char* buildTime = __TIME__;
 #include <Utils.h>
 
 // Status LED
-#include "StatusLed.h"
-StatusLed wifiStatusLed;
+#include "StatusIndicator.h"
+StatusIndicator wifiStatusLed;
 
 // Config
 #include "ConfigNVS.h"
+#include "ConfigFile.h"
 
 // // WiFi Manager
 #include "WiFiManager.h"
@@ -66,6 +72,7 @@ RestAPIEndpoints restAPIEndpoints;
 
 // Web server
 #include "WebServer.h"
+#include "WebAutogenResources.h"
 WebServer webServer;
 
 // MQTT
@@ -88,7 +95,7 @@ static const char *hwConfigJSON = {
     "\"serialConsole\":{\"portNum\":0},"
     "\"commandSerial\":{\"portNum\":-1,\"baudRate\":115200},"
     "\"fileManager\":{\"spiffsEnabled\":1,\"spiffsFormatIfCorrupt\",1},"
-    "\"wifiLed\":{\"ledPin\":\"\",\"ledOnMs\":200,\"ledShortOffMs\":200,\"ledLongOffMs\":750},"
+    "\"wifiLed\":{\"hwPin\":\"\",\"onLevel\":1,\"onMs\":200,\"shortOffMs\":200,\"longOffMs\":750},"
     "\"defaultRobotType\":\"SandTableScara\""
     "}"};
 
@@ -100,7 +107,7 @@ ConfigBase hwConfig(hwConfigJSON);
 #include "RobotTypes.h"
 
 // Config for robot control
-ConfigNVS robotConfig("robot", 9500);
+ConfigFile robotConfig(fileManager, "SPIFFS", "/robot.json", 50000);
 
 // Config for WiFi
 ConfigNVS wifiConfig("wifi", 100);
@@ -113,7 +120,7 @@ ConfigNVS netLogConfig("netLog", 200);
 
 // CommandSerial port - used to monitor activity remotely and send commands
 #include "CommandSerial.h"
-CommandSerial commandSerial;
+CommandSerial commandSerial(fileManager);
 
 // Serial console - for configuration
 #include "SerialConsole.h"
@@ -125,7 +132,7 @@ NetLog netLog(Serial, mqttManager, commandSerial);
 
 // REST API System
 #include "RestAPISystem.h"
-RestAPISystem restAPISystem(wifiManager, mqttManager, 
+RestAPISystem restAPISystem(wifiManager, mqttManager,
             otaUpdate, netLog, fileManager,
             systemType, systemVersion);
 
@@ -181,7 +188,7 @@ void setup()
 {
     // Logging
     Serial.begin(115200);
-    Log.begin(LOG_LEVEL_TRACE, &Serial);
+    Log.begin(LOG_LEVEL_TRACE, &netLog);
 
     // Message
     Log.notice("%s %s (built %s %s)\n", systemType, systemVersion, buildDate, buildTime);
@@ -189,11 +196,11 @@ void setup()
     // Status Led
     wifiStatusLed.setup(hwConfig, "wifiLed");
 
-    // WiFi Config
-    wifiConfig.setup();
-
     // File system
     fileManager.setup(hwConfig);
+
+    // WiFi Config
+    wifiConfig.setup();
 
     // MQTT Config
     mqttConfig.setup();
@@ -207,11 +214,11 @@ void setup()
     // WiFi Manager
     wifiManager.setup(hwConfig, &wifiConfig, systemType, &wifiStatusLed);
 
-    // Robot config
-    robotConfig.setup();
-
     // Firmware update
     otaUpdate.setup(hwConfig, systemType, systemVersion);
+
+    // Robot config
+    robotConfig.setup();
 
     // Add API endpoints
     restAPISystem.setup(restAPIEndpoints);
@@ -219,6 +226,7 @@ void setup()
 
     // Web server
     webServer.setup(hwConfig);
+    webServer.addStaticResources(__webAutogenResources, __webAutogenResourcesCount);
     webServer.addEndpoints(restAPIEndpoints);
 
     // MQTT
@@ -286,7 +294,7 @@ void loop()
     debugLoopTimer.blockEnd(3);
 
     // Service NetLog
-    netLog.service();
+    netLog.service(serialConsole.getXonXoff());
 
     // Service the robot controller
     debugLoopTimer.blockStart(4);

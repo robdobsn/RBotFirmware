@@ -8,13 +8,13 @@
 
 // Callback function for any endpoint
 typedef std::function<void(String &reqStr, String &respStr)> RestAPIFunction;
-typedef std::function<void(uint8_t *pData, size_t len, size_t index, size_t total)> RestAPIFnBody;
-typedef std::function<void(String filename, size_t contentLen, size_t index, uint8_t *data, size_t len, bool final)> RestAPIFnUpload;
+typedef std::function<void(String &reqStr, uint8_t *pData, size_t len, size_t index, size_t total)> RestAPIFnBody;
+typedef std::function<void(String &reqStr, String& filename, size_t contentLen, size_t index, uint8_t *data, size_t len, bool finalBlock)> RestAPIFnUpload;
 
 // Definition of an endpoint
 class RestAPIEndpointDef
 {
-  public:
+public:
     enum EndpointType
     {
         ENDPOINT_NONE = 0,
@@ -75,17 +75,17 @@ class RestAPIEndpointDef
             _callback(req, resp);
     }
 
-    void callbackBody(uint8_t *pData, size_t len, size_t index, size_t total)
+    void callbackBody(String&req, uint8_t *pData, size_t len, size_t index, size_t total)
     {
         if (_callbackBody)
-            _callbackBody(pData, len, index, total);
+            _callbackBody(req, pData, len, index, total);
     }
 
-    void callbackUpload(String &filename, size_t contentLen, size_t index,
-                         uint8_t *data, size_t len, bool final)
+    void callbackUpload(String&req, String &filename, size_t contentLen, size_t index,
+                         uint8_t *data, size_t len, bool finalBlock)
     {
         if (_callbackUpload)
-            _callbackUpload(filename, contentLen, index, data, len, final);
+            _callbackUpload(req, filename, contentLen, index, data, len, finalBlock);
     }
 
 };
@@ -93,7 +93,7 @@ class RestAPIEndpointDef
 // Collection of endpoints
 class RestAPIEndpoints
 {
-  public:
+public:
     // Max endpoints we can accommodate
     static const int MAX_WEB_SERVER_ENDPOINTS = 50;
 
@@ -102,31 +102,13 @@ class RestAPIEndpoints
         _numEndpoints = 0;
     }
 
-    ~RestAPIEndpoints()
-    {
-        // Clean-up
-        for (int i = 0; i < _numEndpoints; i++)
-        {
-            delete _pEndpoints[i];
-        }
-        _numEndpoints = 0;
-    }
+    ~RestAPIEndpoints();
 
     // Get number of endpoints
-    int getNumEndpoints()
-    {
-        return _numEndpoints;
-    }
+    int getNumEndpoints();
 
     // Get nth endpoint
-    RestAPIEndpointDef *getNthEndpoint(int n)
-    {
-        if ((n >= 0) && (n < _numEndpoints))
-        {
-            return _pEndpoints[n];
-        }
-        return NULL;
-    }
+    RestAPIEndpointDef *getNthEndpoint(int n);
 
     // Add an endpoint
     void addEndpoint(const char *pEndpointStr, RestAPIEndpointDef::EndpointType endpointType,
@@ -138,232 +120,37 @@ class RestAPIEndpoints
                      bool pNoCache = true,
                      const char *pExtraHeaders = NULL,
                      RestAPIFnBody callbackBody = NULL,
-                     RestAPIFnUpload callbackUpload = NULL)
-    {
-        // Check for overflow
-        if (_numEndpoints >= MAX_WEB_SERVER_ENDPOINTS)
-        {
-            return;
-        }
-
-        // Create new command definition and add
-        RestAPIEndpointDef *pNewEndpointDef =
-            new RestAPIEndpointDef(pEndpointStr, endpointType,
-                                   endpointMethod, callback,
-                                   pDescription,
-                                   pContentType, pContentEncoding,
-                                   pNoCache, pExtraHeaders,
-                                   callbackBody, callbackUpload);
-        _pEndpoints[_numEndpoints] = pNewEndpointDef;
-        _numEndpoints++;
-    }
+                     RestAPIFnUpload callbackUpload = NULL);
 
     // Get the endpoint definition corresponding to a requested endpoint
-    RestAPIEndpointDef *getEndpoint(const char *pEndpointStr)
-    {
-        // Look for the command in the registered callbacks
-        for (int endpointIdx = 0; endpointIdx < _numEndpoints; endpointIdx++)
-        {
-            RestAPIEndpointDef *pEndpoint = _pEndpoints[endpointIdx];
-            if (strcasecmp(pEndpoint->_endpointStr.c_str(), pEndpointStr) == 0)
-            {
-                return pEndpoint;
-            }
-        }
-        return NULL;
-    }
+    RestAPIEndpointDef *getEndpoint(const char *pEndpointStr);
 
     // Handle an API request
-    void handleApiRequest(const char *requestStr, String &retStr)
-    {
-        // Get the command
-        static char *emptyStr = (char *)"";
-        String requestEndpoint = getNthArgStr(requestStr, 0);
-        requestEndpoint.toUpperCase();
-        char *argStart = strstr(requestStr, "/");
-        retStr = "";
-
-        if (argStart == NULL)
-        {
-            argStart = emptyStr;
-        }
-        else
-        {
-            argStart++;
-        }
-        // Check against valid commands
-        int numEndpoints = getNumEndpoints();
-        Log.verbose("RestAPIEndpoints: reqStr %s requestEndpoint %s, num endpoints %d\n", 
-                    requestStr, requestEndpoint.c_str(), numEndpoints);
-        for (int i = 0; i < numEndpoints; i++)
-        {
-            RestAPIEndpointDef* pEndpoint = getNthEndpoint(i);
-            if (!pEndpoint)
-            {
-                continue;
-            }
-            if (pEndpoint->_endpointType != RestAPIEndpointDef::ENDPOINT_CALLBACK)
-            {
-                continue;
-            }
-            if (requestEndpoint.equalsIgnoreCase(pEndpoint->_endpointStr))
-            {
-                String reqStr(requestStr);
-                pEndpoint->callback(reqStr, retStr);
-            }
-        }
-    }
+    void handleApiRequest(const char *requestStr, String &retStr);
 
     // Form a string from a char buffer with a fixed length
-    static void formStringFromCharBuf(String &outStr, const char *pStr, int len)
-    {
-        outStr = "";
-        outStr.reserve(len + 1);
-        for (int i = 0; i < len; i++)
-        {
-            outStr.concat(*pStr);
-            pStr++;
-        }
-    }
+    static void formStringFromCharBuf(String &outStr, const char *pStr, int len);
 
     // Remove first argument from string
-    static String removeFirstArgStr(const char *argStr)
-    {
-        // Get location of / (excluding first char if needed)
-        String oStr = argStr;
-        oStr = unencodeHTTPChars(oStr);
-        int idxSlash = oStr.indexOf('/', 1);
-        if (idxSlash == -1)
-            return String("");
-        return oStr.substring(idxSlash+1);
-    }
+    static String removeFirstArgStr(const char *argStr);
 
     // Get Nth argument from a string
-    static String getNthArgStr(const char *argStr, int argIdx)
-    {
-        int argLen = 0;
-        String oStr;
-        const char *pStr = getArgPtrAndLen(argStr, *argStr == '/' ? argIdx + 1 : argIdx, argLen);
-
-        if (pStr)
-        {
-            formStringFromCharBuf(oStr, pStr, argLen);
-        }
-        oStr = unencodeHTTPChars(oStr);
-        return oStr;
-    }
+    static String getNthArgStr(const char *argStr, int argIdx);
 
     // Get position and length of nth arg
-    static const char *getArgPtrAndLen(const char *argStr, int argIdx, int &argLen)
-    {
-        int curArgIdx = 0;
-        const char *pCh = argStr;
-        const char *pArg = argStr;
-
-        while (true)
-        {
-            if ((*pCh == '/') || (*pCh == '\0'))
-            {
-                if (curArgIdx == argIdx)
-                {
-                    argLen = pCh - pArg;
-                    return pArg;
-                }
-                if (*pCh == '\0')
-                {
-                    return NULL;
-                }
-                pArg = pCh + 1;
-                curArgIdx++;
-            }
-            pCh++;
-        }
-        return NULL;
-    }
+    static const char *getArgPtrAndLen(const char *argStr, int argIdx, int &argLen);
 
     // Num args from an argStr
-    static int getNumArgs(const char *argStr)
-    {
-        int numArgs = 0;
-        int numChSinceSep = 0;
-        const char *pCh = argStr;
-
-        // Count args
-        while (*pCh)
-        {
-            if (*pCh == '/')
-            {
-                numArgs++;
-                numChSinceSep = 0;
-            }
-            pCh++;
-            numChSinceSep++;
-        }
-        if (numChSinceSep > 0)
-        {
-            return numArgs + 1;
-        }
-        return numArgs;
-    }
+    static int getNumArgs(const char *argStr);
 
     // Convert encoded URL
-    static String unencodeHTTPChars(String &inStr)
-    {
-        inStr.replace("+", " ");
-        inStr.replace("%20", " ");
-        inStr.replace("%21", "!");
-        inStr.replace("%22", "\"");
-        inStr.replace("%23", "#");
-        inStr.replace("%24", "$");
-        inStr.replace("%25", "%");
-        inStr.replace("%26", "&");
-        inStr.replace("%27", "^");
-        inStr.replace("%28", "(");
-        inStr.replace("%29", ")");
-        inStr.replace("%2A", "*");
-        inStr.replace("%2B", "+");
-        inStr.replace("%2C", ",");
-        inStr.replace("%2D", "-");
-        inStr.replace("%2E", ".");
-        inStr.replace("%2F", "/");
-        inStr.replace("%3A", ":");
-        inStr.replace("%3B", ";");
-        inStr.replace("%3C", "<");
-        inStr.replace("%3D", "=");
-        inStr.replace("%3E", ">");
-        inStr.replace("%3F", "?");
-        inStr.replace("%5B", "[");
-        inStr.replace("%5C", "\\");
-        inStr.replace("%5D", "]");
-        inStr.replace("%5E", "^");
-        inStr.replace("%5F", "_");
-        inStr.replace("%60", "`");
-        inStr.replace("%7B", "{");
-        inStr.replace("%7C", "|");
-        inStr.replace("%7D", "}");
-        inStr.replace("%7E", "~");
-        return inStr;
-    }
+    static String unencodeHTTPChars(String &inStr);
 
-    static const char *getEndpointTypeStr(RestAPIEndpointDef::EndpointType endpointType)
-    {
-        if (endpointType == RestAPIEndpointDef::ENDPOINT_CALLBACK)
-            return "Callback";
-        return "Unknown";
-    }
+    static const char *getEndpointTypeStr(RestAPIEndpointDef::EndpointType endpointType);
 
-    static const char *getEndpointMethodStr(RestAPIEndpointDef::EndpointMethod endpointMethod)
-    {
-        if (endpointMethod == RestAPIEndpointDef::ENDPOINT_POST)
-            return "POST";
-        if (endpointMethod == RestAPIEndpointDef::ENDPOINT_PUT)
-            return "PUT";
-        if (endpointMethod == RestAPIEndpointDef::ENDPOINT_DELETE)
-            return "DELETE";
-        return "GET";
-    }
+    static const char *getEndpointMethodStr(RestAPIEndpointDef::EndpointMethod endpointMethod);
 
-  private:
+private:
     // Endpoint list
     RestAPIEndpointDef *_pEndpoints[MAX_WEB_SERVER_ENDPOINTS];
     int _numEndpoints;

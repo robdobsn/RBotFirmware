@@ -1,6 +1,6 @@
 
 #include "CommandInterface.h"
-#include "ConfigNVS.h"
+#include "ConfigBase.h"
 #include "RobotController.h"
 #include "WorkflowManager.h"
 #include "RestAPISystem.h"

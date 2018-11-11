@@ -69,13 +69,13 @@ private:
     // Receive buffer
     uint8_t _rxBuffer[MINIHDLC_MAX_FRAME_LENGTH + 1];
 
-  private:
+private:
     uint16_t crcUpdateCCITT(unsigned short fcs, unsigned char value);
     void sendChar(uint8_t ch);
     void sendCharWithStuffing(uint8_t ch);
     void sendEscaped(uint8_t ch);
 
-  public:
+public:
     // Constructor for HDLC
     // If bitwise HDLC then the first parameter will receive bits not bytes 
     MiniHDLC(MiniHDLCPutChFnType putChFn, MiniHDLCFrameRxFnType frameRxFn,

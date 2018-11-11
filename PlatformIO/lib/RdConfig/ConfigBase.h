@@ -3,18 +3,22 @@
 
 #pragma once
 
-#include <RdJson.h>
+#include "RdJson.h"
 
 class ConfigBase
 {
-  protected:
+protected:
     // Data is stored in a single string as JSON
     String _dataStrJSON;
 
-  public:
+    // Max length of config data
+    int _configMaxDataLen;
+
+public:
     ConfigBase()
     {
         setConfigData("");
+        _configMaxDataLen = 0;
     }
 
     ConfigBase(const char* configStr)
@@ -45,6 +49,12 @@ class ConfigBase
             _dataStrJSON = "{}";
         else
             _dataStrJSON = configJSONStr;
+    }
+
+    // Get max length
+    int getMaxLen()
+    {
+        return _configMaxDataLen;
     }
 
     virtual String getString(const char *dataPath, const char *defaultValue)
