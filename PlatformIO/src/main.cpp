@@ -102,10 +102,6 @@ static const char *hwConfigJSON = {
 // Config for hardware
 ConfigBase hwConfig(hwConfigJSON);
 
-#include "RobotController.h"
-#include "WorkflowManager.h"
-#include "RobotTypes.h"
-
 // Config for robot control
 ConfigFile robotConfig(fileManager, "SPIFFS", "/robot.json", 50000);
 
@@ -146,27 +142,20 @@ RestAPISystem restAPISystem(wifiManager, mqttManager,
 #endif
 
 // Robot controller
+#include "RobotMotion/RobotController.h"
 RobotController _robotController;
 
-// Workflow manager
-WorkflowManager _workflowManager;
-
-// Command extender
-#include "CommandExtender.h"
-CommandExtender _commandExtender(fileManager);
-
 // Command interface
-#include "CommandInterface.h"
-CommandInterface _commandInterface(hwConfig,
+#include "WorkManager/WorkManager.h"
+WorkManager _workManager(hwConfig,
                 robotConfig, 
                 _robotController,
-                _workflowManager,
                 restAPISystem,
-                _commandExtender);
+                fileManager);
 
 // REST API Robot
 #include "RestAPIRobot.h"
-RestAPIRobot restAPIRobot(_commandInterface, fileManager);
+RestAPIRobot restAPIRobot(_workManager, fileManager);
 
 // Debug loop used to time main loop
 #include "DebugLoopTimer.h"
@@ -235,9 +224,6 @@ void setup()
     // Network logging
     netLog.setup(&netLogConfig, wifiManager.getHostname().c_str());
 
-    // Command extender
-    _commandExtender.setup(&_commandInterface);
-
     // Add debug blocks
     debugLoopTimer.blockAdd(0, "Web");
     debugLoopTimer.blockAdd(1, "Serial");
@@ -247,10 +233,10 @@ void setup()
     debugLoopTimer.blockAdd(5, "CMD");
 
     // Reconfigure the robot and other settings
-    _commandInterface.reconfigure();
+    _workManager.reconfigure();
 
     // Handle statup commands
-    _commandInterface.handleStartupCommands();
+    _workManager.handleStartupCommands();
 }
 
 // Loop
@@ -303,6 +289,6 @@ void loop()
 
     // Service the command interface (which pumps the workflow queue)
     debugLoopTimer.blockStart(5);
-    _commandInterface.service();
+    _workManager.service();
     debugLoopTimer.blockEnd(5);
 }

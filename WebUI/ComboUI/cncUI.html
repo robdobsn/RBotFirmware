@@ -57,7 +57,7 @@
             const gcodeSendBox = document.getElementById("gcodeSendBox");
             gcodeSendBox.addEventListener('keypress', keyPressInGCodeBox, false);
             // Get robotTypes (and then settings
-            callAjax("/getRobotTypes", robotTypesCallback);
+            callAjax("/getRobotConfigurations", robotTypesCallback);
             // Status update timer
             window.pageState.statusUpdateTimer = setTimeout(statusUpdate, 1000);
             // Request file list to display
@@ -317,7 +317,7 @@
             else
             {
                 window.pageState.settings["robotType"] = selType.text;
-                callAjax("/getRobotTypeConfig/" + selType.text, gotRobotTypeConfig);
+                callAjax("/getRobotConfiguration/" + selType.text, gotRobotTypeConfig);
             }
         }
 
