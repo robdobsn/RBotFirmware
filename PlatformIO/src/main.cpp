@@ -54,6 +54,10 @@ const char* buildTime = __TIME__;
 #include "StatusIndicator.h"
 StatusIndicator wifiStatusLed;
 
+// LED Strip
+#include "LedStrip.h"
+LedStrip ledStrip;
+
 // Config
 #include "ConfigNVS.h"
 #include "ConfigFile.h"
@@ -96,6 +100,7 @@ static const char *hwConfigJSON = {
     "\"commandSerial\":{\"portNum\":-1,\"baudRate\":115200},"
     "\"fileManager\":{\"spiffsEnabled\":1,\"spiffsFormatIfCorrupt\",1},"
     "\"wifiLed\":{\"hwPin\":\"\",\"onLevel\":1,\"onMs\":200,\"shortOffMs\":200,\"longOffMs\":750},"
+    "\"ledStrip\":{\"ledPin\":\"4\",\"sensorPin\":\"34\"},"
     "\"defaultRobotType\":\"SandTableScara\""
     "}"};
 
@@ -113,6 +118,9 @@ ConfigNVS mqttConfig("mqtt", 200);
 
 // Config for network logging
 ConfigNVS netLogConfig("netLog", 200);
+
+// Config for LED strip
+ConfigNVS ledStripConfig("ledStrip", 100);
 
 // CommandSerial port - used to monitor activity remotely and send commands
 #include "CommandSerial.h"
@@ -140,6 +148,7 @@ RobotController _robotController;
 #include "WorkManager/WorkManager.h"
 WorkManager _workManager(hwConfig,
                 robotConfig, 
+                ledStripConfig, 
                 _robotController,
                 restAPISystem,
                 fileManager);
@@ -182,6 +191,9 @@ void setup()
     // WiFi Config
     wifiConfig.setup();
 
+    // LED Strip
+    ledStripConfig.setup();
+
     // MQTT Config
     mqttConfig.setup();
 
@@ -193,6 +205,9 @@ void setup()
 
     // WiFi Manager
     wifiManager.setup(hwConfig, &wifiConfig, systemType, &wifiStatusLed);
+
+    // Led Strip
+    ledStrip.setup(hwConfig, "ledStrip", &ledStripConfig);
 
     // Firmware update
     otaUpdate.setup(hwConfig, systemType, systemVersion);
@@ -251,6 +266,9 @@ void loop()
 
     // Service the status LED
     wifiStatusLed.service();
+
+    // Service the LED Strip
+    ledStrip.service();
 
     // Service the system API (restart)
     restAPISystem.service();

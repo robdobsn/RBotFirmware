@@ -19,6 +19,7 @@ class WorkManager
 private:
     ConfigBase& _systemConfig;
     ConfigBase& _robotConfig;
+    ConfigBase& _ledStripConfig;
     RobotController& _robotController;
     WorkItemQueue _workItemQueue;
     RestAPISystem& _restAPISystem;
@@ -31,11 +32,13 @@ private:
 public:
     WorkManager(ConfigBase& mainConfig,
                 ConfigBase &robotConfig, 
+                ConfigBase &ledStripConfig, 
                 RobotController &robotController,
                 RestAPISystem &restAPISystem,
                 FileManager& fileManager) :
                 _systemConfig(mainConfig),
                 _robotConfig(robotConfig),
+                _ledStripConfig(ledStripConfig),
                 _robotController(robotController),
                 _restAPISystem(restAPISystem),
                 _fileManager(fileManager)
@@ -54,6 +57,7 @@ public:
     // Configuration of the robot
     void getRobotConfig(String& respStr);
     bool setRobotConfig(const uint8_t* pData, int len);
+    bool setLedStripConfig(const uint8_t* pData, int len);
 
     // Apply configuration
     void reconfigure();

@@ -35,11 +35,25 @@ void RestAPIRobot::apiPostSettings(String &reqStr, String &respStr)
     Utils::setJsonBoolResult(respStr, true);      
 }
 
+void RestAPIRobot::apiSetLed(String &reqStr, String &respStr)
+{
+    Log.notice("RestAPIRobot: SetLed\n");
+    // Result
+    Utils::setJsonBoolResult(respStr, true);      
+}
+
 void RestAPIRobot::apiPostSettingsBody(String& reqStr, uint8_t *pData, size_t len, size_t index, size_t total)
 {
     Log.notice("RestAPIRobot: PostSettings len %d\n", len);
     // Store the settings
     _commandInterface.setRobotConfig(pData, len);
+}
+
+void RestAPIRobot::apiSetLedBody(String& reqStr, uint8_t *pData, size_t len, size_t index, size_t total)
+{
+    Log.notice("RestAPIRobot: SetLed len %d\n", len);
+    // Store the settings
+    _commandInterface.setLedStripConfig(pData, len);
 }
 
 void RestAPIRobot::apiExec(String &reqStr, String &respStr)
@@ -120,6 +134,20 @@ void RestAPIRobot::setup(RestAPIEndpoints &endpoints)
     endpoints.addEndpoint("status", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET,
                             std::bind(&RestAPIRobot::apiQueryStatus, this, std::placeholders::_1, std::placeholders::_2),
                             "Query status");
+                            
+    // Get LED Status
+    endpoints.addEndpoint("getled", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET,
+                            std::bind(&RestAPIRobot::apiQueryStatus, this, std::placeholders::_1, std::placeholders::_2),
+                            "Query LED Strip");
+                            
+    // Set LED Strip
+    endpoints.addEndpoint("setled", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_POST,
+                            std::bind(&RestAPIRobot::apiSetLed, this, std::placeholders::_1, std::placeholders::_2),
+                            "Set LED Strip Settings", "application/json", NULL, true, NULL, 
+                            std::bind(&RestAPIRobot::apiSetLedBody, this, 
+                            std::placeholders::_1, std::placeholders::_2, 
+                            std::placeholders::_3, std::placeholders::_4,
+                            std::placeholders::_5));
 };
 
 

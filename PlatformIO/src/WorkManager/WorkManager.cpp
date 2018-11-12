@@ -25,6 +25,10 @@ void WorkManager::queryStatus(String &respStr)
     if (innerJsonStr.length() > 0)
         innerJsonStr += ",";
     innerJsonStr += healthStrRobot;
+    String ledStrip = _ledStripConfig.getConfigData();
+    if (innerJsonStr.length() > 0)
+        innerJsonStr += ",";
+    innerJsonStr += ledStrip.substring(1, ledStrip.length() - 1);
     // System information
     respStr = "{" + innerJsonStr + "}";
 }
@@ -42,6 +46,19 @@ bool WorkManager::queueIsEmpty()
 void WorkManager::getRobotConfig(String &respStr)
 {
     respStr = _robotConfig.getConfigData();
+}
+
+bool WorkManager::setLedStripConfig(const uint8_t* pData, int len) {
+    char tmpBuf[len + 1];
+    memcpy(tmpBuf, pData, len);
+    tmpBuf[len] = 0;
+    // Make sure string is terminated
+    _ledStripConfig.setConfigData(tmpBuf);
+    _ledStripConfig.writeConfig();
+
+    Log.trace("Wrote LED Strip config: %s\n", _ledStripConfig.getConfigData());
+
+    return true;
 }
 
 bool WorkManager::setRobotConfig(const uint8_t *pData, int len)
