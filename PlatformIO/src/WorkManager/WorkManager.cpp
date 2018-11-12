@@ -58,7 +58,7 @@ bool WorkManager::setLedStripConfig(const uint8_t* pData, int len) {
     _ledStripConfig.setConfigData(tmpBuf);
     _ledStripConfig.writeConfig();
 
-    Log.trace("Wrote LED Strip config: %s\n", _ledStripConfig.getConfigData());
+    Log.trace("%sWrote LED Strip config: %s\n", MODULE_PREFIX, _ledStripConfig.getConfigData());
 
     return true;
 }
