@@ -7,6 +7,8 @@
 #include "RdJson.h"
 #include "WorkManager.h"
 
+static const char* MODULE_PREFIX = "EvaluatorSequences: ";
+
 void EvaluatorSequences::setConfig(const char* configStr)
 {
     // Store the config string
@@ -25,12 +27,12 @@ bool EvaluatorSequences::execWorkItem(WorkItem& workItem)
     bool isValid = false;
     String sequenceName = workItem.getString();
     String seqStr = RdJson::getString(sequenceName.c_str(), "{}", _jsonConfigStr.c_str(), isValid);
-    // Log.trace("EvaluatorSequences cmdStr %s seqStr %s\n", cmdStr, seqStr.c_str());
+    // Log.verbose("%scmdStr %s seqStr %s\n", MODULE_PREFIX, cmdStr, seqStr.c_str());
     if (isValid)
     {
         _numCmdsToProcess = 0;
         String cmdList = RdJson::getString("commands", "", seqStr.c_str(), isValid);
-        Log.trace("EvaluatorSequences cmdStr %s isValid %d seqStr %s cmdList %s\n", sequenceName.c_str(), isValid, seqStr.c_str(), cmdList.c_str());
+        Log.trace("%scmdStr %s isValid %d seqStr %s cmdList %s\n", MODULE_PREFIX, sequenceName.c_str(), isValid, seqStr.c_str(), cmdList.c_str());
         if (isValid)
         {
             _commandList = cmdList;
@@ -47,7 +49,7 @@ bool EvaluatorSequences::execWorkItem(WorkItem& workItem)
                     pStr++;
                 }
                 _numCmdsToProcess = numSeps + 1;
-                Log.trace("EvaluatorSequences cmdStr %s seqStr %s cmdList %s numCmds %d\n", sequenceName.c_str(), seqStr.c_str(), cmdList.c_str(), _numCmdsToProcess);
+                Log.trace("%scmdStr %s seqStr %s cmdList %s numCmds %d\n", MODULE_PREFIX, sequenceName.c_str(), seqStr.c_str(), cmdList.c_str(), _numCmdsToProcess);
             }
         }
     }
@@ -61,7 +63,7 @@ void EvaluatorSequences::service(WorkManager* pWorkManager)
     // if (millis() > _lastMillis + 10000)
     // {
     //     _lastMillis = millis();
-    //     Log.trace("EvaluatorSequences process cmdStr %s cmdIdx %d numToProc %d isEmpty %d\n", _commandList.c_str(), _curCmdIdx, _numCmdsToProcess,
+    //     Log.trace("%sprocess cmdStr %s cmdIdx %d numToProc %d isEmpty %d\n", MODULE_PREFIX, _commandList.c_str(), _curCmdIdx, _numCmdsToProcess,
     //                     pWorkManager->queueIsEmpty());
     // }
     // Check there is something left to do
@@ -73,7 +75,7 @@ void EvaluatorSequences::service(WorkManager* pWorkManager)
         return;
 
     // Process the next command
-    Log.trace("EvaluatorSequences ->cmdInterp cmdStr %s cmdIdx %d numToProc %d\n", _commandList.c_str(), _curCmdIdx, _numCmdsToProcess);
+    Log.verbose("%scmdInterp cmdStr %s cmdIdx %d numToProc %d\n", MODULE_PREFIX, _commandList.c_str(), _curCmdIdx, _numCmdsToProcess);
     String retStr;
     WorkItem workItem(_commandList);
     pWorkManager->addWorkItem(workItem, retStr, _curCmdIdx++);

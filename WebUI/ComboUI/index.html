@@ -36,7 +36,7 @@
             }
             else 
             {
-                if (settings.robotType === "SandTableScara")
+                if (settings.robotConfig && settings.robotConfig.robotType && settings.robotConfig.robotType === "SandTableScara")
                     window.location.replace("sandUI.html");
                 else
                     window.location.replace("cncUI.html");

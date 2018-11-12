@@ -4,6 +4,8 @@
 #include "EvaluatorPattern_Vars.h"
 #include "ArduinoLog.h"
 
+static const char* MODULE_PREFIX = "EvaluatorPattern_Vars: ";
+
 EvaluatorPattern_Vars::~EvaluatorPattern_Vars()
 {
     cleanUp();
@@ -100,7 +102,7 @@ int EvaluatorPattern_Vars::addVariable(const char* name, const double* pVal, uns
     if (!_pTeVars)
     {
         _numTeVars = 0;
-        Log.error("PatternVars failed to add variable\n");
+        Log.error("%sfailed to add variable\n", MODULE_PREFIX);
         return -1;
     }
     // Add the variable name
@@ -114,10 +116,10 @@ int EvaluatorPattern_Vars::addVariable(const char* name, const double* pVal, uns
     _pTeVarFlags[newVarIdx] = flags;
 
     // Show vars
-//		Log.trace("PatternVars NumVars = %d\n", _numTeVars);
+//		Log.trace("%sNumVars = %d\n", MODULE_PREFIX, _numTeVars);
     // for (int i = 0; i < _numTeVars; i++)
     // {
-    // 	Log.trace("PatternVars Var %d %s = %f flags %x context %ld\n", i, _pTeVars[i].name,
+    // 	Log.trace("%sVar %d %s = %f flags %x context %ld\n", MODULE_PREFIX, i, _pTeVars[i].name,
     //             *((double*)(_pTeVars[i].address)), _pTeVarFlags[i], _pTeVars[i].context);
     // }
     return newVarIdx;
@@ -144,7 +146,7 @@ int EvaluatorPattern_Vars::addAssignment(const char* inStr, String& expr)
             // Create the variable using this value
             unsigned int flags = TEVARS_FREE_VALUE_ADDR_REQD;
             varIdx = addVariable(varName.c_str(), pVal, flags);
-            Log.trace("PatternVars AddVar %s, expr %s, val %f, flags 0x%x, err %d, numVars %d\n",
+            Log.verbose("%sAddVar %s, expr %s, val %f, flags 0x%x, err %d, numVars %d\n", MODULE_PREFIX,
                 varName.c_str(), expr.c_str(), *pVal, flags, err, _numTeVars);
         }
 

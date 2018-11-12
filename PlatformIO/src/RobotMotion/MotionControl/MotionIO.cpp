@@ -8,6 +8,8 @@
 #include "EndStop.h"
 #include "Utils.h"
 
+static const char* MODULE_PREFIX = "MotionIO: ";
+
 MotionIO::MotionIO()
 {
     // Clear axis specific values
@@ -68,7 +70,7 @@ bool MotionIO::configureAxis(const char *axisJSON, int axisIdx)
         String dirnPinName = RdJson::getString("dirnPin", "-1", axisJSON);
         int stepPin = ConfigPinMap::getPinFromName(stepPinName.c_str());
         int dirnPin = ConfigPinMap::getPinFromName(dirnPinName.c_str());
-        Log.notice("Axis%d (step pin %d, dirn pin %d)\n", axisIdx, stepPin, dirnPin);
+        Log.notice("%sAxis%d (step pin %d, dirn pin %d)\n", MODULE_PREFIX, axisIdx, stepPin, dirnPin);
         if ((stepPin != -1 && dirnPin != -1))
             _stepperMotors[axisIdx] = new StepperMotor(RobotConsts::MOTOR_TYPE_DRIVER, stepPin, dirnPin);
     }
@@ -77,7 +79,7 @@ bool MotionIO::configureAxis(const char *axisJSON, int axisIdx)
         // Create a servo motor for the axis
         String servoPinName = RdJson::getString("servoPin", "-1", axisJSON);
         long servoPin = ConfigPinMap::getPinFromName(servoPinName.c_str());
-        Log.notice("Axis%d (servo pin %ld)\n", axisIdx, servoPin);
+        Log.notice("%sAxis%d (servo pin %ld)\n", MODULE_PREFIX, axisIdx, servoPin);
         if ((servoPin != -1))
         {
             _servoMotors[axisIdx] = new Servo();
@@ -109,7 +111,7 @@ bool MotionIO::configureMotors(const char *robotConfigJSON)
     _stepEnLev = RdJson::getLong("stepEnLev", 1, robotConfigJSON);
     _stepEnablePin = ConfigPinMap::getPinFromName(stepEnablePinName.c_str());
     _stepDisableSecs = float(RdJson::getDouble("stepDisableSecs", stepDisableSecs_default, robotConfigJSON));
-    Log.notice("MotorIO (pin %d, actLvl %d, disableAfter %Fs)\n", _stepEnablePin, _stepEnLev, _stepDisableSecs);
+    Log.notice("%s(pin %d, actLvl %d, disableAfter %Fs)\n", MODULE_PREFIX, _stepEnablePin, _stepEnLev, _stepDisableSecs);
 
     // Enable pin - initially disable
     pinMode(_stepEnablePin, OUTPUT);
@@ -229,7 +231,7 @@ void MotionIO::enableMotors(bool en, bool timeout)
         if (_stepEnablePin != -1)
         {
             if (!_motorsAreEnabled)
-                Log.notice("MotionIO: motors enabled, disable after idle %Fs\n", _stepDisableSecs);
+                Log.notice("%smotors enabled, disable after idle %Fs\n", MODULE_PREFIX, _stepDisableSecs);
             digitalWrite(_stepEnablePin, _stepEnLev);
         }
         _motorsAreEnabled = true;
@@ -241,7 +243,7 @@ void MotionIO::enableMotors(bool en, bool timeout)
         if (_stepEnablePin != -1)
         {
             if (_motorsAreEnabled)
-                Log.notice("MotionIO: motors disabled by %s\n", timeout ? "timeout" : "command");
+                Log.notice("%smotors disabled by %s\n", MODULE_PREFIX, timeout ? "timeout" : "command");
             digitalWrite(_stepEnablePin, !_stepEnLev);
         }
         _motorsAreEnabled = false;
