@@ -149,7 +149,6 @@ public:
 
     void moveTo(RobotCommandArgs& args)
     {
-        Log.trace("RobotController moveTo\n");
         if (!_pRobot)
             return;
         _pRobot->moveTo(args);

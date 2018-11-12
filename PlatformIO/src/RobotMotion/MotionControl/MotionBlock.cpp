@@ -5,6 +5,8 @@
 #include "AxisValues.h"
 #include "../AxesParams.h"
 
+static const char* MODULE_PREFIX = "MotionBlock: ";
+
 #define DEBUG_STEP_TTICKS_TO_MMPS(val, axesParams, axisIdx) (((val * 1.0) * MotionBlock::TICKS_PER_SEC) / MotionBlock::TTICKS_VALUE) * axesParams.getStepDistMM(axisIdx)
 
 void MotionBlock::setNumberedCommandIndex(int cmdIdx)
@@ -63,7 +65,7 @@ void MotionBlock::forceInBounds(float &val, float lowBound, float highBound)
 
 void MotionBlock::setEndStopsToCheck(AxisMinMaxBools &endStopCheck)
 {
-    Log.trace("Set test endstops %x\n", endStopCheck.uintVal());
+    Log.verbose("%sSet test endstops %x\n", MODULE_PREFIX, endStopCheck.uintVal());
     _endStopsToCheck = endStopCheck;
 }
 

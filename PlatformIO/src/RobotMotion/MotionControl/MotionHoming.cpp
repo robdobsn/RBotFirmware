@@ -4,6 +4,8 @@
 #include "MotionHelper.h"
 #include "MotionHoming.h"
 
+static const char* MODULE_PREFIX = "MotionHoming: ";
+
 void MotionHoming::configure(const char *configJSON)
 {
     // Sequence of commands for homing
@@ -16,7 +18,7 @@ void MotionHoming::configure(const char *configJSON)
     // No homing currently
     _homingStrPos = 0;
     _commandInProgress = false;
-    Log.notice("MotionHoming: config sequence %s\n", _homingSequence.c_str());
+    Log.notice("%sconfig sequence %s\n", MODULE_PREFIX, _homingSequence.c_str());
 }
 
 bool MotionHoming::isHomingInProgress()
@@ -32,7 +34,7 @@ void MotionHoming::homingStart(RobotCommandArgs &args)
     _commandInProgress = false;
     _isHomedOk = false;
     _homeReqMillis = millis();
-    Log.notice("MotionHoming: start, seq = %s\n", _homingSequence.c_str());
+    Log.notice("%sstart, seq = %s\n", MODULE_PREFIX, _homingSequence.c_str());
 }
 
 void MotionHoming::service(AxesParams &axesParams)
@@ -54,7 +56,7 @@ void MotionHoming::service(AxesParams &axesParams)
     // Check for timeout
     if (millis() > _homeReqMillis + (_maxHomingSecs * 1000))
     {
-        Log.warning("MotionHoming: Timed Out\n");
+        Log.warning("%sTimed Out\n", MODULE_PREFIX);
         _isHomedOk = false;
         _homingInProgress = false;
         _commandInProgress = false;
@@ -82,8 +84,7 @@ bool MotionHoming::extractAndExecNextCmd(AxesParams &axesParams)
         case '$': // All done ok
         {
             // Check if homing commands complete
-            Log.DBG_HOMING_LVL("MotionHoming: command in prog %d, len %d", _homingStrPos, _homingSequence.length());
-            Log.notice("MotionHoming: Homed ok\n");
+            Log.notice("%sHomed ok\n", MODULE_PREFIX);
             _isHomedOk = true;
             _homingInProgress = false;
             _commandInProgress = false;
@@ -102,7 +103,7 @@ bool MotionHoming::extractAndExecNextCmd(AxesParams &axesParams)
             // Command complete so exec
             _commandInProgress = true;
             moveTo(_curCommand);
-            Log.DBG_HOMING_LVL("MotionHoming: exec command %s\n", _curCommand.toJSON().c_str());
+            Log.DBG_HOMING_LVL("%sexec command %s\n", MODULE_PREFIX, _curCommand.toJSON().c_str());
             _homingStrPos++;
             return true;
         }
@@ -179,7 +180,7 @@ bool MotionHoming::extractAndExecNextCmd(AxesParams &axesParams)
                     }
                 }
                 // Endstops
-                // Log.notice("MotionHoming: testingCh %c, speed %F, dist %F\n", _homingSequence.charAt(_homingStrPos),
+                // Log.notice("%stestingCh %c, speed %F, dist %F\n", MODULE_PREFIX, _homingSequence.charAt(_homingStrPos),
                 //             _curCommand.getFeedrate(), _curCommand.getValMM(axisIdx));
                 int endStopIdx = 0;
                 bool checkActive = false;
@@ -195,20 +196,20 @@ bool MotionHoming::extractAndExecNextCmd(AxesParams &axesParams)
                 // Check axis should be homed
                 if (!_axesToHome.isValid(axisIdx))
                 {
-                    Log.DBG_HOMING_LVL("MotionHoming: Axis%d in sequence but not required to home\n", axisIdx);
+                    Log.DBG_HOMING_LVL("%sAxis%d in sequence but not required to home\n", MODULE_PREFIX, axisIdx);
                     continue;
                 }
                 // Check endStop
                 if (setEndstopTest)
                 {
-                    Log.DBG_HOMING_LVL("MotionHoming: Axis%d steps %d, rate %F, stop at endstop%d=%s\n", 
+                    Log.DBG_HOMING_LVL("%sAxis%d steps %d, rate %F, stop at endstop%d=%s\n", MODULE_PREFIX, 
                             axisIdx, distToMove, _curCommand.getFeedrate(),
                             endStopIdx, (checkActive ? "Hit" : "NotHit"));
                     _curCommand.setTestEndStop(axisIdx, endStopIdx, checkActive ? AxisMinMaxBools::END_STOP_HIT : AxisMinMaxBools::END_STOP_NOT_HIT);
                 }
                 else
                 {
-                    Log.DBG_HOMING_LVL("MotionHoming: Axis%d steps %d, rate %F, no enstop check\n", 
+                    Log.DBG_HOMING_LVL("%sAxis%d steps %d, rate %F, no enstop check\n", MODULE_PREFIX, 
                             axisIdx, distToMove, _curCommand.getFeedrate());
 
                 }
@@ -224,7 +225,7 @@ bool MotionHoming::extractAndExecNextCmd(AxesParams &axesParams)
                     setAtHomePos(axisIdx);
                     _homingStrPos++;
                 }
-                Log.notice("MotionHoming: Setting at home for axis %d\n", axisIdx);
+                Log.notice("%sSetting at home for axis %d\n", MODULE_PREFIX, axisIdx);
                 break;
             }
             }

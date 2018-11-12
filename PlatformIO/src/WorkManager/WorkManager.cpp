@@ -8,6 +8,8 @@
 #include "EvaluatorGCode.h"
 #include "RobotConfigurations.h"
 
+static const char* MODULE_PREFIX = "WorkManager: ";
+
 void WorkManager::queryStatus(String &respStr)
 {
     String innerJsonStr;
@@ -119,7 +121,7 @@ void WorkManager::processSingle(const char *pCmdStr, String &retStr)
                 retStr = okRslt;
         }
     }
-    Log.trace("WorkManager: procSingle rslt %s\n", retStr.c_str());
+    // Log.verbose("%sprocSingle rslt %s\n", MODULE_PREFIX, retStr.c_str());
 }
 
 void WorkManager::addWorkItem(WorkItem& workItem, String &retStr, int cmdIdx)
@@ -131,7 +133,7 @@ void WorkManager::addWorkItem(WorkItem& workItem, String &retStr, int cmdIdx)
     }
 
     // Handle multiple commands (semicolon delimited)
-    /*Log.trace("CmdInterp process %s\n", pCmdStr);*/
+    //Log.trace("%s addWorkItem %s\n", MODULE_PREFIX, pCmdStr);
     const int MAX_TEMP_CMD_STR_LEN = 1000;
     const char *pCurStr = workItem.getCString();
     const char *pCurStrEnd = pCurStr;
@@ -157,7 +159,7 @@ void WorkManager::addWorkItem(WorkItem& workItem, String &retStr, int cmdIdx)
             // process
             if (cmdIdx == -1 || cmdIdx == curCmdIdx)
             {
-                /*Log.trace("cmdProc single %d %s\n", stLen, pCurCmd);*/
+                //Log.trace("%ssingle %d %s\n", MODULE_PREFIX, stLen, pCurCmd);
                 processSingle(pCurCmd, retStr);
             }
             delete[] pCurCmd;
@@ -198,7 +200,7 @@ void WorkManager::service()
         bool rslt = _workItemQueue.get(workItem);
         if (rslt)
         {
-            Log.trace("WorkManager: getWorkflow rlst=%d (waiting %d), %s\n", rslt,
+            Log.verbose("%sgetWorkflow rlst=%d (waiting %d), %s\n", MODULE_PREFIX, rslt,
                       _workItemQueue.size(),
                       workItem.getString().c_str());
 
@@ -225,7 +227,7 @@ void WorkManager::reconfigure()
     String robotConfigStr = RdJson::getString("/robotConfig", "", configData.c_str());
     if (robotConfigStr.length() <= 0)
     {
-        Log.notice("WorkManager: No robotConfig found - defaulting\n");
+        Log.notice("%sNo robotConfig found - defaulting\n", MODULE_PREFIX);
         // See if there is a robotType specified in the config
         String robotType = RdJson::getString("/robotType", "", configData.c_str());
         if (robotType.length() <= 0)
@@ -243,20 +245,20 @@ void WorkManager::reconfigure()
     _workItemQueue.init(robotConfigStr.c_str(), "workItemQueue");
 
     // Configure the command interpreter
-    Log.notice("WorkManager: setting config\n");
+    Log.notice("%ssetting config\n", MODULE_PREFIX);
     String patternsStr = RdJson::getString("/patterns", "{}", _robotConfig.getConfigData());
     _evaluatorPatterns.setConfig(patternsStr.c_str());
-    Log.notice("WorkManager: patterns %s\n", patternsStr.c_str());
+    Log.notice("%spatterns %s\n", MODULE_PREFIX, patternsStr.c_str());
     String sequencesStr = RdJson::getString("/sequences", "{}", _robotConfig.getConfigData());
     _evaluatorSequences.setConfig(sequencesStr.c_str());
-    Log.notice("WorkManager: sequences %s\n", sequencesStr.c_str());
+    Log.notice("%ssequences %s\n", MODULE_PREFIX, sequencesStr.c_str());
 }
 
 void WorkManager::handleStartupCommands()
 {
     // Check for cmdsAtStart in the robot config
     String cmdsAtStart = RdJson::getString("/robotConfig/cmdsAtStart", "", _robotConfig.getConfigData());
-    Log.notice("WorkManager: cmdsAtStart <%s>\n", cmdsAtStart.c_str());
+    Log.notice("%scmdsAtStart <%s>\n", MODULE_PREFIX, cmdsAtStart.c_str());
     if (cmdsAtStart.length() > 0)
     {
         String retStr;
@@ -267,7 +269,7 @@ void WorkManager::handleStartupCommands()
     // Check for startup commands in the EEPROM config
     String runAtStart = RdJson::getString("startup", "", _robotConfig.getConfigData());
     RdJson::unescapeString(runAtStart);
-    Log.notice("WorkManager: EEPROM commands <%s>\n", runAtStart.c_str());
+    Log.notice("%sEEPROM commands <%s>\n", MODULE_PREFIX, runAtStart.c_str());
     if (runAtStart.length() > 0)
     {
         String retStr;

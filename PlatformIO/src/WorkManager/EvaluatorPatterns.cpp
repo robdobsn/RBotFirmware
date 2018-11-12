@@ -4,6 +4,8 @@
 #include "EvaluatorPatterns.h"
 #include "WorkManager.h"
 
+static const char* MODULE_PREFIX = "EvaluatorPatterns: ";
+
 EvaluatorPatterns::~EvaluatorPatterns()
 {
     cleanUp();
@@ -58,7 +60,7 @@ void EvaluatorPatterns::addExpression(const char* exprStr, bool isInitialValue)
             int err = 0;
             te_variable* vars = _patternVars.getVars();
             te_expr* compiledExpr = te_compile(outExpr.c_str(), vars, _patternVars.getNumVars(), &err);
-            // Log.trace("PatternEval compile %s hex %02x%02x%02x%02x%02x%02x result %ld err %d\n", outExpr.c_str(),
+            // Log.verbose("%scompile %s hex %02x%02x%02x%02x%02x%02x result %ld err %d\n", MODULE_PREFIX, outExpr.c_str(),
             //             outExpr.c_str()[0], outExpr.c_str()[1], outExpr.c_str()[2],
             //             outExpr.c_str()[3], outExpr.c_str()[4], outExpr.c_str()[5],
             //             compiledExpr, err);
@@ -71,7 +73,7 @@ void EvaluatorPatterns::addExpression(const char* exprStr, bool isInitialValue)
                 varIdxAndCompExpr._varIdx = varIdx;
                 varIdxAndCompExpr._isInitialValue = isInitialValue;
                 _varIdxAndCompiledExprs.push_back(varIdxAndCompExpr);
-                Log.trace("PatternEval addLoop addedCompiledExpr (Count=%d)\n", _varIdxAndCompiledExprs.size());
+                Log.verbose("%addLoop addedCompiledExpr (Count=%d)\n", MODULE_PREFIX, _varIdxAndCompiledExprs.size());
             }
         }
 
@@ -94,7 +96,7 @@ void EvaluatorPatterns::cleanUp()
 
 void EvaluatorPatterns::evalExpressions(bool procInitialValues, bool procLoopValues)
 {
-    Log.trace("PatternEval numExprs %d", _varIdxAndCompiledExprs.size());
+    // Log.verbose("%snumExprs %d\n", MODULE_PREFIX, _varIdxAndCompiledExprs.size());
     // Go through all the expressions and evaluate
     for (unsigned int i = 0; i < _varIdxAndCompiledExprs.size(); i++)
     {
@@ -107,7 +109,7 @@ void EvaluatorPatterns::evalExpressions(bool procInitialValues, bool procLoopVal
         // Compute value of expression
         double val = te_eval(_varIdxAndCompiledExprs[i]._pCompExpr);
         _patternVars.setValByIdx(varIdx, val);
-        // Log.trace("EVAL %d: %s varIdx %d exprRslt %f isInitialValue=%d\n",
+        // Log.verbose("%sexpr %d: %s varIdx %d exprRslt %f isInitialValue=%d\n", MODULE_PREFIX,
         //                     i, _patternVars.getVariableName(varIdx).c_str(), varIdx, val, isInitialValue);
     }
 }
@@ -160,13 +162,13 @@ void EvaluatorPatterns::service(WorkManager* pWorkManager)
     bool isValid = getPoint(pt);
     if (!isValid)
     {
-        Log.notice("PatternEval stopped X and Y must be specified\n");
+        Log.notice("%sstopped X and Y must be specified\n", MODULE_PREFIX);
         _isRunning = false;
         return;
     }
     char cmdStr[100];
     sprintf(cmdStr, "G0 X%F Y%F", pt._pt[0], pt._pt[1]);
-    Log.trace("PatternEval ->cmdInterp %s\n", cmdStr);
+    // Log.verbose("%scmdInterp %s\n", MODULE_PREFIX, cmdStr);
     String retStr;
     WorkItem workItem(cmdStr);
     pWorkManager->addWorkItem(workItem, retStr);
@@ -176,13 +178,13 @@ void EvaluatorPatterns::service(WorkManager* pWorkManager)
     isValid = getStopVar(stopReqd);
     if (!isValid)
     {
-        Log.notice("PatternEval stopped STOP variable not specified\n");
+        Log.notice("%sstopped STOP variable not specified\n", MODULE_PREFIX);
         _isRunning = false;
         return;
     }
     if (stopReqd)
     {
-        Log.notice("PatternEval stopped STOP = TRUE\n");
+        Log.notice("%sPatternEval stopped STOP = TRUE\n", MODULE_PREFIX);
         _isRunning = false;
         return;
     }
@@ -195,9 +197,11 @@ bool EvaluatorPatterns::execWorkItem(WorkItem& workItem)
     bool isValid = false;
     String patternName = workItem.getString();
     String patternJson = RdJson::getString(patternName.c_str(), "{}", _jsonConfigStr.c_str(), isValid);
-    Log.trace("PatternEval::procCmd cmdStr %s seqStr %s\n", patternName.c_str(), patternJson.c_str());
     if (isValid)
     {
+        // This is a valid pattern
+        Log.verbose("%sprocCmd cmdStr %s seqStr %s\n", MODULE_PREFIX, patternName.c_str(), patternJson.c_str());
+
         // Remove existing pattern
         cleanUp();
 
@@ -205,9 +209,9 @@ bool EvaluatorPatterns::execWorkItem(WorkItem& workItem)
         _curPattern = patternName;
         String setupExprs = RdJson::getString("setup", "", patternJson.c_str());
         String loopExprs = RdJson::getString("loop", "", patternJson.c_str());
-        Log.trace("PatternEval patternName %s setup %s\n",
+        Log.trace("%spatternName %s setup %s\n", MODULE_PREFIX,
                         _curPattern.c_str(), setupExprs.c_str());
-        Log.trace("PatternEval patternName %s loop %s\n",
+        Log.trace("%spatternName %s loop %s\n", MODULE_PREFIX,
                         _curPattern.c_str(), loopExprs.c_str());
 
         // Add to the pattern evaluator expressions

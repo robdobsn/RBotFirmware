@@ -7,6 +7,8 @@
 #include "Utils.h"
 #include "AxisValues.h"
 
+static const char* MODULE_PREFIX = "MotionHelper: ";
+
 MotionHelper::MotionHelper() : _motionActuator(_motionIO, &_motionPipeline),
                                _motionHoming(this)
 {
@@ -50,7 +52,7 @@ void MotionHelper::configure(const char *robotConfigJSON)
     // Pipeline length and block size
     int pipelineLen = int(RdJson::getLong("pipelineLen", pipelineLen_default, robotConfigJSON));
     _blockDistanceMM = float(RdJson::getDouble("blockDistanceMM", blockDistanceMM_default, robotConfigJSON));
-    Log.notice("MotionHelper configMotionPipeline len %d, _blockDistanceMM %F (0=no-max)\n",
+    Log.notice("%sconfigMotionPipeline len %d, _blockDistanceMM %F (0=no-max)\n", MODULE_PREFIX,
                pipelineLen, _blockDistanceMM);
     _motionPipeline.init(pipelineLen);
 
