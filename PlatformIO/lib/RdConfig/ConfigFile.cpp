@@ -27,8 +27,7 @@ bool ConfigFile::setup()
     // Get config string
     String configData = _fileManager.getFileContents(_fileSystem.c_str(), _filename, _configMaxDataLen);
     setConfigData(configData.c_str());
-    Log.trace("%sConfig %s read len: %d\n", MODULE_PREFIX, _filename.c_str(), configData.length());
-    Log.trace("%sConfig %s read: %s\n", MODULE_PREFIX, _filename.c_str(), configData.c_str());
+    Log.trace("%sConfig %s read len(%d) %s\n", MODULE_PREFIX, _filename.c_str(), configData.length(), configData.c_str());
 
     // Ok
     return true;

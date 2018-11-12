@@ -17,6 +17,7 @@ class RobotConfigurations
         for (int configIdx = 0; configIdx < _numRobotConfigurations; configIdx++)
         {
             String robotType = RdJson::getString("robotType", "", _robotConfigs[configIdx]);
+            Log.notice("Testing %s against %s ... %s\n", robotType.c_str(), robotTypeName, _robotConfigs[configIdx]);
             if (robotType.equals(robotTypeName))
             {
                 Log.notice("RobotConfigurations: Config for %s found\n", robotTypeName);

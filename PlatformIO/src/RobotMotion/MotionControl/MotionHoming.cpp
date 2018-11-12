@@ -126,8 +126,20 @@ bool MotionHoming::extractAndExecNextCmd(AxesParams &axesParams)
             {
             case '+':
             case '-':
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9':
             {
-                _homingStrPos++;
+                // Move beyond sign if present
+                if (!isDigit(ch2))
+                    _homingStrPos++;
                 _curCommand.setMoveType(RobotMoveTypeArg_Relative);
                 // Handle direction
                 int32_t distToMove = axesParams.getAxisMaxSteps(axisIdx);

@@ -30,14 +30,16 @@ bool ConfigNVS::setup()
     // Setup base class
     ConfigBase::setup();
 
+    // Debug
+    Log.trace("%sConfig %s ...\n", MODULE_PREFIX, _configNamespace.c_str());
+
     // Open preferences read-only
     _preferences.begin(_configNamespace.c_str(), true);
 
     // Get config string
     String configData = _preferences.getString("JSON", "{}");
     setConfigData(configData.c_str());
-    Log.trace("%sConfig %s read len: %d\n", MODULE_PREFIX, _configNamespace.c_str(), configData.length());
-    Log.trace("%sConfig %s read: %s\n", MODULE_PREFIX, _configNamespace.c_str(), configData.c_str());
+    Log.trace("%sConfig %s read: len(%d) %s\n", MODULE_PREFIX, _configNamespace.c_str(), configData.length(), configData.c_str());
 
     // Close prefs
     _preferences.end();

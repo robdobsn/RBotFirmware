@@ -52,9 +52,11 @@ bool IRAM_ATTR MotionActuator::handleStepEnd()
 // motion accumulators to facilitate the block's execution
 void IRAM_ATTR MotionActuator::setupNewBlock(MotionBlock *pBlock)
 {
-    // Step counts and direction for each axis
+    // Setup step counts, direction and endstops for each axis
+    _endStopCheckNum = 0;
     for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
     {
+        // Total steps
         int32_t stepsTotal = pBlock->_stepsTotalMaybeNeg[axisIdx];
         _stepsTotalAbs[axisIdx] = abs(stepsTotal);
         _curStepCount[axisIdx] = 0;
@@ -66,54 +68,52 @@ void IRAM_ATTR MotionActuator::setupNewBlock(MotionBlock *pBlock)
             digitalWrite(pAxisInfo->_pinDirection,
                             (stepsTotal >= 0) == pAxisInfo->_pinDirectionReversed);
         }
-        // Endstops
-        _endStopCheckNum = 0;
-        if (pBlock->_endStopsToCheck.any())
-        {
-            // Go through axes - check if the axis is moving in a direction which might result in hitting an active
-            // end-stop
-            for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
-            {
-                int pinToTest = -1;
-                bool valToTestFor = false;
-                // Anything to check for?
-                for (int minMaxIdx = 0; minMaxIdx < AxisMinMaxBools::VALS_PER_AXIS; minMaxIdx++)
-                {
-                    AxisMinMaxBools::AxisMinMaxEnum minMaxType = pBlock->_endStopsToCheck.get(axisIdx, minMaxIdx);
-                    bool checkMax = minMaxIdx == AxisMinMaxBools::MAX_VAL_IDX;
-                    bool checkMin = minMaxIdx == AxisMinMaxBools::MIN_VAL_IDX;
-                    if (AxisMinMaxBools::END_STOP_TOWARDS)
-                    {
-                        checkMax = checkMax && pBlock->_stepsTotalMaybeNeg[axisIdx] > 0;
-                        checkMin = checkMin && pBlock->_stepsTotalMaybeNeg[axisIdx] < 0;
-                    }
-                    // Check max
-                    if (checkMax)
-                    {
-                        pinToTest = _rawMotionHwInfo._axis[axisIdx]._pinEndStopMax;
-                        valToTestFor = _rawMotionHwInfo._axis[axisIdx]._pinEndStopMaxactLvl;
-                    }
-                    // Check min
-                    else if (checkMin)
-                    {
-                        pinToTest = _rawMotionHwInfo._axis[axisIdx]._pinEndStopMin;
-                        valToTestFor = _rawMotionHwInfo._axis[axisIdx]._pinEndStopMinactLvl;
-                    }
-                    // Check for inversion of value to test for
-                    if (minMaxType == AxisMinMaxBools::END_STOP_NOT_HIT)
-                        valToTestFor = !valToTestFor;
-                }
-                if (pinToTest != -1)
-                {
-                    _endStopChecks[_endStopCheckNum].pin = pinToTest;
-                    _endStopChecks[_endStopCheckNum].val = valToTestFor;
-                    _endStopCheckNum++;
-                }
-            }
-        }
 
         // Instrumentation
         INSTRUMENT_MOTION_ACTUATOR_STEP_DIRN
+
+        // Check if any endstops to setup
+        if (!pBlock->_endStopsToCheck.any())
+            continue;
+
+        // Check if the axis is moving in a direction which might result in hitting an active end-stop
+        for (int minMaxIdx = 0; minMaxIdx < AxisMinMaxBools::ENDSTOPS_PER_AXIS; minMaxIdx++)
+        {
+            int pinToTest = -1;
+            bool valToTestFor = false;
+
+            // See if anything to check for
+            AxisMinMaxBools::AxisMinMaxEnum minMaxType = pBlock->_endStopsToCheck.get(axisIdx, minMaxIdx);
+            if (minMaxType == AxisMinMaxBools::END_STOP_NONE)
+                continue;
+
+            // Check for towards - this is different from MAX or MIN because the axis will still move even if
+            // an endstop is hit if the movement is away from that endstop
+            if (minMaxType == AxisMinMaxBools::END_STOP_TOWARDS)
+            {
+                // Stop at max if we're heading towards max OR
+                // stop at min if we're heading towards min
+                if (!(((minMaxIdx == AxisMinMaxBools::MAX_VAL_IDX) && (stepsTotal > 0)) ||
+                        ((minMaxIdx == AxisMinMaxBools::MIN_VAL_IDX) && (stepsTotal < 0))))
+                    continue;
+            }
+            
+            // Pin for stop
+            pinToTest = (minMaxIdx == AxisMinMaxBools::MIN_VAL_IDX) ? 
+                                _rawMotionHwInfo._axis[axisIdx]._pinEndStopMin : 
+                                _rawMotionHwInfo._axis[axisIdx]._pinEndStopMax;
+
+            // Endstop test
+            valToTestFor = (minMaxType != AxisMinMaxBools::END_STOP_NOT_HIT) ? 
+                                _rawMotionHwInfo._axis[axisIdx]._pinEndStopMaxactLvl :
+                                !_rawMotionHwInfo._axis[axisIdx]._pinEndStopMaxactLvl;
+            if (pinToTest != -1)
+            {
+                _endStopChecks[_endStopCheckNum].pin = pinToTest;
+                _endStopChecks[_endStopCheckNum].val = valToTestFor;
+                _endStopCheckNum++;
+            }
+        }
     }
 
     // Accumulator reset

@@ -18,7 +18,8 @@ void RestAPIRobot::apiGetRobotConfigurations(String &reqStr, String &respStr)
 void RestAPIRobot::apiRobotConfiguration(String &reqStr, String &respStr)
 {
     Log.notice("RestAPIRobot: RobotConfiguration\n");
-    respStr = RobotConfigurations::getConfig(reqStr.c_str());
+    String robotName = RestAPIEndpoints::getNthArgStr(reqStr.c_str(), 1);
+    respStr = RobotConfigurations::getConfig(robotName.c_str());
 }
 
 void RestAPIRobot::apiGetSettings(String &reqStr, String &respStr)
@@ -77,7 +78,7 @@ void RestAPIRobot::setup(RestAPIEndpoints &endpoints)
                             "Get robot types");
 
     // Get robot type config
-    endpoints.addEndpoint("getRobotTypeConfig", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET,
+    endpoints.addEndpoint("getRobotConfiguration", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET,
                             std::bind(&RestAPIRobot::apiRobotConfiguration, this, std::placeholders::_1, std::placeholders::_2),
                             "Get config for a robot type");
 

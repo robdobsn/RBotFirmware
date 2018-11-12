@@ -229,7 +229,7 @@ void MotionIO::enableMotors(bool en, bool timeout)
         if (_stepEnablePin != -1)
         {
             if (!_motorsAreEnabled)
-                Log.notice("MotionIO: motors enabled, disable after time %F\n", _stepDisableSecs);
+                Log.notice("MotionIO: motors enabled, disable after idle %Fs\n", _stepDisableSecs);
             digitalWrite(_stepEnablePin, _stepEnLev);
         }
         _motorsAreEnabled = true;

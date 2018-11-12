@@ -311,7 +311,7 @@ class AxisMinMaxBools
     static constexpr int MIN_VAL_IDX = 0;
     static constexpr int MAX_VAL_IDX = 1;
 
-    static constexpr int VALS_PER_AXIS = RobotConsts::MAX_ENDSTOPS_PER_AXIS;
+    static constexpr int ENDSTOPS_PER_AXIS = RobotConsts::MAX_ENDSTOPS_PER_AXIS;
     static constexpr int BITS_PER_VAL = 2;
     static constexpr int BITS_PER_VAL_MASK = 0x03;
 
@@ -345,7 +345,7 @@ class AxisMinMaxBools
     }
     void set(int axisIdx, int endStopIdx, AxisMinMaxEnum checkType)
     {
-        int valIdx = (axisIdx * VALS_PER_AXIS + endStopIdx) * BITS_PER_VAL;
+        int valIdx = (axisIdx * ENDSTOPS_PER_AXIS + endStopIdx) * BITS_PER_VAL;
         uint32_t valMask = (BITS_PER_VAL_MASK << valIdx);
         _uint &= (valMask ^ 0xffffffff);
         _uint |= checkType << valIdx;
@@ -353,7 +353,7 @@ class AxisMinMaxBools
     }
     AxisMinMaxEnum IRAM_ATTR get(int axisIdx, int endStopIdx)
     {
-        int valIdx = (axisIdx * VALS_PER_AXIS + endStopIdx) * BITS_PER_VAL;
+        int valIdx = (axisIdx * ENDSTOPS_PER_AXIS + endStopIdx) * BITS_PER_VAL;
         return (AxisMinMaxEnum)((_uint >> valIdx) & BITS_PER_VAL_MASK);
     }
     void none()
@@ -365,9 +365,9 @@ class AxisMinMaxBools
         uint32_t newUint = 0;
         for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
         {
-            newUint = newUint << (VALS_PER_AXIS * BITS_PER_VAL);
-            // Check endstop appropriate to direction of motion
-            for (int valIdx = 0; valIdx < VALS_PER_AXIS; valIdx++)
+            newUint = newUint << (ENDSTOPS_PER_AXIS * BITS_PER_VAL);
+            // Stop when endstop is hit and axis is moving towards this endstop
+            for (int valIdx = 0; valIdx < ENDSTOPS_PER_AXIS; valIdx++)
                 newUint |= END_STOP_TOWARDS << (valIdx * BITS_PER_VAL);
         }
         _uint = newUint |= (1 << MIN_MAX_VALID_BIT);
