@@ -41,8 +41,7 @@
                 axisNames: ["X", "Y", "Z"],
                 endstopNames: ["min", "max"],
                 robotTypes: [],
-                settings:
-                {},
+                settings: {},
                 isConnected: false,
                 updateFilesIndex: 0,
                 curFileList: [],
@@ -56,7 +55,7 @@
             // Handle enter in the gcode box
             const gcodeSendBox = document.getElementById("gcodeSendBox");
             gcodeSendBox.addEventListener('keypress', keyPressInGCodeBox, false);
-            // Get robotTypes (and then settings
+            // Get robotTypes (and then settings)
             callAjax("/getRobotConfigurations", robotTypesCallback);
             // Status update timer
             window.pageState.statusUpdateTimer = setTimeout(statusUpdate, 1000);
@@ -139,43 +138,46 @@
         function showSettings()
         {
             // Settings
+            let robotTypeSelSet = false;
             const settings = window.pageState.settings;
             if (settings.hasOwnProperty("robotConfig"))
             {
                 document.getElementById("td_RobotConfig_input").readOnly = false;
                 document.getElementById("td_RobotConfig_input").value = JSON.stringify(settings["robotConfig"]);
+                // Robot type
+                if (settings.robotConfig.hasOwnProperty("robotType"))
+                {
+                    let robotType = settings.robotConfig["robotType"];
+                    for (let i = 0; i < window.pageState.robotTypes.length; i++)
+                    {
+                        if (window.pageState.robotTypes[i] === robotType)
+                        {
+                            document.getElementById('td_RobotTypeSelect').setAttribute("selected", robotType);
+                            robotTypeSelSet = true;
+                            break;
+                        }
+                    }
+                }
             }
+            if ((!robotTypeSelSet) && (window.pageState.robotTypes.length != 0))
+                document.getElementById('td_RobotTypeSelect').setAttribute("selected", window.pageState.robotTypes[0]);
+
+            // Name            
             if (settings.hasOwnProperty("name"))
             {
                 document.getElementById("td_RobotName_input").value = settings["name"];
             }
+
+            // Patterns
             if (settings.hasOwnProperty("patterns"))
             {
                 document.getElementById("td_Patterns_input").value = JSON.stringify(settings["patterns"]);
             }
+
+            // Seqs
             if (settings.hasOwnProperty("sequences"))
             {
                 document.getElementById("td_Sequences_input").value = JSON.stringify(settings["sequences"]);
-            }
-            if (settings.hasOwnProperty("robotType"))
-            {
-                let selSet = false;
-                for (let i = 0; i < window.pageState.robotTypes.length; i++)
-                {
-                    if (window.pageState.robotTypes[i] === settings["robotType"])
-                    {
-                        document.getElementById('td_RobotTypeSelect').setAttribute("selected", settings["robotType"]);
-                        selSet = true;
-                        break;
-                    }
-                }
-                if (!selSet)
-                    document.getElementById('td_RobotTypeSelect').setAttribute("selected", "Custom");
-            }
-            if (settings["robotType"] !== "Custom")
-            {
-                document.getElementById("td_RobotConfig_input").readOnly = true;
-                console.log("Set td_RobotConfig_input readonly set to " + document.getElementById("td_RobotConfig_input").readOnly);
             }
             // Chack strings valid
             checkJsonStrings(false);
@@ -187,10 +189,6 @@
             // Add the robot types to list
             const selec = document.getElementById('td_RobotTypeSelect');
             selec.innerHTML = "";
-            let opt = document.createElement('option');
-            opt.innerHTML = "Custom";
-            opt.value = "Custom";
-            selec.appendChild(opt);
             for (let i = 0; i < window.pageState.robotTypes.length; i++)
             {
                 opt = document.createElement('option');
@@ -202,8 +200,6 @@
             }
             // Show current settings
             showSettings();
-            // Get robotType info
-            robotTypeChange();
         }
 
         function checkJsonStrings(validateJsonToo)
@@ -257,29 +253,8 @@
             }
             // Robot name
             window.pageState.settings.name = document.getElementById('td_RobotName_input').value;
-            // Robot type and config
-            const selIdx = document.getElementById('td_RobotTypeSelect').selectedIndex;
-            const selType = document.getElementById('td_RobotTypeSelect').options[selIdx];
-            window.pageState.settings.robotType = selType.text;
             // Check valid and remove extraneous values
             const configStr = window.pageState.settings;
-            if (configStr.hasOwnProperty("robotType"))
-            {
-                if (configStr.robotType === "Custom")
-                {
-                    delete configStr.robotType;
-                }
-                else
-                {
-                    if (configStr.hasOwnProperty("robotConfig"))
-                        delete configStr.robotConfig;
-                }
-            }
-            else
-            {
-                if (configStr.hasOwnProperty("robotConfig"))
-                    delete configStr.robotConfig;
-            }
             // Check length of config string
             if (JSON.stringify(configStr).length > window.pageState.MAX_CONFIG_LEN)
             {
@@ -302,23 +277,12 @@
             alert("Failed to send new settings");
         }
 
-        function robotTypeChange()
+        function robotTypeClick()
         {
             const selIdx = document.getElementById('td_RobotTypeSelect').selectedIndex;
             const selType = document.getElementById('td_RobotTypeSelect').options[selIdx];
             console.log("Change robot type " + selType.text);
-            if (selType.text === "Custom")
-            {
-                // Custom type
-                console.log("Robot type custom - NOT getting new settings");
-                window.pageState.settings["robotType"] = selType.text;
-                showSettings()
-            }
-            else
-            {
-                window.pageState.settings["robotType"] = selType.text;
-                callAjax("/getRobotConfiguration/" + selType.text, gotRobotTypeConfig);
-            }
+            callAjax("/getRobotConfiguration/" + selType.text, gotRobotTypeConfig);
         }
 
         function gotRobotTypeConfig(resp)
@@ -843,7 +807,7 @@
 
         function uploadOnlyFile(file, i)
         {
-            uploadFileSpecUrl("/upload", 'progress-bar-file', file, i);
+            uploadFileSpecUrl("/uploadtofileman", 'progress-bar-file', file, i);
         }
 
         function uploadAndRunFile(file, i)
@@ -1175,7 +1139,8 @@
             border: none;
             width:100%;
             height:100%;
-            min-height: 3rem;
+            min-height: 8rem;
+            min-width: 20rem;
         }
         .textAreaOneLine {
             border: none;
@@ -1538,13 +1503,6 @@
                 <table class="uiTable uiTableGrid uiTableLeftAligned">
                     <tbody>
                     <tr>
-                        <th class="th-status">RobotType</th>
-                        <td id="td_RobotType" style="border-right: 1px;">
-                            <select id="td_RobotTypeSelect" onchange="robotTypeChange()">
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
                         <th class="th-status">RobotName</th>
                         <td id="td_RobotName" style="border-right: 1px;">
                             <textarea class="textAreaOneLine" id="td_RobotName_input"></textarea>
@@ -1566,6 +1524,15 @@
                         <th class="th-status">Sequences</th>
                         <td id="td_Sequences" style="border-right: 1px;">
                             <textarea class="textAreaInput" id="td_Sequences_input"></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th-status">Change RobotType</th>
+                        <td id="td_RobotType" style="border-right: 1px;">
+                            <select id="td_RobotTypeSelect">
+                            </select>
+                            <button id="td_RobotTypeClick" onclick="robotTypeClick()">Set</button>
+                            <div>Click Save to confirm changes</div>
                         </td>
                     </tr>
                     </tbody>
@@ -1670,33 +1637,6 @@
 
     <!-- Modal dialogs -->
     <input type="file" id="input_file_upload" class="hidden">
-    <!-- div class="modal fade" id="modal_upload" data-backdrop="static">
-        <div class="modal-dialog modal-md">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close hidden" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title"></h4>
-                </div>
-                <div class="modal-body">
-                    <p>Please wait while the following files are being uploaded:</p>
-                    <table id="table_upload_files">
-                        <thead>
-                            <tr>
-                                <th>Filename</th>
-                                <th>Size</th>
-                                <th>Progress</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-danger" id="btn_cancel_upload"><span class="glyphicon glyphicon-remove"></span> Cancel Upload(s)</button>
-                    <button type="button" class="btn btn-success hidden" data-dismiss="modal"><span class="glyphicon glyphicon-ok"></span> Close</button>
-                </div>
-            </div>
-        </div>
-    </div> -->
+
 </body>
 </html>

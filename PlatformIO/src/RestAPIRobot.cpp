@@ -8,7 +8,7 @@ static const char* MODULE_PREFIX = "RestAPIRobot: ";
 
 void RestAPIRobot::apiQueryStatus(String &reqStr, String &respStr)
 {
-    _commandInterface.queryStatus(respStr);
+    _workManager.queryStatus(respStr);
 }
 
 void RestAPIRobot::apiGetRobotConfigurations(String &reqStr, String &respStr)
@@ -27,7 +27,7 @@ void RestAPIRobot::apiRobotConfiguration(String &reqStr, String &respStr)
 void RestAPIRobot::apiGetSettings(String &reqStr, String &respStr)
 {
     Log.notice("%sGetSettings\n", MODULE_PREFIX);
-    _commandInterface.getRobotConfig(respStr);
+    _workManager.getRobotConfig(respStr);
 }
 
 void RestAPIRobot::apiPostSettings(String &reqStr, String &respStr)
@@ -41,35 +41,35 @@ void RestAPIRobot::apiPostSettingsBody(String& reqStr, uint8_t *pData, size_t le
 {
     Log.notice("%sPostSettings len %d\n", MODULE_PREFIX, len);
     // Store the settings
-    _commandInterface.setRobotConfig(pData, len);
+    _workManager.setRobotConfig(pData, len);
 }
 
 void RestAPIRobot::apiExec(String &reqStr, String &respStr)
 {
     Log.notice("%sExec\n", MODULE_PREFIX);
     WorkItem workItem(RestAPIEndpoints::removeFirstArgStr(reqStr.c_str()).c_str());
-    _commandInterface.addWorkItem(workItem, respStr);
+    _workManager.addWorkItem(workItem, respStr);
 }
 
 void RestAPIRobot::apiPattern(String &reqStr, String &respStr)
 {
     Log.notice("%sPattern\n", MODULE_PREFIX);
     WorkItem workItem(RestAPIEndpoints::removeFirstArgStr(reqStr.c_str()).c_str());
-    _commandInterface.addWorkItem(workItem, respStr);
+    _workManager.addWorkItem(workItem, respStr);
 }
 
 void RestAPIRobot::apiSequence(String &reqStr, String &respStr)
 {
     Log.notice("%sSequence\n", MODULE_PREFIX);
     WorkItem workItem(RestAPIEndpoints::removeFirstArgStr(reqStr.c_str()).c_str());
-    _commandInterface.addWorkItem(workItem, respStr);
+    _workManager.addWorkItem(workItem, respStr);
 }
 
 void RestAPIRobot::apiPlayFile(String &reqStr, String &respStr)
 {
-    Log.notice("%splayFile\n", MODULE_PREFIX);
+    Log.notice("%splayFile %s\n", MODULE_PREFIX, reqStr.c_str());
     WorkItem workItem(RestAPIEndpoints::removeFirstArgStr(reqStr.c_str()).c_str());
-    _commandInterface.addWorkItem(workItem, respStr);
+    _workManager.addWorkItem(workItem, respStr);
 }
 
 void RestAPIRobot::setup(RestAPIEndpoints &endpoints)
