@@ -137,11 +137,6 @@ void RestAPIRobot::setup(RestAPIEndpoints &endpoints)
                             std::bind(&RestAPIRobot::apiQueryStatus, this, std::placeholders::_1, std::placeholders::_2),
                             "Query status");
                             
-    // Get LED Status
-    endpoints.addEndpoint("getled", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET,
-                            std::bind(&RestAPIRobot::apiQueryStatus, this, std::placeholders::_1, std::placeholders::_2),
-                            "Query LED Strip");
-                            
     // Set LED Strip
     endpoints.addEndpoint("setled", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_POST,
                             std::bind(&RestAPIRobot::apiSetLed, this, std::placeholders::_1, std::placeholders::_2),
