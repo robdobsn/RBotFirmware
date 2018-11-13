@@ -11,12 +11,12 @@
 class RestAPIRobot
 {
   private:
-    WorkManager &_commandInterface;
+    WorkManager &_workManager;
     FileManager& _fileManager;
 
   public:
     RestAPIRobot(WorkManager &commandInterface, FileManager& fileManager) :
-                _commandInterface(commandInterface), _fileManager(fileManager)
+                _workManager(commandInterface), _fileManager(fileManager)
     {
     }
  

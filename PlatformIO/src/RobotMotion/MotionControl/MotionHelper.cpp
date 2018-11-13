@@ -98,6 +98,9 @@ void MotionHelper::configure(const char *robotConfigJSON)
 // Check if a command can be accepted into the motion pipeline
 bool MotionHelper::canAccept()
 {
+    // Check if homing in progress
+    if (_motionHoming.isHomingInProgress())
+        return false;
     // Check that the motion pipeline can accept new data
     return (_blocksToAddTotal == 0) && _motionPipeline.canAccept();
 }
