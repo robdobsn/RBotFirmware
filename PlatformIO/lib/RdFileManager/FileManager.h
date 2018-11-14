@@ -21,6 +21,9 @@ private:
     int _chunkedFileLen;
     bool _chunkOnLineEndings;
 
+    // Mutex controlling access to file system
+    SemaphoreHandle_t _fileSysMutex;
+
 public:
     FileManager()
     {
@@ -29,6 +32,7 @@ public:
         _chunkedFileLen = 0;
         _chunkedFilePos = 0;
         _chunkedFileInProgress = false;
+        _fileSysMutex = xSemaphoreCreateMutex();
     }
 
     // Configure

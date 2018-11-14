@@ -48,6 +48,9 @@ bool FileManager::getFilesJSON(const String& fileSystemStr, const String& folder
     //              String(234567) + ",\"folder\":\"" + String("hello") + "\",\"files\":[]}";;
     // return true;
 
+    // Take mutex
+    xSemaphoreTake(_fileSysMutex, portMAX_DELAY);
+
     // Only SPIFFS currently
     fs::FS fs = SPIFFS;
     size_t spiffsSize = SPIFFS.totalBytes();
@@ -57,11 +60,13 @@ bool FileManager::getFilesJSON(const String& fileSystemStr, const String& folder
     File base = fs.open(folderStr.c_str());
     if (!base)
     {
+        xSemaphoreGive(_fileSysMutex);
         respStr = "{\"rslt\":\"fail\",\"error\":\"nofolder\",\"files\":[]}";
         return false;
     }
     if (!base.isDirectory())
     {
+        xSemaphoreGive(_fileSysMutex);
         respStr = "{\"rslt\":\"fail\",\"error\":\"notfolder\",\"files\":[]}";
         return false;
     }
@@ -89,6 +94,7 @@ bool FileManager::getFilesJSON(const String& fileSystemStr, const String& folder
         file = base.openNextFile();
     }
     respStr += "]}";
+    xSemaphoreGive(_fileSysMutex);
     return true;
 }
 
@@ -98,15 +104,22 @@ String FileManager::getFileContents(const char* fileSystem, const String& filena
     if (strcmp(fileSystem, "SPIFFS") != 0)
         return "";
 
+    // Take mutex
+    xSemaphoreTake(_fileSysMutex, portMAX_DELAY);
+
     // Check file exists
     String rootFilename = (filename.startsWith("/") ? filename : ("/" + filename));
     if (!SPIFFS.exists(rootFilename))
+    {
+        xSemaphoreGive(_fileSysMutex);
         return "";
+    }
 
     // Open file
     File file = SPIFFS.open(filename, FILE_READ);
     if (!file)
     {
+        xSemaphoreGive(_fileSysMutex);
         Log.trace("%sfailed to open file to read %s\n", MODULE_PREFIX, filename.c_str());
         return "";
     }
@@ -115,6 +128,7 @@ String FileManager::getFileContents(const char* fileSystem, const String& filena
     uint8_t* pBuf = new uint8_t[maxLen+1];
     if (!pBuf)
     {
+        xSemaphoreGive(_fileSysMutex);
         Log.trace("%sfailed to allocate %d\n", MODULE_PREFIX, maxLen);
         return "";
     }
@@ -122,6 +136,7 @@ String FileManager::getFileContents(const char* fileSystem, const String& filena
     // Read
     size_t bytesRead = file.read(pBuf, maxLen);
     file.close();
+    xSemaphoreGive(_fileSysMutex);
     pBuf[bytesRead] = 0;
     String readData = (char*)pBuf;
     delete [] pBuf;
@@ -134,10 +149,14 @@ bool FileManager::setFileContents(const char* fileSystem, const String& filename
     if (strcmp(fileSystem, "SPIFFS") != 0)
         return false;
 
+    // Take mutex
+    xSemaphoreTake(_fileSysMutex, portMAX_DELAY);
+
     // Open file
     File file = SPIFFS.open(filename, FILE_WRITE);
     if (!file)
     {
+        xSemaphoreGive(_fileSysMutex);        
         Log.trace("%sfailed to open file to write %s\n", MODULE_PREFIX, filename.c_str());
         return "";
     }
@@ -145,6 +164,7 @@ bool FileManager::setFileContents(const char* fileSystem, const String& filename
     // Write
     size_t bytesWritten = file.write((uint8_t*)(fileContents.c_str()), fileContents.length());
     file.close();
+    xSemaphoreGive(_fileSysMutex);
     return bytesWritten == fileContents.length();
 }
 
@@ -161,10 +181,15 @@ void FileManager::uploadAPIBlockHandler(const char* fileSystem, const String& re
     {
         accessType = FILE_APPEND;
     }
+
+    // Take mutex
+    xSemaphoreTake(_fileSysMutex, portMAX_DELAY);
+
     // Write file block
     File file = SPIFFS.open("/__tmp__", accessType);
     if (!file)
     {
+        xSemaphoreGive(_fileSysMutex);        
         Log.trace("%sfailed to open __tmp__ file\n", MODULE_PREFIX);
         return;
     }
@@ -184,6 +209,7 @@ void FileManager::uploadAPIBlockHandler(const char* fileSystem, const String& re
             Log.trace("%sfailed rename __tmp__ to %s\n", MODULE_PREFIX, filename.c_str());
         }
     }
+    xSemaphoreGive(_fileSysMutex);
 }
 
 bool FileManager::deleteFile(const String& fileSystemStr, const String& filename)
@@ -193,11 +219,18 @@ bool FileManager::deleteFile(const String& fileSystemStr, const String& filename
     {
         return false;
     }
+    
+    // Take mutex
+    xSemaphoreTake(_fileSysMutex, portMAX_DELAY);
+
+    // Remove file
     if (!SPIFFS.remove("/" + filename))
     {
         Log.notice("%sfailed to remove file %s\n", MODULE_PREFIX, filename.c_str());
         return false; 
-    }               
+    }            
+
+    xSemaphoreGive(_fileSysMutex);   
     return true;
 }
 
@@ -209,20 +242,28 @@ bool FileManager::chunkedFileStart(const String& fileSystemStr, const String& fi
         return false;
     }
 
+    // Take mutex
+    xSemaphoreTake(_fileSysMutex, portMAX_DELAY);
+
     // Check file exists
     String rootFilename = (filename.startsWith("/") ? filename : ("/" + filename));
     if (!SPIFFS.exists(rootFilename))
+    {
+        xSemaphoreGive(_fileSysMutex);  
         return false;
+    }
 
     // Check file valid
     File file = SPIFFS.open(rootFilename, FILE_READ);
     if (!file)
     {
+        xSemaphoreGive(_fileSysMutex);  
         Log.trace("%schunked failed to open %s file\n", MODULE_PREFIX, rootFilename.c_str());
         return false;
     }
     _chunkedFileLen = file.size();
     file.close();
+    xSemaphoreGive(_fileSysMutex);  
     
     // Setup access
     _chunkedFilename = rootFilename;
@@ -245,15 +286,20 @@ uint8_t* FileManager::chunkFileNext(String& filename, int& fileLen, int& chunkPo
     fileLen = _chunkedFileLen;
     chunkPos = _chunkedFilePos;
 
+    // Take mutex
+    xSemaphoreTake(_fileSysMutex, portMAX_DELAY);
+
     // Open file and seek
     File file = SPIFFS.open("/" + _chunkedFilename, FILE_READ);
     if (!file)
     {
+        xSemaphoreGive(_fileSysMutex);  
         Log.trace("%schunkNext failed open %s\n", MODULE_PREFIX, _chunkedFilename.c_str());
         return NULL;
     }
     if ((_chunkedFilePos != 0) && (!file.seek(_chunkedFilePos)))
     {
+        xSemaphoreGive(_fileSysMutex);  
         Log.trace("%schunkNext failed seek in filename %s to %d\n", MODULE_PREFIX, 
                         _chunkedFilename.c_str(), _chunkedFilePos);
         file.close();
@@ -295,6 +341,6 @@ uint8_t* FileManager::chunkFileNext(String& filename, int& fileLen, int& chunkPo
 
     // Close
     file.close();
+    xSemaphoreGive(_fileSysMutex);  
     return _chunkedFileBuffer;
 }
-
