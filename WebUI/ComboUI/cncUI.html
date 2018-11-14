@@ -55,8 +55,9 @@
             // Handle enter in the gcode box
             const gcodeSendBox = document.getElementById("gcodeSendBox");
             gcodeSendBox.addEventListener('keypress', keyPressInGCodeBox, false);
-            // Get robotTypes (and then settings)
-            callAjax("/getRobotConfigurations", robotTypesCallback);
+            // Get settings
+            callAjax("/getsettings", settingsCallback);
+            callAjax("/getRobotTypes", robotTypesCallback);
             // Status update timer
             window.pageState.statusUpdateTimer = setTimeout(statusUpdate, 1000);
             // Request file list to display
@@ -131,8 +132,20 @@
         {
             // Store robot types
             window.pageState.robotTypes = JSON.parse(resp);
-            // Get settings
-            callAjax("/getsettings", settingsCallback);
+            // Add the robot types to list
+            const selec = document.getElementById('td_RobotTypeSelect');
+            selec.innerHTML = "";
+            for (let i = 0; i < window.pageState.robotTypes.length; i++)
+            {
+                opt = document.createElement('option');
+                opt.innerHTML = window.pageState.robotTypes[i];
+                opt.value = window.pageState.robotTypes[i];
+                selec.appendChild(opt);
+                if (window.pageState.settings.hasOwnProperty("robotConfig") && 
+                            window.pageState.settings.robotConfig.hasOwnProperty("robotType"))
+                    if (window.pageState.settings.robotConfig.robotType === opt.value)
+                        selec.value = opt.value;
+            }            
         }
 
         function showSettings()
@@ -186,18 +199,6 @@
         function settingsCallback(resp)
         {
             window.pageState.settings = JSON.parse(resp);
-            // Add the robot types to list
-            const selec = document.getElementById('td_RobotTypeSelect');
-            selec.innerHTML = "";
-            for (let i = 0; i < window.pageState.robotTypes.length; i++)
-            {
-                opt = document.createElement('option');
-                opt.innerHTML = window.pageState.robotTypes[i];
-                opt.value = window.pageState.robotTypes[i];
-                selec.appendChild(opt);
-                if (window.pageState.settings.robotType === opt.value)
-                    selec.value = opt.value;
-            }
             // Show current settings
             showSettings();
         }

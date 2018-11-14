@@ -43,7 +43,7 @@ bool WorkManager::queueIsEmpty()
 
 void WorkManager::getRobotConfig(String &respStr)
 {
-    respStr = _robotConfig.getConfigData();
+    respStr = _robotConfig.getConfigString();
 }
 
 bool WorkManager::setRobotConfig(const uint8_t *pData, int len)
@@ -59,9 +59,9 @@ bool WorkManager::setRobotConfig(const uint8_t *pData, int len)
     // Reconfigure the robot
     reconfigure();
     // Apply the config data
-    String patternsStr = RdJson::getString("/patterns", "{}", _robotConfig.getConfigData());
+    String patternsStr = RdJson::getString("/patterns", "{}", _robotConfig.getConfigCStrPtr());
     _evaluatorPatterns.setConfig(patternsStr.c_str());
-    String sequencesStr = RdJson::getString("/sequences", "{}", _robotConfig.getConfigData());
+    String sequencesStr = RdJson::getString("/sequences", "{}", _robotConfig.getConfigCStrPtr());
     _evaluatorSequences.setConfig(sequencesStr.c_str());
     // Store the configuration permanently
     _robotConfig.writeConfig();
@@ -90,6 +90,7 @@ void WorkManager::processSingle(const char *pCmdStr, String &retStr)
         _workItemQueue.clear();
         _evaluatorPatterns.stop();
         _evaluatorSequences.stop();
+        _evaluatorFiles.stop();
         retStr = okRslt;
     }
     else
@@ -168,7 +169,11 @@ bool WorkManager::execWorkItem(WorkItem& workItem)
     // See if it is a command sequencer
     handledOk = _evaluatorSequences.execWorkItem(workItem);
     if (handledOk)
-        return handledOk;    
+        return handledOk;
+    // See if it is a GCode file
+    handledOk = _evaluatorFiles.execWorkItem(workItem);
+    if (handledOk)
+        return handledOk;
     // Not handled
     return false;
 }
@@ -199,12 +204,13 @@ void WorkManager::service()
     // Service command extender (which pumps the state machines associated with extended commands)
     _evaluatorPatterns.service(this);
     _evaluatorSequences.service(this);
+    _evaluatorFiles.service(this);
 }
 
 void WorkManager::reconfigure()
 {
     // Get the config data
-    String configData = _robotConfig.getConfigData();
+    String configData = _robotConfig.getConfigString();
 
     // See if robotConfig is present
     String robotConfigStr = RdJson::getString("/robotConfig", "", configData.c_str());
@@ -215,7 +221,7 @@ void WorkManager::reconfigure()
         String robotType = RdJson::getString("/robotType", "", configData.c_str());
         if (robotType.length() <= 0)
             // If not see if there is a default robot type
-            robotType = RdJson::getString("/defaultRobotType", "", _systemConfig.getConfigData());
+            robotType = RdJson::getString("/defaultRobotType", "", _systemConfig.getConfigCStrPtr());
         if (robotType.length() <= 0)
             // Just use first type
             RobotConfigurations::getNthRobotTypeName(0, robotType);
@@ -229,10 +235,10 @@ void WorkManager::reconfigure()
 
     // Configure the command interpreter
     Log.notice("%ssetting config\n", MODULE_PREFIX);
-    String patternsStr = RdJson::getString("/patterns", "{}", _robotConfig.getConfigData());
+    String patternsStr = RdJson::getString("/patterns", "{}", _robotConfig.getConfigCStrPtr());
     _evaluatorPatterns.setConfig(patternsStr.c_str());
     Log.notice("%spatterns %s\n", MODULE_PREFIX, patternsStr.c_str());
-    String sequencesStr = RdJson::getString("/sequences", "{}", _robotConfig.getConfigData());
+    String sequencesStr = RdJson::getString("/sequences", "{}", _robotConfig.getConfigCStrPtr());
     _evaluatorSequences.setConfig(sequencesStr.c_str());
     Log.notice("%ssequences %s\n", MODULE_PREFIX, sequencesStr.c_str());
 }
@@ -240,7 +246,7 @@ void WorkManager::reconfigure()
 void WorkManager::handleStartupCommands()
 {
     // Check for cmdsAtStart in the robot config
-    String cmdsAtStart = RdJson::getString("/robotConfig/cmdsAtStart", "", _robotConfig.getConfigData());
+    String cmdsAtStart = RdJson::getString("/robotConfig/cmdsAtStart", "", _robotConfig.getConfigCStrPtr());
     Log.notice("%scmdsAtStart <%s>\n", MODULE_PREFIX, cmdsAtStart.c_str());
     if (cmdsAtStart.length() > 0)
     {
@@ -250,7 +256,7 @@ void WorkManager::handleStartupCommands()
     }
 
     // Check for startup commands in the EEPROM config
-    String runAtStart = RdJson::getString("startup", "", _robotConfig.getConfigData());
+    String runAtStart = RdJson::getString("startup", "", _robotConfig.getConfigCStrPtr());
     RdJson::unescapeString(runAtStart);
     Log.notice("%sEEPROM commands <%s>\n", MODULE_PREFIX, runAtStart.c_str());
     if (runAtStart.length() > 0)

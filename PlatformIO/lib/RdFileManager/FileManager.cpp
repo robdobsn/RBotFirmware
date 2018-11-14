@@ -13,7 +13,7 @@ void FileManager::setup(ConfigBase& config)
 {
     // Get config
     ConfigBase fsConfig(config.getString("fileManager", "").c_str());
-    Log.notice("%sconfig %s\n", MODULE_PREFIX, fsConfig.getConfigData());
+    Log.notice("%sconfig %s\n", MODULE_PREFIX, fsConfig.getConfigCStrPtr());
 
     // See if SPIFFS enabled
     _enableSPIFFS = fsConfig.getLong("spiffsEnabled", 0) != 0;
@@ -43,6 +43,10 @@ bool FileManager::getFilesJSON(const String& fileSystemStr, const String& folder
         respStr = "{\"rslt\":\"fail\",\"error\":\"unknownfs\",\"files\":[]}";
         return false;
     }
+
+    // respStr = "{\"rslt\":\"ok\",\"diskSize\":" + String(123456) + ",\"diskUsed\":" + 
+    //              String(234567) + ",\"folder\":\"" + String("hello") + "\",\"files\":[]}";;
+    // return true;
 
     // Only SPIFFS currently
     fs::FS fs = SPIFFS;
@@ -92,6 +96,11 @@ String FileManager::getFileContents(const char* fileSystem, const String& filena
 {
     // Only SPIFFS supported
     if (strcmp(fileSystem, "SPIFFS") != 0)
+        return "";
+
+    // Check file exists
+    String rootFilename = (filename.startsWith("/") ? filename : ("/" + filename));
+    if (!SPIFFS.exists(rootFilename))
         return "";
 
     // Open file
@@ -200,22 +209,27 @@ bool FileManager::chunkedFileStart(const String& fileSystemStr, const String& fi
         return false;
     }
 
+    // Check file exists
+    String rootFilename = (filename.startsWith("/") ? filename : ("/" + filename));
+    if (!SPIFFS.exists(rootFilename))
+        return false;
+
     // Check file valid
-    File file = SPIFFS.open("/" + filename, FILE_READ);
+    File file = SPIFFS.open(rootFilename, FILE_READ);
     if (!file)
     {
-        Log.trace("%schunked failed to open %s file\n", MODULE_PREFIX, filename.c_str());
+        Log.trace("%schunked failed to open %s file\n", MODULE_PREFIX, rootFilename.c_str());
         return false;
     }
     _chunkedFileLen = file.size();
     file.close();
     
     // Setup access
-    _chunkedFilename = filename;
+    _chunkedFilename = rootFilename;
     _chunkedFileInProgress = true;
     _chunkedFilePos = 0;
     _chunkOnLineEndings = readByLine;
-    Log.verbose("%schunkedFileStart filename %s size %d\n", MODULE_PREFIX, filename.c_str(), _chunkedFileLen);
+    Log.trace("%schunkedFileStart filename %s size %d\n", MODULE_PREFIX, rootFilename.c_str(), _chunkedFileLen);
     return true;
 }
 
@@ -246,16 +260,38 @@ uint8_t* FileManager::chunkFileNext(String& filename, int& fileLen, int& chunkPo
         return NULL;
     }
 
-    // Fill the buffer with file data
-    chunkLen = file.read(_chunkedFileBuffer, CHUNKED_BUF_MAXLEN);
+    // Handle data type
+    if (_chunkOnLineEndings)
+    {
+        // Read a line
+        chunkLen = file.readBytesUntil('\n', _chunkedFileBuffer, CHUNKED_BUF_MAXLEN-1);
+        if (chunkLen >= CHUNKED_BUF_MAXLEN)
+            chunkLen = CHUNKED_BUF_MAXLEN-1;
+        // Ensure line is terminated
+        if (chunkLen >= 0)
+        {
+            _chunkedFileBuffer[chunkLen] = 0;
+        }
+        // Skip past the end of line character
+        chunkLen++;
+    }
+    else
+    {
+        // Fill the buffer with file data
+        chunkLen = file.read(_chunkedFileBuffer, CHUNKED_BUF_MAXLEN);
+    }
 
     // Bump position and check if this was the final block
-    _chunkedFilePos = _chunkedFilePos + CHUNKED_BUF_MAXLEN;
-    if ((file.position() < _chunkedFilePos) || (chunkLen < CHUNKED_BUF_MAXLEN))
+    _chunkedFilePos = _chunkedFilePos + chunkLen;
+    if (_chunkedFileLen <= _chunkedFilePos)
     {
         finalChunk = true;
         _chunkedFileInProgress = false;
     }
+
+    Log.trace("%schunkNext filename %s chunklen %d filePos %d fileLen %d inprog %d final %d curpos %d\n", MODULE_PREFIX, 
+                    _chunkedFilename.c_str(), chunkLen, _chunkedFilePos, _chunkedFileLen, 
+                    _chunkedFileInProgress, finalChunk, file.position());
 
     // Close
     file.close();

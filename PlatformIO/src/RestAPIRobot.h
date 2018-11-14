@@ -21,7 +21,7 @@ class RestAPIRobot
     }
  
     void apiQueryStatus(String &reqStr, String &respStr);
-    void apiGetRobotConfigurations(String &reqStr, String &respStr);
+    void apiGetRobotTypes(String &reqStr, String &respStr);
     void apiRobotConfiguration(String &reqStr, String &respStr);
     void apiGetSettings(String &reqStr, String &respStr);
     void apiPostSettings(String &reqStr, String &respStr);

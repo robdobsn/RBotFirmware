@@ -7,6 +7,7 @@
 #include "WorkItemQueue.h"
 #include "EvaluatorPatterns.h"
 #include "EvaluatorSequences.h"
+#include "EvaluatorFiles.h"
 
 class ConfigBase;
 class RobotController;
@@ -27,6 +28,7 @@ private:
     // Evaluators
     EvaluatorPatterns _evaluatorPatterns;
     EvaluatorSequences _evaluatorSequences;
+    EvaluatorFiles _evaluatorFiles;
 
 public:
     WorkManager(ConfigBase& mainConfig,
@@ -38,7 +40,8 @@ public:
                 _robotConfig(robotConfig),
                 _robotController(robotController),
                 _restAPISystem(restAPISystem),
-                _fileManager(fileManager)
+                _fileManager(fileManager),
+                _evaluatorFiles(fileManager)
     {
     }
 

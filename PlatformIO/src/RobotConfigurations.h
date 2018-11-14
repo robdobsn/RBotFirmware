@@ -28,7 +28,7 @@ class RobotConfigurations
     }
 
     // Return list of robot types
-    static const void getRobotConfigurations(String &retStr)
+    static const void getRobotTypes(String &retStr)
     {
         retStr = "[";
         for (int configIdx = 0; configIdx < _numRobotConfigurations; configIdx++)

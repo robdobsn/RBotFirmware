@@ -9,7 +9,7 @@ void CommandSerial::setup(ConfigBase& config)
 {
     // Get config
     ConfigBase csConfig(config.getString("commandSerial", "").c_str());
-    Log.notice("%sconfig %s\n", MODULE_PREFIX, csConfig.getConfigData());
+    Log.notice("%sconfig %s\n", MODULE_PREFIX, csConfig.getConfigCStrPtr());
 
     // Get serial port
     _serialPortNum = csConfig.getLong("portNum", -1);

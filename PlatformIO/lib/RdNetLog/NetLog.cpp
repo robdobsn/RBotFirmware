@@ -129,7 +129,7 @@ void NetLog::setup(ConfigBase *pConfig, const char* systemName)
     if (!pConfig)
         return;
     if (_logToSerial && _serialPort == 0)
-        Serial.printf("NetLog: Setup from %s\n", pConfig->getConfigData());
+        Serial.printf("NetLog: Setup from %s\n", pConfig->getConfigCStrPtr());
     // Get the log level
     _loggingThreshold = pConfig->getLong("LogLevel", LOG_LEVEL_SILENT);
     // Get MQTT settings
