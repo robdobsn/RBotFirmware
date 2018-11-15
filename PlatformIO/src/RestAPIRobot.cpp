@@ -55,7 +55,7 @@ void RestAPIRobot::apiSetLedBody(String& reqStr, uint8_t *pData, size_t len, siz
 {
     Log.notice("%sRestAPIRobot: SetLed len %d\n", MODULE_PREFIX, len);
     // Store the settings
-    _commandInterface.setLedStripConfig(pData, len);
+    _workManager.setLedStripConfig(pData, len);
 }
 
 void RestAPIRobot::apiExec(String &reqStr, String &respStr)
