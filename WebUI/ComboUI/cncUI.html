@@ -47,7 +47,7 @@
                 curFileList: [],
                 fileDialogType: "filesystem",
                 uploadProgress: [],
-                latestFileInfo: null
+                latestfileListInfo: {}
             };
             // Handle the file send box listener
             const inputFileUpload = document.getElementById("input_file_upload");
@@ -356,7 +356,7 @@
 
         function reconnect(event)
         {
-            if (window.pageState.statusUpdateTimer)
+            if (typeof window.pageState.statusUpdateTimer !== 'undefined')
             {
                 clearTimeout(window.pageState.statusUpdateTimer);
                 window.pageState.statusUpdateTimer = setTimeout(statusUpdate, 100);
@@ -403,7 +403,7 @@
         {
             if (this.files.length > 0)
             {
-                if (window.pageState.fileDialogType == "filesystem")
+                if (window.pageState.fileDialogType === "filesystem")
                     startFileSystemUpload(this.files);
                 else
                     startGCodeStream(this.files[0])
@@ -437,7 +437,7 @@
 
         function keyPressInGCodeBox(event)
         {
-            if (event.keyCode === 13 || event.which === 13)
+            if ((event.keyCode === 13) || (event.which === 13))
             {
                 sendGcodeFromInput();
             }
@@ -697,7 +697,7 @@
             window.pageState.latestfileListInfo = fileListInfo;
 
             // Show info
-            if (fileListInfo.diskSize)
+            if (fileListInfo.hasOwnProperty("diskSize"))
             {
                 let fileSystemInfo = document.getElementById("file-system-info");
                 let fsInfoStr = "<b>Disk Size:</b> " + fileSizeSI(fileListInfo.diskSize) + ", <b>Free Bytes:</b> " + fileSizeSI(fileListInfo.diskSize - fileListInfo.diskUsed);
@@ -789,10 +789,10 @@
             firstFile = files[0]
             // Get disk size
             let sizeLeft = 0;            
-            if (window.pageState.latestfileListInfo)
+            if (window.pageState.hasOwnProperty("latestfileListInfo"))
             {
-                if ((window.pageState.latestfileListInfo.diskSize) && 
-                    (window.pageState.latestfileListInfo.diskUsed))
+                if ((window.pageState.latestfileListInfo.hasOwnProperty("diskSize")) && 
+                    (window.pageState.latestfileListInfo.hasOwnProperty("diskUsed")))
                     sizeLeft = window.pageState.latestfileListInfo.diskSize - window.pageState.latestfileListInfo.diskUsed;
 
             }
