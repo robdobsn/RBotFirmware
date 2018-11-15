@@ -11,10 +11,10 @@ void RestAPIRobot::apiQueryStatus(String &reqStr, String &respStr)
     _workManager.queryStatus(respStr);
 }
 
-void RestAPIRobot::apiGetRobotConfigurations(String &reqStr, String &respStr)
+void RestAPIRobot::apiGetRobotTypes(String &reqStr, String &respStr)
 {
-    Log.notice("%sGetRobotConfigurations\n", MODULE_PREFIX);
-    RobotConfigurations::getRobotConfigurations(respStr);
+    Log.notice("%sGetRobotTypes\n", MODULE_PREFIX);
+    RobotConfigurations::getRobotTypes(respStr);
 }
 
 void RestAPIRobot::apiRobotConfiguration(String &reqStr, String &respStr)
@@ -89,8 +89,8 @@ void RestAPIRobot::apiPlayFile(String &reqStr, String &respStr)
 void RestAPIRobot::setup(RestAPIEndpoints &endpoints)
 {
     // Get robot types
-    endpoints.addEndpoint("getRobotConfigurations", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET,
-                            std::bind(&RestAPIRobot::apiGetRobotConfigurations, this, std::placeholders::_1, std::placeholders::_2),
+    endpoints.addEndpoint("getRobotTypes", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET,
+                            std::bind(&RestAPIRobot::apiGetRobotTypes, this, std::placeholders::_1, std::placeholders::_2),
                             "Get robot types");
 
     // Get robot type config

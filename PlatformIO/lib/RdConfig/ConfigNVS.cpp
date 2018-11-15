@@ -51,30 +51,18 @@ bool ConfigNVS::setup()
 // Write configuration string
 bool ConfigNVS::writeConfig()
 {
-    const char *pConfigData = getConfigData();
-    String truncatedStr = "";
-
     // Get length of string
-    int dataStrLen = 0;
-    if (pConfigData != NULL)
-    {
-        dataStrLen = strlen(pConfigData);
-    }
-    if (dataStrLen >= _configMaxDataLen)
-    {
-        dataStrLen = _configMaxDataLen - 1;
-        truncatedStr = _dataStrJSON.substring(0, dataStrLen);
-        pConfigData = truncatedStr.c_str();
-    }
-    Log.trace("%sWriting %s config len: %d\n", MODULE_PREFIX, _configNamespace.c_str(), dataStrLen);
+    if (_dataStrJSON.length() >= _configMaxDataLen)
+        _dataStrJSON = _dataStrJSON.substring(0, _configMaxDataLen-1);
+    Log.trace("%sWriting %s config len: %d\n", MODULE_PREFIX, 
+                _configNamespace.c_str(), _dataStrJSON.length());
 
     // Open preferences writeable
     _preferences.begin(_configNamespace.c_str(), false);
 
     // Set config string
-    int numPut = _preferences.putString("JSON", pConfigData);
-
-    if (numPut != dataStrLen)
+    int numPut = _preferences.putString("JSON", _dataStrJSON.c_str());
+    if (numPut != _dataStrJSON.length())
     {
         Log.trace("%sFailed %s write - written = %d\n", MODULE_PREFIX, _configNamespace.c_str(), numPut);
     }

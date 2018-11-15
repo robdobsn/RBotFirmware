@@ -21,6 +21,9 @@ private:
     int _chunkedFileLen;
     bool _chunkOnLineEndings;
 
+    // Mutex controlling access to file system
+    SemaphoreHandle_t _fileSysMutex;
+
 public:
     FileManager()
     {
@@ -29,6 +32,7 @@ public:
         _chunkedFileLen = 0;
         _chunkedFilePos = 0;
         _chunkedFileInProgress = false;
+        _fileSysMutex = xSemaphoreCreateMutex();
     }
 
     // Configure
@@ -51,6 +55,9 @@ public:
     // Delete file on file system
     bool deleteFile(const String& fileSystemStr, const String& filename);
     
+    // Test file exists and get info
+    bool getFileInfo(const String& fileSystemStr, const String& filename, int& fileLength);
+
     // Start access to a file in chunks
     bool chunkedFileStart(const String& fileSystemStr, const String& filename, bool readByLine);
 

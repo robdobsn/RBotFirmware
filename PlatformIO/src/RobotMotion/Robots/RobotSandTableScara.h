@@ -144,12 +144,12 @@ private:
         bool maxValid = axesParams.getMaxVal(0, maxValForXAxis);
         bool posValid = thirdSideMM <= shoulderElbowMM + elbowHandMM;
         if (maxValid)
-          posValid = posValid && (thirdSideMM <= maxValForXAxis);
+            posValid = posValid && (thirdSideMM <= maxValForXAxis);
 
         // Calculate angle from North to the point (note in atan2 X and Y are flipped from normal as angles are clockwise)
         double delta1 = atan2(targetPt._pt[0], targetPt._pt[1]);
         if (delta1 < 0)
-          delta1 += M_PI * 2;
+            delta1 += M_PI * 2;
 
         // Calculate angle of triangle opposite elbow-hand side
         double delta2 = cosineRule(thirdSideMM, shoulderElbowMM, elbowHandMM);

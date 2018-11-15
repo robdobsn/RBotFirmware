@@ -3,21 +3,25 @@
 
 #pragma once
 
+#include "FileManager.h"
+
 class WorkManager;
 class WorkItem;
 
-class EvaluatorSequences
+class EvaluatorFiles
 {
 public:
-    EvaluatorSequences()
+    EvaluatorFiles(FileManager& fileManager) : _fileManager(fileManager)
     {
-        _curCmdIdx = 0;
-        _numCmdsToProcess = 0;
+        _inProgress = false;
     }
 
     // Config
     void setConfig(const char* configStr);
     const char* getConfig();
+
+    // Check valid
+    bool isValid(WorkItem& workItem);
 
     // Process WorkItem
     bool execWorkItem(WorkItem& workItem);
@@ -29,13 +33,10 @@ public:
     void stop();
     
 private:
-    // Full configuration JSON
-    String _jsonConfigStr;
+    // Filename in progress
+    bool _inProgress;
 
-    // List of commands to add to workflow - delimited string
-    String _commandList;
+    // File manager
+    FileManager& _fileManager;
 
-    // Number of commands in command list and current position in list
-    int _numCmdsToProcess;
-    int _curCmdIdx;
 };

@@ -31,15 +31,15 @@ public:
     }
 
     // Get config data string
-    virtual const char *getConfigData()
+    virtual const char *getConfigCStrPtr()
     {
         return _dataStrJSON.c_str();
     }
 
-    // Get pointer to config WString
-    virtual String* getConfigStrPtr()
+    // Get reference to config WString
+    virtual String& getConfigString()
     {
-        return &_dataStrJSON;
+        return _dataStrJSON;
     }
 
     // Set the configuration data directly
