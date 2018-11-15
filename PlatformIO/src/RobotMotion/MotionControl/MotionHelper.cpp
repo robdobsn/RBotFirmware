@@ -15,8 +15,6 @@ MotionHelper::MotionHelper() : _motionActuator(_motionIO, &_motionPipeline),
     // Init
     _isPaused = false;
     _moveRelative = false;
-    _xMaxMM = 0;
-    _yMaxMM = 0;
     _blockDistanceMM = 0;
     // Clear axis current location
     _curAxisPosition.clear();
@@ -74,10 +72,6 @@ void MotionHelper::configure(const char *robotConfigJSON)
             _motionIO.configureAxis(axisJSON.c_str(), axisIdx);
         }
     }
-
-    // Configure robot
-    _xMaxMM = float(RdJson::getDouble("xMaxMM", 0, robotConfigJSON));
-    _yMaxMM = float(RdJson::getDouble("yMaxMM", 0, robotConfigJSON));
 
     // Homing
     _motionHoming.configure(robotConfigJSON);

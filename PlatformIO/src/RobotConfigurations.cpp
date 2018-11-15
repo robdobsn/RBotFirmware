@@ -5,7 +5,7 @@
 
 const char *RobotConfigurations::_robotConfigs[] = {
 
-    "{\"robotType\":\"MugBot\",\"xMaxMM\":150,\"yMaxMM\":120,"
+    "{\"robotType\":\"MugBot\","
     "\"homingSeq\":\"B-x;B+r9X;B-1.0;B=h$\","
     "\"cmdsAtStart\":\"\","
     "\"stepEnablePin\":\"A2\",\"stepEnLev\":1,\"stepDisableSecs\":60.0,"
@@ -20,7 +20,7 @@ const char *RobotConfigurations::_robotConfigs[] = {
     "}",
 
     // static const char* ROBOT_CONFIG_STR_GEISTBOT =
-    //     "{\"robotType\":\"GeistBot\",\"xMaxMM\":400,\"yMaxMM\":400, "
+    //     "{\"robotType\":\"GeistBot\","
     //     " \"stepEnablePin\":\"A2\",\"stepEnLev\":1,\"stepDisableSecs\":1.0,"
     //     " \"maxHomingSecs\":120,\"homingLinOffsetDegs\":70,\"homingCentreOffsetMM\":4,"
     //     " \"homingRotCentreDegs\":3.7,\"cmdsAtStart\":\"G28;ModSpiral\", "
@@ -32,7 +32,7 @@ const char *RobotConfigurations::_robotConfigs[] = {
     //     " \"endStop0\": { \"sensePin\":\"A7\",\"actLvl\":0,\"inputType\":\"INPUT_PULLUP\"}},"
     //     "}";
 
-    "{\"robotType\":\"SandTableScara\",\"xMaxMM\":195,\"yMaxMM\":195, "
+    "{\"robotType\":\"SandTableScara\","
     "\"cmdsAtStart\":\"\","
     "\"homingSeq\":\"A-10000n;B10000;#;A+10000N;B-10000;#;A+500;B-500;#;B+10000n;#;B-10000N;#;B-1050;#;A=h;B=h;$\","
     // "\"homingSeq\":\"A-10000n;B10000;#;A=h;B=h;$\","
@@ -40,15 +40,15 @@ const char *RobotConfigurations::_robotConfigs[] = {
     "\"stepEnablePin\":\"4\",\"stepEnLev\":1,\"stepDisableSecs\":1,"
     "\"blockDistanceMM\":1,"
     "\"axis0\":{\"stepPin\":\"14\",\"dirnPin\":\"13\",\"maxSpeed\":75,\"maxAcc\":50,"
-    "\"stepsPerRot\":9600,\"unitsPerRot\":628.318,"
+    "\"stepsPerRot\":9600,\"unitsPerRot\":628.318,\"maxVal\":195,"
     "\"endStop0\":{\"sensePin\":\"36\",\"actLvl\":0,\"inputType\":\"INPUT_PULLUP\"}},"
     "\"axis1\":{\"stepPin\":\"15\",\"dirnPin\":\"21\",\"maxSpeed\":75,\"maxAcc\":50,"
-    "\"stepsPerRot\":9600,\"unitsPerRot\":628.318,"
+    "\"stepsPerRot\":9600,\"unitsPerRot\":628.318,\"maxVal\":195,"
     "\"endStop0\":{\"sensePin\":\"39\",\"actLvl\":0,\"inputType\":\"INPUT_PULLUP\"}}"
     "}",
 
     // static const char* ROBOT_CONFIG_STR_AIRHOCKEY =
-    //     "{\"robotType\":\"HockeyBot\",\"xMaxMM\":350,\"yMaxMM\":400, "
+    //     "{\"robotType\":\"HockeyBot\","
     //     " \"stepEnablePin\":\"A2\",\"stepEnLev\":1,\"stepDisableSecs\":1.0,"
     //     " \"cmdsAtStart\":\"\", "
     //     " \"axis0\": { \"stepPin\":\"D2\",\"dirnPin\":\"D3\",\"maxSpeed\":5000.0,\"maxAcc\":5000.0,"
@@ -57,7 +57,7 @@ const char *RobotConfigurations::_robotConfigs[] = {
     //     " \"stepsPerRot\":3200,\"unitsPerRot\":62}"
     //     "}";
 
-    "{\"robotType\":\"XYBot\",\"xMaxMM\":500,\"yMaxMM\":500, "
+    "{\"robotType\":\"XYBot\","
     "\"stepEnablePin\":\"A2\",\"stepEnLev\":1,\"stepDisableSecs\":1.0,"
     "\"cmdsAtStart\":\"\", "
     "\"axis0\":{\"stepPin\":\"D2\",\"dirnPin\":\"D3\",\"maxSpeed\":100.0,\"maxAcc\":10.0,"

@@ -22,9 +22,6 @@ public:
 private:
     // Pause
     bool _isPaused;
-    // Robot dimensions
-    float _xMaxMM;
-    float _yMaxMM;
     // Block distance
     float _blockDistanceMM;
     // Axes parameters
