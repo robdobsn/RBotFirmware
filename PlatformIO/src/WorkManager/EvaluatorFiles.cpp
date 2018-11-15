@@ -18,6 +18,16 @@ const char* EvaluatorFiles::getConfig()
     return "";
 }
 
+// Check if valid
+bool EvaluatorFiles::isValid(WorkItem& workItem)
+{
+    // Form the file name
+    String fName = workItem.getString();
+    // Check on SPIFFS file system
+    int fileLen = 0;
+    return _fileManager.getFileInfo("SPIFFS", fName, fileLen);
+}
+
 // Process WorkItem
 bool EvaluatorFiles::execWorkItem(WorkItem& workItem)
 {
@@ -25,7 +35,7 @@ bool EvaluatorFiles::execWorkItem(WorkItem& workItem)
     String fName = workItem.getString();
 
     // Start chunked file access
-    bool retc = _fileManager.chunkedFileStart("SPIFFS", fName.c_str(), true);
+    bool retc = _fileManager.chunkedFileStart("SPIFFS", fName, true);
     if (!retc)
         return false;
     Log.trace("%sstarted chunked file %s\n", MODULE_PREFIX, fName.c_str());

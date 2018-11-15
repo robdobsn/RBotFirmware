@@ -20,6 +20,9 @@ public:
     void setConfig(const char* configStr);
     const char* getConfig();
 
+    // Check valid
+    bool isValid(WorkItem& workItem);
+
     // Process WorkItem
     bool execWorkItem(WorkItem& workItem);
 

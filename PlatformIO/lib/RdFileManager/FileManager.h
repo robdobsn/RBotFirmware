@@ -55,6 +55,9 @@ public:
     // Delete file on file system
     bool deleteFile(const String& fileSystemStr, const String& filename);
     
+    // Test file exists and get info
+    bool getFileInfo(const String& fileSystemStr, const String& filename, int& fileLength);
+
     // Start access to a file in chunks
     bool chunkedFileStart(const String& fileSystemStr, const String& filename, bool readByLine);
 

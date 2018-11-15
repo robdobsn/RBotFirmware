@@ -170,10 +170,13 @@ bool WorkManager::execWorkItem(WorkItem& workItem)
     handledOk = _evaluatorSequences.execWorkItem(workItem);
     if (handledOk)
         return handledOk;
-    // See if it is a GCode file
-    handledOk = _evaluatorFiles.execWorkItem(workItem);
-    if (handledOk)
-        return handledOk;
+    // See if it is a file to process
+    if (_evaluatorFiles.isValid(workItem))
+    {
+        handledOk = _evaluatorFiles.execWorkItem(workItem);
+        if (handledOk)
+            return handledOk;
+    }
     // Not handled
     return false;
 }
