@@ -84,6 +84,7 @@ class LedStrip
         _ledValue = ledValue;
     }
 
+long count = 0;
     void service()
     {
         // Check if active
@@ -107,10 +108,12 @@ class LedStrip
                 if (_sensorPin != -1) {
                     sensorValues[sensorReadingCount++ % NUM_SENSOR_VALUES] = analogRead(_sensorPin);
                     uint16_t sensorAvg = getAverageSensorReading();
-                    Log.trace("Ambient Light Avg Value: %d\n", sensorAvg);
+                    if (count % 100 == 0) {
+                    Log.trace("Ambient Light Avg Value: %d, reading count %d\n", sensorAvg, sensorReadingCount % NUM_SENSOR_VALUES);
+                }
 
                     // Convert ambient light to led value
-                    int ledBrightnessInt = 0x88 + (sensorAvg / 4);
+                    int ledBrightnessInt = sensorAvg / 4;
                     if (ledBrightnessInt > 255) {
                         ledBrightnessInt = 255;
                     }
@@ -125,10 +128,11 @@ class LedStrip
             Log.trace("Writing LED Value: 0x%x\n", _ledValue);
             analogWrite(_ledPin, _ledValue);
         }
+        count++;
     }
 
   private:
-    static const int NUM_SENSOR_VALUES = 16;
+    static const int NUM_SENSOR_VALUES = 100;
     bool _isSetup;
     bool _ledOn;
     int _ledPin;
