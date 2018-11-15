@@ -7,6 +7,11 @@
 #include <FS.h>
 #include <SPIFFS.h>
 
+#include <sys/stat.h>
+#include "vfs_api.h"
+
+using namespace fs;
+
 static const char* MODULE_PREFIX = "FileManager: ";
 
 void FileManager::setup(ConfigBase& config)
@@ -29,10 +34,35 @@ void FileManager::setup(ConfigBase& config)
     
 void FileManager::reformat(const String& fileSystemStr, String& respStr)
 {
+    // Check file system supported
+    if ((fileSystemStr.length() > 0) && (fileSystemStr != "SPIFFS"))
+    {
+        respStr = "{\"rslt\":\"fail\",\"error\":\"unknownfs\",\"files\":[]}";
+        return;
+    }
+    
     // Reformat
     bool rslt = SPIFFS.format();
     Utils::setJsonBoolResult(respStr, rslt);
     Log.warning("%sReformat SPIFFS result %d\n", MODULE_PREFIX, rslt);
+}
+
+bool FileManager::getFileInfo(const String& fileSystemStr, const String& filename, int& fileLength)
+{
+    // Take mutex
+    xSemaphoreTake(_fileSysMutex, portMAX_DELAY);
+
+    // Check file exists
+    struct stat st;
+    String rootFilename = (filename.startsWith("/") ? "/spiffs" + filename : ("/spiffs/" + filename));
+    if ((stat(rootFilename.c_str(), &st) != 0) || !S_ISREG(st.st_mode))
+    {
+        xSemaphoreGive(_fileSysMutex);
+        return false;
+    }
+    xSemaphoreGive(_fileSysMutex);
+    fileLength = st.st_size;
+    return true;
 }
 
 bool FileManager::getFilesJSON(const String& fileSystemStr, const String& folderStr, String& respStr)
@@ -246,23 +276,15 @@ bool FileManager::chunkedFileStart(const String& fileSystemStr, const String& fi
     xSemaphoreTake(_fileSysMutex, portMAX_DELAY);
 
     // Check file exists
-    String rootFilename = (filename.startsWith("/") ? filename : ("/" + filename));
-    if (!SPIFFS.exists(rootFilename))
+    struct stat st;
+    String rootFilename = (filename.startsWith("/") ? "/spiffs" + filename : ("/spiffs/" + filename));
+    if ((stat(rootFilename.c_str(), &st) != 0) || !S_ISREG(st.st_mode))
     {
-        xSemaphoreGive(_fileSysMutex);  
+        Log.trace("%schunked file doesn't exist %s\n", MODULE_PREFIX, rootFilename.c_str());
+        xSemaphoreGive(_fileSysMutex);
         return false;
     }
-
-    // Check file valid
-    File file = SPIFFS.open(rootFilename, FILE_READ);
-    if (!file)
-    {
-        xSemaphoreGive(_fileSysMutex);  
-        Log.trace("%schunked failed to open %s file\n", MODULE_PREFIX, rootFilename.c_str());
-        return false;
-    }
-    _chunkedFileLen = file.size();
-    file.close();
+    _chunkedFileLen = st.st_size;
     xSemaphoreGive(_fileSysMutex);  
     
     // Setup access
@@ -290,19 +312,23 @@ uint8_t* FileManager::chunkFileNext(String& filename, int& fileLen, int& chunkPo
     xSemaphoreTake(_fileSysMutex, portMAX_DELAY);
 
     // Open file and seek
-    File file = SPIFFS.open("/" + _chunkedFilename, FILE_READ);
-    if (!file)
+    FILE* pFile = NULL;
+    if (_chunkOnLineEndings)
+        pFile = fopen(_chunkedFilename.c_str(), "r");
+    else
+        pFile = fopen(_chunkedFilename.c_str(), "rb");
+    if (!pFile)
     {
-        xSemaphoreGive(_fileSysMutex);  
-        Log.trace("%schunkNext failed open %s\n", MODULE_PREFIX, _chunkedFilename.c_str());
-        return NULL;
-    }
-    if ((_chunkedFilePos != 0) && (!file.seek(_chunkedFilePos)))
+            xSemaphoreGive(_fileSysMutex);  
+            Log.trace("%schunkNext failed open %s\n", MODULE_PREFIX, _chunkedFilename.c_str());
+            return NULL;
+    }    
+    if ((_chunkedFilePos != 0) && (fseek(pFile, _chunkedFilePos, SEEK_SET) != 0))
     {
         xSemaphoreGive(_fileSysMutex);  
         Log.trace("%schunkNext failed seek in filename %s to %d\n", MODULE_PREFIX, 
                         _chunkedFilename.c_str(), _chunkedFilePos);
-        file.close();
+        fclose(pFile);
         return NULL;
     }
 
@@ -310,37 +336,42 @@ uint8_t* FileManager::chunkFileNext(String& filename, int& fileLen, int& chunkPo
     if (_chunkOnLineEndings)
     {
         // Read a line
-        chunkLen = file.readBytesUntil('\n', _chunkedFileBuffer, CHUNKED_BUF_MAXLEN-1);
-        if (chunkLen >= CHUNKED_BUF_MAXLEN)
-            chunkLen = CHUNKED_BUF_MAXLEN-1;
+        char* pReadLine = fgets((char*)_chunkedFileBuffer, CHUNKED_BUF_MAXLEN-1, pFile);
         // Ensure line is terminated
-        if (chunkLen >= 0)
+        if (!pReadLine)
         {
-            _chunkedFileBuffer[chunkLen] = 0;
+            finalChunk = true;
+            _chunkedFileInProgress = false;
+            chunkLen = 0;
         }
-        // Skip past the end of line character
-        chunkLen++;
+        else
+        {
+            chunkLen = strlen((char*)_chunkedFileBuffer);
+        }
+        // Record position
+        _chunkedFilePos = ftell(pFile);
     }
     else
     {
         // Fill the buffer with file data
-        chunkLen = file.read(_chunkedFileBuffer, CHUNKED_BUF_MAXLEN);
+        chunkLen = fread((char*)_chunkedFileBuffer, 1, CHUNKED_BUF_MAXLEN, pFile);
+
+        // Record position and check if this was the final block
+        _chunkedFilePos = ftell(pFile);
+        if ((chunkLen != CHUNKED_BUF_MAXLEN) || (_chunkedFileLen <= _chunkedFilePos))
+        {
+            finalChunk = true;
+            _chunkedFileInProgress = false;
+        }
+
     }
 
-    // Bump position and check if this was the final block
-    _chunkedFilePos = _chunkedFilePos + chunkLen;
-    if (_chunkedFileLen <= _chunkedFilePos)
-    {
-        finalChunk = true;
-        _chunkedFileInProgress = false;
-    }
-
-    Log.trace("%schunkNext filename %s chunklen %d filePos %d fileLen %d inprog %d final %d curpos %d\n", MODULE_PREFIX, 
+    Log.trace("%schunkNext filename %s chunklen %d filePos %d fileLen %d inprog %d final %d\n", MODULE_PREFIX, 
                     _chunkedFilename.c_str(), chunkLen, _chunkedFilePos, _chunkedFileLen, 
-                    _chunkedFileInProgress, finalChunk, file.position());
+                    _chunkedFileInProgress, finalChunk);
 
     // Close
-    file.close();
+    fclose(pFile);
     xSemaphoreGive(_fileSysMutex);  
     return _chunkedFileBuffer;
 }
