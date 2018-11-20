@@ -27,7 +27,7 @@
 
 // System type
 #define SYSTEM_TYPE_NAME "RBotFirmware"
-const char* systemType = SYSTEM_TYPE_NAME;
+const char* systemType = "RBotFirmware";
 
 // System version
 const char* systemVersion = "2.007.003";
@@ -94,7 +94,7 @@ static const char *hwConfigJSON = {
     "\"OTAUpdate\":{\"enabled\":0,\"server\":\"domoticzoff\",\"port\":5076},"
     "\"serialConsole\":{\"portNum\":0},"
     "\"commandSerial\":{\"portNum\":-1,\"baudRate\":115200},"
-    "\"fileManager\":{\"spiffsEnabled\":1,\"spiffsFormatIfCorrupt\",1},"
+    "\"fileManager\":{\"spiffsEnabled\":1,\"spiffsFormatIfCorrupt\":1},"
     "\"wifiLed\":{\"hwPin\":\"\",\"onLevel\":1,\"onMs\":200,\"shortOffMs\":200,\"longOffMs\":750},"
     "\"defaultRobotType\":\"SandTableScara\""
     "}"};
