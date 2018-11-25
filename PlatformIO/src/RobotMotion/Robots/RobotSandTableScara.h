@@ -38,18 +38,13 @@ private:
     static bool ptToActuator(AxisFloats& targetPt, AxisFloats& outActuator, AxisPosition& curAxisPositions, AxesParams& axesParams, bool allowOutOfBounds);
     static void actuatorToPt(AxisFloats& actuatorPos, AxisFloats& outPt, AxisPosition& curPos, AxesParams& axesParams);
     static void correctStepOverflow(AxisPosition& curPos, AxesParams& axesParams);
-    static ROTATION_TYPE cartesianToActuator(AxisFloats& targetPt, AxisPosition& curAxisPositions, AxisFloats& outActuator, AxesParams& axesParams);
-    static float minStepsForMove(float absStepTarget, float absCurSteps, float stepsPerRotation);
-    static float absStepForMove(float absStepTarget, float absCurSteps, float stepsPerRotation);
-    static void rotationsToPoint(AxisFloats& rotDegrees, AxisFloats& pt, AxesParams& axesParams);
-    static void rotationToActuator(float alpha, float beta, AxisFloats& actuatorCoords,
-              AxesParams& axesParams);
-    static void actuatorToRotation(AxisInt32s& actuatorCoords, AxisFloats& rotationDegrees, AxesParams& axesParams);
-    static double cosineRule(double a, double b, double c);
-    static inline double wrapRadians(double angle);
-    static inline double wrapDegrees(double angle);
-    static inline double r2d(double angleRadians);
-    static inline double d2r(double angleDegrees);
-    static bool isApprox(double v1, double v2, double withinRng = 0.0001);
-    static bool isApproxWrap(double v1, double v2, double wrapSize=360.0, double withinRng = 0.0001);
+
+private:
+    static bool cartesianToPolar(AxisFloats& targetPt, AxisFloats& targetSoln1, 
+                    AxisFloats& targetSoln2, AxesParams& axesParams);
+    static void stepsToPolar(AxisInt32s& actuatorCoords, AxisFloats& rotationDegrees, AxesParams& axesParams);
+    static float calcRelativePolar(float targetRotation, float curRotation);
+    static void relativePolarToSteps(AxisFloats& relativePolar, AxisPosition& curAxisPositions, 
+            AxisFloats& outActuator, AxesParams& axesParams);
+
 };

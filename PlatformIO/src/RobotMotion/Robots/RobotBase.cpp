@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 #include "RobotBase.h"
-#include "MotionControl/MotionHelper.h"
+#include "../MotionControl/MotionHelper.h"
 // #include <Time.h>
 // #include "RobotCommandArgs.h"
 // #include "../AxisParams.h"

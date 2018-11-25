@@ -31,6 +31,18 @@ public:
         {
             switch(toupper(*pStr))
             {
+                case 'A':
+                    cmdArgs.setAxisSteps(0, int(strtod(++pStr, &pEndStr)), true);
+                    pStr = pEndStr;
+                    break;
+                case 'B':
+                    cmdArgs.setAxisSteps(1, int(strtod(++pStr, &pEndStr)), true);
+                    pStr = pEndStr;
+                    break;
+                case 'C':
+                    cmdArgs.setAxisSteps(2, int(strtod(++pStr, &pEndStr)), true);
+                    pStr = pEndStr;
+                    break;
                 case 'X':
                     cmdArgs.setAxisValMM(0, strtod(++pStr, &pEndStr), true);
                     pStr = pEndStr;
@@ -50,6 +62,10 @@ public:
                 case 'F':
                     cmdArgs.setFeedrate(strtod(++pStr, &pEndStr));
                     pStr = pEndStr;
+                    break;
+                case 'R':
+                    cmdArgs.setMoveType(RobotMoveTypeArg_Relative);
+                    pStr++;
                     break;
                 case 'S':
                     {
@@ -100,6 +116,13 @@ public:
                 if (takeAction)
                 {
                     cmdArgs.setMoveRapid(cmdNum == 0);
+                    pRobotController->moveTo(cmdArgs);
+                }
+                return true;
+            case 6: // Direct stepper move
+                if (takeAction)
+                {
+                    cmdArgs.setMoveRapid(true);
                     pRobotController->moveTo(cmdArgs);
                 }
                 return true;
