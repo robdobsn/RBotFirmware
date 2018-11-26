@@ -27,7 +27,7 @@ void WorkManager::queryStatus(String &respStr)
     if (innerJsonStr.length() > 0)
         innerJsonStr += ",";
     innerJsonStr += healthStrRobot;
-    String ledStrip = _ledStripConfig.getConfigData();
+    String ledStrip = _ledStripConfig.getConfigCStrPtr();
     if (innerJsonStr.length() > 0)
         innerJsonStr += ",";
     innerJsonStr += ledStrip.substring(1, ledStrip.length() - 1);
@@ -58,7 +58,6 @@ bool WorkManager::setLedStripConfig(const uint8_t* pData, int len) {
     _ledStripConfig.setConfigData(tmpBuf);
     _ledStripConfig.writeConfig();
 
-    Log.trace("%sWrote LED Strip config: %s\n", MODULE_PREFIX, _ledStripConfig.getConfigData());
 
     return true;
 }

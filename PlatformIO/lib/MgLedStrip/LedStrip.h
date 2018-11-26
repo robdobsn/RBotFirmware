@@ -22,7 +22,7 @@ class LedStrip
     void setup(ConfigBase& hwConfig, const char* ledStripName, ConfigBase *pSysConfig)
     {
         _pConfigBase = pSysConfig;
-        String ledStripConfigStr = _pConfigBase->getConfigData();
+        String ledStripConfigStr = _pConfigBase->getConfigCStrPtr();
         if (ledStripConfigStr.length() == 0 || ledStripConfigStr.equals("{}")) {
             Log.trace("LedStrip: Initializing default config: %s\n", _ledStripDefaultJSON);
             _pConfigBase->setConfigData(_ledStripDefaultJSON);
