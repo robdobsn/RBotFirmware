@@ -39,7 +39,7 @@ void RestAPIRobot::apiPostSettings(String &reqStr, String &respStr)
 
 void RestAPIRobot::apiSetLed(String &reqStr, String &respStr)
 {
-    Log.notice("%sRestAPIRobot: SetLed\n", MODULE_PREFIX);
+    Log.notice("%SetLed %s\n", MODULE_PREFIX, reqStr.c_str());
     // Result
     Utils::setJsonBoolResult(respStr, true);      
 }
@@ -53,7 +53,7 @@ void RestAPIRobot::apiPostSettingsBody(String& reqStr, uint8_t *pData, size_t le
 
 void RestAPIRobot::apiSetLedBody(String& reqStr, uint8_t *pData, size_t len, size_t index, size_t total)
 {
-    Log.notice("%sRestAPIRobot: SetLed len %d\n", MODULE_PREFIX, len);
+    Log.notice("%SetLedBody len %d\n", MODULE_PREFIX, len);
     // Store the settings
     _workManager.setLedStripConfig(pData, len);
 }
