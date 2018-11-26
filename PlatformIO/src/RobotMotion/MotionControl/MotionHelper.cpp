@@ -16,6 +16,7 @@ MotionHelper::MotionHelper() : _motionActuator(_motionIO, &_motionPipeline),
     _isPaused = false;
     _moveRelative = false;
     _blockDistanceMM = 0;
+    _allowAllOutOfBounds = false;
     // Clear axis current location
     _curAxisPosition.clear();
     // Coordinate conversion management
@@ -50,6 +51,7 @@ void MotionHelper::configure(const char *robotConfigJSON)
     // Pipeline length and block size
     int pipelineLen = int(RdJson::getLong("pipelineLen", pipelineLen_default, robotConfigJSON));
     _blockDistanceMM = float(RdJson::getDouble("blockDistanceMM", blockDistanceMM_default, robotConfigJSON));
+    _allowAllOutOfBounds = bool(RdJson::getLong("allowOutOfBounds", false, robotConfigJSON));
     Log.notice("%sconfigMotionPipeline len %d, _blockDistanceMM %F (0=no-max)\n", MODULE_PREFIX,
                pipelineLen, _blockDistanceMM);
     _motionPipeline.init(pipelineLen);
@@ -164,7 +166,7 @@ bool MotionHelper::moveTo(RobotCommandArgs &args)
     // Handle stepwise motion
     if (args.isStepwise())
     {
-        _motionPlanner.moveToStepwise(args, _curAxisPosition, _axesParams, _motionPipeline);
+        return _motionPlanner.moveToStepwise(args, _curAxisPosition, _axesParams, _motionPipeline);
     }
     // Fill in the destPos for axes for which values not specified
     // Handle relative motion override if present
@@ -176,7 +178,6 @@ bool MotionHelper::moveTo(RobotCommandArgs &args)
         if (!args.isValid(i))
         {
             destPos.setVal(i, _curAxisPosition._axisPositionMM.getVal(i));
-            // Log.notice("MOVE TO ax %d, pos %d\n", i, _curAxisPosition._axisPositionMM.getVal(i));
         }
         else
         {
@@ -187,6 +188,7 @@ bool MotionHelper::moveTo(RobotCommandArgs &args)
                 moveRelative = (args.getMoveType() == RobotMoveTypeArg_Relative);
             if (moveRelative)
                 destPos.setVal(i, _curAxisPosition._axisPositionMM.getVal(i) + args.getValMM(i));
+            // Log.notice("%smoveTo ax %d, pos %F\n", MODULE_PREFIX, i, _curAxisPosition._axisPositionMM.getVal(i));
         }
         includeDist[i] = _axesParams.isPrimaryAxis(i);
     }
@@ -200,8 +202,8 @@ bool MotionHelper::moveTo(RobotCommandArgs &args)
         numBlocks = int(lineLen / _blockDistanceMM);
     if (numBlocks == 0)
         numBlocks = 1;
-    // Log.trace("MotionHelper numBlocks %d (lineLen %F / blockDistMM %F)\n",
-    //  numBlocks, lineLen, _blockDistanceMM);
+    // Log.verbose("%snumBlocks %d (lineLen %F / blockDistMM %F)\n", MODULE_PREFIX,
+    //                 numBlocks, lineLen, _blockDistanceMM);
 
     // Setup for adding blocks to the pipe
     _blocksToAddCommandArgs = args;
@@ -256,10 +258,12 @@ bool MotionHelper::addToPlanner(RobotCommandArgs &args)
 {
     // Convert the move to actuator coordinates
     AxisFloats actuatorCoords;
-    _ptToActuatorFn(args.getPointMM(), actuatorCoords, _curAxisPosition, _axesParams, args.getAllowOutOfBounds());
+    bool moveOk = _ptToActuatorFn(args.getPointMM(), actuatorCoords, _curAxisPosition, _axesParams,
+                    args.getAllowOutOfBounds() || _allowAllOutOfBounds);
 
     // Plan the move
-    bool moveOk = _motionPlanner.moveTo(args, actuatorCoords, _curAxisPosition, _axesParams, _motionPipeline);
+    if (moveOk)
+        moveOk = _motionPlanner.moveTo(args, actuatorCoords, _curAxisPosition, _axesParams, _motionPipeline);
     if (moveOk)
     {
         // Update axisMotion

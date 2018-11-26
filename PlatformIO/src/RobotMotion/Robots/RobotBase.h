@@ -3,9 +3,8 @@
 
 #pragma once
 
-#include <Time.h>
-#include "RobotCommandArgs.h"
-#include "../AxisParams.h"
+class MotionHelper;
+class RobotCommandArgs;
 
 class RobotBase
 {
@@ -15,86 +14,25 @@ class RobotBase
     MotionHelper &_motionHelper;
 
   public:
-    RobotBase(const char *pRobotTypeName, MotionHelper &motionHelper) : _robotTypeName(pRobotTypeName),
-                                                                        _motionHelper(motionHelper)
-    {
-    }
-
-    virtual ~RobotBase()
-    {
-    }
+    RobotBase(const char *pRobotTypeName, MotionHelper &motionHelper);
+    virtual ~RobotBase();
 
     // Pause (or un-pause) all motion
-    virtual void pause(bool pauseIt)
-    {
-        _motionHelper.pause(pauseIt);
-    }
-
+    virtual void pause(bool pauseIt);
     // Check if paused
-    virtual bool isPaused()
-    {
-        return _motionHelper.isPaused();
-    }
-
+    virtual bool isPaused();
     // Stop
-    virtual void stop()
-    {
-        _motionHelper.stop();
-    }
-
-    virtual bool init(const char *robotConfigStr)
-    {
-        // Init motion controller from config
-        _motionHelper.configure(robotConfigStr);
-        return true;
-    }
-
-    virtual bool canAcceptCommand()
-    {
-        // Check if motionHelper is can accept a command
-        return _motionHelper.canAccept();
-    }
-
-    virtual void service()
-    {
-        // Service the motion controller
-        _motionHelper.service();
-    }
-
+    virtual void stop();
+    virtual bool init(const char *robotConfigStr);
+    virtual bool canAcceptCommand();
+    virtual void service();
     // Movement commands
-    virtual void actuator(double value)
-    {
-    }
-
-    virtual void moveTo(RobotCommandArgs &args)
-    {
-        _motionHelper.moveTo(args);
-    }
-
-    virtual void setMotionParams(RobotCommandArgs &args)
-    {
-        _motionHelper.setMotionParams(args);
-    }
-
-    virtual void getCurStatus(RobotCommandArgs &args)
-    {
-        _motionHelper.getCurStatus(args);
-    }
-
+    virtual void actuator(double value);
+    virtual void moveTo(RobotCommandArgs &args);
+    virtual void setMotionParams(RobotCommandArgs &args);
+    virtual void getCurStatus(RobotCommandArgs &args);
     // Homing commands
-    virtual void goHome(RobotCommandArgs &args)
-    {
-        _motionHelper.goHome(args);
-    }
-
-    virtual void setHome(RobotCommandArgs &args)
-    {
-    }
-
-    virtual bool wasActiveInLastNSeconds(unsigned int nSeconds)
-    {
-        time_t timeNow;
-        time(&timeNow);
-        return (timeNow < _motionHelper.getLastActiveUnixTime() + nSeconds);
-    }
+    virtual void goHome(RobotCommandArgs &args);
+    virtual void setHome(RobotCommandArgs &args);
+    virtual bool wasActiveInLastNSeconds(unsigned int nSeconds);
 };

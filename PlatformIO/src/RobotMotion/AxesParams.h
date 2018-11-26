@@ -111,7 +111,7 @@ class AxesParams
         if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
             return 0;
         float axisMaxDist = fabsf(_axisParams[axisIdx]._maxVal - _axisParams[axisIdx]._minVal);
-        return ceilf(axisMaxDist * getStepsPerUnit(axisIdx));
+        return int32_t(ceilf(axisMaxDist * getStepsPerUnit(axisIdx)));
     }
 
     float getMaxSpeed(int axisIdx)

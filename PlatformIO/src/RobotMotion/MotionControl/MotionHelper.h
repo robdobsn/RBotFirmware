@@ -24,6 +24,8 @@ private:
     bool _isPaused;
     // Block distance
     float _blockDistanceMM;
+    // Allow all out of bounds movement
+    bool _allowAllOutOfBounds;
     // Axes parameters
     AxesParams _axesParams;
     // Callbacks for coordinate conversion etc

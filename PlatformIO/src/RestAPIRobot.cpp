@@ -32,7 +32,7 @@ void RestAPIRobot::apiGetSettings(String &reqStr, String &respStr)
 
 void RestAPIRobot::apiPostSettings(String &reqStr, String &respStr)
 {
-    Log.notice("%sPostSettings\n", MODULE_PREFIX);
+    Log.notice("%sPostSettings %s\n", MODULE_PREFIX, reqStr.c_str());
     // Result
     Utils::setJsonBoolResult(respStr, true);      
 }
@@ -46,7 +46,7 @@ void RestAPIRobot::apiSetLed(String &reqStr, String &respStr)
 
 void RestAPIRobot::apiPostSettingsBody(String& reqStr, uint8_t *pData, size_t len, size_t index, size_t total)
 {
-    Log.notice("%sPostSettings len %d\n", MODULE_PREFIX, len);
+    Log.notice("%sPostSettingsBody len %d\n", MODULE_PREFIX, len);
     // Store the settings
     _workManager.setRobotConfig(pData, len);
 }
@@ -60,21 +60,21 @@ void RestAPIRobot::apiSetLedBody(String& reqStr, uint8_t *pData, size_t len, siz
 
 void RestAPIRobot::apiExec(String &reqStr, String &respStr)
 {
-    Log.notice("%sExec\n", MODULE_PREFIX);
+    Log.notice("%sExec %s\n", MODULE_PREFIX, reqStr.c_str());
     WorkItem workItem(RestAPIEndpoints::removeFirstArgStr(reqStr.c_str()).c_str());
     _workManager.addWorkItem(workItem, respStr);
 }
 
 void RestAPIRobot::apiPattern(String &reqStr, String &respStr)
 {
-    Log.notice("%sPattern\n", MODULE_PREFIX);
+    Log.notice("%sPattern %s\n", MODULE_PREFIX, reqStr.c_str());
     WorkItem workItem(RestAPIEndpoints::removeFirstArgStr(reqStr.c_str()).c_str());
     _workManager.addWorkItem(workItem, respStr);
 }
 
 void RestAPIRobot::apiSequence(String &reqStr, String &respStr)
 {
-    Log.notice("%sSequence\n", MODULE_PREFIX);
+    Log.notice("%sSequence %s\n", MODULE_PREFIX, reqStr.c_str());
     WorkItem workItem(RestAPIEndpoints::removeFirstArgStr(reqStr.c_str()).c_str());
     _workManager.addWorkItem(workItem, respStr);
 }
