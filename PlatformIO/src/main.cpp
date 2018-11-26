@@ -177,7 +177,7 @@ void setup()
 {
     // Logging
     Serial.begin(115200);
-    Log.begin(LOG_LEVEL_TRACE, &netLog);
+    Log.begin(LOG_LEVEL_WARNING, &netLog);
 
     // Message
     Log.notice("%s %s (built %s %s)\n", systemType, systemVersion, buildDate, buildTime);
