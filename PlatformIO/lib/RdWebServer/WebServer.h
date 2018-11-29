@@ -35,6 +35,7 @@ public:
     void addStaticResources(const WebServerResource *pResources, int numResources);
     static void parseAndAddHeaders(AsyncWebServerResponse *response, const char *pHeaders);
     static String recreatedReqUrl(AsyncWebServerRequest *request);
+    void serveStaticFiles(const char* baseUrl, const char* baseFolder);
 
 private:
     void addStaticResource(const WebServerResource *pResource, const char *pAliasPath = NULL);

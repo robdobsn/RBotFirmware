@@ -3,6 +3,7 @@
 
 #include <WebServer.h>
 #include <FS.h>
+#include <SPIFFS.h>
 #if defined (ESP8266)
 #include "ESPAsyncTCP.h"
 #else
@@ -185,6 +186,7 @@ void WebServer::parseAndAddHeaders(AsyncWebServerResponse *response, const char 
         strPos = lineEndPos + 1;
     }
 }
+
 void WebServer::addStaticResource(const WebServerResource *pResource, const char *pAliasPath)
 {
     // Check enabled
@@ -213,4 +215,12 @@ void WebServer::addStaticResource(const WebServerResource *pResource, const char
             parseAndAddHeaders(response, pResource->_pExtraHeaders);
         request->send(response);
     });
+}
+
+void WebServer::serveStaticFiles(const char* baseUrl, const char* baseFolder)
+{
+    // Check enabled
+    if (!_pServer)
+        return;
+    _pServer->serveStatic(baseUrl, SPIFFS, baseFolder);
 }

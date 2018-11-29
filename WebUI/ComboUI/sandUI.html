@@ -1,10 +1,548 @@
 <!DOCTYPE html>
 <html>
 	<head>
-    <meta charset="utf-8"/>
+	<meta charset="utf-8"/>
 	<title>Sand Table</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-    <script type="text/javascript">
+	<script type="text/javascript">
+		function bodyIsLoaded()
+		{
+			window.stState = {
+				curPage: '',
+				curFileContentJson: '',
+				nonServerHostWarn: (location.hostname === ""),
+				fileExcludes: ["ROBOT.JSON"],
+				latestFileListInfo: {},
+				curFileType: "param",
+				newFileType: "param"
+			};
+			window.pageState = {
+				"maxCfgLen": 2000,
+				"name": "Sand Table",
+				"startup": ""
+			};
+			// Handle running directly in browser
+			if (window.stState.nonServerHostWarn) {
+				window.pageState.name = "Sand Table - I must run on a server!"
+				sandTableSettingsCallbackOk(
+					JSON.stringify(window.pageState));
+			} else {
+				reqFileListAndUpdate();
+			}
+		}
+		function reqFileListAndUpdate()
+		{
+			callAjax("/filelist/SPIFFS", fileListUpdateOk, fileListUpdateFail)
+		}
+		function fileListUpdateFail()
+		{
+			reqSettingsAndUpdate();
+		}
+		function fileListUpdateOk(resp)
+		{
+			// Parse status received
+			try
+			{
+				window.stState.latestFileListInfo = JSON.parse(resp);
+			}
+			catch (excp)
+			{
+				console.error("Failed to parse received JSON file list")
+				console.error(excp)
+			}
+			reqSettingsAndUpdate();
+		}
+		function reqSettingsAndUpdate()
+		{
+			callAjax("/getsettings", sandTableSettingsCallbackOk);
+		}
+		function sandTableSettingsCallbackOk(jsonResp)
+		{
+			// Check for empty status info
+			if (jsonResp !== "" && jsonResp !== "{}")
+			{
+				let jsonData = {}
+				try
+				{
+					jsonData = JSON.parse(jsonResp);
+					window.pageState = jsonData;
+				}
+				catch(excp)
+				{
+					console.error("Failed to parse JSON settings " + json);
+					console.error(excp);
+				}
+			}
+			updateDisplay();
+		}
+		function updateDisplay()
+		{
+			genPageHeader();
+			genPageBody();
+			iconGen("logoCanvas");
+		}
+		function userAction(itemTypeStr, cmdStr, argStr, curState)
+		{
+			// Handle action
+			if (cmdStr === "delete")
+			{
+				if (confirm('Are you sure you want to delete?'))
+				{
+					// Remove the file
+					callAjax("/deleteFile/SPIFFS/" + argStr, fileDeleteOk, fileDeleteFail);
+					window.stState.curPage = "";
+					reqFileListAndUpdate();
+				}
+			}
+			else if (cmdStr === "save") {
+				// Get values from form
+				let fileNameNoExtension = document.getElementById('fileNameNoExtension').value.trim();
+				fileNameNoExtension = fileNameNoExtension.replace('"','');
+				fileNameNoExtension = fileNameNoExtension.replace('\\','');
+				fileNameNoExtension = fileNameNoExtension.replace('?','');
+				// Check filename is valid
+				if (fileNameNoExtension.trim().length == 0)
+					return;
+				// Get contents
+				let fileText = "";
+				if (window.stState.curFileType === "param")
+				{
+					const patsetup = document.getElementById('patsetup').value;
+					const patloop = document.getElementById('patloop').value;
+					let fileContent = {setup: patsetup, loop: patloop};
+					fileText = JSON.stringify(fileContent);
+				}
+				else
+				{
+					fileText = document.getElementById('textcontents').value;
+				}
+				// Upload file
+				let formData = new FormData();
+				let contentBlob = new Blob([fileText], {type: 'plain/text'});
+				formData.append("file", contentBlob, fileNameNoExtension + "." + window.stState.curFileType);
+				let xmlhttp = new XMLHttpRequest();
+				xmlhttp.onreadystatechange = function()
+				{
+					if (xmlhttp.readyState === 4) {
+						if (xmlhttp.status === 200) {
+							console.log("Save response " + xmlhttp.responseText);
+							window.stState.curPage = "";
+							userActionSaveFileOk();
+						}
+						else {
+							if ((failCallback !== undefined) && (typeof failCallback !== 'undefined'))
+							{
+								console.log("Save failed " + xmlhttp.responseText);
+								window.stState.curPage = "";
+								userActionSaveFileFail();
+							}
+						}
+					}
+				};
+				xmlhttp.open('POST', "/uploadtofileman");
+				xmlhttp.send(formData);
+			}
+			else if (cmdStr === "cancel")
+			{
+				window.stState.curPage = "";
+				updateDisplay();
+			}
+			else if (cmdStr === "add")
+			{
+				if (itemTypeStr === "file")
+					window.stState.curPage = "patAdd";
+				window.stState.curItem = "";
+				window.stState.curFileContentJson = "";
+				window.stState.curFileType = window.stState.newFileType;
+				updateDisplay();
+			}
+			else if (cmdStr === "edit")
+			{
+				window.stState.curItem = argStr;
+				callAjax("/files/" + argStr, fileReadToEdit);
+			}
+			else if (cmdStr === "run")
+			{
+				callAjax("/playFile/" + argStr);
+			}
+			else if (cmdStr === "runAtStart")
+			{
+				// Set run at start to this value
+				if (curState)
+					window.pageState.startup = "";
+				else
+					window.pageState.startup = argStr;
+				postSettings();
+			}
+		}
+		function fileDeleteOk()
+		{
+			console.log("Deleted file ok");
+			reqFileListAndUpdate();
+		}
+		function fileDeleteFail()
+		{
+			console.log("Delete file failed");
+			reqFileListAndUpdate();
+		}
+		function postSettings()
+		{
+			let jsonStr = JSON.stringify(window.pageState);
+			jsonStr = jsonStr.replace("\n", "\\n")
+			console.log("POSTING " + jsonStr);
+			postJson("/postsettings", jsonStr, postSettingsOkCallback, postSettingsFailCallback);
+		}
+		function postSettingsOkCallback()
+		{
+			console.log("Posted settings ok");
+			updateDisplay();
+		}
+		function postSettingsFailCallback()
+		{
+			console.log("Post settings FAILED");
+			updateDisplay();
+		}
+		function userActionSaveFileOk()
+		{
+			reqFileListAndUpdate();
+		}
+		function userActionSaveFileFail()
+		{
+			reqFileListAndUpdate();
+		}
+		function genButton(clickFn, keyVal, label, cssClass, curState, isEnabled)
+		{
+//		    console.log("Gen BUTTON url " + url + " clickFn " + clickFn + " label " + label);
+			let oStr = "";
+			clickFn = clickFn.replace("~key~", keyVal);
+			oStr += "<span class='" + cssClass + " btn" + "' onclick='" + clickFn + "' " + (isEnabled?"":"disabled") + ">";
+			if (label === "Edit")
+			{
+				oStr += '<svg class="icon-action"><use xlink:href="#ico-edit"></use></svg>';
+			}
+			else if (label === "Run")
+			{
+				oStr += '<svg class="icon-action"><use xlink:href="#ico-play"></use></svg>';
+			}
+			else if (label === "Add")
+			{
+				oStr += '<svg class="icon-action"><use xlink:href="#ico-add"></use></svg>';
+			}
+//			else if (label == "Delete")
+//			{
+//				oStr += '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="30px" height="30px" viewBox="0 0 414 414">';
+//				oStr += '<g><path d="m 107.34348,113.4774 200.6666,201.54286 M 107.34348,315.4584 308.88635,110.84858" style="fill:none;fill-rule:evenodd;stroke:#dcded0;stroke-width:59.9;stroke-linecap:round;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none"/></g>';
+//				oStr += '</svg>';
+//			}
+			else if (label === "RunAtStart")
+			{
+				oStr += '<svg class="icon-action"><use xlink:href="#ico-run-at-start" style="fill:' + (curState ? '#78BFC1' : '#e0e0e0') + '"></use></svg>';
+			}
+			else if (label === "Resume")
+			{
+				oStr += '<svg class="icon-toolbar"><use xlink:href="#ico-play"></use></svg>';
+			}
+			else if (label === "Pause")
+			{
+				oStr += '<svg class="icon-toolbar"><use xlink:href="#ico-pause"></use></svg>';
+			}
+			else if (label === "Stop")
+			{
+				oStr += '<svg class="icon-toolbar"><use xlink:href="#ico-stop"></use></svg>';
+			}
+			else if (label === "Home")
+			{
+				oStr += '<svg class="icon-toolbar"><use xlink:href="#ico-centre"></use></svg>';
+			}
+			else
+			{
+				oStr += label;
+			}
+			oStr += "</span>";
+
+//		    console.log("genButton -> " + rtnStr);
+			return oStr;
+		}
+		function genAjaxButton(url, key, label, cssClass)
+		{
+			return genButton("callAjax(\"" + url + "\",ajaxDefaultCallback)", key, label, cssClass, false, true);
+		}
+		function genPageHeader()
+		{
+			const pageState = window.pageState;
+			const headerDiv = document.getElementById("pageHeader");
+			let headStr = "<div class='page-header backHead'>";
+			headStr += "<div class='page-header-logo'>";
+			headStr += '<canvas id="logoCanvas" class="page-logo backHead" width="' + logoCanvasWidth + '" height="' + logoCanvasHeight + '">Oops</canvas>';
+			headStr += '</div>';
+			headStr += "<div class='page-header-text'>";
+			headStr += pageState.name;
+			headStr += '</div>';
+			headStr += '</div>';
+			headerDiv.innerHTML = headStr;
+		}
+		function genBodyHeadingSection()
+		{
+			// Control section
+			let oStr = "<div class='body-group backGrad1'>";
+			oStr += "<div class='body-commands'>";
+			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/pause", "", "Pause", 'body-commands-button') + "</div>";
+			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/resume", "", "Resume", 'body-commands-button') + "</div>";
+			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/stop", "", "Stop", 'body-commands-button') + "</div>";
+			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/g28", "", "Home", 'body-commands-button') + "</div>";
+			oStr += "</div>";
+			oStr += "</div>";
+			return oStr;
+		}
+		function genPatternsBody()
+		{
+			// Patterns section
+			let listStr = "<div class='body-group backGrad2'>";
+			listStr += "<div class='body-group-header'>Patterns";
+			listStr += "<div class='body-group-actions'>";
+			listStr += genButton("userAction(\"file\",\"add\",\"\")", "", "Add", 'body-group-button', false, true);
+			listStr += "</div>";
+			listStr += "</div>";
+			listStr += "<div class='body-list' id='patternsList'>";
+			listStr += "</div>";
+			listStr += "</div>";
+			return listStr;
+		}
+		function genHomePageBody()
+		{
+			// Body heading
+			const pageBodyHeadDiv = document.getElementById("pageBodyHead");
+			let listStr = genBodyHeadingSection();
+			pageBodyHeadDiv.innerHTML = listStr;
+			
+			// Body form
+			const pageBodyFormDiv = document.getElementById("pageBodyForm");
+			listStr = genPatternsBody();
+			pageBodyFormDiv.innerHTML = listStr;
+
+		}
+
+		function genOptionStr(optName, optText, selectedItemName)
+		{
+			return "<option value=\"" + optName + "\" " + (selectedItemName === optName ? "selected=\"selected\"" : "") + ">" + optText + "</option>";
+		}
+		function genEditPageActions(itemTypeStr, argStr, addMode)
+		{
+			let listStr = "<div class='body-group'>";
+			listStr += "<div class='body-group-header'>";
+			if (!addMode)
+			{
+				listStr += "<div class='body-group-actions'>";
+				listStr += genButton("userAction(\"" + itemTypeStr + "\",\"delete\",\"~key~\")", argStr, "Delete", 'body-group-button', false, !addMode);
+				listStr += "</div>";
+			}
+			else
+			{
+				listStr += "<div class='body-group-select select-style'>";
+				listStr += "<select id=\"fileTypeSelect\">";
+				listStr += genOptionStr("param", "Parametric", window.stState.curFileType);
+				listStr += genOptionStr("gcode", "G-Code", window.stState.curFileType);
+				listStr += genOptionStr("rtheta", "Rho-Theta", window.stState.curFileType);
+				listStr += genOptionStr("seq", "Sequence", window.stState.curFileType);
+				listStr += "</select>";
+				listStr += "</div>";
+			}
+			listStr += "<div class='body-group-actions'>";
+			listStr += genButton("userAction(\"" + itemTypeStr + "\",\"save\",\"~key~\")", argStr, "Save", 'body-group-button', false, true);
+			listStr += "</div>";
+			listStr += "<div class='body-group-actions'>";
+			listStr += genButton("userAction(\"" + itemTypeStr + "\",\"cancel\",\"~key~\")", argStr, "Cancel", 'body-group-button', false, true);
+			listStr += "</div>";
+			listStr += "</div>";
+			return listStr;
+		}
+		function setFileType()
+		{
+			// Set file type
+			const fileTypeSelect = document.getElementById("fileTypeSelect");
+			window.stState.curFileType = fileTypeSelect.value;
+			window.stState.newFileType = fileTypeSelect.value;
+			console.log(window.stState.curFileType);
+			genFileEditForm();
+		}
+		function genFileEditForm()
+		{
+			// File being edited
+			const fileName = window.stState.curItem;
+			const fileNameNoExtension = fileName.substr(0,fileName.lastIndexOf('.'))
+
+			// Body heading
+			const pageBodyFormDiv = document.getElementById("pageBodyForm");
+
+			// Handle edit        
+			let listStr = "";
+			listStr += "<form class='body-form'>";
+			listStr += "<fieldset class='body-fieldset'>";
+			listStr += "<div class='body-form-line'>";
+			listStr += "<div class='body-form-label'>Name</div>";
+			listStr += "<textarea id='fileNameNoExtension' rows='1' class='body-form-field'";
+			listStr += (window.stState.curPage.trim() === 'patEdit') ? "disabled" : "";
+			listStr += ">" + fileNameNoExtension + "</textarea>";
+			listStr += "</div>";
+			listStr += "<div class='body-form-line'>";
+			if (window.stState.curFileType !== "param")
+			{
+				// Fields
+				listStr += "<div class='body-form-label'>Contents</div>";
+				listStr += "<textarea id='textcontents' class='body-form-field' cols='50' rows='10'>" + 
+							window.stState.curFileContentJson + "</textarea>";
+			}
+			else
+			{
+				let patternInfo = { setup:"", loop:""};
+				if (window.stState.curFileContentJson.length > 0)
+				{
+					try
+					{
+						patternInfo = JSON.parse(window.stState.curFileContentJson);
+						patternInfo.setup = patternInfo.setup.replace(/;/g,"\n");
+						patternInfo.loop = patternInfo.loop.replace(/;/g,"\n");
+					}
+					catch(excp)
+					{
+						console.error("Failed to parse JSON settings " + window.stState.curFileContentJson);
+						console.error(excp);
+					}
+				}
+				// Fields
+				listStr += "<div class='body-form-label'>Setup expressions</div>";
+				listStr += "<textarea id='patsetup' class='body-form-field' cols='50' rows='10'>" + 
+							patternInfo.setup + "</textarea>";
+				listStr += "</div>";
+				listStr += "<div class='body-form-line'>";
+				listStr += "<div class='body-form-label'>Loop expressions</div>";
+				listStr += "<textarea id='patloop' class='body-form-field' cols='50' rows='10'>" + 
+							patternInfo.loop + "</textarea>";
+			}
+			listStr += "</div>";
+			listStr += "</fieldset>";
+			listStr += "</form>";
+			listStr += "</div>";
+			pageBodyFormDiv.innerHTML = listStr;        
+
+
+		}
+		function genFileEditHeading()
+		{
+			// Body heading
+			const pageBodyHeadDiv = document.getElementById("pageBodyHead");
+			let listStr = genBodyHeadingSection();
+
+			// Action buttons
+			const fileName = window.stState.curItem;
+			listStr += genEditPageActions("file", fileName, window.stState.curPage.trim() === 'patAdd');
+			pageBodyHeadDiv.innerHTML = listStr;  
+		}
+
+		function genPageBody()
+		{
+			if ((window.stState.curPage.trim() === 'patEdit') || (window.stState.curPage.trim() === 'patAdd'))
+			{
+				genFileEditHeading();
+				genFileEditForm();
+				// Select
+				this.setupSelect(this.setFileType);
+			}
+			// else if (window.stState.curPage.trim() === 'seqEdit')
+			// 	genSeqEditBody();
+			else
+			{
+				genHomePageBody();
+				fileListShow();
+			}
+		}
+		function fileListShow()
+		{
+			// Set the new patterns list
+			let divPatternsList = document.getElementById("patternsList");
+			let fileList = window.stState.latestFileListInfo.files;
+			if (!fileList)
+				fileList = []
+			listStr = "";
+			for (let i = 0; i < fileList.length; i++)
+			{
+				let fileName = fileList[i].name;
+				let fileExtension = fileName.substr((fileName.lastIndexOf('.') + 1)).toUpperCase();
+				fileName = fileName.replace("/","");
+				const fileNameNoExtension = fileName.substr(0,fileName.lastIndexOf('.'));
+				// Check for excluded files
+				if (window.stState.fileExcludes.includes(fileName.toUpperCase()))
+					continue;
+				listStr += "<div class='body-list-line'>";
+				listStr += "<div class='body-list-item'>";
+				if (fileExtension === "JSON")
+					listStr += "<span>" + fileName + "</span>"
+				else
+					listStr += genAjaxButton("/playFile/"+fileName, "", fileNameNoExtension, 'body-group-button');
+				listStr += "</div>";
+				listStr += "<div class='body-list-actions'>";
+				listStr += genButton("userAction(\"file\",\"run\",\"~key~\")", fileName, "Run", 'body-group-button', false, true);
+				listStr += genButton("userAction(\"file\",\"runAtStart\",\"~key~\"," + (fileName === window.pageState.startup) + ")", fileName, "RunAtStart", 'body-group-button', (fileName === window.pageState.startup), true);
+				listStr += genButton("userAction(\"file\",\"edit\",\"~key~\")", fileName, "Edit", 'body-group-button', false, true);
+				listStr += "</div>";
+				listStr += "</div>";
+			}
+			divPatternsList.innerHTML = listStr;
+		}
+		function fileReadToEdit(fileContent)
+		{
+			window.stState.curPage = "patEdit";
+			window.stState.curFileContentJson = fileContent;
+
+			// File being edited
+			const fileName = window.stState.curItem;
+			const fileExtension = fileName.substr((fileName.lastIndexOf('.') + 1)).toLowerCase();
+			window.stState.curFileType = fileExtension;
+			updateDisplay();
+		}
+		function callAjax(url, okCallback, failCallback)
+		{
+			const xmlhttp = new XMLHttpRequest();
+			xmlhttp.onreadystatechange = function()
+			{
+				if (xmlhttp.readyState === 4) {
+					if (xmlhttp.status === 200) {
+						okCallback(xmlhttp.responseText);
+					}
+					else {
+						if ((failCallback !== undefined) && (typeof failCallback !== 'undefined'))
+							failCallback(xmlhttp);
+					}
+				}
+			};
+
+			xmlhttp.open("GET", url, true);
+			xmlhttp.send();
+		}
+		function ajaxDefaultCallback()
+		{
+		}
+		function postJson(url, jsonStrToPos, okCallback, failCallback)
+		{
+			const xmlhttp = new XMLHttpRequest();
+			xmlhttp.onreadystatechange = function()
+			{
+				if (xmlhttp.readyState === 4) {
+					if (xmlhttp.status === 200) {
+						if ((okCallback !== undefined) && (typeof okCallback !== 'undefined'))
+							okCallback(xmlhttp.responseText);
+					}
+					else {
+						if ((failCallback !== undefined) && (typeof failCallback !== 'undefined'))
+							failCallback(xmlhttp);
+					}
+				}
+			};
+			xmlhttp.open("POST", url);
+			xmlhttp.setRequestHeader("Content-Type", "application/json");
+			xmlhttp.send(jsonStrToPos);
+		}
+
 		let logoCanvasWidth = 100, logoCanvasHeight = 100;
 
 		function iconGen(canvasID)
@@ -12,18 +550,18 @@
 			let logoWidth = 400, logoHeight = 400;
 			let tVal, x, y, stop;
 			let logoCentreX = logoCanvasWidth / 2, logoCentreY = logoCanvasHeight / 2;
-		    let startRadius = 180;
+			let startRadius = 180;
 			let overRotationFactor=1.03;
-	    	let segmentsPerRev = 200;
-	    	let modulationFreqMult = 20;
-		    let endRadius = 10;
-		    let outstepPerRev = -13;
-		    let modulationDampingFactor = 0.6;
-	    	let modulationAmp = 10;
+			let segmentsPerRev = 200;
+			let modulationFreqMult = 20;
+			let endRadius = 10;
+			let outstepPerRev = -13;
+			let modulationDampingFactor = 0.6;
+			let modulationAmp = 10;
 			function logoSetup() {
-                tVal = 0;
-                stop=false;
-            }
+				tVal = 0;
+				stop=false;
+			}
 			function logoLoop() {
 				const rRadians = tVal * 2 * Math.PI * overRotationFactor / segmentsPerRev;
 				const curModu = Math.sin(tVal * modulationFreqMult * 2 * Math.PI / segmentsPerRev);
@@ -58,456 +596,85 @@
 			ctx.stroke();
 
 		}
-		function bodyIsLoaded()
-		{
-		    window.stState = {
-				curPage: '',
-                runInTestMode: (location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.hostname === "")
-			};
-			window.sandTableState = {
-			    "maxCfgLen": 2000,
-                "name": "Sand Table",
-                "patterns":
-                {
-
-                },
-                "sequences":
-                {
-
-                },
-                "startup": ""
-			};
-			// Make a copy so that if the max length is exceeded we can fall back
-			window.prevSandTableState = window.sandTableState;
-			// Handle running directly in browser
-			if (window.stState.runInTestMode) {
-				window.sandTableState.name = "Sand Table - I must run on a server!"
-				sandTableInfoCallback(
-					JSON.stringify(window.sandTableState));
-			} else {
-				updateDisplay();
+		function setupSelect(callback) {
+			let selectS = document.getElementsByClassName("select-style");
+			for (let i = 0; i < selectS.length; i++) {
+				selEl = selectS[i].getElementsByTagName("select")[0];
+				if (selEl.options.length === 0)
+					continue;
+				// Selected item div
+				let selItemDiv = document.createElement("div");
+				selItemDiv.setAttribute("class", "select-selected");
+				selItemDiv.innerHTML = selEl.options[selEl.selectedIndex].innerHTML;
+				selectS[i].appendChild(selItemDiv);
+				// Options div
+				let optionsDiv = document.createElement("div");
+				optionsDiv.setAttribute("class", "select-items select-hide");
+				for (let j = 0; j < selEl.length; j++) {
+					// Option div (for each option)
+					let optionDiv = document.createElement("div");
+					optionDiv.innerHTML = selEl.options[j].innerHTML;
+					optionDiv.addEventListener("click", function (event) {
+						// Handle item click = select item
+						let selection = this.parentNode.parentNode.getElementsByTagName("select")[0];
+						let prevSibling = this.parentNode.previousSibling;
+						for (let k = 0; k < selection.length; k++) {
+							if (selection.options[k].innerHTML == this.innerHTML) {
+								selection.selectedIndex = k;
+								prevSibling.innerHTML = this.innerHTML;
+								let sameAsSel = this.parentNode.getElementsByClassName("same-as-selected");
+								for (n = 0; n < sameAsSel.length; n++) {
+									sameAsSel[n].removeAttribute("class");
+								}
+								this.setAttribute("class", "same-as-selected");
+								break;
+							}
+						}
+						prevSibling.click();
+					});
+					optionsDiv.appendChild(optionDiv);
+					// Last item only
+					if (j == selEl.length-1)
+						optionDiv.setAttribute("class", "select-last-option");
+				}
+				selectS[i].appendChild(optionsDiv);
+				selItemDiv.addEventListener("click", function (event) {
+					// Select box clicked = close other select boxes & open/close current
+					event.stopPropagation();
+					closeAllSelect(this);
+					this.nextSibling.classList.toggle("select-hide");
+					this.classList.toggle("select-arrow-active");
+					callback();
+				});
 			}
-		}
-        function callAjax(url, okCallback, failCallback)
-        {
-            const xmlhttp = new XMLHttpRequest();
-            xmlhttp.onreadystatechange = function()
-            {
-                if (xmlhttp.readyState === 4) {
-                    if (xmlhttp.status === 200) {
-                        okCallback(xmlhttp.responseText);
-                    }
-                    else {
-                        if ((failCallback !== undefined) && (typeof failCallback !== 'undefined'))
-                            failCallback(xmlhttp);
-                    }
-                }
-            };
 
-            xmlhttp.open("GET", url, true);
-            xmlhttp.send();
-        }
-        function ajaxCallback()
-        {
-        }
-        function postJson(url, jsonStrToPos, okCallback, failCallback)
-        {
-            const xmlhttp = new XMLHttpRequest();
-            xmlhttp.onreadystatechange = function()
-            {
-                if (xmlhttp.readyState === 4) {
-                    if (xmlhttp.status === 200) {
-                        if ((okCallback !== undefined) && (typeof okCallback !== 'undefined'))
-	                        okCallback(xmlhttp.responseText);
-                    }
-                    else {
-                        if ((failCallback !== undefined) && (typeof failCallback !== 'undefined'))
-                            failCallback(xmlhttp);
-                    }
-                }
-            };
-            xmlhttp.open("POST", url);
-            xmlhttp.setRequestHeader("Content-Type", "application/json");
-            xmlhttp.send(jsonStrToPos);
-        }
-		function sandTableInfoCallback(jsonResp)
-		{
-			// Check for empty status info
-			if (jsonResp !== "" && jsonResp !== "{}")
-			{
-				const jsonData = JSON.parse(jsonResp);
-				// Make a copy so that if the max length is exceeded we can fall back
-				window.prevSandTableState = JSON.parse(JSON.stringify(window.sandTableState));
-				window.sandTableState = jsonData;
-			}
-            genPageHeader();
-			genPageBody();
-			iconGen("logoCanvas");
-		}
-		function sendSandTableInfo()
-		{
-		    jsonStr = JSON.stringify(window.sandTableState);
-		    if (jsonStr.length > window.sandTableState.maxCfgLen)
-			{
-			    // Send back the previous - unchanged - state as this is too long
-				alert("The robot memory is full, please simplify or remove other patterns before adding new ones")
-			    jsonStr = JSON.stringify(window.prevSandTableState)
-			}
-			jsonStr = jsonStr.replace("\n", "\\n")
-		    console.log("POSTING " + jsonStr);
-            postJson("/postsettings", jsonStr, postSettingsOkCallback, postSettingsFailCallback);
-		}
-		function userAction(itemTypeStr, cmdStr, argStr, curState)
-		{
-		    objStateSection = window.sandTableState.patterns;
-		    if (itemTypeStr === "seq")
-		        objStateSection = window.sandTableState.sequences;
-//		    console.log("UserAction type " + itemTypeStr + " cmd " + cmdStr + " arg " + argStr);
-		    if (cmdStr === "delete")
-			{
-			    if (confirm('Are you sure you want to delete?'))
-			    {
-			        // Remove from JSON
-					if (argStr in objStateSection)
-					    delete objStateSection[argStr];
-					window.stState.curPage = "";
-					sendSandTableInfo();
-					updateDisplay();
+			function closeAllSelect(elmnt) {
+				// Close all selects
+				let selArray = [];
+				let selectedItems = document.getElementsByClassName("select-items");
+				let selectsSelected = document.getElementsByClassName("select-selected");
+				for (let i = 0; i < selectsSelected.length; i++) {
+					if (elmnt == selectsSelected[i]) {
+						selArray.push(i)
+					}
+					else {
+						selectsSelected[i].classList.remove("select-arrow-active");
+					}
+				}
+				for (i = 0; i < selectedItems.length; i++) {
+					if (selArray.indexOf(i)) {
+						selectedItems[i].classList.add("select-hide");
+					}
 				}
 			}
-		    else if (cmdStr === "save") {
-		        // Get values from form
-                if (itemTypeStr === "pat") {
-                    let patname = document.getElementById('patname').value.trim();
-                    patname = patname.replace('"','');
-                    patname = patname.replace('\\','');
-                    const patsetup = document.getElementById('patsetup').value;
-                    const patloop = document.getElementById('patloop').value;
-                    // Check name is valid
-                    if (patname.trim().length > 0) {
-                        if ((patname === argStr.trim()) || (!(patname in window.sandTableState.patterns))) {
-                            // Remove existing item in case name has changed
-                            if (argStr in window.sandTableState.patterns)
-                                delete window.sandTableState.patterns[argStr];
-                            // Save new information
-                            window.sandTableState.patterns[patname] = {setup: patsetup, loop: patloop};
-                            window.stState.curPage = "";
-                            sendSandTableInfo();
-                            updateDisplay();
-                        }
-                    }
-                }
-                else {
-                    let seqname = document.getElementById('seqname').value.trim();
-                    seqname = seqname.replace('"','');
-                    seqname = seqname.replace('\\','');
-                    const seqcommands = document.getElementById('seqcommands').value;
-                    // Check name is valid
-                    if (seqname.trim().length > 0) {
-                        if ((seqname === argStr.trim()) || (!(seqname in window.sandTableState.sequences))) {
-                            // Remove existing item in case name has changed
-                            if (argStr in window.sandTableState.sequences)
-                                delete window.sandTableState.sequences[argStr];
-                            // Save new information
-                            window.sandTableState.sequences[seqname] = {commands: seqcommands};
-                            window.stState.curPage = "";
-                            sendSandTableInfo();
-                            updateDisplay();
-                        }
-                    }
-                }
-            }
-		    else if (cmdStr === "cancel")
-			{
-				window.stState.curPage = "";
-				updateDisplay();
-			}
-		    else if (cmdStr === "add")
-			{
-			    if (itemTypeStr === "pat")
-    				window.stState.curPage = "patEdit";
-			    else
-			        window.stState.curPage = "seqEdit";
-				window.stState.curItem = "";
-				updateDisplay();
-			}
-			else if (cmdStr === "edit")
-			{
-			    if (itemTypeStr === "pat")
-    				window.stState.curPage = "patEdit";
-			    else
-			        window.stState.curPage = "seqEdit";
-			    window.stState.curItem = argStr;
-			    updateDisplay();
-			}
-			else if (cmdStr === "runAtStart")
-			{
-				argStr = argStr.replace('"','');
-				argStr = argStr.replace('\\','');
-			    let curRunAtStartVal = 0;
-			    if (argStr in window.sandTableState.sequences)
-			        curRunAtStartVal = window.sandTableState.sequences[argStr].runAtStart;
-			    for (const seq in window.sandTableState.sequences)
-			        window.sandTableState.sequences[seq].runAtStart = 0;
-			    if (argStr in window.sandTableState.sequences)
-			        window.sandTableState.sequences[argStr].runAtStart = curRunAtStartVal ? 0 : 1;
-			    console.log("runAtStart arg" + argStr);
-			    if (curRunAtStartVal === 0)
-				    window.sandTableState["startup"] = argStr;
-			    else
-			        window.sandTableState["startup"] = "";
-				sendSandTableInfo();
-				updateDisplay();
-			}
-		}
-		function postSettingsOkCallback()
-		{
-		    console.log("Posted settings ok");
-		    updateDisplay();
-		}
-		function postSettingsFailCallback()
-		{
-		    console.log("Post settings FAILED");
-		    updateDisplay();
-		}
-		function genButton(clickFn, keyVal, label, cssClass, curState)
-		{
-//		    console.log("Gen BUTTON url " + url + " clickFn " + clickFn + " label " + label);
-			let oStr = "";
-			clickFn = clickFn.replace("~key~", keyVal);
-			oStr += "<span class='" + cssClass + "' onclick='" + clickFn + "'>";
-			if (label === "Edit")
-			{
-				oStr += '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="25px" height="25px" viewBox="0 0 530 530">';
-				oStr += '<g><path d="M328.883,89.125l107.59,107.589l-272.34,272.34L56.604,361.465L328.883,89.125z M518.113,63.177l-47.981-47.981   c-18.543-18.543-48.653-18.543-67.259,0l-45.961,45.961l107.59,107.59l53.611-53.611   C532.495,100.753,532.495,77.559,518.113,63.177z M0.3,512.69c-1.958,8.812,5.998,16.708,14.811,14.565l119.891-29.069 L27.473,390.597L0.3,512.69z" style="fill: rgb(220, 222, 218);"></path></g>';
-				oStr += '</svg>';
-			}
-			else if (label === "Add")
-			{
-				oStr += '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="25px" height="25px" viewBox="170 60 200 150">';
-				oStr += '<g><path style="fill:none;stroke:#e0e0e0;stroke-width:22;stroke-linecap:round;"'
-				oStr += 'd="m 250,50 0,150 m 75,-75 -150,0" />';
-				oStr += '</svg>';
-			}
-//			else if (label == "Delete")
-//			{
-//				oStr += '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="30px" height="30px" viewBox="0 0 414 414">';
-//				oStr += '<g><path d="m 107.34348,113.4774 200.6666,201.54286 M 107.34348,315.4584 308.88635,110.84858" style="fill:none;fill-rule:evenodd;stroke:#dcded0;stroke-width:59.9;stroke-linecap:round;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none"/></g>';
-//				oStr += '</svg>';
-//			}
-			else if (label === "RunAtStart")
-			{
-				oStr += '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="25px" height="25px" viewBox="100 50 120 150">';
-				oStr += '<g><path d="m 200,200 c -4.35878,-1.14794 -5.49015,-3.7954 -8.2485,-19.30195 -2.19682,-12.34983 -2.66103,-13.64007 -9.28184,-25.7981 -3.83316,-7.03896 -7.18705,-12.58042 -7.45311,-12.31436 -0.26606,0.26605 -2.15305,7.1502 -4.19333,15.2981 l -3.70958,14.81436 -20.7132,0.27036 -20.7132,0.27037 -2.47491,-2.47491 c -4.35871,-4.35871 -2.78064,-9.77311 3.35866,-11.52363 1.83347,-0.52278 8.80395,-0.87661 15.48997,-0.78629 12.1092,0.16358 12.15924,0.15467 12.89213,-2.29584 0.40466,-1.35303 1.67163,-10.88581 2.81549,-21.18394 l 2.07975,-18.72388 8.11439,-13.11213 c 6.12254,-9.89348 7.79116,-13.3119 6.79762,-13.92595 -1.06027,-0.65528 -17.26314,-4.01416 -19.36388,-4.01416 -0.30487,0 -2.64213,3.83018 -5.19393,8.51152 -2.5518,4.68133 -5.51736,8.98126 -6.59014,9.5554 -2.82117,1.50984 -5.76682,0.2119 -6.5442,-2.88357 -0.53306,-2.12261 0.66803,-5.26676 5.74768,-15.04598 3.53185,-6.79944 6.9994,-12.59097 7.70565,-12.87007 2.27529,-0.89915 31.55607,4.80241 35.55298,6.92288 5.16148,2.7383 6.30561,1.46922 4.21825,-4.67895 -2.03972,-6.00785 -1.21221,-10.69349 2.66925,-15.11423 5.82929,-6.6392 15.76006,-6.59533 21.63475,0.0956 7.32702,8.34502 3.71469,20.54186 -6.99172,23.60714 -7.83845,2.24417 -8.53147,3.69756 -3.41948,7.17125 1.89647,1.28869 7.06225,6.86646 11.47951,12.39506 8.0213,10.03937 8.03902,10.05362 14.10508,11.34092 9.99138,2.12032 13.92644,7.00804 8.50304,10.56158 -2.27585,1.4912 -3.09767,1.47917 -10.75,-0.15729 l -8.28576,-1.77192 -9.08037,-9.49703 -9.08038,-9.49702 -6.12185,11.12076 -6.12184,11.12076 7.4305,17.24009 c 6.86365,15.92488 7.67298,18.5563 10.60883,34.49313 2.95722,16.05285 3.06756,17.42208 1.58612,19.68305 -1.93692,2.95611 -4.19231,3.62242 -8.45843,2.4989 z" ';
-				oStr += 'style="fill: ' + (curState ? '#78BFC1' : '#e0e0e0') + ';"></path></g>';
-				oStr += '</svg>';
-			}
-			else
-			{
-			    oStr += label;
-			}
-			oStr += "</span>";
 
-//		    console.log("genButton -> " + rtnStr);
-		    return oStr;
-		}
-		function genAjaxButton(url, key, label, cssClass)
-		{
-		    return genButton("callAjax(\"" + url + "\",ajaxCallback)", key, label, cssClass, false);
-		}
-		function genPageHeader()
-		{
-			const sandTableState = window.sandTableState;
-			const headerDiv = document.getElementById("pageHeader");
-			let headStr = "<div class='page-header backHead'>";
-			headStr += "<div class='page-header-logo'>";
-			headStr += '<canvas id="logoCanvas" class="page-logo backHead" width="' + logoCanvasWidth + '" height="' + logoCanvasHeight + '">Oops</canvas>';
-			headStr += '</div>';
-			headStr += "<div class='page-header-text'>";
-			headStr += sandTableState.name;
-			headStr += '</div>';
-			headStr += '</div>';
-			headerDiv.innerHTML = headStr;
-		}
-		function genBodyHeadingSection()
-		{
-			// Control section
-			let oStr = "<div class='body-group backGrad1'>";
-//			oStr += "<div class='body-group-header'>Control</div>";
-			oStr += "<div class='body-commands'>";
-			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/pause", "", "Pause", 'body-commands-button') + "</div>";
-			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/resume", "", "Resume", 'body-commands-button') + "</div>";
-			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/stop", "", "Stop", 'body-commands-button') + "</div>";
-            oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/g28", "", "Home", 'body-commands-button') + "</div>";
-//			oStr += "<div class='body-list-item'>" + "<a href='javascript:void(0)' onclick='postJson(\"/postsettings\", window.sandTableState)'>POST</a>" + "</div>";
-			oStr += "</div>";
-			oStr += "</div>";
-			return oStr;
-		}
-		function genPatternsBody()
-		{
-			// Patterns section
-			let listStr = "<div class='body-group backGrad2'>";
-			listStr += "<div class='body-group-header'>Patterns";
-			listStr += "<div class='body-group-actions'>";
-			listStr += genButton("userAction(\"pat\",\"add\",\"\")", "", "Add", 'body-group-button', false);
-			listStr += "</div>";
-			listStr += "</div>";
-			listStr += "<div class='body-list'>";
-			let patterns = window.sandTableState.patterns;
-			if (!patterns)
-				patterns = []
-			Object.keys(patterns).forEach(function(key,index) {
-				listStr += "<div class='body-list-line'>";
-          		listStr += "<div class='body-list-item'>";
-				listStr += genAjaxButton("/pattern/"+key, "", key, 'body-group-button');
-				listStr += "</div>";
-				listStr += "<div class='body-list-actions'>";
-				listStr += genButton("userAction(\"pat\",\"edit\",\"~key~\")", key, "Edit", 'body-group-button', false);
-				listStr += "</div>";
-				listStr += "</div>";
-    		});
-            listStr += "</div>";
-            listStr += "</div>";
-		    return listStr;
-		}
-		function genSequencesBody() {
-			// Sequences section
-			let listStr = "<div class='body-group backGrad3'>";
-			listStr += "<div class='body-group-header'>Sequences";
-			listStr += "<div class='body-group-actions'>";
-			listStr += genButton("userAction(\"seq\",\"add\",\"\")", "", "Add", 'body-group-button', false);
-			listStr += "</div>";
-			listStr += "</div>";
-			listStr += "<div class='body-list'>";
-			Object.keys(window.sandTableState.sequences).forEach(function(key,index) {
-				listStr += "<div class='body-list-line'>";
-          		listStr += "<div class='body-list-item'>";
-				listStr += genAjaxButton("/sequence/"+key, "", key, 'body-group-button');
-				listStr += "</div>";
-				listStr += "<div class='body-list-actions'>";
-				let UAStr = "userAction(\"seq\",\"runAtStart\",\"~key~\"," + ((sandTableState.sequences[key].runAtStart) ? 0 : 1) + ")";
-				listStr += genButton(UAStr, key, "RunAtStart", 'body-group-button button-spacing', sandTableState.sequences[key].runAtStart);
-				listStr += genButton("userAction(\"seq\",\"edit\",\"~key~\")", key, "Edit", 'body-group-button', false);
-				listStr += "</div>";
-				listStr += "</div>";
-    		});
-            listStr += "</div>";
-            listStr += "</div>";
-            return listStr;
-        }
-		function genHomePageBody()
-		{
-			const sandTableState = window.sandTableState;
-			const pageBodyDiv = document.getElementById("pageBody");
-
-			// Body heading
-			let listStr = genBodyHeadingSection();
-			listStr += genPatternsBody();
-			listStr += genSequencesBody();
-
-			pageBodyDiv.innerHTML = listStr;
-
+			// Click outside the document - close all selects
+			if (selectS.length > 0)
+				document.addEventListener("click", closeAllSelect);
 		}
 
-		function genEditPageActions(itemTypeStr, argStr)
-        {
-			let listStr = "<div class='body-group'>";
-			listStr += "<div class='body-group-header'>";
-			listStr += "<div class='body-group-actions'>";
-			listStr += genButton("userAction(\"" + itemTypeStr + "\",\"delete\",\"~key~\")", argStr, "Delete", 'body-group-button', false);
-			listStr += "</div>";
-			listStr += "<div class='body-group-actions'>";
-			listStr += genButton("userAction(\"" + itemTypeStr + "\",\"save\",\"~key~\")", argStr, "Save", 'body-group-button', false);
-			listStr += "</div>";
-			listStr += "<div class='body-group-actions'>";
-			listStr += genButton("userAction(\"" + itemTypeStr + "\",\"cancel\",\"~key~\")", argStr, "Cancel", 'body-group-button', false);
-			listStr += "</div>";
-			listStr += "</div>";
-			return listStr;
-        }
-
-		function genPatEditBody() {
-            const sandTableState = window.sandTableState;
-            const patName = window.stState.curItem;
-            let patternInfo = { setup:"", loop:""};
-            if (patName in window.sandTableState.patterns)
-			    patternInfo = window.sandTableState.patterns[patName];
-            const pageBodyDiv = document.getElementById("pageBody");
-
-			// Body heading
-			let listStr = genBodyHeadingSection();
-
-            // Action buttons
-            listStr += genEditPageActions("pat", patName);
-
-            // Fields
-			listStr += "<form class='body-form'>";
-			listStr += "<fieldset class='body-fieldset'>";
-			listStr += "<div class='body-form-line'>";
-			listStr += "<div class='body-form-label'>Name</div>";
-			listStr += "<textarea id='patname' rows='1' class='body-form-field'>" + patName + "</textarea>";
-            listStr += "</div>";
-			listStr += "<div class='body-form-line'>";
-			listStr += "<div class='body-form-label'>Setup expressions</div>";
-			listStr += "<textarea id='patsetup' class='body-form-field' cols='50' rows='10'>" + patternInfo.setup + "</textarea>";
-            listStr += "</div>";
-			listStr += "<div class='body-form-line'>";
-			listStr += "<div class='body-form-label'>Loop expressions</div>";
-			listStr += "<textarea id='patloop' class='body-form-field' cols='50' rows='10'>" + patternInfo.loop + "</textarea>";
-            listStr += "</div>";
-            listStr += "</fieldset>";
-            listStr += "</form>";
-            listStr += "</div>";
-			pageBodyDiv.innerHTML = listStr;
-        }
-
-  		function genSeqEditBody() {
-            const sandTableState = window.sandTableState;
-            const seqName = window.stState.curItem;
-            let sequenceInfo = { commands: "" };
-            if (seqName in window.sandTableState.sequences)
-			    sequenceInfo = window.sandTableState.sequences[seqName];
-            const pageBodyDiv = document.getElementById("pageBody");
-
-			// Body heading
-			let listStr = genBodyHeadingSection();
-
-            // Action buttons
-            listStr += genEditPageActions("seq", seqName);
-
-            // Fields
-			listStr += "<form class='body-form'>";
-			listStr += "<fieldset class='body-fieldset'>";
-			listStr += "<div class='body-form-line'>";
-			listStr += "<div class='body-form-label'>Name</div>";
-			listStr += "<textarea id='seqname' rows='1' class='body-form-field'>" + seqName + "</textarea>";
-            listStr += "</div>";
-			listStr += "<div class='body-form-line'>";
-			listStr += "<div class='body-form-label'>Commands or Patterns</div>";
-			listStr += "<textarea id='seqcommands' class='body-form-field' cols='50' rows='10'>" + sequenceInfo.commands + "</textarea>";
-            listStr += "</div>";
-            listStr += "</fieldset>";
-            listStr += "</form>";
-            listStr += "</div>";
-			pageBodyDiv.innerHTML = listStr;
-        }
-
-		function genPageBody()
-		{
-		    if (window.stState.curPage.trim() === 'patEdit')
-				genPatEditBody();
-			else if (window.stState.curPage.trim() === 'seqEdit')
-				genSeqEditBody();
-			else
-			    genHomePageBody();
-		}
-		function updateDisplay()
-		{
-			callAjax("/getsettings", sandTableInfoCallback);
-		}
-    </script>
-    <style>
+	</script>
+	<style>
 	body {
 	  font-family: Century Gothic, sans-serif;
 	  line-height: 1.4em;
@@ -550,20 +717,22 @@
 	.body-commands-button{
 		font-size: 1.2em;
 		color: #fafcee;
-        cursor: pointer;
+		cursor: pointer;
 	}
 	.body-group{
-        background: -webkit-linear-gradient(top, #b9a888 0%, #c9b693 10px, #E3CDA6 100%);
+		background: -webkit-linear-gradient(top, #b9a888 0%, #c9b693 10px, #E3CDA6 100%);
 	}
 	.body-group-header{
+		font-family: Copperplate, Copperplate Gothic Light, sans-serif;
 		margin-left: 20px;
 		padding-top: 20px;
 		color: #64523c;
-		text-transform: uppercase;
-		font-size: 1.0em;
+		font-size: 1.2em;
 	}
 	.body-group-button {
-	  color: #fafcee;
+	  /*color: #fafcee;*/
+	  color: #64523c;
+	  text-decoration: none;
 		cursor:pointer;
 	}
 	.body-group-button-icon {
@@ -573,10 +742,15 @@
 		cursor:pointer;
 	}
 	.body-group-actions{
-        margin-right: 20px;
+		margin-right: 20px;
 		float: right;
+		color: #64523c;
+		font-weight: bold;
 	}
 	.body-group-action{
+	}
+	.body-group-select{
+		float: left;
 	}
 	.body-name{
 	  padding: 10px;
@@ -587,28 +761,31 @@
 	}
 	.body-form {
 		display: block;
-        clear: both;
+		clear: both;
 	}
 	.body-form-line{
 		padding:5px;
 	}
 	.body-form-label{
-		color:azure;
+		color:#64523c;
+		font-weight: bold;
 	}
 	.body-form-field{
 		width: 100%;
 		background: #A89062;
 		color: white;
 		border:none;
+		font-size: 14pt;
 	}
 	.body-fieldset{
 		border: none;
 	}
 	.body-list{
-        padding: 5px;
+		padding: 5px;
 		margin-left: auto;
 		margin-right: auto;
 		width: 100%;
+		min-height: 40px;
 	}
 	.body-list-line{
 		display:block;
@@ -624,14 +801,14 @@
 	  color: #fafcee;
 	}
 	.body-list-actions{
-        margin-right: 20px;
+		margin-right: 20px;
 		float: right;
 		padding-top: 10px;
 	}
 	.body-list-item span {
-	  text-decoration: none;
+	  /*text-decoration: none;*/
 	  color: #fafcee;
-		cursor:pointer;
+		/*cursor:pointer;*/
 	}
 	.body-list-edit span {
 		color: #fafcee;
@@ -641,9 +818,9 @@
 		cursor:pointer;
 	}
 	.body-config {
-        padding: 20px;
-        margin-top: 30px;
-        width: 100%;
+		padding: 20px;
+		margin-top: 30px;
+		width: 100%;
 	  font-size: 1.5em;
 	  color: #f0f0f0;
 	}
@@ -651,11 +828,11 @@
 		padding-top: 10px;
 		padding-bottom: 10px;
 		margin-top: 30px;
-  	  background-color: #202020;
-  	  width: 100%;
-  	  font-size: 1.2em;
-  	  color: #000000;
-  	  text-align: center;
+	  background-color: #202020;
+	  width: 100%;
+	  font-size: 1.2em;
+	  color: #000000;
+	  text-align: center;
 	}
 	.body-advanced a {
 	  text-decoration: none;
@@ -674,31 +851,174 @@
 		padding-right: 15px;
 	}
 	.backHead {
-//		background: #489080;
-//		background: #4EA3D3;
+
 		background: #407ea6;
 	}
 	.backGrad1 {
-//		background: -webkit-linear-gradient(top, #3e91bf 0%,#459ac7 10px,#479dca 20px,#4fa8d3 30px,#4c98cf 100%);
 		background: -webkit-linear-gradient(top, #4e9a8c 0%, #70ab9f 10px, #78BFC1 100%);
 
 	}
 	.backGrad2 {
-//		background: -webkit-linear-gradient(top, #31659d 0%,#3869a1 10px,#396aa1 20px,#4975aa 30px,#4673a6 100%);
 		background: -webkit-linear-gradient(top, #b49e73 0%, #C0A87A 10px, #C0A87A 100%);
 	}
 	.backGrad3 {
-//		background: -webkit-linear-gradient(top, #575094 0%, #5e5296 10px, #605396 20px, #53406f 30px, #53406f 100%);
 		background: -webkit-linear-gradient(top, #b9a888 0%, #c9b693 10px, #E3CDA6 100%);
 	}
-    </style>
+	.btn {
+/*        display: inline-block;
+		padding: 6px 12px;
+		margin-bottom: 0;
+		font-size: 14px;
+		font-weight: normal;
+		line-height: 1.42857143;
+		text-align: center;
+		white-space: nowrap;
+		vertical-align: middle;
+		touch-action: manipulation;
+		cursor: pointer;
+		user-select: none;
+		border: 1px solid transparent;
+		border-radius: 4px;
+		text-decoration: none;*/
+	}
+	.icon-toolbar {
+	color: #fafcee;
+	fill: #fafcee;
+	width: 48px;
+	height: 48px;
+	vertical-align: middle;
+	}
+	.icon-action {
+	color: #fafcee;
+	fill: #fafcee;
+	width: 32px;
+	height: 32px;
+	vertical-align: middle;
+	padding-left: 15px;
+	}
+	.select-style {
+		position: relative;
+		width: 15rem;
+	}
+	.select-style select {
+		display: none;
+	}
+	.select-selected {
+		background-color: #A89062;
+	}
+	/* Style arrow in select element */
+	.select-selected:after {
+		position: absolute;
+		content: "";
+		top: 14px;
+		right: 10px;
+		width: 0;
+		height: 0;
+		border: 6px solid transparent;
+		border-color: #64523c transparent transparent transparent;
+	}
+	/* Point arrow upwards when the select open*/
+	.select-selected.select-arrow-active:after {
+		border-color: transparent transparent #64523c transparent;
+		top: 7px;
+	}
+	/* Style items including the selected */
+	.select-items div,.select-selected {
+		padding: 8px;
+		border: 1px solid transparent;
+		border-color: transparent transparent rgba(0, 0, 0, 0.1) transparent;
+		cursor: pointer;
+		user-select: none;
+		/*border-radius: 5px;*/
+	}
+	.select-selected.select-arrow-active {
+		border-bottom-left-radius: 0;
+		border-bottom-right-radius: 0;
+	}
+	.select-last-option {
+		border-bottom-left-radius: 5px;
+		border-bottom-right-radius: 5px;
+	}
+	/* Style items */
+	.select-items {
+		position: absolute;
+		background-color: #aa8649;
+		top: 100%;
+		left: 0;
+		right: 0;
+		z-index: 99;
+		border-bottom-left-radius: 5px;
+		border-bottom-right-radius: 5px;
+	}
+	/* Hide items when the select closed */
+	.select-hide {
+		display: none;
+	}
+	.select-items div:hover, .same-as-selected {
+		background-color: rgba(0, 0, 0, 0.1);
+	}
+
+	</style>
 </head>
 <body onload="bodyIsLoaded()">
 
-<div>
-	<div id="pageHeader"></div>
-	<div id="pageBody"></div>
-</div>
+	<div>
+		<div id="pageHeader"></div>
+		<div id="pageBodyHead"></div>
+		<div id="pageBodyForm"></div>
+	</div>
+	<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+		 xml:space="preserve">
 
+	<symbol id="ico-stop" viewBox="0 0 191 191">
+		<g>
+			<path d="M158.912,0H31.782C14.239,0,0,14.239,0,31.782v127.13c0,17.544,14.239,31.782,31.782,31.782
+			h127.13c17.544,0,31.782-14.239,31.782-31.782V31.782C190.695,14.239,176.456,0,158.912,0z" ></path>
+		</g>
+	</symbol>
+	<symbol id="ico-pause" viewBox="0 0 46 46">
+		<g>
+			<path d="M13.987,0c-2.762,0-5,2.239-5,5v35.975c0,2.763,2.238,5,5,5s5-2.238,5-5V5C18.987,2.238,16.75,0,13.987,0z"/>
+			<path d="M31.987,0c-2.762,0-5,2.239-5,5v35.975c0,2.762,2.238,5,5,5s5-2.238,5-5V5C36.987,2.239,34.749,0,31.987,0z" stroke-width="0"/>
+		</g>
+	</symbol>
+	<symbol id="ico-play" viewBox="0 0 233 233">
+		<g>
+			<path d="M203.791,99.628L49.307,2.294c-4.567-2.719-10.238-2.266-14.521-2.266
+	c-17.132,0-17.056,13.227-17.056,16.578v198.94c0,2.833-0.075,16.579,17.056,16.579c4.283,0,9.955,0.451,14.521-2.267
+	l154.483-97.333c12.68-7.545,10.489-16.449,10.489-16.449S216.471,107.172,203.791,99.628z" stroke-width="0"/>
+		</g>
+	</symbol>
+	<symbol id="ico-delete" viewBox="0 0 26 26">
+		<g>
+			<path d="M 11 -0.03125 C 10.164063 -0.03125 9.34375 0.132813 8.75 0.71875 C 8.15625 1.304688 7.96875 2.136719 7.96875 3 L 4 3 C 3.449219 3 3 3.449219 3 4 L 2 4 L 2 6 L 24 6 L 24 4 L 23 4 C 23 3.449219 22.550781 3 22 3 L 18.03125 3 C 18.03125 2.136719 17.84375 1.304688 17.25 0.71875 C 16.65625 0.132813 15.835938 -0.03125 15 -0.03125 Z M 11 2.03125 L 15 2.03125 C 15.546875 2.03125 15.71875 2.160156 15.78125 2.21875 C 15.84375 2.277344 15.96875 2.441406 15.96875 3 L 10.03125 3 C 10.03125 2.441406 10.15625 2.277344 10.21875 2.21875 C 10.28125 2.160156 10.453125 2.03125 11 2.03125 Z M 4 7 L 4 23 C 4 24.652344 5.347656 26 7 26 L 19 26 C 20.652344 26 22 24.652344 22 23 L 22 7 Z M 8 10 L 10 10 L 10 22 L 8 22 Z M 12 10 L 14 10 L 14 22 L 12 22 Z M 16 10 L 18 10 L 18 22 L 16 22 Z " stroke-width="0"/>
+		</g>
+	</symbol>
+		<symbol id="ico-centre" viewBox="0 0 50 50">
+		<g>
+			<path d="M 46.774547,24.573656 A 21.166666,21.166666 0 0 1 25.607885,45.740326 21.166666,21.166666 0 0 1 4.4412196,24.573656 21.166666,21.166666 0 0 1 25.607885,3.4069957 21.166666,21.166666 0 0 1 46.774547,24.573656 Z" fill="none" stroke-width="6" stroke="#fafcee"/>
+			<path d="m 22.013375,20.560576 7.843099,8.12036" fill="none" stroke-width="4" stroke="#fafcee"/>
+			<path d="m 22.177493,28.743986 7.616455,-8.3333" fill="none" stroke-width="4" stroke="#fafcee"/>
+	   </g>
+	</symbol>
+	</symbol>
+		<symbol id="ico-run-at-start" viewBox="100 50 120 150">
+		<g>
+			<path d="m 200,200 c -4.35878,-1.14794 -5.49015,-3.7954 -8.2485,-19.30195 -2.19682,-12.34983 -2.66103,-13.64007 -9.28184,-25.7981 -3.83316,-7.03896 -7.18705,-12.58042 -7.45311,-12.31436 -0.26606,0.26605 -2.15305,7.1502 -4.19333,15.2981 l -3.70958,14.81436 -20.7132,0.27036 -20.7132,0.27037 -2.47491,-2.47491 c -4.35871,-4.35871 -2.78064,-9.77311 3.35866,-11.52363 1.83347,-0.52278 8.80395,-0.87661 15.48997,-0.78629 12.1092,0.16358 12.15924,0.15467 12.89213,-2.29584 0.40466,-1.35303 1.67163,-10.88581 2.81549,-21.18394 l 2.07975,-18.72388 8.11439,-13.11213 c 6.12254,-9.89348 7.79116,-13.3119 6.79762,-13.92595 -1.06027,-0.65528 -17.26314,-4.01416 -19.36388,-4.01416 -0.30487,0 -2.64213,3.83018 -5.19393,8.51152 -2.5518,4.68133 -5.51736,8.98126 -6.59014,9.5554 -2.82117,1.50984 -5.76682,0.2119 -6.5442,-2.88357 -0.53306,-2.12261 0.66803,-5.26676 5.74768,-15.04598 3.53185,-6.79944 6.9994,-12.59097 7.70565,-12.87007 2.27529,-0.89915 31.55607,4.80241 35.55298,6.92288 5.16148,2.7383 6.30561,1.46922 4.21825,-4.67895 -2.03972,-6.00785 -1.21221,-10.69349 2.66925,-15.11423 5.82929,-6.6392 15.76006,-6.59533 21.63475,0.0956 7.32702,8.34502 3.71469,20.54186 -6.99172,23.60714 -7.83845,2.24417 -8.53147,3.69756 -3.41948,7.17125 1.89647,1.28869 7.06225,6.86646 11.47951,12.39506 8.0213,10.03937 8.03902,10.05362 14.10508,11.34092 9.99138,2.12032 13.92644,7.00804 8.50304,10.56158 -2.27585,1.4912 -3.09767,1.47917 -10.75,-0.15729 l -8.28576,-1.77192 -9.08037,-9.49703 -9.08038,-9.49702 -6.12185,11.12076 -6.12184,11.12076 7.4305,17.24009 c 6.86365,15.92488 7.67298,18.5563 10.60883,34.49313 2.95722,16.05285 3.06756,17.42208 1.58612,19.68305 -1.93692,2.95611 -4.19231,3.62242 -8.45843,2.4989 z"/>
+		</g>
+	</symbol>
+	</symbol>
+		<symbol id="ico-edit" viewBox="0 0 530 530">
+		<g><path d="M328.883,89.125l107.59,107.589l-272.34,272.34L56.604,361.465L328.883,89.125z M518.113,63.177l-47.981-47.981   c-18.543-18.543-48.653-18.543-67.259,0l-45.961,45.961l107.59,107.59l53.611-53.611   C532.495,100.753,532.495,77.559,518.113,63.177z M0.3,512.69c-1.958,8.812,5.998,16.708,14.811,14.565l119.891-29.069 L27.473,390.597L0.3,512.69z"/>
+		</g>
+	</symbol>
+	</symbol>
+		<symbol id="ico-add" viewBox="170 60 200 150">
+		<g><path d="m 250,50 0,150 m 75,-75 -150,0" 
+			style="fill:none;stroke:#fafcee;stroke-width:22;stroke-linecap:round;"/>
+		</g>
+	</symbol>
+
+</svg>
 </body>
 </html>

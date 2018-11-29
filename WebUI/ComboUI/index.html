@@ -28,8 +28,16 @@
         }
         function settingsCallback(json)
         {
-        	console.log(json);
-            const settings = JSON.parse(json);
+            let settings = {}
+            try
+            {
+                settings = JSON.parse(json);
+            }
+            catch(excp)
+            {
+                console.error("Failed to parse JSON settings " + json);
+                console.error(excp);
+            }
             if ((settings.uiType !== null) && (settings.uiType === "SandUI"))
             {
                 window.location.replace("sandUI.html");             

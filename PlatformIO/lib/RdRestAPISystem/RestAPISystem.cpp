@@ -195,6 +195,20 @@ void RestAPISystem::apiFileList(String &reqStr, String& respStr)
     _fileManager.getFilesJSON(fileSystemStr, folderStr, respStr);
 }
 
+// Read file contents
+// Uses FileManager.h
+// In the reqStr the first part of the path is the file system name (e.g. SD or SPIFFS)
+// The second part of the path is the folder and filename - note that / must be replaced with ~ in folder
+void RestAPISystem::apiFileRead(String &reqStr, String& respStr)
+{
+    // File system
+    String fileSystemStr = RestAPIEndpoints::getNthArgStr(reqStr.c_str(), 1);
+    // Filename
+    String fileNameStr = RestAPIEndpoints::getNthArgStr(reqStr.c_str(), 2);
+    fileNameStr.replace("~", "/");
+    respStr = _fileManager.getFileContents(fileSystemStr, fileNameStr);
+}
+
 // Delete file on the file system
 // Uses FileManager.h
 // In the reqStr the first part of the path is the file system name (e.g. SD or SPIFFS)
@@ -278,6 +292,9 @@ void RestAPISystem::setup(RestAPIEndpoints &endpoints)
     endpoints.addEndpoint("filelist", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
                     std::bind(&RestAPISystem::apiFileList, this, std::placeholders::_1, std::placeholders::_2), 
                     "List files in folder /SPIFFS/folder ... ~ for / in folder");
+    endpoints.addEndpoint("fileread", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                    std::bind(&RestAPISystem::apiFileRead, this, std::placeholders::_1, std::placeholders::_2), 
+                    "Read file ... name", "text/plain");
     endpoints.addEndpoint("deleteFile", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
                     std::bind(&RestAPISystem::apiDeleteFile, this, std::placeholders::_1, std::placeholders::_2), 
                     "Delete file /SPIFFS/filename ... ~ for / in filename");

@@ -128,11 +128,13 @@ bool FileManager::getFilesJSON(const String& fileSystemStr, const String& folder
     return true;
 }
 
-String FileManager::getFileContents(const char* fileSystem, const String& filename, int maxLen)
+String FileManager::getFileContents(const String& fileSystemStr, const String& filename, int maxLen)
 {
-    // Only SPIFFS supported
-    if (strcmp(fileSystem, "SPIFFS") != 0)
+    // Check file system supported
+    if ((fileSystemStr.length() > 0) && (fileSystemStr != "SPIFFS"))
+    {
         return "";
+    }
 
     // Take mutex
     xSemaphoreTake(_fileSysMutex, portMAX_DELAY);
@@ -145,6 +147,26 @@ String FileManager::getFileContents(const char* fileSystem, const String& filena
         return "";
     }
 
+    // Get file info - to check length
+    struct stat st;
+    if ((stat(rootFilename.c_str(), &st) != 0) || !S_ISREG(st.st_mode))
+    {
+        xSemaphoreGive(_fileSysMutex);
+        return "";
+    }
+
+    // Check valid
+    if (maxLen <= 0)
+    {
+        maxLen = ESP.getFreeHeap() / 3;
+    }
+    if (st.st_size >= maxLen-1)
+    {
+        xSemaphoreGive(_fileSysMutex);
+        return "";
+    }
+    int fileSize = st.st_size;
+
     // Open file
     File file = SPIFFS.open(filename, FILE_READ);
     if (!file)
@@ -155,16 +177,16 @@ String FileManager::getFileContents(const char* fileSystem, const String& filena
     }
 
     // Buffer
-    uint8_t* pBuf = new uint8_t[maxLen+1];
+    uint8_t* pBuf = new uint8_t[fileSize+1];
     if (!pBuf)
     {
         xSemaphoreGive(_fileSysMutex);
-        Log.trace("%sfailed to allocate %d\n", MODULE_PREFIX, maxLen);
+        Log.trace("%sfailed to allocate %d\n", MODULE_PREFIX, fileSize);
         return "";
     }
 
     // Read
-    size_t bytesRead = file.read(pBuf, maxLen);
+    size_t bytesRead = file.read(pBuf, fileSize);
     file.close();
     xSemaphoreGive(_fileSysMutex);
     pBuf[bytesRead] = 0;
@@ -173,11 +195,13 @@ String FileManager::getFileContents(const char* fileSystem, const String& filena
     return readData;
 }
 
-bool FileManager::setFileContents(const char* fileSystem, const String& filename, String& fileContents)
+bool FileManager::setFileContents(const String& fileSystemStr, const String& filename, String& fileContents)
 {
-    // Only SPIFFS supported
-    if (strcmp(fileSystem, "SPIFFS") != 0)
+    // Check file system supported
+    if ((fileSystemStr.length() > 0) && (fileSystemStr != "SPIFFS"))
+    {
         return false;
+    }
 
     // Take mutex
     xSemaphoreTake(_fileSysMutex, portMAX_DELAY);
@@ -188,7 +212,7 @@ bool FileManager::setFileContents(const char* fileSystem, const String& filename
     {
         xSemaphoreGive(_fileSysMutex);        
         Log.trace("%sfailed to open file to write %s\n", MODULE_PREFIX, filename.c_str());
-        return "";
+        return false;
     }
 
     // Write

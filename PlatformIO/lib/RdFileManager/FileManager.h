@@ -46,8 +46,8 @@ public:
     bool getFilesJSON(const String& fileSystemStr, const String& folderStr, String& respStr);
 
     // Get/Set file contents as a string
-    String getFileContents(const char* fileSystem, const String& filename, int maxLen);
-    bool setFileContents(const char* fileSystem, const String& filename, String& fileContents);
+    String getFileContents(const String& fileSystemStr, const String& filename, int maxLen=0);
+    bool setFileContents(const String& fileSystemStr, const String& filename, String& fileContents);
 
     // Handle a file upload block - same API as ESPAsyncWebServer file handler
     void uploadAPIBlockHandler(const char* fileSystem, const String& req, const String& filename, int fileLength, size_t index, uint8_t *data, size_t len, bool finalBlock);
