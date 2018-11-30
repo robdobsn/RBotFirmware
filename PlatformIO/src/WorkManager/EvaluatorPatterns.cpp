@@ -191,37 +191,51 @@ void EvaluatorPatterns::service(WorkManager* pWorkManager)
 }
 
 // Process WorkItem
-bool EvaluatorPatterns::execWorkItem(WorkItem& workItem)
+bool EvaluatorPatterns::execWorkItem(WorkItem& workItem, FileManager& fileManager)
 {
-    // Find the pattern matching the command
-    bool isValid = false;
-    String patternName = workItem.getString();
-    String patternJson = RdJson::getString(patternName.c_str(), "{}", _jsonConfigStr.c_str(), isValid);
-    if (isValid)
+    // Evaluator patterns should have the file extension .param
+    String fileName = workItem.getString();
+    String fileExt = FileManager::getFileExtension(fileName);
+    if (!fileExt.equalsIgnoreCase("param"))
     {
-        // This is a valid pattern
-        Log.verbose("%sprocCmd cmdStr %s seqStr %s\n", MODULE_PREFIX, patternName.c_str(), patternJson.c_str());
-
-        // Remove existing pattern
-        cleanUp();
-
-        // Get pattern details
-        _curPattern = patternName;
-        String setupExprs = RdJson::getString("setup", "", patternJson.c_str());
-        String loopExprs = RdJson::getString("loop", "", patternJson.c_str());
-        Log.trace("%spatternName %s setup %s\n", MODULE_PREFIX,
-                        _curPattern.c_str(), setupExprs.c_str());
-        Log.trace("%spatternName %s loop %s\n", MODULE_PREFIX,
-                        _curPattern.c_str(), loopExprs.c_str());
-
-        // Add to the pattern evaluator expressions
-        addExpression(setupExprs.c_str(), true);
-        addExpression(loopExprs.c_str(), false);
-
-        // Start the pattern evaluation process
-        start();
-
+        return false;
     }
-    return isValid;
+
+    // The command should be a valid file name
+    String patternJson = fileManager.getFileContents("SPIFFS", fileName, 0);
+    if (patternJson.length() <= 0)
+    {
+        Log.trace("%sfileName %s ext <%s> pat %s returning \n", MODULE_PREFIX,
+                    fileName.c_str(), fileExt.c_str(), patternJson.c_str());
+        return false;
+    }
+
+    // Remove existing pattern
+    cleanUp();
+
+    // Get pattern details
+    _curPattern = fileName;
+    String setupExprs = RdJson::getString("setup", "", patternJson.c_str());
+    String loopExprs = RdJson::getString("loop", "", patternJson.c_str());
+    Log.trace("%spatternName %s setup %s\n", MODULE_PREFIX,
+                    _curPattern.c_str(), setupExprs.c_str());
+    Log.trace("%spatternName %s loop %s\n", MODULE_PREFIX,
+                    _curPattern.c_str(), loopExprs.c_str());
+
+    if (loopExprs.length() <= 0)
+{
+            Log.trace("%sfileName %s ext <%s> loop %s returning \n", MODULE_PREFIX,
+                    fileName.c_str(), fileExt.c_str(), loopExprs.c_str());
+
+        return false;
+
+}
+    // Add to the pattern evaluator expressions
+    addExpression(setupExprs.c_str(), true);
+    addExpression(loopExprs.c_str(), false);
+
+    // Start the pattern evaluation process
+    start();
+    return true;
 }
 

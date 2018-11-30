@@ -10,6 +10,7 @@
 
 class WorkManager;
 class WorkItem;
+class FileManager;
 
 class EvaluatorPatterns
 {
@@ -43,7 +44,7 @@ public:
     void service(WorkManager* pWorkManager);
 
     // Process WorkItem
-    bool execWorkItem(WorkItem& workItem);
+    bool execWorkItem(WorkItem& workItem, FileManager& fileManager);
 
 private:
     // Full configuration JSON

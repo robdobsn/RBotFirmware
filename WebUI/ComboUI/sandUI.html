@@ -298,12 +298,13 @@
 		{
 			// Patterns section
 			let listStr = "<div class='body-group backGrad2'>";
-			listStr += "<div class='body-group-header'>Patterns";
+			listStr += "<div class='body-group-header'><span>Patterns</span>";
 			listStr += "<div class='body-group-actions'>";
+			listStr += "<progress id=\"progress-bar-file-manager\" class=\"body-group-button hidden\" max=100 value=0></progress>";
 			listStr += genButton("userAction(\"file\",\"add\",\"\")", "", "Add", 'body-group-button', false, true);
 			listStr += "</div>";
 			listStr += "</div>";
-			listStr += "<div class='body-list' id='patternsList'>";
+			listStr += "<div class='body-list drop-zone' id='patternsList'>";
 			listStr += "</div>";
 			listStr += "</div>";
 			return listStr;
@@ -448,8 +449,6 @@
 				// Select
 				this.setupSelect(this.setFileType);
 			}
-			// else if (window.stState.curPage.trim() === 'seqEdit')
-			// 	genSeqEditBody();
 			else
 			{
 				genHomePageBody();
@@ -488,6 +487,28 @@
 				listStr += "</div>";
 			}
 			divPatternsList.innerHTML = listStr;
+			// Drag and drop
+			let dropZones = document.getElementsByClassName("drop-zone");
+			Array.from(dropZones).forEach(function(dropZone) {
+
+				// Prevent default drag behaviors
+				['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+					dropZone.addEventListener(eventName, preventDefaults, false)
+					document.body.addEventListener(eventName, preventDefaults, false)
+				});
+
+				// Highlight drop area when item is dragged over it
+				['dragenter', 'dragover'].forEach(eventName => {
+					dropZone.addEventListener(eventName, highlight, false)
+				});
+
+				['dragleave', 'drop'].forEach(eventName => {
+					dropZone.addEventListener(eventName, unhighlight, false)
+				});
+
+				// Handle dropped files
+				dropZone.addEventListener('drop', handleDrop, false);
+			}); 
 		}
 		function fileReadToEdit(fileContent)
 		{
@@ -500,6 +521,76 @@
 			window.stState.curFileType = fileExtension;
 			updateDisplay();
 		}
+		function preventDefaults(e) {
+			e.preventDefault();
+			e.stopPropagation();
+		}
+
+		function highlight(e) {
+			let regionId = e.currentTarget.id;
+			let dropArea = document.getElementById(regionId);
+			dropArea.classList.add('highlight');
+		}
+
+		function unhighlight(e) {
+			let regionId = e.currentTarget.id;
+			let dropArea = document.getElementById(regionId);
+			dropArea.classList.remove('highlight');
+		}
+
+		function handleDrop(e) {
+			var dt = e.dataTransfer;
+			var files = dt.files;
+			uploadToFileManager(files);
+		}
+
+		function uploadToFileManager(files) {
+			files = [...files];
+			initializeProgress(files.length, 'progress-bar-file-manager');
+			files.forEach(uploadOnlyFile);
+		}
+		
+		function initializeProgress(numFiles, progressBarName) {
+			let progressBar = document.getElementById(progressBarName);
+			progressBar.classList.remove("hidden");
+			progressBar.value = 0;
+		}
+
+        function updateProgress(fileNumber, percent, progressBarName) {
+            let progressBar = document.getElementById(progressBarName);
+            // console.debug('update', fileNumber, percent, total);
+            progressBar.value = percent;
+        }
+
+		function uploadOnlyFile(file, i)
+		{
+			uploadFileSpecUrl("/uploadtofileman", 'progress-bar-file-manager', file, i)
+		}
+
+		function uploadFileSpecUrl(url, progressBarName, file, i) {
+			var xhr = new XMLHttpRequest();
+			var formData = new FormData();
+			xhr.open('POST', url, true);
+			xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+			// Update progress (can be used to show progress indicator)
+			xhr.upload.addEventListener("progress", function(e) {
+				updateProgress(i, (e.loaded * 100.0 / e.total) || 100, progressBarName)
+			});
+
+			xhr.addEventListener('readystatechange', function(e) {
+				if (xhr.readyState == 4 && xhr.status == 200) {
+					updateProgress(i, 100, progressBarName)
+					reqFileListAndUpdate();
+				} else if (xhr.readyState == 4 && xhr.status != 200) {
+					// Error
+				}
+			});
+
+			formData.append('file', file);
+			xhr.send(formData);
+		}
+
 		function callAjax(url, okCallback, failCallback)
 		{
 			const xmlhttp = new XMLHttpRequest();
@@ -864,22 +955,36 @@
 	.backGrad3 {
 		background: -webkit-linear-gradient(top, #b9a888 0%, #c9b693 10px, #E3CDA6 100%);
 	}
+	.drop-zone.highlight {
+		background: #947e53;
+	}
+	.hidden{
+		visibility: hidden;
+	}
+	progress {
+		background-color: #fafcee;
+		border-color: #fafcee;
+		border-radius: 5px;
+		color: #407ea6;
+	}
+	progress::-webkit-progress-bar {
+		background-color: #407ea6;
+		border-color: #fafcee;
+		border-radius: 5px;
+	}
+	/* Firefox */
+	progress::-moz-progress-bar {
+		background-color: #407ea6;
+		border-radius: 5px;
+		border-color: #fafcee;
+	}
+	/* Chrome */
+	progress::-webkit-progress-value {
+		background-color: #407ea6;
+		border-radius: 5px;
+		border-color: #fafcee;
+	}	
 	.btn {
-/*        display: inline-block;
-		padding: 6px 12px;
-		margin-bottom: 0;
-		font-size: 14px;
-		font-weight: normal;
-		line-height: 1.42857143;
-		text-align: center;
-		white-space: nowrap;
-		vertical-align: middle;
-		touch-action: manipulation;
-		cursor: pointer;
-		user-select: none;
-		border: 1px solid transparent;
-		border-radius: 4px;
-		text-decoration: none;*/
 	}
 	.icon-toolbar {
 	color: #fafcee;

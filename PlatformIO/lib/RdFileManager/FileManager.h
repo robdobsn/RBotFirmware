@@ -63,4 +63,7 @@ public:
 
     // Get next chunk of file
     uint8_t* chunkFileNext(String& filename, int& fileLen, int& chunkPos, int& chunkLen, bool& finalChunk);
+
+    // Get file name extension
+    static String getFileExtension(String& filename);
 };

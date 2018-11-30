@@ -163,7 +163,7 @@ bool WorkManager::execWorkItem(WorkItem& workItem)
     // See if the command is a pattern generator
     bool handledOk = false;
     // See if it is a pattern evaluator
-    handledOk = _evaluatorPatterns.execWorkItem(workItem);
+    handledOk = _evaluatorPatterns.execWorkItem(workItem, _fileManager);
     if (handledOk)
         return handledOk;
     // See if it is a command sequencer

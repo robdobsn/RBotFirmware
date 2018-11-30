@@ -2,19 +2,13 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="a6546d1b-6b84-477e-8b73-cfca16147a37" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/lib/RdConfig/ConfigFile.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/lib/RdConfig/ConfigFile.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../PlatformIO/lib/RdFileManager/FileManager.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/lib/RdFileManager/FileManager.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../PlatformIO/lib/RdFileManager/FileManager.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/lib/RdFileManager/FileManager.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/lib/RdRestAPISystem/RestAPISystem.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/lib/RdRestAPISystem/RestAPISystem.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/lib/RdRestAPISystem/RestAPISystem.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/lib/RdRestAPISystem/RestAPISystem.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/lib/RdWebServer/WebServer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/lib/RdWebServer/WebServer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/lib/RdWebServer/WebServer.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/lib/RdWebServer/WebServer.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotConfigurations.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotConfigurations.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WebAutogenResources.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WebAutogenResources.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/main.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/EmulateSandTable.py" beforeDir="false" afterPath="$PROJECT_DIR$/EmulateSandTable.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../WebUI/ComboUI/cncUI.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../WebUI/ComboUI/cncUI.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../WebUI/ComboUI/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../WebUI/ComboUI/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RestAPIRobot.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RestAPIRobot.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/EvaluatorPatterns.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/EvaluatorPatterns.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/EvaluatorPatterns.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/EvaluatorPatterns.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/WorkManager.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/WorkManager.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../WebUI/ComboUI/sandUI.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../WebUI/ComboUI/sandUI.html" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -74,8 +68,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/EmulateSandTable.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="764">
-              <caret line="120" lean-forward="true" selection-start-line="120" selection-end-line="120" />
+            <state relative-caret-position="1819">
+              <caret line="107" column="6" selection-start-line="107" selection-start-column="6" selection-end-line="107" selection-end-column="6" />
               <folding>
                 <element signature="e#0#35#0" expanded="true" />
               </folding>
@@ -106,7 +100,7 @@
   </component>
   <component name="ProjectFrameBounds">
     <option name="x" value="335" />
-    <option name="width" value="1830" />
+    <option name="width" value="1964" />
     <option name="height" value="1567" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
@@ -223,23 +217,22 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="335" y="0" width="1830" height="1567" extended-state="0" />
-    <editor active="true" />
+    <frame x="335" y="0" width="1964" height="1567" extended-state="0" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.25536722" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.23739496" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
       <window_info anchor="bottom" id="Run" order="2" />
-      <window_info active="true" anchor="bottom" id="Debug" order="3" sideWeight="0.49887004" visible="true" weight="0.39986044" />
+      <window_info active="true" anchor="bottom" id="Debug" order="3" sideWeight="0.4989496" visible="true" weight="0.39986044" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
       <window_info anchor="bottom" id="Docker" order="7" show_stripe_button="false" />
       <window_info anchor="bottom" id="Version Control" order="8" />
       <window_info anchor="bottom" id="Database Changes" order="9" show_stripe_button="false" />
-      <window_info anchor="bottom" id="Event Log" order="10" sideWeight="0.5011299" side_tool="true" visible="true" weight="0.39986044" />
+      <window_info anchor="bottom" id="Event Log" order="10" sideWeight="0.5010504" side_tool="true" visible="true" weight="0.39986044" />
       <window_info anchor="bottom" id="Terminal" order="11" sideWeight="0.49943504" weight="0.32937893" />
       <window_info anchor="bottom" id="Python Console" order="12" />
       <window_info anchor="right" id="Commander" order="0" weight="0.4" />
@@ -372,8 +365,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/EmulateSandTable.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="764">
-          <caret line="120" lean-forward="true" selection-start-line="120" selection-end-line="120" />
+        <state relative-caret-position="1819">
+          <caret line="107" column="6" selection-start-line="107" selection-start-column="6" selection-end-line="107" selection-end-column="6" />
           <folding>
             <element signature="e#0#35#0" expanded="true" />
           </folding>
