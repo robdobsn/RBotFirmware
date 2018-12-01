@@ -15,7 +15,9 @@ enum RobotMoveTypeArg
 class RobotCommandArgs
 {
   private:
+    // Flags
     bool _ptUnitsSteps : 1;
+    bool _ptCoordUnitsThetaRho : 1;
     bool _dontSplitMove : 1;
     bool _extrudeValid : 1;
     bool _feedrateValid : 1;
@@ -24,9 +26,12 @@ class RobotCommandArgs
     bool _allowOutOfBounds : 1;
     bool _pause : 1;
     bool _moreMovesComing : 1;
+    // Command control
     int _queuedCommands;
     int _numberedCommandIndex;
+    // Coords etc
     AxisFloats _ptInMM;
+    AxisFloats _ptInCoordUnits;
     AxisInt32s _ptInSteps;
     float _extrudeValue;
     float _feedrateValue;
@@ -40,45 +45,56 @@ class RobotCommandArgs
     }
     void clear()
     {
-        _ptInMM.clear();
-        _ptInSteps.clear();
-        _endstops.none();
-        _numberedCommandIndex = RobotConsts::NUMBERED_COMMAND_NONE;
+        // Flags
+        _ptUnitsSteps = false;
+        _ptCoordUnitsThetaRho = false;
         _dontSplitMove = false;
         _extrudeValid = false;
         _feedrateValid = false;
         _moveClockwise = false;
         _moveRapid = false;
-        _moreMovesComing = false;
-        _ptUnitsSteps = false;
         _allowOutOfBounds = false;
         _pause = false;
+        _moreMovesComing = false;
+        // Command control
+        _queuedCommands = 0;
+        _numberedCommandIndex = RobotConsts::NUMBERED_COMMAND_NONE;
+        // Coords, etc
+        _ptInMM.clear();
+        _ptInCoordUnits.clear();
+        _ptInSteps.clear();
         _extrudeValue = 0.0;
         _feedrateValue = 0.0;
         _moveType = RobotMoveTypeArg_None;
-        _queuedCommands = 0;
+        _endstops.none();
     }
 
   private:
     void copy(const RobotCommandArgs &copyFrom)
     {
         clear();
-        _ptInMM = copyFrom._ptInMM;
-        _ptInSteps = copyFrom._ptInSteps;
+        // Flags
+        _ptUnitsSteps = copyFrom._ptUnitsSteps;
+        _ptCoordUnitsThetaRho = copyFrom._ptCoordUnitsThetaRho;
+        _dontSplitMove = copyFrom._dontSplitMove;
         _extrudeValid = copyFrom._extrudeValid;
-        _extrudeValue = copyFrom._extrudeValue;
         _feedrateValid = copyFrom._feedrateValid;
-        _feedrateValue = copyFrom._feedrateValue;
-        _endstops = copyFrom._endstops;
         _moveClockwise = copyFrom._moveClockwise;
         _moveRapid = copyFrom._moveRapid;
-        _moreMovesComing = copyFrom._moreMovesComing;
-        _pause = copyFrom._pause;
-        _dontSplitMove = copyFrom._dontSplitMove;
         _allowOutOfBounds = copyFrom._allowOutOfBounds;
-        _numberedCommandIndex = copyFrom._numberedCommandIndex;
-        _moveType = copyFrom._moveType;
+        _pause = copyFrom._pause;
+        _moreMovesComing = copyFrom._moreMovesComing;
+        // Command control
         _queuedCommands = copyFrom._queuedCommands;
+        _numberedCommandIndex = copyFrom._numberedCommandIndex;
+        // Coords, etc
+        _ptInMM = copyFrom._ptInMM;
+        _ptInCoordUnits = copyFrom._ptInCoordUnits;
+        _ptInSteps = copyFrom._ptInSteps;
+        _extrudeValue = copyFrom._extrudeValue;
+        _feedrateValue = copyFrom._feedrateValue;
+        _moveType = copyFrom._moveType;
+        _endstops = copyFrom._endstops;
     }
 
   public:
@@ -100,11 +116,22 @@ class RobotCommandArgs
             _ptUnitsSteps = false;
         }
     }
+    void setAxisValThetaRho(int axisIdx, float value, bool isValid)
+    {
+        if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
+        {
+            _ptInCoordUnits.setVal(axisIdx, value);
+            _ptInCoordUnits.setValid(axisIdx, isValid);
+            _ptUnitsSteps = false;
+            _ptCoordUnitsThetaRho = true;
+        }
+    }
     void setAxisSteps(int axisIdx, int32_t value, bool isValid)
     {
         if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
         {
             _ptInSteps.setVal(axisIdx, value);
+            // Piggy-back on MM validity flags
             _ptInMM.setValid(axisIdx, isValid);
             _ptUnitsSteps = true;
         }
@@ -121,6 +148,10 @@ class RobotCommandArgs
     {
         return _ptUnitsSteps;
     }
+    bool isThetaRho()
+    {
+        return _ptCoordUnitsThetaRho;
+    }
     // Indicate that all axes need to be homed
     void setAllAxesNeedHoming()
     {
@@ -134,6 +165,10 @@ class RobotCommandArgs
     float getValMM(int axisIdx)
     {
         return _ptInMM.getVal(axisIdx);
+    }
+    float getValCoordUnits(int axisIdx)
+    {
+        return _ptInCoordUnits.getVal(axisIdx);
     }
     AxisFloats &getPointMM()
     {

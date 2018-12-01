@@ -35,9 +35,18 @@ public:
 private:
 
     // Convert a cartesian point to actuator coordinates
-    static bool ptToActuator(AxisFloats& targetPt, AxisFloats& outActuator, AxisPosition& curAxisPositions, AxesParams& axesParams, bool allowOutOfBounds);
-    static void actuatorToPt(AxisFloats& actuatorPos, AxisFloats& outPt, AxisPosition& curPos, AxesParams& axesParams);
+    static bool ptToActuator(AxisFloats& targetPt, AxisFloats& outActuator, 
+                AxisPosition& curPos, AxesParams& axesParams, bool allowOutOfBounds);
+
+    // Convert actuator values to cartesian point
+    static void actuatorToPt(AxisFloats& targetActuator, AxisFloats& outPt,
+                AxisPosition& curPos, AxesParams& axesParams);
+
+    // Correct overflow (necessary for continuous rotation robots)
     static void correctStepOverflow(AxisPosition& curPos, AxesParams& axesParams);
+
+    // Convert coordinates in place (used for coordinate system theta-rho)
+    static void convertCoords(RobotCommandArgs& cmdArgs, AxesParams& axesParams);
 
 private:
     static bool cartesianToPolar(AxisFloats& targetPt, AxisFloats& targetSoln1, 

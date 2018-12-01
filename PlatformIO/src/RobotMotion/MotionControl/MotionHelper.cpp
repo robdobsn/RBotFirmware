@@ -37,12 +37,14 @@ MotionHelper::~MotionHelper()
 // There is also a function to correct step overflow which is important in robots
 // which have continuous rotation as step counts would otherwise overflow 32bit integer values
 void MotionHelper::setTransforms(ptToActuatorFnType ptToActuatorFn, actuatorToPtFnType actuatorToPtFn,
-                                 correctStepOverflowFnType correctStepOverflowFn)
+                                 correctStepOverflowFnType correctStepOverflowFn,
+                                 convertCoordsFnType convertCoordsFn)
 {
     // Store callbacks
     _ptToActuatorFn = ptToActuatorFn;
     _actuatorToPtFn = actuatorToPtFn;
     _correctStepOverflowFn = correctStepOverflowFn;
+    _convertCoordsFn = convertCoordsFn;
 }
 
 // Configure the robot and pipeline parameters using a JSON input string
@@ -168,6 +170,10 @@ bool MotionHelper::moveTo(RobotCommandArgs &args)
     {
         return _motionPlanner.moveToStepwise(args, _curAxisPosition, _axesParams, _motionPipeline);
     }
+    // Convert coordinates if required
+    // Convert coords to MM (in-place conversion)
+    if (_convertCoordsFn)
+        _convertCoordsFn(args, _axesParams);
     // Fill in the destPos for axes for which values not specified
     // Handle relative motion override if present
     // Don't use servo values for computing distance to travel
@@ -258,7 +264,9 @@ bool MotionHelper::addToPlanner(RobotCommandArgs &args)
 {
     // Convert the move to actuator coordinates
     AxisFloats actuatorCoords;
-    bool moveOk = _ptToActuatorFn(args.getPointMM(), actuatorCoords, _curAxisPosition, _axesParams,
+    bool moveOk = false;
+    if (_ptToActuatorFn)
+        moveOk = _ptToActuatorFn(args.getPointMM(), actuatorCoords, _curAxisPosition, _axesParams,
                     args.getAllowOutOfBounds() || _allowAllOutOfBounds);
 
     // Plan the move
@@ -269,7 +277,8 @@ bool MotionHelper::addToPlanner(RobotCommandArgs &args)
         // Update axisMotion
         _curAxisPosition._axisPositionMM = args.getPointMM();
         // Correct overflows
-        _correctStepOverflowFn(_curAxisPosition, _axesParams);
+        if (_correctStepOverflowFn)
+            _correctStepOverflowFn(_curAxisPosition, _axesParams);
     }
     return moveOk;
 }

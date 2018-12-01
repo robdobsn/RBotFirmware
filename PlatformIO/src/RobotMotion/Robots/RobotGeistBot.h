@@ -146,6 +146,10 @@ public:
                             axesParams.gethomeOffSteps(0), axesParams.gethomeOffSteps(1));
     }
 
+    static void convertCoords(RobotCommandArgs& cmdArgs, AxesParams& axesParams)
+    {
+    }    
+
 private:
     // Homing state
     typedef enum HOMING_STATE
@@ -195,7 +199,7 @@ public:
         _homingStepsLimit = 0;
         _maxHomingSecs = maxHomingSecs_default;
         _timeBetweenHomingStepsUs = _homingRotateSlowStepTimeUs;
-        _motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
+        _motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow, convertCoords);
     }
 
     // Set config

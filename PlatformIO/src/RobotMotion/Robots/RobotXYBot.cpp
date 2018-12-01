@@ -10,7 +10,7 @@
 RobotXYBot::RobotXYBot(const char* pRobotTypeName, MotionHelper& motionHelper) :
     RobotBase(pRobotTypeName, motionHelper)
 {
-    _motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
+    _motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow, convertCoords);
 }
 
 bool RobotXYBot::ptToActuator(AxisFloats& targetPt, AxisFloats& outActuator, 
@@ -52,4 +52,8 @@ void RobotXYBot::actuatorToPt(AxisFloats& targetActuator, AxisFloats& outPt,
 void RobotXYBot::correctStepOverflow(AxisPosition& curPos, AxesParams& axesParams)
 {
     // Not necessary for a non-continuous rotation bot
+}
+
+void RobotXYBot::convertCoords(RobotCommandArgs& cmdArgs, AxesParams& axesParams)
+{
 }

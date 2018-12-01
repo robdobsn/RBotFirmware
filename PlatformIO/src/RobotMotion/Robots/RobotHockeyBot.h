@@ -60,11 +60,15 @@ public:
     {
     }
 
+    static void convertCoords(RobotCommandArgs& cmdArgs, AxesParams& axesParams)
+    {
+    }
+
 public:
     RobotHockeyBot(const char* pRobotTypeName, MotionHelper& motionHelper) :
         RobotBase(pRobotTypeName, motionHelper)
     {
-        _motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
+        _motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow, convertCoords);
     }
 
     // Set config
