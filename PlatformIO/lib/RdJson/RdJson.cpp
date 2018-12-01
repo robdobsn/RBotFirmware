@@ -313,7 +313,7 @@ int RdJson::findKeyInJson(const char* jsonOriginal, jsmnrtok_t tokens[],
             safeStringCopy(srchKey, pDataPathPos, slashPos - pDataPathPos);
             pDataPathPos = slashPos + 1;
         }
-        // Log.trace("SlashPos %ld, %ld, srchKey <%s>\n", slashPos, slashPos-pDataPathPos, srchKey);
+        // Log.trace("SlashPos %d, %d, srchKey <%s>\n", slashPos, slashPos-pDataPathPos, srchKey);
 
         // See if search key contains an array reference
         bool arrayElementReqd = false;
@@ -330,7 +330,7 @@ int RdJson::findKeyInJson(const char* jsonOriginal, jsmnrtok_t tokens[],
             *sqBracketPos = 0;
         }
 
-        // Log.trace("findKeyInJson srchKey %s arrayIdx %ld\n", srchKey, reqdArrayIdx);
+        // Log.trace("findKeyInJson srchKey %s arrayIdx %d\n", srchKey, reqdArrayIdx);
 
         // Iterate over tokens to find key of the right type
         // If we are already looking at the node level then search for requested type

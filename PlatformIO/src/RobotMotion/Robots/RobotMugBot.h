@@ -36,7 +36,7 @@ public:
             outActuator.setVal(axisIdx, axisValFromHome * axesParams.getStepsPerUnit(axisIdx)
                             + axesParams.gethomeOffSteps(axisIdx));
 
-            // Log.notice("ptToActuator %f -> %f (homeOffVal %f, homeOffSteps %ld)\n",
+            // Log.notice("ptToActuator %F -> %F (homeOffVal %F, homeOffSteps %d)\n",
             //         pt.getVal(axisIdx), actuatorCoords._pt[axisIdx],
             //         axesParams.getHomeOffsetVal(axisIdx), axesParams.gethomeOffSteps(axisIdx));
         }
@@ -51,7 +51,7 @@ public:
             float ptVal = targetActuator.getVal(axisIdx) - axesParams.gethomeOffSteps(axisIdx);
             ptVal = ptVal / axesParams.getStepsPerUnit(axisIdx) + axesParams.getHomeOffsetVal(axisIdx);
             outPt.setVal(axisIdx, ptVal);
-            // Log.notice("actuatorToPt %d %f -> %f (perunit %f)\n", axisIdx, actuatorCoords.getVal(axisIdx),
+            // Log.notice("actuatorToPt %d %F -> %F (perunit %F)\n", axisIdx, actuatorCoords.getVal(axisIdx),
             //                 ptVal, axesParams.getStepsPerUnit(axisIdx));
         }
     }

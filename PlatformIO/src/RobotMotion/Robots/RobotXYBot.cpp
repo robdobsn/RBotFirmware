@@ -28,7 +28,7 @@ bool RobotXYBot::ptToActuator(AxisFloats& targetPt, AxisFloats& outActuator,
         outActuator.setVal(axisIdx, axisValFromHome * axesParams.getStepsPerUnit(axisIdx)
                         + axesParams.gethomeOffSteps(axisIdx));
 
-        Log.trace("ptToActuator %f -> %f (homeOffVal %f, homeOffSteps %ld)\n",
+        Log.trace("ptToActuator %F -> %F (homeOffVal %F, homeOffSteps %d)\n",
                 targetPt.getVal(axisIdx), outActuator._pt[axisIdx],
                 axesParams.getHomeOffsetVal(axisIdx), axesParams.gethomeOffSteps(axisIdx));
     }
@@ -44,7 +44,7 @@ void RobotXYBot::actuatorToPt(AxisFloats& targetActuator, AxisFloats& outPt,
         float ptVal = targetActuator.getVal(axisIdx) - axesParams.gethomeOffSteps(axisIdx);
         ptVal = ptVal / axesParams.getStepsPerUnit(axisIdx) + axesParams.getHomeOffsetVal(axisIdx);
         outPt.setVal(axisIdx, ptVal);
-        Log.trace("actuatorToPt %d %f -> %f (perunit %f)\n", axisIdx, targetActuator.getVal(axisIdx),
+        Log.trace("actuatorToPt %d %F -> %F (perunit %F)\n", axisIdx, targetActuator.getVal(axisIdx),
                         ptVal, axesParams.getStepsPerUnit(axisIdx));
     }
 }

@@ -126,7 +126,7 @@ public:
         bool showDebug = false;
         if (axesParams.gethomeOffSteps(0) > rotationSteps || axesParams.gethomeOffSteps(0) <= -rotationSteps)
         {
-            Log.trace("CORRECTING ax0 %ld ax1 %ld\n",
+            Log.trace("CORRECTING ax0 %d ax1 %d\n",
                             axesParams.gethomeOffSteps(0), axesParams.gethomeOffSteps(1));
             showDebug = true;
         }
@@ -142,7 +142,7 @@ public:
             axesParams.sethomeOffSteps(1, axesParams.gethomeOffSteps(1) + rotationSteps);
         }
         if (showDebug)
-            Log.trace("CORRECTED ax0 %ld ax1 %ld\n",
+            Log.trace("CORRECTED ax0 %d ax1 %d\n",
                             axesParams.gethomeOffSteps(0), axesParams.gethomeOffSteps(1));
     }
 
@@ -218,7 +218,7 @@ public:
 //         _homingRotCentreDegs = RdJson::getDouble("homingRotCentreDegs", homingRotCentreDegs_default, robotConfigStr);
 //
 //         // Info
-//         Log.notice("%s maxHome %lds linOff %Fd ctrOff %Fmm rotCtr %Fd\n",
+//         Log.notice("%s maxHome %ds linOff %Fd ctrOff %Fmm rotCtr %Fd\n",
 //                     _robotTypeName.c_str(), _maxHomingSecs, _homingLinOffsetDegs, _homingCentreOffsetMM, _homingRotCentreDegs);
 //
 //         return true;
