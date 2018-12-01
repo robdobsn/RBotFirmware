@@ -319,8 +319,37 @@ bool FileManager::chunkedFileStart(const String& fileSystemStr, const String& fi
     _chunkedFileInProgress = true;
     _chunkedFilePos = 0;
     _chunkOnLineEndings = readByLine;
-    Log.trace("%schunkedFileStart filename %s size %d\n", MODULE_PREFIX, rootFilename.c_str(), _chunkedFileLen);
-    return true;
+    Log.trace("%schunkedFileStart filename %s size %d byLine %s\n", MODULE_PREFIX, 
+            rootFilename.c_str(), _chunkedFileLen, (readByLine ? "Y" : "N"));
+    return true; 
+}
+
+char* FileManager::readLineFromFile(char* pBuf, int maxLen, FILE* pFile)
+{
+    // Iterate over chars
+    pBuf[0] = 0;
+    char* pCurPtr = pBuf;
+    int curLen = 0;
+    while (true)
+    {
+        if (curLen >= maxLen-1)
+            break;
+        int ch = fgetc(pFile);
+        if (ch == EOF)
+        {
+            if (curLen != 0)
+                break;
+            return NULL;
+        }
+        if (ch == '\n')
+            break;
+        if (ch == '\r')
+            continue;
+        *pCurPtr++ = ch;
+        *pCurPtr = 0;
+        curLen++;
+    }
+    return pBuf;
 }
 
 uint8_t* FileManager::chunkFileNext(String& filename, int& fileLen, int& chunkPos, int& chunkLen, bool& finalChunk)
@@ -363,7 +392,7 @@ uint8_t* FileManager::chunkFileNext(String& filename, int& fileLen, int& chunkPo
     if (_chunkOnLineEndings)
     {
         // Read a line
-        char* pReadLine = fgets((char*)_chunkedFileBuffer, CHUNKED_BUF_MAXLEN-1, pFile);
+        char* pReadLine = readLineFromFile((char*)_chunkedFileBuffer, CHUNKED_BUF_MAXLEN-1, pFile);
         // Ensure line is terminated
         if (!pReadLine)
         {
@@ -393,9 +422,9 @@ uint8_t* FileManager::chunkFileNext(String& filename, int& fileLen, int& chunkPo
 
     }
 
-    Log.trace("%schunkNext filename %s chunklen %d filePos %d fileLen %d inprog %d final %d\n", MODULE_PREFIX, 
+    Log.verbose("%schunkNext filename %s chunklen %d filePos %d fileLen %d inprog %d final %d byLine %s\n", MODULE_PREFIX, 
                     _chunkedFilename.c_str(), chunkLen, _chunkedFilePos, _chunkedFileLen, 
-                    _chunkedFileInProgress, finalChunk);
+                    _chunkedFileInProgress, finalChunk, (_chunkOnLineEndings ? "Y" : "N"));
 
     // Close
     fclose(pFile);

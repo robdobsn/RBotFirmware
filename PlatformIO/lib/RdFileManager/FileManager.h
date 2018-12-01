@@ -66,4 +66,7 @@ public:
 
     // Get file name extension
     static String getFileExtension(String& filename);
+
+    // Read line from file
+    char* readLineFromFile(char* pBuf, int maxLen, FILE* pFile);
 };
