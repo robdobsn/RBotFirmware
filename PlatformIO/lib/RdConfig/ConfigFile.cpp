@@ -49,8 +49,9 @@ bool ConfigFile::writeConfig()
         _fileManager.setFileContents(_fileSystem, _filename, _dataStrJSON);
     }
 
-    Log.trace("%sWritten %s config truncated: %d\n", MODULE_PREFIX,
-                    _filename.c_str(), _dataStrJSON.length() >= _configMaxDataLen);
+    Log.trace("%sWritten config %s len %d%s\n", MODULE_PREFIX,
+                    _filename.c_str(), _dataStrJSON.length(),
+                    (_dataStrJSON.length() >= _configMaxDataLen ? " TRUNCATED" : ""));
 
     // Ok
     return true;
