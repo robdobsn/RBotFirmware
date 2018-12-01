@@ -60,11 +60,11 @@ void EvaluatorPatterns::addExpression(const char* exprStr, bool isInitialValue)
             int err = 0;
             te_variable* vars = _patternVars.getVars();
             te_expr* compiledExpr = te_compile(outExpr.c_str(), vars, _patternVars.getNumVars(), &err);
-            // Log.verbose("%scompile %s hex %02x%02x%02x%02x%02x%02x result %ld err %d\n", MODULE_PREFIX, outExpr.c_str(),
-            //             outExpr.c_str()[0], outExpr.c_str()[1], outExpr.c_str()[2],
-            //             outExpr.c_str()[3], outExpr.c_str()[4], outExpr.c_str()[5],
-            //             compiledExpr, err);
-
+            Log.trace("%scompile %s hex %x %x %x %x %x %x result %s err %d\n", MODULE_PREFIX, outExpr.c_str(),
+                        outExpr.c_str()[0], outExpr.c_str()[1], outExpr.c_str()[2],
+                        outExpr.c_str()[3], outExpr.c_str()[4], outExpr.c_str()[5],
+                        (compiledExpr ? "OK" : "FAIL"), err);
+ 
             // Store the expression and assigned variable index
             if (compiledExpr)
             {
@@ -73,7 +73,8 @@ void EvaluatorPatterns::addExpression(const char* exprStr, bool isInitialValue)
                 varIdxAndCompExpr._varIdx = varIdx;
                 varIdxAndCompExpr._isInitialValue = isInitialValue;
                 _varIdxAndCompiledExprs.push_back(varIdxAndCompExpr);
-                Log.verbose("%addLoop addedCompiledExpr (Count=%d)\n", MODULE_PREFIX, _varIdxAndCompiledExprs.size());
+                Log.trace("%saddLoop addedCompiledExpr (Count=%d)\n", MODULE_PREFIX, 
+                            _varIdxAndCompiledExprs.size());
             }
         }
 
@@ -109,7 +110,7 @@ void EvaluatorPatterns::evalExpressions(bool procInitialValues, bool procLoopVal
         // Compute value of expression
         double val = te_eval(_varIdxAndCompiledExprs[i]._pCompExpr);
         _patternVars.setValByIdx(varIdx, val);
-        // Log.verbose("%sexpr %d: %s varIdx %d exprRslt %f isInitialValue=%d\n", MODULE_PREFIX,
+        // Log.verbose("%sexpr %d: %s varIdx %d exprRslt %F isInitialValue=%d\n", MODULE_PREFIX,
         //                     i, _patternVars.getVariableName(varIdx).c_str(), varIdx, val, isInitialValue);
     }
 }
