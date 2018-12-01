@@ -14,6 +14,7 @@ public:
     EvaluatorFiles(FileManager& fileManager) : _fileManager(fileManager)
     {
         _inProgress = false;
+        _fileType = FILE_TYPE_PLAIN_TEXT;
     }
 
     // Config
@@ -31,6 +32,13 @@ public:
 
     // Control
     void stop();
+
+    // File types
+    enum {
+        FILE_TYPE_PLAIN_TEXT,
+        FILE_TYPE_GCODE,
+        FILE_TYPE_THETA_RHO
+    };
     
 private:
     // Filename in progress
@@ -39,4 +47,6 @@ private:
     // File manager
     FileManager& _fileManager;
 
+    // File type
+    int _fileType;
 };
