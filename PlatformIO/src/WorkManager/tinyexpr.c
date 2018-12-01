@@ -199,6 +199,8 @@ static double lessthan(double a, double b) { return a < b; }
 static double morethan(double a, double b) { return a > b; }
 static double lessthanequal(double a, double b) { return a <= b; }
 static double morethanequal(double a, double b) { return a >= b; }
+static double logicalor(double a, double b) { return a || b; }
+static double logicaland(double a, double b) { return a && b; }
 
 void next_token(state *s) {
 	s->type = TOK_NULL;
@@ -217,10 +219,10 @@ void next_token(state *s) {
 		}
 		else {
 			/* Look for a variable or builtin function call. */
-			if (s->next[0] >= 'a' && s->next[0] <= 'z') {
+			if ((s->next[0] >= 'a' && s->next[0] <= 'z') || (s->next[0] >= 'A' && s->next[0] <= 'Z')) {
 				const char *start;
 				start = s->next;
-				while ((s->next[0] >= 'a' && s->next[0] <= 'z') || (s->next[0] >= '0' && s->next[0] <= '9') || (s->next[0] == '_')) s->next++;
+				while ((s->next[0] >= 'a' && s->next[0] <= 'z') || (s->next[0] >= 'A' && s->next[0] <= 'Z') || (s->next[0] >= '0' && s->next[0] <= '9') || (s->next[0] == '_')) s->next++;
 
 				const te_variable *var = find_lookup(s, start, s->next - start);
 				if (!var) var = find_builtin(start, s->next - start);
@@ -261,6 +263,8 @@ void next_token(state *s) {
 				case '=': s->type = TOK_INFIX; s->function = equals; if (s->next[0] == '=') s->next++; break;
 				case '>': s->type = TOK_INFIX; s->function = morethan; if (s->next[0] == '=') { s->function = morethanequal; s->next++; }; break;
 				case '<': s->type = TOK_INFIX; s->function = lessthan; if (s->next[0] == '=') { s->function = lessthanequal; s->next++; }; break;
+				case '|': s->type = TOK_INFIX; s->function = logicalor; if (s->next[0] == '|') s->next++; break;
+				case '&': s->type = TOK_INFIX; s->function = logicaland; if (s->next[0] == '&') s->next++; break;
 				case '(': s->type = TOK_OPEN; break;
 				case ')': s->type = TOK_CLOSE; break;
 				case ',': s->type = TOK_SEP; break;
@@ -476,7 +480,10 @@ static te_expr *expr(state *s) {
 	/* <expr>      =    <term> {("+" | "-" | "==" | "=" | ">" | "<" | ">=" | "<=") <term>} */
 	te_expr *ret = term(s);
 
-	while (s->type == TOK_INFIX && (s->function == add || s->function == sub || s->function == equals || s->function == morethan || s->function == lessthan || s->function == morethanequal || s->function == lessthanequal)) {
+	while (s->type == TOK_INFIX && (s->function == add || s->function == sub || s->function == equals || 
+				s->function == morethan || s->function == lessthan || 
+				s->function == morethanequal || s->function == lessthanequal ||
+				s->function == logicalor || s->function == logicaland)) {
 		te_fun2 t = s->function;
 		next_token(s);
 		ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, term(s));

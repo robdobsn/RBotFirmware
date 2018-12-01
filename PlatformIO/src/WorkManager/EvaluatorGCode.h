@@ -27,6 +27,10 @@ public:
     {
         const char* pStr = pArgStr;
         char* pEndStr = NULL;
+        double rhoVal = 0;
+        double thetaVal = 0;
+        bool isRhoValid = false;
+        bool isThetaValid = false;
         while (*pStr)
         {
             switch(toupper(*pStr))
@@ -68,7 +72,7 @@ public:
                     pStr++;
                     break;
                 case 'S':
-                    {
+                {
                         int endstopIdx = strtol(++pStr, &pEndStr, 10);
                         pStr = pEndStr;
                         if (endstopIdx == 1)
@@ -77,13 +81,35 @@ public:
                             cmdArgs.setTestNoEndStops();
                         Log.verbose("Set to check endstops %s\n", cmdArgs.toJSON().c_str());
                         break;
-                    }
+                }
+                case 'U':
+                {
+                    thetaVal = strtod(++pStr, &pEndStr);
+                    pStr++;
+                    isThetaValid = true;
+                    break;
+                }
+                case 'V':
+                {
+                    rhoVal = strtod(++pStr, &pEndStr);
+                        pStr++;
+                    isRhoValid = true;
+                    break;
+                }
                 default:
+                {
                     pStr++;
                     break;
+                }
             }
         }
-	return true;
+        // Check for Theta-Rho values
+        if (isThetaValid && isRhoValid)
+        {
+            cmdArgs.setAxisValThetaRho(0, thetaVal, true);
+            cmdArgs.setAxisValThetaRho(1, rhoVal, true);
+        }
+	    return true;
     }
 
     // Interpret GCode G commands

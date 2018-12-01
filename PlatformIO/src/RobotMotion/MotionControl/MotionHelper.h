@@ -32,6 +32,7 @@ private:
     ptToActuatorFnType _ptToActuatorFn;
     actuatorToPtFnType _actuatorToPtFn;
     correctStepOverflowFnType _correctStepOverflowFn;
+    convertCoordsFnType _convertCoordsFn;
     // Relative motion
     bool _moveRelative;
     // Planner used to plan the pipeline of motion
@@ -69,7 +70,8 @@ public:
     ~MotionHelper();
 
     void setTransforms(ptToActuatorFnType ptToActuatorFn, actuatorToPtFnType actuatorToPtFn,
-                       correctStepOverflowFnType correctStepOverflowFn);
+                       correctStepOverflowFnType correctStepOverflowFn,
+                       convertCoordsFnType convertCoordsFn);
 
     void configure(const char *robotConfigJSON);
 

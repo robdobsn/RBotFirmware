@@ -16,6 +16,7 @@
 typedef bool (*ptToActuatorFnType)(AxisFloats &targetPt, AxisFloats &outActuator, AxisPosition &curPos, AxesParams &axesParams, bool allowOutOfBounds);
 typedef void (*actuatorToPtFnType)(AxisFloats &targetActuator, AxisFloats &outPt, AxisPosition &curPos, AxesParams &axesParams);
 typedef void (*correctStepOverflowFnType)(AxisPosition &curPos, AxesParams &axesParams);
+typedef void (*convertCoordsFnType)(RobotCommandArgs& cmdArgs, AxesParams &axesParams);
 
 class MotionPlanner
 {

@@ -21,7 +21,7 @@ RobotSandTableScara::RobotSandTableScara(const char* pRobotTypeName, MotionHelpe
     RobotBase(pRobotTypeName, motionHelper)
 {
     // Set transforms
-    _motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow);
+    _motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow, convertCoords);
 
     // Light
     pinMode(A0, OUTPUT);
@@ -118,19 +118,16 @@ bool RobotSandTableScara::cartesianToPolar(AxisFloats& targetPt, AxisFloats& tar
                     AxisFloats& targetSoln2, AxesParams& axesParams)
 {
 	// Calculate arm lengths
-	// The maxVal for the first axis is used to determine the arm lengths
-	// The assumption is that both arms (lower and upper) are the same length
-	// So each each has length maxVal / 2
-	float axis0MaxVal = 0;
-	bool axis0MaxValid = axesParams.getMaxVal(0, axis0MaxVal);
-	float shoulderElbowMM = axis0MaxVal / 2;
-	float elbowHandMM = axis0MaxVal / 2;
+	// The maxVal for axis0 and axis1 are used to determine the arm lengths
+	// The radius of the machine is the sum of these two lengths
+	float shoulderElbowMM = 0, elbowHandMM = 0;
+	bool axis0MaxValid = axesParams.getMaxVal(0, shoulderElbowMM);
+	bool axis1MaxValid = axesParams.getMaxVal(1, elbowHandMM);
+    // If not valid set to some values to avoid arithmetic errors
 	if (!axis0MaxValid)
-	{
-		// Set to some values to avoid arithmetic errors
 		shoulderElbowMM = 100;
+	if (!axis1MaxValid)
 		elbowHandMM = 100;
-	}
 
 	// Calculate distance from origin to pt (forms one side of triangle where arm segments form other sides)
 	float thirdSideL3MM = sqrt(pow(targetPt._pt[0], 2) + pow(targetPt._pt[1], 2));
@@ -219,3 +216,27 @@ void RobotSandTableScara::relativePolarToSteps(AxisFloats& relativePolar, AxisPo
     //         outActuator.getVal(0), outActuator.getVal(1));
 }
 
+void RobotSandTableScara::convertCoords(RobotCommandArgs& cmdArgs, AxesParams& axesParams)
+{
+    // If coords are Theta-Rho
+    if (cmdArgs.isThetaRho())
+    {
+        // Convert based on robot size
+        float shoulderElbowMM = 0, elbowHandMM = 0;
+        bool axis0MaxValid = axesParams.getMaxVal(0, shoulderElbowMM);
+        bool axis1MaxValid = axesParams.getMaxVal(1, elbowHandMM);
+        if (axis0MaxValid && axis1MaxValid)
+        {
+            float radius = shoulderElbowMM + elbowHandMM;
+            float theta = cmdArgs.getValCoordUnits(0);
+            float rho = cmdArgs.getValCoordUnits(1);
+            // Calculate coords
+            float xVal = sin(theta) * rho * radius;
+            float yVal = cos(theta) * rho * radius;
+            cmdArgs.setAxisValMM(0, xVal, true);
+            cmdArgs.setAxisValMM(1, yVal, true);
+            Log.verbose("%sconvertCoords theta %F rho %F -> x %F y %F\n", MODULE_PREFIX,
+                        theta, rho, xVal, yVal);
+        }
+    }
+}

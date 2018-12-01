@@ -65,20 +65,6 @@ void RestAPIRobot::apiExec(String &reqStr, String &respStr)
     _workManager.addWorkItem(workItem, respStr);
 }
 
-void RestAPIRobot::apiPattern(String &reqStr, String &respStr)
-{
-    Log.notice("%sPattern %s\n", MODULE_PREFIX, reqStr.c_str());
-    WorkItem workItem(RestAPIEndpoints::removeFirstArgStr(reqStr.c_str()).c_str());
-    _workManager.addWorkItem(workItem, respStr);
-}
-
-void RestAPIRobot::apiSequence(String &reqStr, String &respStr)
-{
-    Log.notice("%sSequence %s\n", MODULE_PREFIX, reqStr.c_str());
-    WorkItem workItem(RestAPIEndpoints::removeFirstArgStr(reqStr.c_str()).c_str());
-    _workManager.addWorkItem(workItem, respStr);
-}
-
 void RestAPIRobot::apiPlayFile(String &reqStr, String &respStr)
 {
     Log.notice("%splayFile %s\n", MODULE_PREFIX, reqStr.c_str());
@@ -121,17 +107,7 @@ void RestAPIRobot::setup(RestAPIEndpoints &endpoints)
     endpoints.addEndpoint("playFile", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET,
                             std::bind(&RestAPIRobot::apiPlayFile, this, std::placeholders::_1, std::placeholders::_2),
                             "Play file filename ... ~ for / in filename");
-
-    // Run pattern
-    endpoints.addEndpoint("pattern", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET,
-                            std::bind(&RestAPIRobot::apiPattern, this, std::placeholders::_1, std::placeholders::_2),
-                            "Run pattern");
-
-    // Run sequence
-    endpoints.addEndpoint("sequence", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET,
-                            std::bind(&RestAPIRobot::apiSequence, this, std::placeholders::_1, std::placeholders::_2),
-                            "Run sequence");
-
+                            
     // Get status
     endpoints.addEndpoint("status", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET,
                             std::bind(&RestAPIRobot::apiQueryStatus, this, std::placeholders::_1, std::placeholders::_2),

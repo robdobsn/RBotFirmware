@@ -32,13 +32,20 @@ bool EvaluatorFiles::isValid(WorkItem& workItem)
 bool EvaluatorFiles::execWorkItem(WorkItem& workItem)
 {
     // Form the file name
-    String fName = workItem.getString();
+    String fileName = workItem.getString();
+    String fileExt = FileManager::getFileExtension(fileName);
+    _fileType = FILE_TYPE_PLAIN_TEXT;
+    if (fileExt.equalsIgnoreCase("gcode"))
+        _fileType = FILE_TYPE_GCODE;
+    if (fileExt.equalsIgnoreCase("thr"))
+        _fileType = FILE_TYPE_THETA_RHO;
 
     // Start chunked file access
-    bool retc = _fileManager.chunkedFileStart("SPIFFS", fName, true);
+    bool retc = _fileManager.chunkedFileStart("SPIFFS", fileName, true);
     if (!retc)
         return false;
-    Log.trace("%sstarted chunked file %s\n", MODULE_PREFIX, fName.c_str());
+    Log.trace("%sstarted chunked file %s type is %s\n", MODULE_PREFIX, 
+            fileName.c_str(), fileExt.c_str());
     _inProgress = true;
     return retc;
 }
@@ -68,17 +75,44 @@ void EvaluatorFiles::service(WorkManager* pWorkManager)
         String newLine = (char*)pLine;
         newLine.replace("\n", "");
         newLine.replace("\r", "");
-        Log.verbose("%sservice new line %s\n", MODULE_PREFIX, newLine.c_str());
-        String retStr;
-        WorkItem workItem(newLine.c_str());
-        pWorkManager->addWorkItem(workItem, retStr);
+        newLine.trim();
+        bool isComment = false;
+        if (_fileType == FILE_TYPE_THETA_RHO)
+            isComment = newLine.startsWith("#");
+        else if (_fileType == FILE_TYPE_GCODE)
+            isComment = newLine.startsWith(";");
+        if (!isComment)
+        {
+            bool isValid = true;
+            // Form GCode if Theta-Rho
+            if (_fileType == FILE_TYPE_THETA_RHO)
+            {
+                int spacePos = newLine.indexOf(" ");
+                if (spacePos > 0)
+                {
+                    newLine = "G0 U" + newLine.substring(0,spacePos) + " V" + newLine.substring(spacePos+1);
+                }
+                else
+                {
+                    isValid = false;
+                }
+            }
+            // Form the work item if valid
+            if (isValid)
+            {
+                Log.verbose("%sservice new line %s\n", MODULE_PREFIX, newLine.c_str());
+                String retStr;
+                WorkItem workItem(newLine.c_str());
+                pWorkManager->addWorkItem(workItem, retStr);
+            }
+        }
     }
 
     // Check for finished
     if (finalChunk)
     {
         // Process the line
-        Log.trace("%sservice file finished\n", MODULE_PREFIX);
+        Log.verbose("%sservice file finished\n", MODULE_PREFIX);
         _inProgress = false;
     }
 
@@ -86,5 +120,5 @@ void EvaluatorFiles::service(WorkManager* pWorkManager)
 
 void EvaluatorFiles::stop()
 {
-    _inProgress = "";
+    _inProgress = false;
 }

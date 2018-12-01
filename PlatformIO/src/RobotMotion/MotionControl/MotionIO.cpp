@@ -79,7 +79,7 @@ bool MotionIO::configureAxis(const char *axisJSON, int axisIdx)
         // Create a servo motor for the axis
         String servoPinName = RdJson::getString("servoPin", "-1", axisJSON);
         long servoPin = ConfigPinMap::getPinFromName(servoPinName.c_str());
-        Log.notice("%sAxis%d (servo pin %ld)\n", MODULE_PREFIX, axisIdx, servoPin);
+        Log.notice("%sAxis%d (servo pin %d)\n", MODULE_PREFIX, axisIdx, servoPin);
         if ((servoPin != -1))
         {
             _servoMotors[axisIdx] = new Servo();

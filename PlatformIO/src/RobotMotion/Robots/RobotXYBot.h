@@ -29,4 +29,8 @@ public:
 
     // Correct overflow (necessary for continuous rotation robots)
     static void correctStepOverflow(AxisPosition& curPos, AxesParams& axesParams);
+
+    // Convert coordinates in place (used for coordinate system Theta-Rho)
+    static void convertCoords(RobotCommandArgs& cmdArgs, AxesParams& axesParams);
+
 };

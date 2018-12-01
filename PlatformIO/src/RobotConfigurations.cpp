@@ -108,6 +108,7 @@ const char *RobotConfigurations::_robotConfigs[] = {
     "\"axis1\":{\"stepPin\":\"D4\",\"dirnPin\":\"D5\",\"maxSpeed\":100.0,\"maxAcc\":10.0,"
     "\"stepsPerRot\":3200,\"unitsPerRot\":32},"
     "\"workItemQueue\":{\"maxLen\":50}"
-    "}"};
+    "}"
+    };
 
 const int RobotConfigurations::_numRobotConfigurations = sizeof(RobotConfigurations::_robotConfigs) / sizeof(const char *);

@@ -60,11 +60,11 @@ void EvaluatorPatterns::addExpression(const char* exprStr, bool isInitialValue)
             int err = 0;
             te_variable* vars = _patternVars.getVars();
             te_expr* compiledExpr = te_compile(outExpr.c_str(), vars, _patternVars.getNumVars(), &err);
-            // Log.verbose("%scompile %s hex %02x%02x%02x%02x%02x%02x result %ld err %d\n", MODULE_PREFIX, outExpr.c_str(),
-            //             outExpr.c_str()[0], outExpr.c_str()[1], outExpr.c_str()[2],
-            //             outExpr.c_str()[3], outExpr.c_str()[4], outExpr.c_str()[5],
-            //             compiledExpr, err);
-
+            Log.trace("%scompile %s hex %x %x %x %x %x %x result %s err %d\n", MODULE_PREFIX, outExpr.c_str(),
+                        outExpr.c_str()[0], outExpr.c_str()[1], outExpr.c_str()[2],
+                        outExpr.c_str()[3], outExpr.c_str()[4], outExpr.c_str()[5],
+                        (compiledExpr ? "OK" : "FAIL"), err);
+ 
             // Store the expression and assigned variable index
             if (compiledExpr)
             {
@@ -73,7 +73,8 @@ void EvaluatorPatterns::addExpression(const char* exprStr, bool isInitialValue)
                 varIdxAndCompExpr._varIdx = varIdx;
                 varIdxAndCompExpr._isInitialValue = isInitialValue;
                 _varIdxAndCompiledExprs.push_back(varIdxAndCompExpr);
-                Log.verbose("%addLoop addedCompiledExpr (Count=%d)\n", MODULE_PREFIX, _varIdxAndCompiledExprs.size());
+                Log.trace("%saddLoop addedCompiledExpr (Count=%d)\n", MODULE_PREFIX, 
+                            _varIdxAndCompiledExprs.size());
             }
         }
 
@@ -109,7 +110,7 @@ void EvaluatorPatterns::evalExpressions(bool procInitialValues, bool procLoopVal
         // Compute value of expression
         double val = te_eval(_varIdxAndCompiledExprs[i]._pCompExpr);
         _patternVars.setValByIdx(varIdx, val);
-        // Log.verbose("%sexpr %d: %s varIdx %d exprRslt %f isInitialValue=%d\n", MODULE_PREFIX,
+        // Log.verbose("%sexpr %d: %s varIdx %d exprRslt %F isInitialValue=%d\n", MODULE_PREFIX,
         //                     i, _patternVars.getVariableName(varIdx).c_str(), varIdx, val, isInitialValue);
     }
 }
@@ -191,37 +192,51 @@ void EvaluatorPatterns::service(WorkManager* pWorkManager)
 }
 
 // Process WorkItem
-bool EvaluatorPatterns::execWorkItem(WorkItem& workItem)
+bool EvaluatorPatterns::execWorkItem(WorkItem& workItem, FileManager& fileManager)
 {
-    // Find the pattern matching the command
-    bool isValid = false;
-    String patternName = workItem.getString();
-    String patternJson = RdJson::getString(patternName.c_str(), "{}", _jsonConfigStr.c_str(), isValid);
-    if (isValid)
+    // Evaluator patterns should have the file extension .param
+    String fileName = workItem.getString();
+    String fileExt = FileManager::getFileExtension(fileName);
+    if (!fileExt.equalsIgnoreCase("param"))
     {
-        // This is a valid pattern
-        Log.verbose("%sprocCmd cmdStr %s seqStr %s\n", MODULE_PREFIX, patternName.c_str(), patternJson.c_str());
-
-        // Remove existing pattern
-        cleanUp();
-
-        // Get pattern details
-        _curPattern = patternName;
-        String setupExprs = RdJson::getString("setup", "", patternJson.c_str());
-        String loopExprs = RdJson::getString("loop", "", patternJson.c_str());
-        Log.trace("%spatternName %s setup %s\n", MODULE_PREFIX,
-                        _curPattern.c_str(), setupExprs.c_str());
-        Log.trace("%spatternName %s loop %s\n", MODULE_PREFIX,
-                        _curPattern.c_str(), loopExprs.c_str());
-
-        // Add to the pattern evaluator expressions
-        addExpression(setupExprs.c_str(), true);
-        addExpression(loopExprs.c_str(), false);
-
-        // Start the pattern evaluation process
-        start();
-
+        return false;
     }
-    return isValid;
+
+    // The command should be a valid file name
+    String patternJson = fileManager.getFileContents("SPIFFS", fileName, 0);
+    if (patternJson.length() <= 0)
+    {
+        Log.trace("%sfileName %s ext <%s> pat %s returning \n", MODULE_PREFIX,
+                    fileName.c_str(), fileExt.c_str(), patternJson.c_str());
+        return false;
+    }
+
+    // Remove existing pattern
+    cleanUp();
+
+    // Get pattern details
+    _curPattern = fileName;
+    String setupExprs = RdJson::getString("setup", "", patternJson.c_str());
+    String loopExprs = RdJson::getString("loop", "", patternJson.c_str());
+    Log.trace("%spatternName %s setup %s\n", MODULE_PREFIX,
+                    _curPattern.c_str(), setupExprs.c_str());
+    Log.trace("%spatternName %s loop %s\n", MODULE_PREFIX,
+                    _curPattern.c_str(), loopExprs.c_str());
+
+    if (loopExprs.length() <= 0)
+{
+            Log.trace("%sfileName %s ext <%s> loop %s returning \n", MODULE_PREFIX,
+                    fileName.c_str(), fileExt.c_str(), loopExprs.c_str());
+
+        return false;
+
+}
+    // Add to the pattern evaluator expressions
+    addExpression(setupExprs.c_str(), true);
+    addExpression(loopExprs.c_str(), false);
+
+    // Start the pattern evaluation process
+    start();
+    return true;
 }
 
