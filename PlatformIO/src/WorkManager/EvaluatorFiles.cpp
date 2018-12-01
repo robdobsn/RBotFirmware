@@ -68,9 +68,6 @@ void EvaluatorFiles::service(WorkManager* pWorkManager)
     bool finalChunk = false;
     uint8_t* pLine = _fileManager.chunkFileNext(filename, fileLen, chunkPos, chunkLen, finalChunk);
 
-    if (pLine)
-        Log.trace("%sservice gotChunk %s\n", MODULE_PREFIX, (char*) pLine);
-
     // Check if valid
     if (chunkLen > 0)
     {
@@ -103,7 +100,7 @@ void EvaluatorFiles::service(WorkManager* pWorkManager)
             // Form the work item if valid
             if (isValid)
             {
-                Log.trace("%sservice new line %s\n", MODULE_PREFIX, newLine.c_str());
+                Log.verbose("%sservice new line %s\n", MODULE_PREFIX, newLine.c_str());
                 String retStr;
                 WorkItem workItem(newLine.c_str());
                 pWorkManager->addWorkItem(workItem, retStr);
@@ -115,7 +112,7 @@ void EvaluatorFiles::service(WorkManager* pWorkManager)
     if (finalChunk)
     {
         // Process the line
-        Log.trace("%sservice file finished\n", MODULE_PREFIX);
+        Log.verbose("%sservice file finished\n", MODULE_PREFIX);
         _inProgress = false;
     }
 
@@ -123,5 +120,5 @@ void EvaluatorFiles::service(WorkManager* pWorkManager)
 
 void EvaluatorFiles::stop()
 {
-    _inProgress = "";
+    _inProgress = false;
 }
