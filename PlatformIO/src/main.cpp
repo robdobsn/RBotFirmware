@@ -7,7 +7,7 @@
 //                                        - does not clear previous WiFi so clear first if required
 //   Clear WiFi:     /wc                  - clears all stored SSID, etc
 //   Set MQTT:       /mq/ss/ii/oo/pp      - ss = server, ii and oo are in/out topics, pp = port
-//                                        - in topics / should be replaced by ~ 
+//                                        - in topics / should be replaced by ~
 //                                        - (e.g. /devicename/in becomes ~devicename~in)
 //   Check updates:  /checkupdate         - check for updates on the update server
 //   Reset:          /reset               - reset device
@@ -25,7 +25,7 @@
 //   Log to cmd:     /logcmd/en           - Control logging to command port (extra serial if configured)
 //                                        - en = 0 or 1 for off/on
 
-// System type
+// System type - this is duplicated here to make it easier for automated updater which parses the systemName = "aaaa" line
 #define SYSTEM_TYPE_NAME "RBotFirmware"
 const char* systemType = "RBotFirmware";
 
@@ -129,8 +129,8 @@ NetLog netLog(Serial, mqttManager, commandSerial);
 // REST API System
 #include "RestAPISystem.h"
 RestAPISystem restAPISystem(wifiManager, mqttManager,
-            otaUpdate, netLog, fileManager,
-            systemType, systemVersion);
+                            otaUpdate, netLog, fileManager,
+                            systemType, systemVersion);
 
 // Robot controller
 #include "RobotMotion/RobotController.h"
@@ -155,7 +155,7 @@ RestAPIRobot restAPIRobot(_workManager, fileManager);
 void debugLoopInfoCallback(String &infoStr)
 {
     if (wifiManager.isEnabled())
-        infoStr = wifiManager.getHostname() + " SSID " + WiFi.SSID() + " IP " + WiFi.localIP().toString() + " Heap " + String(ESP.getFreeHeap());
+        infoStr = wifiManager.getHostname() + " V" + String(systemVersion) + " SSID " + WiFi.SSID() + " IP " + WiFi.localIP().toString() + " Heap " + String(ESP.getFreeHeap());
     else
         infoStr = "WiFi Disabled, Heap " + String(ESP.getFreeHeap());
     // infoStr += " Q " + String(_workItemQueue.size()) + " R " + String(_workItemQueue.canAcceptWorkItem();

@@ -24,7 +24,8 @@ String WiFiManager::getHostname()
     return _hostname;
 }
 
-void WiFiManager::setup(ConfigBase& hwConfig, ConfigBase *pSysConfig, const char *defaultHostname, StatusIndicator *pStatusLed)
+void WiFiManager::setup(ConfigBase& hwConfig, ConfigBase *pSysConfig, 
+            const char *defaultHostname, StatusIndicator *pStatusLed)
 {
     _wifiEnabled = hwConfig.getLong("wifiEnabled", 0) != 0;
     _pConfigBase = pSysConfig;
@@ -41,22 +42,35 @@ void WiFiManager::setup(ConfigBase& hwConfig, ConfigBase *pSysConfig, const char
         // Set the mode to STA
         WiFi.mode(WIFI_STA);
     }
-
 }
 
 void WiFiManager::service()
 {
+    // Check enabled
     if (!_wifiEnabled)
         return;
+
+    // Check restart pending
+    if (_deviceRestartPending)
+    {
+        if (Utils::isTimeout(millis(), _deviceRestartMs, DEVICE_RESTART_DELAY_MS))
+        {
+            _deviceRestartPending = false;
+            ESP.restart();
+        }
+    }
+
+    // Check for reconnect required
     if (WiFi.status() != WL_CONNECTED)
     {
-        if ((!_wifiFirstBeginDone) || (Utils::isTimeout(millis(), _lastWifiBeginAttemptMs, TIME_BETWEEN_WIFI_BEGIN_ATTEMPTS_MS)))
+        if (Utils::isTimeout(millis(), _lastWifiBeginAttemptMs, 
+                    _wifiFirstBeginDone ? TIME_BETWEEN_WIFI_BEGIN_ATTEMPTS_MS : TIME_BEFORE_FIRST_BEGIN_MS))
         {
-            _wifiFirstBeginDone = true;
+            Log.notice("%snotConn WiFi.begin SSID %s\n", MODULE_PREFIX, _ssid.c_str());
             WiFi.begin(_ssid.c_str(), _password.c_str());
             WiFi.setHostname(_hostname.c_str());
             _lastWifiBeginAttemptMs = millis();
-            Log.notice("%snotConn WiFi.begin SSID %s\n", MODULE_PREFIX, _ssid.c_str());
+            _wifiFirstBeginDone = true;
         }
     }
 }
@@ -71,23 +85,29 @@ String WiFiManager::formConfigStr()
     return "{\"WiFiSSID\":\"" + _ssid + "\",\"WiFiPW\":\"" + _password + "\",\"WiFiHostname\":\"" + _hostname + "\"}";
 }
 
-void WiFiManager::setCredentials(String &ssid, String &pw, String &hostname)
+void WiFiManager::setCredentials(String &ssid, String &pw, String &hostname, bool resetToImplement)
 {
+    // Set credentials
     _ssid = ssid;
     _password = pw;
     if (hostname.length() == 0)
-    {
-        _hostname = hostname;
         Log.trace("%shostname not set, staying with %s\n", MODULE_PREFIX, _hostname.c_str());
-    }
+    else
+        _hostname = hostname;
     if (_pConfigBase)
     {
         _pConfigBase->setConfigData(formConfigStr().c_str());
         _pConfigBase->writeConfig();
     }
-    // Disconnect so re-connection with new credentials occurs
-    Log.trace("%ssetCredentials disconnecting to allow new connection\n", MODULE_PREFIX);
-    WiFi.disconnect();
+
+    // Check if reset required
+    if (resetToImplement)
+    {
+        Log.trace("%ssetCredentials ... Reset pending\n", MODULE_PREFIX);
+        _deviceRestartPending = true;
+        _deviceRestartMs = millis();
+    }
+
 }
 
 void WiFiManager::clearCredentials()

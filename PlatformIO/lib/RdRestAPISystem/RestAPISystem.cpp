@@ -23,6 +23,7 @@ void RestAPISystem::service()
         if (Utils::isTimeout(millis(), _updateCheckMs, DEVICE_UPDATE_DELAY_MS))
         {
             _updateCheckPending = false;
+            Log.notice("%sservice start update check\n", MODULE_PREFIX);
             _otaUpdate.requestUpdateCheck();
         }
     }
@@ -43,8 +44,8 @@ void RestAPISystem::apiWifiSet(String &reqStr, String &respStr)
     // Check if both SSID and pw have now been set
     if (ssid.length() != 0 && pw.length() != 0)
     {
-        Log.notice("%sWiFi Credentials Added SSID %s\n", MODULE_PREFIX, ssid.c_str());
-        _wifiManager.setCredentials(ssid, pw, hostname);
+        Log.notice("%sWiFi Credentials Set SSID %s hostname %s\n", MODULE_PREFIX, ssid.c_str(), hostname.c_str());
+        _wifiManager.setCredentials(ssid, pw, hostname, true);
         rslt = true;
     }
     Utils::setJsonBoolResult(respStr, rslt);
@@ -88,7 +89,7 @@ void RestAPISystem::apiMQTTSet(String &reqStr, String &respStr)
     String port = RestAPIEndpoints::getNthArgStr(reqStr.c_str(), 4);
     if (port.length() == 0)
         portNum = port.toInt();
-    Log.trace("%sMQTTPort %n\n", MODULE_PREFIX, portNum);
+    Log.trace("%sMQTTPort %d\n", MODULE_PREFIX, portNum);
     _mqttManager.setMQTTServer(server, inTopic, outTopic, portNum);
     Utils::setJsonBoolResult(respStr, true);
 }

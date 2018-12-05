@@ -1,16 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="a6546d1b-6b84-477e-8b73-cfca16147a37" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/lib/RdFileManager/FileManager.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/lib/RdFileManager/FileManager.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/lib/RdFileManager/FileManager.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/lib/RdFileManager/FileManager.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RestAPIRobot.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RestAPIRobot.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/EvaluatorPatterns.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/EvaluatorPatterns.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/EvaluatorPatterns.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/EvaluatorPatterns.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/WorkManager.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/WorkManager.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../WebUI/ComboUI/sandUI.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../WebUI/ComboUI/sandUI.html" afterDir="false" />
-    </list>
+    <list default="true" id="a6546d1b-6b84-477e-8b73-cfca16147a37" name="Default Changelist" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -25,7 +16,7 @@
     <session id="-1091900226">
       <usages-collector id="statistics.lifecycle.project">
         <counts>
-          <entry key="project.closed" value="1" />
+          <entry key="project.closed" value="2" />
           <entry key="project.open.time.0" value="2" />
           <entry key="project.open.time.5" value="1" />
           <entry key="project.opened" value="3" />
@@ -99,7 +90,8 @@
     <sorting>DEFINITION_ORDER</sorting>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="335" />
+    <option name="x" value="617" />
+    <option name="y" value="29" />
     <option name="width" value="1964" />
     <option name="height" value="1567" />
   </component>
@@ -217,15 +209,15 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="335" y="0" width="1964" height="1567" extended-state="0" />
+    <frame x="617" y="29" width="1964" height="1567" extended-state="0" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.23739496" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.23739496" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
       <window_info anchor="bottom" id="Run" order="2" />
-      <window_info active="true" anchor="bottom" id="Debug" order="3" sideWeight="0.4989496" visible="true" weight="0.39986044" />
+      <window_info anchor="bottom" id="Debug" order="3" sideWeight="0.4989496" weight="0.39986044" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
