@@ -54,7 +54,7 @@ const char *RobotConfigurations::_robotConfigs[] = {
         //ORIG:"\"homingSeq\":\"A-10000n;B+10000;#;A+10000N;B-10000;#;A+500;B-500;#;B+10000n;#;B-10000N;#;B-560;#;A=h;B=h;$\","
             // EH"\"homingSeq\":\"A-10000N;B10000;#;A-300;B+300;#;B+10000n;#;B+560;#;A=h;B=h;$\","
         //"\"homingSeq\":\"A-10000n;B+10000;#;A+10000N;B-10000;#;A-700;B+700;#;B+10000n;#;B-10000N;#;B-400;#;A=h;B=h;$\","
-        "\"homingSeq\":\"A-10000R9N;B+10000R9#;A-10000R9n;B+10000R9;#;A+470R9;B-470R9;#;B-10000R9N;#;B-10000R9n;#;B+1050R9;#;A=h;B=h;$\","
+        "\"homingSeq\":\"A-10000R9N;B+10000R9#;A-10000R9n;B+10000R9;#;A+470R9;B-470R9;#;B-10000R9N;#;B-10000R9n;#;B+750R9;#;A=h;B=h;$\","
         //"\"homingSeq\":\"A-10000N;#;A=h;B=h;$\","
         "\"maxHomingSecs\":320,"
         "\"stepEnablePin\":\"12\","

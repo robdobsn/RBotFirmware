@@ -175,7 +175,7 @@ bool MotionHoming::extractAndExecNextCmd(AxesParams &axesParams)
                     if ((_homingSequence.charAt(_homingStrPos) >= '1') && (_homingSequence.charAt(_homingStrPos) <= '9'))
                     {
                         int mult = _homingSequence.charAt(_homingStrPos) - '0' + 1;
-                        _curCommand.setFeedrate(axesParams.getMaxSpeed(axisIdx) * mult / 2);//10);
+                        _curCommand.setFeedrate(axesParams.getMaxSpeed(axisIdx) * mult / 4);//10);
                         _homingStrPos++;
                     }
                 }
