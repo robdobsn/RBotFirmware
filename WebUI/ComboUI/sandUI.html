@@ -165,7 +165,7 @@
 			}
 			else if (cmdStr === "run")
 			{
-				callAjax("/playFile" + window.stState.fileSystemBasePath + "/" + argStr);
+				callAjax("/playFile" + window.stState.fileSystemBasePath + "/" + argStr, ajaxDefaultCallback);
 			}
 			else if (cmdStr === "runAtStart")
 			{

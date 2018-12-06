@@ -30,7 +30,7 @@
 const char* systemType = "RBotFirmware";
 
 // System version
-const char* systemVersion = "2.009.001";
+const char* systemVersion = "2.010.001";
 
 // Build date
 const char* buildDate = __DATE__;
@@ -94,7 +94,8 @@ static const char *hwConfigJSON = {
     "\"OTAUpdate\":{\"enabled\":0,\"server\":\"domoticzoff\",\"port\":5076},"
     "\"serialConsole\":{\"portNum\":0},"
     "\"commandSerial\":{\"portNum\":-1,\"baudRate\":115200},"
-    "\"fileManager\":{\"spiffsEnabled\":1,\"spiffsFormatIfCorrupt\":1},"
+    "\"fileManager\":{\"spiffsEnabled\":1,\"spiffsFormatIfCorrupt\":1,"
+            "\"sdEnabled\":1,\"sdMOSI\":\"18\",\"sdMISO\":\"19\",\"sdCLK\":\"5\",\"sdCS\":\"33\"},"
     "\"wifiLed\":{\"hwPin\":\"\",\"onLevel\":1,\"onMs\":200,\"shortOffMs\":200,\"longOffMs\":750},"
     "\"defaultRobotType\":\"SandTableScara\""
     "}"};
@@ -208,7 +209,8 @@ void setup()
     webServer.setup(hwConfig);
     webServer.addStaticResources(__webAutogenResources, __webAutogenResourcesCount);
     webServer.addEndpoints(restAPIEndpoints);
-    webServer.serveStaticFiles("spiffs", "/files/spiffs", "/");
+    webServer.serveStaticFiles("/files/spiffs", "/spiffs/");
+    webServer.serveStaticFiles("/files/sd", "/sd/");
 
     // MQTT
     mqttManager.setup(hwConfig, &mqttConfig);
