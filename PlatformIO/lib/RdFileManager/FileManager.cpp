@@ -4,11 +4,10 @@
 #include "RdJson.h"
 #include "FileManager.h"
 #include "Utils.h"
-#include <FS.h>
-#include <SPIFFS.h>
-
 #include <sys/stat.h>
 #include "vfs_api.h"
+#include "esp_spiffs.h"
+#include "SPIFFS.h"
 
 using namespace fs;
 
@@ -18,7 +17,7 @@ void FileManager::setup(ConfigBase& config)
 {
     // Get config
     ConfigBase fsConfig(config.getString("fileManager", "").c_str());
-    Log.notice("%sconfig %s\n", MODULE_PREFIX, fsConfig.getConfigCStrPtr());
+    Log.notice("%ssetup %s\n", MODULE_PREFIX, fsConfig.getConfigCStrPtr());
 
     // See if SPIFFS enabled
     _enableSPIFFS = fsConfig.getLong("spiffsEnabled", 0) != 0;
@@ -27,28 +26,69 @@ void FileManager::setup(ConfigBase& config)
     // Init if required
     if (_enableSPIFFS)
     {
+        // Begin Arduino SPIFFS for web server
         if (!SPIFFS.begin(spiffsFormatIfCorrupt))
-            Log.warning("%sSPIFFS failed to initialise\n", MODULE_PREFIX);
+            Log.warning("%ssetup failed to begin Arduino SPIFFS\n", MODULE_PREFIX);
+
+        // // Using ESP32 native SPIFFS support rather than arduino as potential bugs encountered in some
+        // // arduino functions
+        // esp_vfs_spiffs_conf_t conf = {
+        // .base_path = "/spiffs",
+        // .partition_label = NULL,
+        // .max_files = 5,
+        // .format_if_mount_failed = spiffsFormatIfCorrupt
+        // };        
+        // // Use settings defined above to initialize and mount SPIFFS filesystem.
+        // // Note: esp_vfs_spiffs_register is an all-in-one convenience function.
+        // esp_err_t ret = esp_vfs_spiffs_register(&conf);
+        // if (ret != ESP_OK)
+        // // if (!SPIFFS.begin(spiffsFormatIfCorrupt))
+        // {
+        //     if (ret == ESP_FAIL)
+        //         Log.warning("%ssetup failed mount/format SPIFFS\n", MODULE_PREFIX);
+        //     else if (ret == ESP_ERR_NOT_FOUND)
+        //         Log.warning("%ssetup failed to find SPIFFS partition\n", MODULE_PREFIX);
+        //     else
+        //         Log.warning("%ssetup failed to init SPIFFS (error %s)\n", MODULE_PREFIX, esp_err_to_name(ret));
+        // }
+
+        // Show SPIFFS info
+        size_t total = 0, used = 0;
+        esp_err_t ret = esp_spiffs_info(NULL, &total, &used);
+        if (ret != ESP_OK)
+            Log.warning("%ssetup failed to get SPIFFS info (error %s)\n", MODULE_PREFIX, esp_err_to_name(ret));
+        else
+            Log.warning("%ssetup SPIFFS partition size total %d, used %d\n", MODULE_PREFIX, total, used);
+
+        // Default to SPIFFS
+        _defaultToSPIFFS = true;
+
     }
 }
     
 void FileManager::reformat(const String& fileSystemStr, String& respStr)
 {
     // Check file system supported
-    if ((fileSystemStr.length() > 0) && (fileSystemStr != "SPIFFS"))
+    String nameOfFS;
+    if (!checkFileSystem(fileSystemStr, nameOfFS))
     {
         respStr = "{\"rslt\":\"fail\",\"error\":\"unknownfs\",\"files\":[]}";
         return;
     }
     
     // Reformat
-    bool rslt = SPIFFS.format();
-    Utils::setJsonBoolResult(respStr, rslt);
-    Log.warning("%sReformat SPIFFS result %d\n", MODULE_PREFIX, rslt);
+    esp_err_t ret = esp_spiffs_format(NULL);
+    // bool rslt = SPIFFS.format();
+    Utils::setJsonBoolResult(respStr, ret == ESP_OK);
+    Log.warning("%sReformat SPIFFS result %s\n", MODULE_PREFIX, (ret == ESP_OK ? "OK" : "FAIL"));
 }
 
 bool FileManager::getFileInfo(const String& fileSystemStr, const String& filename, int& fileLength)
 {
+    String nameOfFS;
+    if (!checkFileSystem(fileSystemStr, nameOfFS))
+        return false;
+
     // Take mutex
     xSemaphoreTake(_fileSysMutex, portMAX_DELAY);
 
@@ -68,61 +108,84 @@ bool FileManager::getFileInfo(const String& fileSystemStr, const String& filenam
 bool FileManager::getFilesJSON(const String& fileSystemStr, const String& folderStr, String& respStr)
 {
     // Check file system supported
-    if ((fileSystemStr.length() > 0) && (fileSystemStr != "SPIFFS"))
+    String nameOfFS;
+    if (!checkFileSystem(fileSystemStr, nameOfFS))
     {
         respStr = "{\"rslt\":\"fail\",\"error\":\"unknownfs\",\"files\":[]}";
         return false;
     }
 
-    // respStr = "{\"rslt\":\"ok\",\"diskSize\":" + String(123456) + ",\"diskUsed\":" + 
-    //              String(234567) + ",\"folder\":\"" + String("hello") + "\",\"files\":[]}";;
-    // return true;
-
     // Take mutex
     xSemaphoreTake(_fileSysMutex, portMAX_DELAY);
 
-    // Only SPIFFS currently
-    fs::FS fs = SPIFFS;
-    size_t spiffsSize = SPIFFS.totalBytes();
-    size_t spiffsUsed = SPIFFS.usedBytes();
+    // Get size of file systems
+    String baseFolderForFS;
+    size_t fsSizeBytes = 0, fsUsedBytes = 0;
+    if (_enableSPIFFS && (((nameOfFS.length() == 0) && (_defaultToSPIFFS)) || (nameOfFS == "spiffs")))
+    {
+        esp_err_t ret = esp_spiffs_info(NULL, &fsSizeBytes, &fsUsedBytes);
+        if (ret != ESP_OK)
+        {
+            xSemaphoreGive(_fileSysMutex);
+            Log.warning("%sgetFilesJSON Failed to get SPIFFS info (error %s)\n", MODULE_PREFIX, esp_err_to_name(ret));
+            respStr = "{\"rslt\":\"fail\",\"error\":\"SPIFFSINFO\",\"files\":[]}";
+            return false;
+        }
+        // FS settings
+        nameOfFS = "spiffs";
+        baseFolderForFS = "/spiffs";
+    }
 
-    // Open folder
-    File base = fs.open(folderStr.c_str());
-    if (!base)
+    // Check file system is valid
+    if (fsSizeBytes == 0)
+    {
+        Log.warning("%sgetFilesJSON No valid file system\n", MODULE_PREFIX);
+        respStr = "{\"rslt\":\"fail\",\"error\":\"NOFS\",\"files\":[]}";
+        return false;
+    }
+
+    // Open directory
+    String rootFolder = (folderStr.startsWith("/") ? baseFolderForFS + folderStr : (baseFolderForFS + "/" + folderStr));
+    DIR* dir = opendir(rootFolder.c_str());
+    if (!dir)
     {
         xSemaphoreGive(_fileSysMutex);
+        Log.warning("%sgetFilesJSON Failed to open base folder %s\n", MODULE_PREFIX, rootFolder.c_str());
         respStr = "{\"rslt\":\"fail\",\"error\":\"nofolder\",\"files\":[]}";
         return false;
     }
-    if (!base.isDirectory())
-    {
-        xSemaphoreGive(_fileSysMutex);
-        respStr = "{\"rslt\":\"fail\",\"error\":\"notfolder\",\"files\":[]}";
-        return false;
-    }
 
-    // Iterate over files
-    File file = base.openNextFile();
-    respStr = "{\"rslt\":\"ok\",\"diskSize\":" + String(spiffsSize) + ",\"diskUsed\":" + 
-                spiffsUsed + ",\"folder\":\"" + String(folderStr) + "\",\"files\":[";
+    // Start response JSON
+    respStr = "{\"rslt\":\"ok\",\"fsName\":\"" + nameOfFS + "\",\"fsBase\":\"" + baseFolderForFS + 
+                "\",\"diskSize\":" + String(fsSizeBytes) + ",\"diskUsed\":" + fsUsedBytes +
+                ",\"folder\":\"" + String(rootFolder) + "\",\"files\":[";
     bool firstFile = true;
-    while (file)
+
+    // Read directory entries
+    struct dirent* ent = NULL;
+    while ((ent = readdir(dir)) != NULL) 
     {
-        if (!file.isDirectory())
+        // Get file info including size
+        size_t fileSize = 0;
+        struct stat st;
+        if (stat(ent->d_name, &st) == 0) 
         {
-            if (!firstFile)
-                respStr += ",";
-            firstFile = false;
-            respStr += "{\"name\":\"";
-            respStr += file.name();
-            respStr += "\",\"size\":";
-            respStr += String(file.size());
-            respStr += "}";
+            fileSize = st.st_size;
         }
 
-        // Next
-        file = base.openNextFile();
+        // Form the JSON list
+        if (!firstFile)
+            respStr += ",";
+        firstFile = false;
+        respStr += "{\"name\":\"";
+        respStr += ent->d_name;
+        respStr += "\",\"size\":";
+        respStr += String(fileSize);
+        respStr += "}";
     }
+
+    // Finished with file list
+    closedir(dir);
     respStr += "]}";
     xSemaphoreGive(_fileSysMutex);
     return true;
@@ -131,7 +194,8 @@ bool FileManager::getFilesJSON(const String& fileSystemStr, const String& folder
 String FileManager::getFileContents(const String& fileSystemStr, const String& filename, int maxLen)
 {
     // Check file system supported
-    if ((fileSystemStr.length() > 0) && (fileSystemStr != "SPIFFS"))
+    String nameOfFS;
+    if (!checkFileSystem(fileSystemStr, nameOfFS))
     {
         Log.trace("%sgetContents %s invalid file system %s\n", MODULE_PREFIX, filename.c_str(), fileSystemStr.c_str());
         return "";
@@ -170,7 +234,7 @@ String FileManager::getFileContents(const String& fileSystemStr, const String& f
     int fileSize = st.st_size;
 
     // Open file
-    FILE* pFile = fopen(rootFilename.c_str(), "r");
+    FILE* pFile = fopen(rootFilename.c_str(), "rb");
     if (!pFile)
     {
         xSemaphoreGive(_fileSysMutex);
@@ -201,7 +265,8 @@ String FileManager::getFileContents(const String& fileSystemStr, const String& f
 bool FileManager::setFileContents(const String& fileSystemStr, const String& filename, String& fileContents)
 {
     // Check file system supported
-    if ((fileSystemStr.length() > 0) && (fileSystemStr != "SPIFFS"))
+    String nameOfFS;
+    if (!checkFileSystem(fileSystemStr, nameOfFS))
     {
         return false;
     }
@@ -209,70 +274,125 @@ bool FileManager::setFileContents(const String& fileSystemStr, const String& fil
     // Take mutex
     xSemaphoreTake(_fileSysMutex, portMAX_DELAY);
 
-    // Open file
-    File file = SPIFFS.open(filename, FILE_WRITE);
-    if (!file)
+    // Open file for writing
+    String rootFilename = (filename.startsWith("/") ? "/spiffs" + filename : ("/spiffs/" + filename));
+    FILE* pFile = fopen(rootFilename.c_str(), "wb");
+    if (!pFile)
     {
-        xSemaphoreGive(_fileSysMutex);        
-        Log.trace("%sfailed to open file to write %s\n", MODULE_PREFIX, filename.c_str());
-        return false;
+        xSemaphoreGive(_fileSysMutex);
+        Log.trace("%ssetContents failed to open file to write %s\n", MODULE_PREFIX, filename.c_str());
+        return "";
     }
 
     // Write
-    size_t bytesWritten = file.write((uint8_t*)(fileContents.c_str()), fileContents.length());
-    file.close();
+    size_t bytesWritten = fwrite((uint8_t*)(fileContents.c_str()), 1, fileContents.length(), pFile);
+    fclose(pFile);
+
+    // File file = SPIFFS.open(filename, FILE_WRITE);
+    // if (!file)
+    // {
+    //     xSemaphoreGive(_fileSysMutex);        
+    //     Log.trace("%sfailed to open file to write %s\n", MODULE_PREFIX, filename.c_str());
+    //     return false;
+    // }
+
+    // // Write
+    // size_t bytesWritten = file.write((uint8_t*)(fileContents.c_str()), fileContents.length());
+    // file.close();
     xSemaphoreGive(_fileSysMutex);
     return bytesWritten == fileContents.length();
 }
 
-void FileManager::uploadAPIBlockHandler(const char* fileSystem, const String& req, const String& filename, int fileLength, size_t index, uint8_t *data, size_t len, bool finalBlock)
+void FileManager::uploadAPIBlockHandler(const char* fileSystem, const String& req, const String& filename, 
+                    int fileLength, size_t index, uint8_t *data, size_t len, bool finalBlock)
 {
     Log.trace("%suploadAPIBlockHandler fileSys %s, filename %s, total %d, idx %d, len %d, final %d\n", MODULE_PREFIX, 
                 fileSystem, filename.c_str(), fileLength, index, len, finalBlock);
-    if (strcmp(fileSystem, "SPIFFS") != 0)
-        return;
 
-    // Access type
-    const char* accessType = FILE_WRITE;
-    if (index > 0)
-    {
-        accessType = FILE_APPEND;
-    }
+    // Check file system supported
+    String nameOfFS;
+    if (!checkFileSystem(String(fileSystem), nameOfFS))
+        return;
 
     // Take mutex
     xSemaphoreTake(_fileSysMutex, portMAX_DELAY);
+    String tempFileName = "/__tmp__";
+    String tmpRootFilename = (tempFileName.startsWith("/") ? "/spiffs" + tempFileName : ("/spiffs/" + tempFileName));
+    FILE* pFile = NULL;
 
-    // Write file block
-    File file = SPIFFS.open("/__tmp__", accessType);
-    if (!file)
+    // Check if we should overwrite or append
+    if (index > 0)
+        pFile = fopen(tmpRootFilename.c_str(), "ab");
+    else
+        pFile = fopen(tmpRootFilename.c_str(), "wb");
+    if (!pFile)
     {
-        xSemaphoreGive(_fileSysMutex);        
-        Log.trace("%sfailed to open __tmp__ file\n", MODULE_PREFIX);
+        xSemaphoreGive(_fileSysMutex);
+        Log.trace("%suploadBlock failed to open file to write %s\n", MODULE_PREFIX, tmpRootFilename.c_str());
         return;
     }
-    if (!file.write(data, len))
+
+    // Write file block to temporary file
+    size_t bytesWritten = fwrite(data, 1, len, pFile);
+    fclose(pFile);
+    if (bytesWritten != len)
     {
-        Log.trace("%sfailed write to __tmp__ file\n", MODULE_PREFIX);
+        Log.trace("%suploadBlock write failed %s (written %d != len %d)\n", MODULE_PREFIX, tmpRootFilename.c_str(), bytesWritten, len);
     }
 
     // Rename if last block
     if (finalBlock)
     {
-        // Remove in case filename already exists
-        SPIFFS.remove("/" + filename);
-        // Rename
-        if (!SPIFFS.rename("/__tmp__", "/" + filename))
+        // Check if destination file exists before renaming
+        struct stat st;
+        String rootFilename = (filename.startsWith("/") ? "/spiffs" + filename : ("/spiffs/" + filename));
+        if (stat(rootFilename.c_str(), &st) == 0) 
         {
-            Log.trace("%sfailed rename __tmp__ to %s\n", MODULE_PREFIX, filename.c_str());
+            // Remove in case filename already exists
+            unlink(rootFilename.c_str());
+        }
+
+        // Rename
+        if (rename(tmpRootFilename.c_str(), rootFilename.c_str()) != 0)
+        {
+            Log.trace("%sfailed rename %s to %s\n", MODULE_PREFIX, tmpRootFilename.c_str(), rootFilename.c_str());
         }
     }
+
+    // // Write file block
+    // File file = SPIFFS.open("/__tmp__", accessType);
+    // if (!file)
+    // {
+    //     xSemaphoreGive(_fileSysMutex);        
+    //     Log.trace("%sfailed to open __tmp__ file\n", MODULE_PREFIX);
+    //     return;
+    // }
+    // if (!file.write(data, len))
+    // {
+    //     Log.trace("%sfailed write to __tmp__ file\n", MODULE_PREFIX);
+    // }
+
+    // // Rename if last block
+    // if (finalBlock)
+    // {
+    //     // Remove in case filename already exists
+    //     SPIFFS.remove("/" + filename);
+    //     // Rename
+    //     if (!SPIFFS.rename("/__tmp__", "/" + filename))
+    //     {
+    //         Log.trace("%sfailed rename __tmp__ to %s\n", MODULE_PREFIX, filename.c_str());
+    //     }
+    // }
+
+    // Restore semaphore
     xSemaphoreGive(_fileSysMutex);
 }
 
 bool FileManager::deleteFile(const String& fileSystemStr, const String& filename)
 {
     // Check file system supported
-    if ((fileSystemStr.length() > 0) && (fileSystemStr != "SPIFFS"))
+    String nameOfFS;
+    if (!checkFileSystem(fileSystemStr, nameOfFS))
     {
         return false;
     }
@@ -281,11 +401,12 @@ bool FileManager::deleteFile(const String& fileSystemStr, const String& filename
     xSemaphoreTake(_fileSysMutex, portMAX_DELAY);
 
     // Remove file
-    if (!SPIFFS.remove("/" + filename))
+    struct stat st;
+    String rootFilename = (filename.startsWith("/") ? "/spiffs" + filename : ("/spiffs/" + filename));
+    if (stat(rootFilename.c_str(), &st) == 0) 
     {
-        Log.notice("%sfailed to remove file %s\n", MODULE_PREFIX, filename.c_str());
-        return false; 
-    }            
+        unlink(rootFilename.c_str());
+    }
 
     xSemaphoreGive(_fileSysMutex);   
     return true;
@@ -294,7 +415,8 @@ bool FileManager::deleteFile(const String& fileSystemStr, const String& filename
 bool FileManager::chunkedFileStart(const String& fileSystemStr, const String& filename, bool readByLine)
 {
     // Check file system supported
-    if ((fileSystemStr.length() > 0) && (fileSystemStr != "SPIFFS"))
+    String nameOfFS;
+    if (!checkFileSystem(fileSystemStr, nameOfFS))
     {
         return false;
     }
@@ -442,4 +564,38 @@ String FileManager::getFileExtension(String& fileName)
         return extn;
     // Return substring
     return fileName.substring(dotPos+1);
+}
+
+// Get file system and check ok
+bool FileManager::checkFileSystem(const String& fileSystemStr, String& fsName)
+{
+    // Check file system
+    fsName = fileSystemStr;
+    fsName.trim();
+    fsName.toLowerCase();
+
+    // Check for default
+    if (fsName.length() == 0)
+    {
+        if (_defaultToSPIFFS)
+            fsName = "spiffs";
+        else
+            fsName = "sd";
+    }
+
+    if (fsName == "spiffs")
+    {
+        if (!_enableSPIFFS)
+            return false;
+        return true;
+    }
+    if (fsName == "sd")
+    {
+        if (!_enableSD)
+            return false;
+        return true;
+    }
+
+    // Unknown FS
+    return false;
 }

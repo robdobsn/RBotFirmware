@@ -182,7 +182,7 @@ void RestAPISystem::apiReformatFS(String &reqStr, String& respStr)
 
 // List files on a file system
 // Uses FileManager.h
-// In the reqStr the first part of the path is the file system name (e.g. SD or SPIFFS)
+// In the reqStr the first part of the path is the file system name (e.g. sd or spiffs, can be blank to default)
 // The second part of the path is the folder - note that / must be replaced with ~ in folder
 void RestAPISystem::apiFileList(String &reqStr, String& respStr)
 {
@@ -198,7 +198,7 @@ void RestAPISystem::apiFileList(String &reqStr, String& respStr)
 
 // Read file contents
 // Uses FileManager.h
-// In the reqStr the first part of the path is the file system name (e.g. SD or SPIFFS)
+// In the reqStr the first part of the path is the file system name (e.g. sd or spiffs)
 // The second part of the path is the folder and filename - note that / must be replaced with ~ in folder
 void RestAPISystem::apiFileRead(String &reqStr, String& respStr)
 {
@@ -212,7 +212,7 @@ void RestAPISystem::apiFileRead(String &reqStr, String& respStr)
 
 // Delete file on the file system
 // Uses FileManager.h
-// In the reqStr the first part of the path is the file system name (e.g. SD or SPIFFS)
+// In the reqStr the first part of the path is the file system name (e.g. sd or spiffs)
 // The second part of the path is the filename - note that / must be replaced with ~ in filename
 void RestAPISystem::apiDeleteFile(String &reqStr, String& respStr)
 {
@@ -243,7 +243,7 @@ void RestAPISystem::apiUploadToFileManPart(String& req, String& filename, size_t
 {
     Log.verbose("%sapiUpToFileMan %d, %d, %d, %d\n", MODULE_PREFIX, contentLen, index, len, finalBlock);
     if (contentLen > 0)
-        _fileManager.uploadAPIBlockHandler("SPIFFS", req, filename, contentLen, index, data, len, finalBlock);
+        _fileManager.uploadAPIBlockHandler("", req, filename, contentLen, index, data, len, finalBlock);
 }
 
 void RestAPISystem::setup(RestAPIEndpoints &endpoints)
@@ -289,16 +289,16 @@ void RestAPISystem::setup(RestAPIEndpoints &endpoints)
                     "Set log to cmdSerial /enable/port");
     endpoints.addEndpoint("reformatfs", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
                     std::bind(&RestAPISystem::apiReformatFS, this, std::placeholders::_1, std::placeholders::_2), 
-                    "Reformat file system /SPIFFS");
+                    "Reformat file system e.g. /spiffs");
     endpoints.addEndpoint("filelist", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
                     std::bind(&RestAPISystem::apiFileList, this, std::placeholders::_1, std::placeholders::_2), 
-                    "List files in folder /SPIFFS/folder ... ~ for / in folder");
+                    "List files in folder e.g. /spiffs/folder ... ~ for / in folder");
     endpoints.addEndpoint("fileread", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
                     std::bind(&RestAPISystem::apiFileRead, this, std::placeholders::_1, std::placeholders::_2), 
                     "Read file ... name", "text/plain");
     endpoints.addEndpoint("deleteFile", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
                     std::bind(&RestAPISystem::apiDeleteFile, this, std::placeholders::_1, std::placeholders::_2), 
-                    "Delete file /SPIFFS/filename ... ~ for / in filename");
+                    "Delete file e.g. /spiffs/filename ... ~ for / in filename");
     endpoints.addEndpoint("uploadtofileman", 
                     RestAPIEndpointDef::ENDPOINT_CALLBACK, 
                     RestAPIEndpointDef::ENDPOINT_POST,

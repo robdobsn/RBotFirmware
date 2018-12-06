@@ -217,10 +217,17 @@ void WebServer::addStaticResource(const WebServerResource *pResource, const char
     });
 }
 
-void WebServer::serveStaticFiles(const char* baseUrl, const char* baseFolder)
+void WebServer::serveStaticFiles(const char* fileSystemName, const char* baseUrl, const char* baseFolder)
 {
     // Check enabled
     if (!_pServer)
         return;
-    _pServer->serveStatic(baseUrl, SPIFFS, baseFolder);
+    
+    // Handle file system possibilities
+    if (String(fileSystemName) == "spiffs")
+    {
+        // Initialise SPIFFS
+        Log.trace("%sserveStaticFiles url %s folder %s\n", MODULE_PREFIX, baseUrl, baseFolder);
+        _pServer->serveStatic(baseUrl, SPIFFS, baseFolder);
+    }
 }

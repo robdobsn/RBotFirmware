@@ -58,11 +58,6 @@ bool WorkManager::setRobotConfig(const uint8_t *pData, int len)
     _robotConfig.setConfigData(tmpBuf);
     // Reconfigure the robot
     reconfigure();
-    // Apply the config data
-    String patternsStr = RdJson::getString("/patterns", "{}", _robotConfig.getConfigCStrPtr());
-    _evaluatorPatterns.setConfig(patternsStr.c_str());
-    String sequencesStr = RdJson::getString("/sequences", "{}", _robotConfig.getConfigCStrPtr());
-    _evaluatorSequences.setConfig(sequencesStr.c_str());
     // Store the configuration permanently
     _robotConfig.writeConfig();
     return true;
@@ -235,15 +230,6 @@ void WorkManager::reconfigure()
     // Init robot controller and workflow manager
     _robotController.init(robotConfigStr.c_str());
     _workItemQueue.init(robotConfigStr.c_str(), "workItemQueue");
-
-    // Configure the command interpreter
-    Log.notice("%ssetting config\n", MODULE_PREFIX);
-    String patternsStr = RdJson::getString("/patterns", "{}", _robotConfig.getConfigCStrPtr());
-    _evaluatorPatterns.setConfig(patternsStr.c_str());
-    Log.notice("%spatterns %s\n", MODULE_PREFIX, patternsStr.c_str());
-    String sequencesStr = RdJson::getString("/sequences", "{}", _robotConfig.getConfigCStrPtr());
-    _evaluatorSequences.setConfig(sequencesStr.c_str());
-    Log.notice("%ssequences %s\n", MODULE_PREFIX, sequencesStr.c_str());
 }
 
 void WorkManager::handleStartupCommands()

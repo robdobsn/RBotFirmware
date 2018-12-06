@@ -9,7 +9,9 @@
 class FileManager
 {
 private:
+    // File system controls
     bool _enableSPIFFS;
+    bool _enableSD;
     bool _defaultToSPIFFS;
 
     // Chunked file access
@@ -28,6 +30,7 @@ public:
     FileManager()
     {
         _enableSPIFFS = false;
+        _enableSD = false;
         _defaultToSPIFFS = true;
         _chunkedFileLen = 0;
         _chunkedFilePos = 0;
@@ -69,4 +72,8 @@ public:
 
     // Read line from file
     char* readLineFromFile(char* pBuf, int maxLen, FILE* pFile);
+
+private:
+    bool checkFileSystem(const String& fileSystemStr, String& fsName);
+
 };

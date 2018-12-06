@@ -81,19 +81,19 @@ public:
 
     // List files on a file system
     // Uses FileManager.h
-    // In the reqStr the first part of the path is the file system name (e.g. SD or SPIFFS)
+    // In the reqStr the first part of the path is the file system name (e.g. sd or spiffs, can be blank to default)
     // The second part of the path is the folder - note that / must be replaced with ~ in folder
     void apiFileList(String &reqStr, String& respStr);
 
     // Read file contents
     // Uses FileManager.h
-    // In the reqStr the first part of the path is the file system name (e.g. SD or SPIFFS)
+    // In the reqStr the first part of the path is the file system name (e.g. sd or spiffs)
     // The second part of the path is the folder and filename - note that / must be replaced with ~ in folder
     void apiFileRead(String &reqStr, String& respStr);
 
     // Delete file on the file system
     // Uses FileManager.h
-    // In the reqStr the first part of the path is the file system name (e.g. SD or SPIFFS)
+    // In the reqStr the first part of the path is the file system name (e.g. sd or spiffs)
     // The second part of the path is the filename - note that / must be replaced with ~ in filename
     void apiDeleteFile(String &reqStr, String& respStr);
 

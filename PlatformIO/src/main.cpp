@@ -30,7 +30,7 @@
 const char* systemType = "RBotFirmware";
 
 // System version
-const char* systemVersion = "2.008.003";
+const char* systemVersion = "2.009.001";
 
 // Build date
 const char* buildDate = __DATE__;
@@ -103,7 +103,7 @@ static const char *hwConfigJSON = {
 ConfigBase hwConfig(hwConfigJSON);
 
 // Config for robot control
-ConfigFile robotConfig(fileManager, "SPIFFS", "/robot.json", 4000);
+ConfigFile robotConfig(fileManager, "spiffs", "/robot.json", 4000);
 
 // Config for WiFi
 ConfigNVS wifiConfig("wifi", 100);
@@ -208,7 +208,7 @@ void setup()
     webServer.setup(hwConfig);
     webServer.addStaticResources(__webAutogenResources, __webAutogenResourcesCount);
     webServer.addEndpoints(restAPIEndpoints);
-    webServer.serveStaticFiles("/files", "/");
+    webServer.serveStaticFiles("spiffs", "/files/spiffs", "/");
 
     // MQTT
     mqttManager.setup(hwConfig, &mqttConfig);

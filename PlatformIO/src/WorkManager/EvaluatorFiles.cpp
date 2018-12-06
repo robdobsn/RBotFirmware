@@ -23,7 +23,7 @@ bool EvaluatorFiles::isValid(WorkItem& workItem)
 {
     // Form the file name
     String fName = workItem.getString();
-    // Check on SPIFFS file system
+    // Check on file system
     int fileLen = 0;
     return _fileManager.getFileInfo("SPIFFS", fName, fileLen);
 }

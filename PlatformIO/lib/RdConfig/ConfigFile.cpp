@@ -8,7 +8,7 @@ static const char* MODULE_PREFIX = "ConfigFile: ";
 // Clear
 void ConfigFile::clear()
 {
-    // Delete the backing SPIFFS file
+    // Delete the backing file
     _fileManager.deleteFile(_fileSystem, _filename);
     
     // Set the config str to empty

@@ -14,7 +14,8 @@
 				fileExcludes: ["ROBOT.JSON"],
 				latestFileListInfo: {},
 				curFileType: "param",
-				newFileType: "param"
+				newFileType: "param",
+                fileSystemBasePath: ""
 			};
 			window.pageState = {
 				"maxCfgLen": 2000,
@@ -32,7 +33,7 @@
 		}
 		function reqFileListAndUpdate()
 		{
-			callAjax("/filelist/SPIFFS", fileListUpdateOk, fileListUpdateFail)
+			callAjax("/filelist/", fileListUpdateOk, fileListUpdateFail)
 		}
 		function fileListUpdateFail()
 		{
@@ -44,6 +45,7 @@
 			try
 			{
 				window.stState.latestFileListInfo = JSON.parse(resp);
+                window.stState.fileSystemBasePath = window.stState.latestFileListInfo.fsBase;
 			}
 			catch (excp)
 			{
@@ -89,7 +91,7 @@
 				if (confirm('Are you sure you want to delete?'))
 				{
 					// Remove the file
-					callAjax("/deleteFile/SPIFFS/" + argStr, fileDeleteOk, fileDeleteFail);
+					callAjax("/deleteFile" + window.stState.fileSystemBasePath + "/" + argStr, fileDeleteOk, fileDeleteFail);
 					window.stState.curPage = "";
 					reqFileListAndUpdate();
 				}
@@ -159,11 +161,11 @@
 			else if (cmdStr === "edit")
 			{
 				window.stState.curItem = argStr;
-				callAjax("/files/" + argStr, fileReadToEdit);
+				callAjax("/files" + window.stState.fileSystemBasePath + "/" + argStr, fileReadToEdit);
 			}
 			else if (cmdStr === "run")
 			{
-				callAjax("/playFile/" + argStr);
+				callAjax("/playFile" + window.stState.fileSystemBasePath + "/" + argStr);
 			}
 			else if (cmdStr === "runAtStart")
 			{
