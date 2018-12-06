@@ -390,17 +390,7 @@ bool FileManager::setFileContents(const String& fileSystemStr, const String& fil
     size_t bytesWritten = fwrite((uint8_t*)(fileContents.c_str()), 1, fileContents.length(), pFile);
     fclose(pFile);
 
-    // File file = SPIFFS.open(rootFilename, FILE_WRITE);
-    // if (!file)
-    // {
-    //     xSemaphoreGive(_fileSysMutex);        
-    //     Log.trace("%sfailed to open file to write %s\n", MODULE_PREFIX, rootFilename.c_str());
-    //     return false;
-    // }
-
-    // // Write
-    // size_t bytesWritten = file.write((uint8_t*)(fileContents.c_str()), fileContents.length());
-    // file.close();
+    // Clean up
     xSemaphoreGive(_fileSysMutex);
     return bytesWritten == fileContents.length();
 }
@@ -460,31 +450,6 @@ void FileManager::uploadAPIBlockHandler(const char* fileSystem, const String& re
             Log.trace("%sfailed rename %s to %s\n", MODULE_PREFIX, tmpRootFilename.c_str(), rootFilename.c_str());
         }
     }
-
-    // // Write file block
-    // File file = SPIFFS.open("/__tmp__", accessType);
-    // if (!file)
-    // {
-    //     xSemaphoreGive(_fileSysMutex);        
-    //     Log.trace("%sfailed to open __tmp__ file\n", MODULE_PREFIX);
-    //     return;
-    // }
-    // if (!file.write(data, len))
-    // {
-    //     Log.trace("%sfailed write to __tmp__ file\n", MODULE_PREFIX);
-    // }
-
-    // // Rename if last block
-    // if (finalBlock)
-    // {
-    //     // Remove in case filename already exists
-    //     SPIFFS.remove("/" + filename);
-    //     // Rename
-    //     if (!SPIFFS.rename("/__tmp__", "/" + rootFilename))
-    //     {
-    //         Log.trace("%sfailed rename __tmp__ to %s\n", MODULE_PREFIX, rootFilename.c_str());
-    //     }
-    // }
 
     // Restore semaphore
     xSemaphoreGive(_fileSysMutex);
