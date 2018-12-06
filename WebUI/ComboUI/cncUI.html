@@ -47,7 +47,8 @@
                 curFileList: [],
                 fileDialogType: "filesystem",
                 uploadProgress: [],
-                latestfileListInfo: {}
+                latestfileListInfo: {},
+                fileSystemBasePath: ""
             };
             // Handle the file send box listener
             const inputFileUpload = document.getElementById("input_file_upload");
@@ -678,7 +679,7 @@
 
         function fileListUpdate()
         {
-            callAjax("/filelist/SPIFFS", fileListUpdateOk, fileListUpdateFail)
+            callAjax("/filelist/", fileListUpdateOk, fileListUpdateFail)
         }
 
         function fileListUpdateFail()
@@ -696,6 +697,11 @@
             let fileListInfo = JSON.parse(resp);
             window.pageState.latestfileListInfo = fileListInfo;
 
+            // Set base path
+            if (fileListInfo.hasOwnProperty("fsBase"))
+            {
+                window.pageState.fileSystemBasePath = fileListInfo.fsBase;
+            }
             // Show info
             if (fileListInfo.hasOwnProperty("diskSize"))
             {
@@ -735,13 +741,13 @@
 
         function deleteFile(filename)
         {
-            callAjax("/deleteFile/SPIFFS/" + filename);
+            callAjax("/deleteFile" + window.pageState.fileSystemBasePath + "/" + filename);
             fileListUpdate();
         }
 
         function playFile(filename)
         {
-            callAjax("/playFile/" + filename);
+            callAjax("/playFile" + window.pageState.fileSystemBasePath + "/" + filename);
         }
 
         function btnUploadToFileSystem(e)

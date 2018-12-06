@@ -149,7 +149,7 @@ void RdOTAUpdate::startUpdateProcess()
 void RdOTAUpdate::startVersionCheck()
 {
     // Indicate starting
-    Log.trace("%sStaring version check ..............................\n", MODULE_PREFIX);
+    Log.notice("%sStaring version check ..............................\n", MODULE_PREFIX);
     // Log.verbose("OTAUpdate: Client space %d\n", _tcpClient.space());
     String requestStr = HTTP_REQUEST_BASE;
     requestStr.replace("[project]", _projectName);
@@ -165,7 +165,7 @@ void RdOTAUpdate::startVersionCheck()
 
 void RdOTAUpdate::startDownloadProcess()
 {
-    Log.trace("%sGetting update binary ..............................\n", MODULE_PREFIX);
+    Log.notice("%sGetting update binary ..............................\n", MODULE_PREFIX);
     // Log.verbose("Client space %d\n", _tcpClient.space());
     String requestStr = HTTP_REQUEST_BASE;
     requestStr.replace("[project]", _projectName);
@@ -193,8 +193,8 @@ void RdOTAUpdate::abortUpdateProcess()
     // Now idle again
     setState(OTA_UPDATE_STATE_IDLE);
 
-    // Debug
-    Log.trace("%sUpdate process aborted\n", MODULE_PREFIX);
+    // Aborted
+    Log.notice("%sUpdate process aborted\n", MODULE_PREFIX);
 }
 
 void RdOTAUpdate::setState(OTAUpdateState newState)
@@ -362,7 +362,7 @@ void RdOTAUpdate::onDataReceived(uint8_t *pDataReceived, size_t dataReceivedLen)
                     String fileVersionStr = extractValueByName(_fileInfo, "version");
                     String fileName = extractValueByName(_fileInfo, "filename");
                     String fileMD5 = extractValueByName(_fileInfo, "MD5");
-                    Log.trace("%sVersion %s, Filename %s, ND5 %s\n", MODULE_PREFIX, fileVersionStr.c_str(), fileName.c_str(), fileMD5.c_str());
+                    Log.notice("%sLatestVersion %s, Filename %s, ND5 %s\n", MODULE_PREFIX, fileVersionStr.c_str(), fileName.c_str(), fileMD5.c_str());
                     if (fileVersionStr.length() == 0)
                     {
                         Log.trace("%sCannot extract version from fileInfo\n", MODULE_PREFIX);
@@ -376,6 +376,7 @@ void RdOTAUpdate::onDataReceived(uint8_t *pDataReceived, size_t dataReceivedLen)
                         return;
                     }
                     // Check version against current
+                    Log.notice("%sRunningVersion is %s\n", MODULE_PREFIX, _currentVers.c_str());
                     bool versionNeedsUpdating = checkVersionString(fileVersionStr.c_str());
                     if (versionNeedsUpdating)
                     {
@@ -389,7 +390,7 @@ void RdOTAUpdate::onDataReceived(uint8_t *pDataReceived, size_t dataReceivedLen)
                     }
                     else
                     {
-                        Log.trace("%sNo update required\n", MODULE_PREFIX);
+                        Log.notice("%sNo update required\n", MODULE_PREFIX);
                         setState(OTA_UPDATE_STATE_IDLE);
                         return;
                     }
@@ -429,7 +430,7 @@ void RdOTAUpdate::onDataReceived(uint8_t *pDataReceived, size_t dataReceivedLen)
                     }
                     else
                     {
-                        Log.trace("%sDownloading started\n", MODULE_PREFIX);
+                        Log.notice("%sDownloading started\n", MODULE_PREFIX);
                         // Start the update process
                         if (updateStart(_contentDataLength))
                         {

@@ -9,8 +9,15 @@
 class FileManager
 {
 private:
+    // File system controls
     bool _enableSPIFFS;
+    bool _spiffsIsOk;
+    bool _enableSD;
     bool _defaultToSPIFFS;
+    bool _sdIsOk;
+
+    // SD card
+    void* _pSDCard;
 
     // Chunked file access
     static const int CHUNKED_BUF_MAXLEN = 1000;
@@ -28,10 +35,14 @@ public:
     FileManager()
     {
         _enableSPIFFS = false;
+        _spiffsIsOk = false;
+        _enableSD = false;
+        _sdIsOk = false;
         _defaultToSPIFFS = true;
         _chunkedFileLen = 0;
         _chunkedFilePos = 0;
         _chunkedFileInProgress = false;
+        _pSDCard = NULL;
         _fileSysMutex = xSemaphoreCreateMutex();
     }
 
@@ -69,4 +80,9 @@ public:
 
     // Read line from file
     char* readLineFromFile(char* pBuf, int maxLen, FILE* pFile);
+
+private:
+    bool checkFileSystem(const String& fileSystemStr, String& fsName);
+    String getFilePath(const String& nameOfFS, const String& filename);
+
 };

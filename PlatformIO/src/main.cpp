@@ -7,7 +7,7 @@
 //                                        - does not clear previous WiFi so clear first if required
 //   Clear WiFi:     /wc                  - clears all stored SSID, etc
 //   Set MQTT:       /mq/ss/ii/oo/pp      - ss = server, ii and oo are in/out topics, pp = port
-//                                        - in topics / should be replaced by ~ 
+//                                        - in topics / should be replaced by ~
 //                                        - (e.g. /devicename/in becomes ~devicename~in)
 //   Check updates:  /checkupdate         - check for updates on the update server
 //   Reset:          /reset               - reset device
@@ -25,12 +25,12 @@
 //   Log to cmd:     /logcmd/en           - Control logging to command port (extra serial if configured)
 //                                        - en = 0 or 1 for off/on
 
-// System type
+// System type - this is duplicated here to make it easier for automated updater which parses the systemName = "aaaa" line
 #define SYSTEM_TYPE_NAME "RBotFirmware"
 const char* systemType = "RBotFirmware";
 
 // System version
-const char* systemVersion = "2.008.003";
+const char* systemVersion = "2.010.001";
 
 // Build date
 const char* buildDate = __DATE__;
@@ -98,7 +98,8 @@ static const char *hwConfigJSON = {
     "\"OTAUpdate\":{\"enabled\":0,\"server\":\"domoticzoff\",\"port\":5076},"
     "\"serialConsole\":{\"portNum\":0},"
     "\"commandSerial\":{\"portNum\":-1,\"baudRate\":115200},"
-    "\"fileManager\":{\"spiffsEnabled\":1,\"spiffsFormatIfCorrupt\":1},"
+    "\"fileManager\":{\"spiffsEnabled\":1,\"spiffsFormatIfCorrupt\":1,"
+            "\"sdEnabled\":1,\"sdMOSI\":\"18\",\"sdMISO\":\"19\",\"sdCLK\":\"5\",\"sdCS\":\"33\"},"
     "\"wifiLed\":{\"hwPin\":\"\",\"onLevel\":1,\"onMs\":200,\"shortOffMs\":200,\"longOffMs\":750},"
     "\"ledStrip\":{\"ledPin\":\"4\",\"sensorPin\":\"34\"},"
     "\"defaultRobotType\":\"SandTableScara\""
@@ -108,7 +109,7 @@ static const char *hwConfigJSON = {
 ConfigBase hwConfig(hwConfigJSON);
 
 // Config for robot control
-ConfigFile robotConfig(fileManager, "SPIFFS", "/robot.json", 4000);
+ConfigFile robotConfig(fileManager, "spiffs", "/robot.json", 4000);
 
 // Config for WiFi
 ConfigNVS wifiConfig("wifi", 100);
@@ -137,8 +138,8 @@ NetLog netLog(Serial, mqttManager, commandSerial);
 // REST API System
 #include "RestAPISystem.h"
 RestAPISystem restAPISystem(wifiManager, mqttManager,
-            otaUpdate, netLog, fileManager,
-            systemType, systemVersion);
+                            otaUpdate, netLog, fileManager,
+                            systemType, systemVersion);
 
 // Robot controller
 #include "RobotMotion/RobotController.h"
@@ -164,7 +165,7 @@ RestAPIRobot restAPIRobot(_workManager, fileManager);
 void debugLoopInfoCallback(String &infoStr)
 {
     if (wifiManager.isEnabled())
-        infoStr = wifiManager.getHostname() + " SSID " + WiFi.SSID() + " IP " + WiFi.localIP().toString() + " Heap " + String(ESP.getFreeHeap());
+        infoStr = wifiManager.getHostname() + " V" + String(systemVersion) + " SSID " + WiFi.SSID() + " IP " + WiFi.localIP().toString() + " Heap " + String(ESP.getFreeHeap());
     else
         infoStr = "WiFi Disabled, Heap " + String(ESP.getFreeHeap());
     // infoStr += " Q " + String(_workItemQueue.size()) + " R " + String(_workItemQueue.canAcceptWorkItem();
@@ -223,7 +224,8 @@ void setup()
     webServer.setup(hwConfig);
     webServer.addStaticResources(__webAutogenResources, __webAutogenResourcesCount);
     webServer.addEndpoints(restAPIEndpoints);
-    webServer.serveStaticFiles("/files", "/");
+    webServer.serveStaticFiles("/files/spiffs", "/spiffs/");
+    webServer.serveStaticFiles("/files/sd", "/sd/");
 
     // MQTT
     mqttManager.setup(hwConfig, &mqttConfig);

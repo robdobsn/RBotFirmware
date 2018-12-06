@@ -2,8 +2,6 @@
 // Rob Dobson 2012-2018
 
 #include <WebServer.h>
-#include <FS.h>
-#include <SPIFFS.h>
 #if defined (ESP8266)
 #include "ESPAsyncTCP.h"
 #else
@@ -13,6 +11,7 @@
 #include "RestAPIEndpoints.h"
 #include "ConfigPinMap.h"
 #include "WebServerResource.h"
+#include "AsyncStaticFileHandler.h"
 
 static const char* MODULE_PREFIX = "WebServer: ";
 
@@ -217,10 +216,14 @@ void WebServer::addStaticResource(const WebServerResource *pResource, const char
     });
 }
 
-void WebServer::serveStaticFiles(const char* baseUrl, const char* baseFolder)
+void WebServer::serveStaticFiles(const char* baseUrl, const char* baseFolder, const char* cache_control)
 {
     // Check enabled
     if (!_pServer)
         return;
-    _pServer->serveStatic(baseUrl, SPIFFS, baseFolder);
+    
+    // Handle file systems
+    Log.trace("%sserveStaticFiles url %s folder %s\n", MODULE_PREFIX, baseUrl, baseFolder);
+    AsyncStaticFileHandler* handler = new AsyncStaticFileHandler(baseUrl, baseFolder, cache_control);
+    _pServer->addHandler(handler);
 }
