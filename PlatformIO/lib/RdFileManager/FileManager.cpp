@@ -669,5 +669,8 @@ bool FileManager::checkFileSystem(const String& fileSystemStr, String& fsName)
 
 String FileManager::getFilePath(const String& nameOfFS, const String& filename)
 {
+    // Check if filename already contains file system
+    if ((filename.indexOf("/spiffs/") >= 0) || (filename.indexOf("/sd/") >= 0))
+        return filename;
     return (filename.startsWith("/") ? "/" + nameOfFS + filename : ("/" + nameOfFS + "/" + filename));
 }

@@ -104,7 +104,7 @@ static const char *hwConfigJSON = {
 ConfigBase hwConfig(hwConfigJSON);
 
 // Config for robot control
-ConfigFile robotConfig(fileManager, "spiffs", "/robot.json", 4000);
+ConfigFile robotConfig(fileManager, "", "/robot.json", 4000);
 
 // Config for WiFi
 ConfigNVS wifiConfig("wifi", 100);

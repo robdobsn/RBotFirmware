@@ -203,7 +203,7 @@ bool EvaluatorPatterns::execWorkItem(WorkItem& workItem, FileManager& fileManage
     }
 
     // The command should be a valid file name
-    String patternJson = fileManager.getFileContents("SPIFFS", fileName, 0);
+    String patternJson = fileManager.getFileContents("", fileName, 0);
     if (patternJson.length() <= 0)
     {
         Log.trace("%sfileName %s ext <%s> pat %s returning \n", MODULE_PREFIX,
