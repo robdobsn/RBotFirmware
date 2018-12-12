@@ -30,7 +30,7 @@
 const char* systemType = "RBotFirmware";
 
 // System version
-const char* systemVersion = "2.010.001";
+const char* systemVersion = "2.010.003";
 
 // Build date
 const char* buildDate = __DATE__;
@@ -109,7 +109,7 @@ static const char *hwConfigJSON = {
 ConfigBase hwConfig(hwConfigJSON);
 
 // Config for robot control
-ConfigFile robotConfig(fileManager, "spiffs", "/robot.json", 4000);
+ConfigFile robotConfig(fileManager, "", "/robot.json", 4000);
 
 // Config for WiFi
 ConfigNVS wifiConfig("wifi", 100);

@@ -154,18 +154,28 @@ void FileManager::reformat(const String& fileSystemStr, String& respStr)
 bool FileManager::getFileInfo(const String& fileSystemStr, const String& filename, int& fileLength)
 {
     String nameOfFS;
-    if (!checkFileSystem(fileSystemStr, nameOfFS))
+    if (!checkFileSystem(fileSystemStr, nameOfFS)) {
+        Log.trace("%getFileInfo %s invalid file system %s\n", MODULE_PREFIX, filename.c_str(), fileSystemStr.c_str());
         return false;
+    }
 
     // Take mutex
     xSemaphoreTake(_fileSysMutex, portMAX_DELAY);
 
     // Check file exists
     struct stat st;
-    String rootFilename = (filename.startsWith("/") ? "/spiffs" + filename : ("/spiffs/" + filename));
-    if ((stat(rootFilename.c_str(), &st) != 0) || !S_ISREG(st.st_mode))
+    String rootFilename = getFilePath(nameOfFS, filename);
+
+    if (stat(rootFilename.c_str(), &st) != 0)
     {
         xSemaphoreGive(_fileSysMutex);
+        Log.trace("%getFileInfo %s cannot stat\n", MODULE_PREFIX, rootFilename.c_str());
+        return false;
+    }
+    if (!S_ISREG(st.st_mode))
+    {
+        xSemaphoreGive(_fileSysMutex);
+        Log.trace("%getFileInfo %s is a folder\n", MODULE_PREFIX, rootFilename.c_str());
         return false;
     }
     xSemaphoreGive(_fileSysMutex);
@@ -669,5 +679,8 @@ bool FileManager::checkFileSystem(const String& fileSystemStr, String& fsName)
 
 String FileManager::getFilePath(const String& nameOfFS, const String& filename)
 {
+    // Check if filename already contains file system
+    if ((filename.indexOf("spiffs/") >= 0) || (filename.indexOf("sd/") >= 0))
+        return (filename.startsWith("/") ? filename : ("/" + filename));
     return (filename.startsWith("/") ? "/" + nameOfFS + filename : ("/" + nameOfFS + "/" + filename));
 }

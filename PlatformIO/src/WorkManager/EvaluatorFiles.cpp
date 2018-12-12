@@ -25,7 +25,7 @@ bool EvaluatorFiles::isValid(WorkItem& workItem)
     String fName = workItem.getString();
     // Check on file system
     int fileLen = 0;
-    return _fileManager.getFileInfo("SPIFFS", fName, fileLen);
+    return _fileManager.getFileInfo("", fName, fileLen);
 }
 
 // Process WorkItem
@@ -41,7 +41,7 @@ bool EvaluatorFiles::execWorkItem(WorkItem& workItem)
         _fileType = FILE_TYPE_THETA_RHO;
 
     // Start chunked file access
-    bool retc = _fileManager.chunkedFileStart("SPIFFS", fileName, true);
+    bool retc = _fileManager.chunkedFileStart("", fileName, true);
     if (!retc)
         return false;
     Log.trace("%sstarted chunked file %s type is %s\n", MODULE_PREFIX, 
