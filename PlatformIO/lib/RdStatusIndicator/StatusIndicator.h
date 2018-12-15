@@ -11,17 +11,16 @@
 class StatusIndicator
 {
 public:
-    StatusIndicator()
-    {
-        _isSetup = false;
-        _hwPin = -1;
-        _onLevel = 1;
-    }
-    void setup(ConfigBase& hwConfig, const char* ledName);
+    StatusIndicator();
+    void setup(ConfigBase* pConfig, const char* ledName);
     void setCode(int code);
     void service();
 
 private:
+    void configChanged();
+
+private:
+    ConfigBase* _pConfig;
     String _name;
     bool _isSetup;
     int _hwPin;

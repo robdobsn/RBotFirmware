@@ -4,6 +4,10 @@
 #pragma once
 
 #include "RdJson.h"
+#include <vector>
+#include <functional>
+
+typedef std::function<void()> ConfigChangeCallbackType;
 
 class ConfigBase
 {
@@ -17,8 +21,12 @@ protected:
 public:
     ConfigBase()
     {
-        setConfigData("");
         _configMaxDataLen = 0;
+    }
+
+    ConfigBase(int maxDataLen) :
+        _configMaxDataLen(maxDataLen)
+    {
     }
 
     ConfigBase(const char* configStr)
@@ -79,5 +87,10 @@ public:
     virtual bool writeConfig()
     {
         return false;
+    }
+
+    // Register change callback
+    virtual void registerChangeCallback(ConfigChangeCallbackType configChangeCallback)
+    {
     }
 };

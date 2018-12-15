@@ -47,7 +47,7 @@ public:
     }
 
     // Configure
-    void setup(ConfigBase& config);
+    void setup(ConfigBase& config, const char* pConfigPath = NULL);
 
     // Reformat
     void reformat(const String& fileSystemStr, String& respStr);

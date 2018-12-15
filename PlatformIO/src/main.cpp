@@ -30,7 +30,7 @@
 const char* systemType = "RBotFirmware";
 
 // System version
-const char* systemVersion = "2.010.003";
+const char* systemVersion = "2.011.001";
 
 // Build date
 const char* buildDate = __DATE__;
@@ -94,9 +94,6 @@ static const char *hwConfigJSON = {
     "\"OTAUpdate\":{\"enabled\":0,\"server\":\"domoticzoff\",\"port\":5076},"
     "\"serialConsole\":{\"portNum\":0},"
     "\"commandSerial\":{\"portNum\":-1,\"baudRate\":115200},"
-    "\"fileManager\":{\"spiffsEnabled\":1,\"spiffsFormatIfCorrupt\":1,"
-            "\"sdEnabled\":1,\"sdMOSI\":\"18\",\"sdMISO\":\"19\",\"sdCLK\":\"5\",\"sdCS\":\"33\"},"
-    "\"wifiLed\":{\"hwPin\":\"\",\"onLevel\":1,\"onMs\":200,\"shortOffMs\":200,\"longOffMs\":750},"
     "\"defaultRobotType\":\"SandTableScara\""
     "}"};
 
@@ -104,7 +101,7 @@ static const char *hwConfigJSON = {
 ConfigBase hwConfig(hwConfigJSON);
 
 // Config for robot control
-ConfigFile robotConfig(fileManager, "", "/robot.json", 4000);
+ConfigNVS robotConfig("robot", 2000);
 
 // Config for WiFi
 ConfigNVS wifiConfig("wifi", 100);
@@ -174,11 +171,14 @@ void setup()
     // Message
     Log.notice("%s %s (built %s %s)\n", systemType, systemVersion, buildDate, buildTime);
 
+    // Robot config
+    robotConfig.setup();
+
     // Status Led
-    wifiStatusLed.setup(hwConfig, "wifiLed");
+    wifiStatusLed.setup(&robotConfig, "robotConfig/wifiLed");
 
     // File system
-    fileManager.setup(hwConfig);
+    fileManager.setup(robotConfig, "robotConfig/fileManager");
 
     // WiFi Config
     wifiConfig.setup();
@@ -197,9 +197,6 @@ void setup()
 
     // Firmware update
     otaUpdate.setup(hwConfig, systemType, systemVersion);
-
-    // Robot config
-    robotConfig.setup();
 
     // Add API endpoints
     restAPISystem.setup(restAPIEndpoints);

@@ -50,16 +50,19 @@ void MotionHelper::setTransforms(ptToActuatorFnType ptToActuatorFn, actuatorToPt
 // Configure the robot and pipeline parameters using a JSON input string
 void MotionHelper::configure(const char *robotConfigJSON)
 {
+    // Config geometry
+    String robotGeom = RdJson::getString("robotGeom", "NONE", robotConfigJSON);
+
     // Pipeline length and block size
-    int pipelineLen = int(RdJson::getLong("pipelineLen", pipelineLen_default, robotConfigJSON));
-    _blockDistanceMM = float(RdJson::getDouble("blockDistanceMM", blockDistanceMM_default, robotConfigJSON));
-    _allowAllOutOfBounds = bool(RdJson::getLong("allowOutOfBounds", false, robotConfigJSON));
+    int pipelineLen = int(RdJson::getLong("pipelineLen", pipelineLen_default, robotGeom.c_str()));
+    _blockDistanceMM = float(RdJson::getDouble("blockDistanceMM", blockDistanceMM_default, robotGeom.c_str()));
+    _allowAllOutOfBounds = bool(RdJson::getLong("allowOutOfBounds", false, robotGeom.c_str()));
     Log.notice("%sconfigMotionPipeline len %d, _blockDistanceMM %F (0=no-max)\n", MODULE_PREFIX,
                pipelineLen, _blockDistanceMM);
     _motionPipeline.init(pipelineLen);
 
     // Motion Pipeline and Planner
-    float junctionDeviation = float(RdJson::getDouble("junctionDeviation", junctionDeviation_default, robotConfigJSON));
+    float junctionDeviation = float(RdJson::getDouble("junctionDeviation", junctionDeviation_default, robotGeom.c_str()));
     _motionPlanner.configure(junctionDeviation);
 
     // MotionIO
@@ -70,7 +73,7 @@ void MotionHelper::configure(const char *robotConfigJSON)
     String axisJSON;
     for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
     {
-        if (_axesParams.configureAxis(robotConfigJSON, axisIdx, axisJSON))
+        if (_axesParams.configureAxis(robotGeom.c_str(), axisIdx, axisJSON))
         {
             // Configure motionIO - motors and end-stops
             _motionIO.configureAxis(axisJSON.c_str(), axisIdx);
@@ -78,10 +81,10 @@ void MotionHelper::configure(const char *robotConfigJSON)
     }
 
     // Homing
-    _motionHoming.configure(robotConfigJSON);
+    _motionHoming.configure(robotGeom.c_str());
 
     // MotionIO
-    _motionIO.configureMotors(robotConfigJSON);
+    _motionIO.configureMotors(robotGeom.c_str());
 
     // Give the MotionActuator access to raw motionIO info
     // this enables ISR based motion to be faster

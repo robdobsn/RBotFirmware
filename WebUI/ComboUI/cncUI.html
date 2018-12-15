@@ -182,17 +182,6 @@
                 document.getElementById("td_RobotName_input").value = settings["name"];
             }
 
-            // Patterns
-            if (settings.hasOwnProperty("patterns"))
-            {
-                document.getElementById("td_Patterns_input").value = JSON.stringify(settings["patterns"]);
-            }
-
-            // Seqs
-            if (settings.hasOwnProperty("sequences"))
-            {
-                document.getElementById("td_Sequences_input").value = JSON.stringify(settings["sequences"]);
-            }
             // Chack strings valid
             checkJsonStrings(false);
         }
@@ -206,32 +195,9 @@
 
         function checkJsonStrings(validateJsonToo)
         {
-            if ((document.getElementById('td_Patterns_input').value.length <= 0) || (document.getElementById('td_Patterns_input').value == ""))
-                document.getElementById('td_Patterns_input').value = "{}";
-            if ((document.getElementById('td_Sequences_input').value.length <= 0) || (document.getElementById('td_Sequences_input').value == ""))
-                document.getElementById('td_Sequences_input').value = "{}";
-            if ((document.getElementById('td_RobotConfig_input').value.length <= 0) || (document.getElementById('td_RobotConfig_input').value == ""))
-                document.getElementById('td_RobotConfig_input').value = "{}";
-            //
             if (validateJsonToo)
             {
                 // Validate JSON
-                try
-                {
-                    window.pageState.settings.patterns = JSON.parse(document.getElementById('td_Patterns_input').value);
-                }
-                catch (e)
-                {
-                    return false;
-                }
-                try
-                {
-                    window.pageState.settings.sequences = JSON.parse(document.getElementById('td_Sequences_input').value);
-                }
-                catch (e)
-                {
-                    return false;
-                }
                 try
                 {
                     window.pageState.settings.robotConfig = JSON.parse(document.getElementById('td_RobotConfig_input').value);
@@ -1522,18 +1488,6 @@
                         <th class="th-status">RobotConfig</th>
                         <td id="td_RobotConfig" style="border-right: 1px;">
                             <textarea class="textAreaInput" id="td_RobotConfig_input"></textarea>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th class="th-status">Patterns</th>
-                        <td id="td_Patterns" style="border-right: 1px;">
-                            <textarea class="textAreaInput" id="td_Patterns_input"></textarea>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th class="th-status">Sequences</th>
-                        <td id="td_Sequences" style="border-right: 1px;">
-                            <textarea class="textAreaInput" id="td_Sequences_input"></textarea>
                         </td>
                     </tr>
                     <tr>

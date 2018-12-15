@@ -19,14 +19,17 @@ using namespace fs;
 
 static const char* MODULE_PREFIX = "FileManager: ";
 
-void FileManager::setup(ConfigBase& config)
+void FileManager::setup(ConfigBase& config, const char* pConfigPath)
 {
     // Init
     _spiffsIsOk = false;
     _sdIsOk = false;
 
     // Get config
-    ConfigBase fsConfig(config.getString("fileManager", "").c_str());
+    String pathStr = "fileManager";
+    if (pConfigPath)
+        pathStr = pConfigPath;
+    ConfigBase fsConfig(config.getString(pathStr.c_str(), "").c_str());
     Log.notice("%ssetup %s\n", MODULE_PREFIX, fsConfig.getConfigCStrPtr());
 
     // See if SPIFFS enabled

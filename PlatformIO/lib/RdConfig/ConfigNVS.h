@@ -18,19 +18,15 @@ private:
     // Arduino preferences instance
     Preferences _preferences;
 
+    // List of callbacks on change of config
+    std::vector<ConfigChangeCallbackType> _configChangeCallbacks;
+
+    // Register change callback
+    void registerChangeCallback(ConfigChangeCallbackType configChangeCallback);
+
 public:
-    ConfigNVS(const char *configNamespace, int configMaxlen)
-    {
-        _configNamespace = configNamespace;
-        _configMaxDataLen = configMaxlen;
-    }
-
-    ~ConfigNVS()
-    {
-    }
-
-    // Get max length
-    int getMaxLen();
+    ConfigNVS(const char *configNamespace, int configMaxlen);
+    ~ConfigNVS();
 
     // Clear
     void clear();

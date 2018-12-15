@@ -5,6 +5,16 @@
 
 static const char* MODULE_PREFIX = "ConfigNVS: ";
 
+ConfigNVS::ConfigNVS(const char *configNamespace, int configMaxlen) :
+    ConfigBase(configMaxlen)
+{
+    _configNamespace = configNamespace;
+}
+
+ConfigNVS::~ConfigNVS()
+{
+}
+
 // Clear
 void ConfigNVS::clear()
 {
@@ -39,7 +49,9 @@ bool ConfigNVS::setup()
     // Get config string
     String configData = _preferences.getString("JSON", "{}");
     setConfigData(configData.c_str());
-    Log.trace("%sConfig %s read: len(%d) %s\n", MODULE_PREFIX, _configNamespace.c_str(), configData.length(), configData.c_str());
+    Log.trace("%sConfig %s read: len(%d) %s maxlen %d\n", MODULE_PREFIX, 
+                _configNamespace.c_str(), configData.length(), 
+                configData.c_str(), ConfigBase::getMaxLen());
 
     // Close prefs
     _preferences.end();
@@ -74,6 +86,21 @@ bool ConfigNVS::writeConfig()
     // Close prefs
     _preferences.end();
 
+    // Call config change callbacks
+    for (int i = 0; i < _configChangeCallbacks.size(); i++)
+    {
+        if (_configChangeCallbacks[i]);
+            (_configChangeCallbacks[i])();
+    }
     // Ok
     return true;
+}
+
+void ConfigNVS::registerChangeCallback(ConfigChangeCallbackType configChangeCallback)
+{
+    // Save callback if required
+    if (configChangeCallback)
+    {
+        _configChangeCallbacks.push_back(configChangeCallback);
+    }
 }

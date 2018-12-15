@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="description" content="JSONEscape">
+    <meta name="author" content="Rob Dobson">
+
+    <title id="title">JSONEscape</title>
+    <script>
+        function bodyIsLoaded(event)
+        {
+
+        }
+        function convertDown(event)
+        {
+            let inBox = document.getElementById("textboxJSON");
+            let outBox = document.getElementById("textboxCPP");
+            let intermedVal = inBox.value;
+            intermedVal = intermedVal.replace(/\"/gi, "\\\"");
+            intermedVal = intermedVal.replace(/\{/gi, "\n\{\n");
+            intermedVal = intermedVal.replace(/\}/gi, "\n\}\n");
+            // intermedVal = intermedVal.replace(/\,/gi, "\n\,\n");
+            let linesList = intermedVal.match(/[^\r\n]+/g);
+            intermedVal = "";
+            let indentLev = 0;
+            for (let i = 0; i < linesList.length; i++)
+            {
+                let lin = linesList[i].trim();
+                if (lin.length === 0)
+                    continue;
+                if (lin == "}")
+                    indentLev--;
+                intermedVal += "\"" + Array(indentLev*2).join(" ") + lin + "\"\n";
+                if (lin == "{")
+                    indentLev++;
+            }
+            outBox.value = intermedVal.trim();
+        }
+        function convertUp(event)
+        {
+            let inBox = document.getElementById("textboxCPP");
+            let outBox = document.getElementById("textboxJSON");
+            let intermedVal = inBox.value;
+            let linesList = intermedVal.match(/[^\r\n]+/g);
+            intermedVal = "";
+            for (let i = 0; i < linesList.length; i++)
+            {
+                let lin = linesList[i];
+                lin = lin.replace(/^['"]/g, "");
+                lin = lin.replace(/['"]$/g, "");
+                lin = lin.replace(/\\\"/g, "\"")
+                intermedVal += lin + "\n";
+            }
+            try
+            {
+                let obj = JSON.parse(intermedVal);
+                let valField = document.getElementById("jsonValidField");
+                valField.innerHTML = "VALID";
+                intermedVal = JSON.stringify(obj, null, 2);
+                outBox.value = intermedVal.trim();
+            }
+            catch(error)
+            {
+                console.error(error);
+                outBox.value = intermedVal.trim();
+                let valField = document.getElementById("jsonValidField");
+                valField.innerHTML = error;
+                let textPos = error.message.replace(/\D/g, '');
+                outBox.focus();
+                outBox.selectionStart = parseInt(textPos)-10;
+                outBox.selectionEnd = parseInt(textPos)+10;
+            }
+
+
+            // var str = JSON.stringify(obj, null, 2);
+            //     if (linesList[i].trim() == "}")
+            //         indentLev--;
+            //     intermedVal += "\"" + Array(indentLev*2).join(" ") + linesList[i] + "\"\n";
+            //     if (linesList[i].trim() == "{")
+            //         indentLev++;
+            // }
+
+            // intermedVal = intermedVal.replace(/\"/gi, "\\\"");
+            // intermedVal = intermedVal.replace(/\{/gi, "\n\{\n");
+            // intermedVal = intermedVal.replace(/\}/gi, "\n\}\n");
+            // intermedVal = intermedVal.replace(/\,/gi, "\n\,\n");
+            // let linesList = intermedVal.match(/[^\r\n]+/g);
+            // intermedVal = "";
+            // let indentLev = 0;
+            // for (let i = 0; i < linesList.length; i++)
+            // {
+            //     if (linesList[i].trim() == "}")
+            //         indentLev--;
+            //     intermedVal += "\"" + Array(indentLev*2).join(" ") + linesList[i] + "\"\n";
+            //     if (linesList[i].trim() == "{")
+            //         indentLev++;
+            // }
+        }
+    </script>
+</head>
+<style>
+    * {
+        box-sizing: border-box;
+    }
+    body{
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    #container {
+        display: flex;
+        flex-wrap: wrap;
+
+    }
+    .uiBlock {
+        margin: 5px;
+        align-items: baseline;
+        align-content: flex-start;
+        justify-content: center;
+        display: flex;
+        flex-wrap: wrap;
+    }
+    .uiRow {
+        display: block;
+        width: 100%;
+        margin-bottom:  10px;
+    }
+    .uiRow textarea {
+        min-height: 300px;
+        width:100%;
+    }
+    .icon-action {
+        color: #808080;
+        fill: #808080;
+        width: 16px;
+        height: 16px;
+        vertical-align: middle;
+    }
+
+</style>
+<body onload="bodyIsLoaded(event)">
+    <div id="container">
+        <div class="uiBlock">
+            <div class="uiRow">
+                <span><h2>JSON</h2></span>
+                <span><h3 id="jsonValidField"></h3></span>
+            </div>
+            <div class="uiRow">
+                <textarea id="textboxJSON"></textarea>
+            </div>
+            <div class="uiRow">
+                <button type="submit" onclick="convertDown(event)">
+                    <svg class="icon-action">
+                        <use xlink:href="#ico-downarrow"></use>
+                    </svg>
+                    <span>Convert</span>
+                </button>
+                <button type="submit" onclick="convertUp(event)">
+                    <svg class="icon-action">
+                        <use xlink:href="#ico-uparrow"></use>
+                    </svg>
+                    <span>Convert</span>
+                </button>
+            </div>
+            <div class="uiRow">
+                <span><h2>C++</h2></span>
+            </div>
+            <div class="uiRow">
+                <textarea id="textboxCPP"></textarea>
+            </div>
+        </div>
+    </div>
+    <!-- SVG icons -->
+    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+         xml:space="preserve">
+        <symbol id="ico-uparrow" viewBox="0 0 1200 1200">
+            <g>
+                <path d="m 157.49965,921.50018 353,-352 353,352 197.99995,-197 -551.99995,-552 -550.000005,552 z"></path>
+            </g>
+        </symbol>
+        <symbol id="ico-downarrow" viewBox="0 0 1200 1200">
+            <g>
+                <path d="m 863.49977,172.49964 -353,352 -353,-352 -197.999954,197 551.999954,552 550.00003,-552 z"></path>
+            </g>
+        </symbol>
+    </svg>
+</body>

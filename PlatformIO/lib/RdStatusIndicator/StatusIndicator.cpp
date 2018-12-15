@@ -5,11 +5,27 @@
 
 static const char* MODULE_PREFIX = "StatusIndicator: ";
 
-void StatusIndicator::setup(ConfigBase& hwConfig, const char* ledName)
+StatusIndicator::StatusIndicator()
+{
+    _isSetup = false;
+    _hwPin = -1;
+    _onLevel = 1;
+    _pConfig = NULL;
+}
+
+void StatusIndicator::setup(ConfigBase* pConfig, const char* ledName)
 {
     _name = ledName;
+    // Save config and register callback on config changed
+    if (_pConfig == NULL)
+    {
+        _pConfig = pConfig;
+        _pConfig->registerChangeCallback(std::bind(&StatusIndicator::configChanged, this));
+    }
     // Get LED config
-    ConfigBase ledConfig(hwConfig.getString(ledName, "").c_str());
+    ConfigBase ledConfig(pConfig->getString(ledName, "").c_str());
+    Log.trace("%ssetup name %s configStr %s\n", MODULE_PREFIX, _name.c_str(),
+                    ledConfig.getConfigCStrPtr());
     String pinStr = ledConfig.getString("hwPin", "");
     int ledPin = -1;
     if (pinStr.length() != 0)
@@ -102,4 +118,11 @@ void StatusIndicator::service()
                 _curCodePos = 0;
         }
     }
+}
+
+void StatusIndicator::configChanged()
+{
+    // Reset config
+    Log.trace("%sconfigChanged\n", MODULE_PREFIX);
+    setup(_pConfig, _name.c_str());
 }
