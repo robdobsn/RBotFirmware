@@ -9,6 +9,13 @@
 
 static const char* MODULE_PREFIX = "EvaluatorFiles: ";
 
+EvaluatorFiles::EvaluatorFiles(FileManager& fileManager) :
+         _fileManager(fileManager)
+{
+    _inProgress = false;
+    _fileType = FILE_TYPE_UNKNOWN;
+}
+
 void EvaluatorFiles::setConfig(const char* configStr)
 {
 }
@@ -18,14 +25,32 @@ const char* EvaluatorFiles::getConfig()
     return "";
 }
 
+int EvaluatorFiles::getFileTypeFromExtension(String& fileName)
+{
+    String fileExt = FileManager::getFileExtension(fileName);
+    int fileType = FILE_TYPE_UNKNOWN;
+    if (fileExt.equalsIgnoreCase("gcode"))
+        fileType = FILE_TYPE_GCODE;
+    if (fileExt.equalsIgnoreCase("thr"))
+        fileType = FILE_TYPE_THETA_RHO;
+    return fileType;
+}
+
 // Check if valid
 bool EvaluatorFiles::isValid(WorkItem& workItem)
 {
     // Form the file name
-    String fName = workItem.getString();
+    String fileName = workItem.getString();
+    // Check for supported extension
+    int fileType = getFileTypeFromExtension(fileName);
+    if (fileType == FILE_TYPE_UNKNOWN)
+        return false;
     // Check on file system
     int fileLen = 0;
-    return _fileManager.getFileInfo("SPIFFS", fName, fileLen);
+    bool rslt = _fileManager.getFileInfo("", fileName, fileLen);
+    if (fileLen == 0)
+        return false;
+    return rslt;
 }
 
 // Process WorkItem
@@ -33,19 +58,17 @@ bool EvaluatorFiles::execWorkItem(WorkItem& workItem)
 {
     // Form the file name
     String fileName = workItem.getString();
-    String fileExt = FileManager::getFileExtension(fileName);
-    _fileType = FILE_TYPE_PLAIN_TEXT;
-    if (fileExt.equalsIgnoreCase("gcode"))
-        _fileType = FILE_TYPE_GCODE;
-    if (fileExt.equalsIgnoreCase("thr"))
-        _fileType = FILE_TYPE_THETA_RHO;
+    int fileType = getFileTypeFromExtension(fileName);
+    if (fileType == FILE_TYPE_UNKNOWN)
+        return false;
+    _fileType = fileType;
 
     // Start chunked file access
-    bool retc = _fileManager.chunkedFileStart("SPIFFS", fileName, true);
+    bool retc = _fileManager.chunkedFileStart("", fileName, true);
     if (!retc)
         return false;
     Log.trace("%sstarted chunked file %s type is %s\n", MODULE_PREFIX, 
-            fileName.c_str(), fileExt.c_str());
+            fileName.c_str(), (_fileType == FILE_TYPE_GCODE ? "GCODE" : "THR"));
     _inProgress = true;
     return retc;
 }

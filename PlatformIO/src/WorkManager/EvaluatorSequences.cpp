@@ -9,6 +9,13 @@
 
 static const char* MODULE_PREFIX = "EvaluatorSequences: ";
 
+EvaluatorSequences::EvaluatorSequences(FileManager& fileManager) :
+         _fileManager(fileManager)
+{
+    _inProgress = 0;
+    _curLineIdx = 0;
+}
+
 void EvaluatorSequences::setConfig(const char* configStr)
 {
     // Store the config string
@@ -20,45 +27,89 @@ const char* EvaluatorSequences::getConfig()
     return _jsonConfigStr.c_str();
 }
 
+// Check if valid
+bool EvaluatorSequences::isValid(WorkItem& workItem)
+{
+    // Form the file name
+    String fileName = workItem.getString();
+    // Check extension valid
+    String fileExt = FileManager::getFileExtension(fileName);
+    if (!fileExt.equalsIgnoreCase("seq"))
+        return false;
+    // Check on file system
+    int fileLen = 0;
+    bool rslt = _fileManager.getFileInfo("", fileName, fileLen);
+    if (fileLen == 0)
+        return false;
+    return rslt;
+}
+
 // Process WorkItem
 bool EvaluatorSequences::execWorkItem(WorkItem& workItem)
 {
     // Find the command info
-    bool isValid = false;
-    String sequenceName = workItem.getString();
-    String seqStr = RdJson::getString(sequenceName.c_str(), "{}", _jsonConfigStr.c_str(), isValid);
-    // Log.verbose("%scmdStr %s seqStr %s\n", MODULE_PREFIX, cmdStr, seqStr.c_str());
-    if (isValid)
+    String fileName = workItem.getString();
+    _commandList = _fileManager.getFileContents("", fileName, MAX_SEQUENCE_FILE_LEN);
+    Log.trace("%sseqStr %s\n", MODULE_PREFIX, _commandList.c_str());
+    if (_commandList.length() > 0)
     {
-        _numCmdsToProcess = 0;
-        String cmdList = RdJson::getString("commands", "", seqStr.c_str(), isValid);
-        Log.trace("%scmdStr %s isValid %d seqStr %s cmdList %s\n", MODULE_PREFIX, sequenceName.c_str(), isValid, seqStr.c_str(), cmdList.c_str());
-        if (isValid)
-        {
-            _commandList = cmdList;
-            _curCmdIdx = 0;
-            // Count the separators
-            if (cmdList.length() > 0)
-            {
-                int numSeps = 0;
-                const char* pStr = cmdList.c_str();
-                while(*pStr)
-                {
-                    if (*pStr == ';')
-                        numSeps++;
-                    pStr++;
-                }
-                _numCmdsToProcess = numSeps + 1;
-                Log.trace("%scmdStr %s seqStr %s cmdList %s numCmds %d\n", MODULE_PREFIX, sequenceName.c_str(), seqStr.c_str(), cmdList.c_str(), _numCmdsToProcess);
-            }
-        }
+        _inProgress = true;
+        _curLineIdx = 0;
+        return true;
     }
-    return isValid;
+    return false;
 }
 
 void EvaluatorSequences::service(WorkManager* pWorkManager)
 {
-    // TODO check this is valid ...
+    // Only add process commands at this level if the workitem queue is completely empty
+    if (!pWorkManager->queueIsEmpty())
+        return;
+
+    // Check if operative
+    if (!_inProgress)
+        return;
+        
+    // Get next line
+    const char* pCommandList = _commandList.c_str();
+    const char* pStr = pCommandList;
+    int lineStartPos = 0;
+    int sepIdx = 0;
+    while(true)
+    {
+        if ((*pStr == '\n') || (*pStr == 0))
+        {
+            sepIdx++;
+            if ((sepIdx == _curLineIdx+1) || (*pStr == 0))
+                break;
+            lineStartPos = pStr - pCommandList;
+        }
+        pStr++;
+    }
+    if (sepIdx == _curLineIdx+1)
+    {
+        // Line to process
+        String newCmd = _commandList.substring(lineStartPos, pStr-pCommandList);
+        newCmd.trim();
+        // Separator found so add command
+        Log.trace("%sservice curLineIdx %d cmd %s\n", MODULE_PREFIX, 
+                _curLineIdx, newCmd.c_str());
+        if (newCmd.length() > 0)
+        {
+            String retStr;
+            WorkItem workItem(newCmd);
+            pWorkManager->addWorkItem(workItem, retStr, _curLineIdx);
+        }
+        // Bump
+        _curLineIdx++;
+    }
+    else
+    {
+        // Separator not found so we're done
+        _inProgress = false;
+        Log.trace("%sservice curLineIdx %d done\n", MODULE_PREFIX, 
+                _curLineIdx);
+    }
 
     // if (millis() > _lastMillis + 10000)
     // {
@@ -66,24 +117,9 @@ void EvaluatorSequences::service(WorkManager* pWorkManager)
     //     Log.trace("%sprocess cmdStr %s cmdIdx %d numToProc %d isEmpty %d\n", MODULE_PREFIX, _commandList.c_str(), _curCmdIdx, _numCmdsToProcess,
     //                     pWorkManager->queueIsEmpty());
     // }
-    // Check there is something left to do
-    if (_numCmdsToProcess <= _curCmdIdx)
-        return;
-
-    // Only add process commands at this level if the queue is completely empty
-    if (!pWorkManager->queueIsEmpty())
-        return;
-
-    // Process the next command
-    Log.verbose("%scmdInterp cmdStr %s cmdIdx %d numToProc %d\n", MODULE_PREFIX, _commandList.c_str(), _curCmdIdx, _numCmdsToProcess);
-    String retStr;
-    WorkItem workItem(_commandList);
-    pWorkManager->addWorkItem(workItem, retStr, _curCmdIdx++);
 }
 
 void EvaluatorSequences::stop()
 {
-    _commandList = "";
-    _numCmdsToProcess = 0;
-    _curCmdIdx = 0;
+    _inProgress = false;
 }

@@ -11,11 +11,7 @@ class WorkItem;
 class EvaluatorFiles
 {
 public:
-    EvaluatorFiles(FileManager& fileManager) : _fileManager(fileManager)
-    {
-        _inProgress = false;
-        _fileType = FILE_TYPE_PLAIN_TEXT;
-    }
+    EvaluatorFiles(FileManager& fileManager);
 
     // Config
     void setConfig(const char* configStr);
@@ -35,7 +31,7 @@ public:
 
     // File types
     enum {
-        FILE_TYPE_PLAIN_TEXT,
+        FILE_TYPE_UNKNOWN,
         FILE_TYPE_GCODE,
         FILE_TYPE_THETA_RHO
     };
@@ -49,4 +45,8 @@ private:
 
     // File type
     int _fileType;
+
+private:
+    int getFileTypeFromExtension(String& fileName);
+
 };

@@ -5,19 +5,21 @@
 
 class WorkManager;
 class WorkItem;
+class FileManager;
 
 class EvaluatorSequences
 {
 public:
-    EvaluatorSequences()
-    {
-        _curCmdIdx = 0;
-        _numCmdsToProcess = 0;
-    }
+    static const int MAX_SEQUENCE_FILE_LEN = 2000;
+
+    EvaluatorSequences(FileManager& fileManager);
 
     // Config
     void setConfig(const char* configStr);
     const char* getConfig();
+
+    // Check valid
+    bool isValid(WorkItem& workItem);
 
     // Process WorkItem
     bool execWorkItem(WorkItem& workItem);
@@ -32,10 +34,13 @@ private:
     // Full configuration JSON
     String _jsonConfigStr;
 
+    // File manager
+    FileManager& _fileManager;
+
     // List of commands to add to workflow - delimited string
     String _commandList;
 
-    // Number of commands in command list and current position in list
-    int _numCmdsToProcess;
-    int _curCmdIdx;
+    // Busy and current line
+    int _inProgress;
+    int _curLineIdx;
 };

@@ -41,6 +41,7 @@ public:
                 _robotController(robotController),
                 _restAPISystem(restAPISystem),
                 _fileManager(fileManager),
+                _evaluatorSequences(fileManager),
                 _evaluatorFiles(fileManager)
     {
     }

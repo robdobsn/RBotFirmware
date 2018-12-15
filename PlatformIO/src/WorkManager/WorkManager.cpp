@@ -162,9 +162,12 @@ bool WorkManager::execWorkItem(WorkItem& workItem)
     if (handledOk)
         return handledOk;
     // See if it is a command sequencer
-    handledOk = _evaluatorSequences.execWorkItem(workItem);
-    if (handledOk)
-        return handledOk;
+    if (_evaluatorSequences.isValid(workItem))
+    {
+        handledOk = _evaluatorSequences.execWorkItem(workItem);
+        if (handledOk)
+            return handledOk;
+    }
     // See if it is a file to process
     if (_evaluatorFiles.isValid(workItem))
     {
@@ -244,10 +247,10 @@ void WorkManager::handleStartupCommands()
         addWorkItem(workItem, retStr);
     }
 
-    // Check for startup commands in the EEPROM config
+    // Check for startup commands in the main config
     String runAtStart = RdJson::getString("startup", "", _robotConfig.getConfigCStrPtr());
     RdJson::unescapeString(runAtStart);
-    Log.notice("%sEEPROM commands <%s>\n", MODULE_PREFIX, runAtStart.c_str());
+    Log.notice("%sstartup commands <%s>\n", MODULE_PREFIX, runAtStart.c_str());
     if (runAtStart.length() > 0)
     {
         String retStr;
