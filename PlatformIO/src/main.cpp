@@ -30,7 +30,7 @@
 const char* systemType = "RBotFirmware";
 
 // System version
-const char* systemVersion = "2.011.001";
+const char* systemVersion = "2.014.001";
 
 // Build date
 const char* buildDate = __DATE__;
@@ -91,7 +91,7 @@ static const char *hwConfigJSON = {
     "\"mqttEnabled\":0,"
     "\"webServerEnabled\":1,"
     "\"webServerPort\":80,"
-    "\"OTAUpdate\":{\"enabled\":0,\"server\":\"domoticzoff\",\"port\":5076},"
+    "\"OTAUpdate\":{\"enabled\":1,\"server\":\"domoticzoff\",\"port\":5076,\"direcOk\":1},"
     "\"serialConsole\":{\"portNum\":0},"
     "\"commandSerial\":{\"portNum\":-1,\"baudRate\":115200},"
     "\"defaultRobotType\":\"SandTableScara\""

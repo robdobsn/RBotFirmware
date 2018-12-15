@@ -6,6 +6,136 @@
 
 static const char* MODULE_PREFIX = "RestAPISystem: ";
 
+void RestAPISystem::setup(RestAPIEndpoints &endpoints)
+{
+    endpoints.addEndpoint("w", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                    std::bind(&RestAPISystem::apiWifiSet, this, std::placeholders::_1, std::placeholders::_2),
+                    "Setup WiFi SSID/password/hostname");
+    endpoints.addEndpoint("wc", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                    std::bind(&RestAPISystem::apiWifiClear, this, std::placeholders::_1, std::placeholders::_2),
+                    "Clear WiFi settings");
+    endpoints.addEndpoint("wax", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                    std::bind(&RestAPISystem::apiWifiExtAntenna, this, std::placeholders::_1, std::placeholders::_2), 
+                    "Set external WiFi Antenna");
+    endpoints.addEndpoint("wai", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                    std::bind(&RestAPISystem::apiWifiIntAntenna, this, std::placeholders::_1, std::placeholders::_2), 
+                    "Set internal WiFi Antenna");
+    endpoints.addEndpoint("mq", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                    std::bind(&RestAPISystem::apiMQTTSet, this, std::placeholders::_1, std::placeholders::_2),
+                    "Setup MQTT server/port/intopic/outtopic .. not ~ replaces / in topics");
+    endpoints.addEndpoint("reset", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                    std::bind(&RestAPISystem::apiReset, this, std::placeholders::_1, std::placeholders::_2), 
+                    "Restart program");
+    endpoints.addEndpoint("checkupdate", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                    std::bind(&RestAPISystem::apiCheckUpdate, this, std::placeholders::_1, std::placeholders::_2), 
+                    "Check for updates");
+    endpoints.addEndpoint("v", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                    std::bind(&RestAPISystem::apiGetVersion, this, std::placeholders::_1, std::placeholders::_2), 
+                    "Get version info");
+    endpoints.addEndpoint("loglevel", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                    std::bind(&RestAPISystem::apiNetLogLevel, this, std::placeholders::_1, std::placeholders::_2), 
+                    "Set log level");
+    endpoints.addEndpoint("logmqtt", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                    std::bind(&RestAPISystem::apiNetLogMQTT, this, std::placeholders::_1, std::placeholders::_2), 
+                    "Set log to MQTT /enable/topic");
+    endpoints.addEndpoint("loghttp", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                    std::bind(&RestAPISystem::apiNetLogHTTP, this, std::placeholders::_1, std::placeholders::_2), 
+                    "Set log to HTTP /enable/host/port/url");
+    endpoints.addEndpoint("logserial", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                    std::bind(&RestAPISystem::apiNetLogSerial, this, std::placeholders::_1, std::placeholders::_2), 
+                    "Set log to serial /enable/port");
+    endpoints.addEndpoint("logcmd", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                    std::bind(&RestAPISystem::apiNetLogCmdSerial, this, std::placeholders::_1, std::placeholders::_2), 
+                    "Set log to cmdSerial /enable/port");
+    endpoints.addEndpoint("reformatfs", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                    std::bind(&RestAPISystem::apiReformatFS, this, std::placeholders::_1, std::placeholders::_2), 
+                    "Reformat file system e.g. /spiffs");
+    endpoints.addEndpoint("filelist", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                    std::bind(&RestAPISystem::apiFileList, this, std::placeholders::_1, std::placeholders::_2), 
+                    "List files in folder e.g. /spiffs/folder ... ~ for / in folder");
+    endpoints.addEndpoint("fileread", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                    std::bind(&RestAPISystem::apiFileRead, this, std::placeholders::_1, std::placeholders::_2), 
+                    "Read file ... name", "text/plain");
+    endpoints.addEndpoint("deleteFile", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                    std::bind(&RestAPISystem::apiDeleteFile, this, std::placeholders::_1, std::placeholders::_2), 
+                    "Delete file e.g. /spiffs/filename ... ~ for / in filename");
+    endpoints.addEndpoint("uploadtofileman", 
+                    RestAPIEndpointDef::ENDPOINT_CALLBACK, 
+                    RestAPIEndpointDef::ENDPOINT_POST,
+                    std::bind(&RestAPISystem::apiUploadToFileManComplete, this, 
+                            std::placeholders::_1, std::placeholders::_2),
+                    "Upload file", "application/json", 
+                    NULL, 
+                    true, 
+                    NULL,
+                    NULL,
+                    std::bind(&RestAPISystem::apiUploadToFileManPart, this, 
+                            std::placeholders::_1, std::placeholders::_2, 
+                            std::placeholders::_3, std::placeholders::_4,
+                            std::placeholders::_5, std::placeholders::_6,
+                            std::placeholders::_7));
+    endpoints.addEndpoint("espFirmwareUpdate",
+                        RestAPIEndpointDef::ENDPOINT_CALLBACK, 
+                        RestAPIEndpointDef::ENDPOINT_POST,
+                        std::bind(&RestAPISystem::apiESPFirmwareUpdateDone, this, 
+                                std::placeholders::_1, std::placeholders::_2),
+                        "Update ESP32 firmware", "application/json", 
+                        NULL, 
+                        true, 
+                        NULL,
+                        NULL,
+                        std::bind(&RestAPISystem::apiESPFirmwarePart, this, 
+                                std::placeholders::_1, std::placeholders::_2, 
+                                std::placeholders::_3, std::placeholders::_4,
+                                std::placeholders::_5, std::placeholders::_6,
+                                std::placeholders::_7));
+    }
+
+String RestAPISystem::getWifiStatusStr()
+{
+    if (WiFi.status() == WL_CONNECTED)
+        return "C";
+    if (WiFi.status() == WL_NO_SHIELD)
+        return "4";
+    if (WiFi.status() == WL_IDLE_STATUS)
+        return "I";
+    if (WiFi.status() == WL_NO_SSID_AVAIL)
+        return "N";
+    if (WiFi.status() == WL_SCAN_COMPLETED)
+        return "S";
+    if (WiFi.status() == WL_CONNECT_FAILED)
+        return "F";
+    if (WiFi.status() == WL_CONNECTION_LOST)
+        return "L";
+    return "D";
+}
+
+int RestAPISystem::reportHealth(int bitPosStart, unsigned long *pOutHash, String *pOutStr)
+{
+    // Generate hash if required
+    if (pOutHash)
+    {
+        unsigned long hashVal = (WiFi.status() == WL_CONNECTED);
+        hashVal = hashVal << bitPosStart;
+        *pOutHash += hashVal;
+        *pOutHash ^= WiFi.localIP();
+    }
+    // Generate JSON string if needed
+    if (pOutStr)
+    {
+        byte mac[6];
+        WiFi.macAddress(mac);
+        String macStr = String(mac[0], HEX) + ":" + String(mac[1], HEX) + ":" + String(mac[2], HEX) + ":" +
+                        String(mac[3], HEX) + ":" + String(mac[4], HEX) + ":" + String(mac[5], HEX);
+        String sOut = "\"wifiIP\":\"" + WiFi.localIP().toString() + "\",\"wifiConn\":\"" + getWifiStatusStr() + "\","
+                                                                                                                "\"ssid\":\"" +
+                      WiFi.SSID() + "\",\"MAC\":\"" + macStr + "\",\"RSSI\":" + String(WiFi.RSSI());
+        *pOutStr = sOut;
+    }
+    // Return number of bits in hash
+    return 8;
+}
+
 void RestAPISystem::service()
 {
     // Check restart pending
@@ -246,117 +376,18 @@ void RestAPISystem::apiUploadToFileManPart(String& req, String& filename, size_t
         _fileManager.uploadAPIBlockHandler("", req, filename, contentLen, index, data, len, finalBlock);
 }
 
-void RestAPISystem::setup(RestAPIEndpoints &endpoints)
+// ESP Firmware update
+void RestAPISystem::apiESPFirmwarePart(String& req, String& filename, size_t contentLen, size_t index, 
+                uint8_t *data, size_t len, bool finalBlock)
 {
-    endpoints.addEndpoint("w", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
-                    std::bind(&RestAPISystem::apiWifiSet, this, std::placeholders::_1, std::placeholders::_2),
-                    "Setup WiFi SSID/password/hostname");
-    endpoints.addEndpoint("wc", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
-                    std::bind(&RestAPISystem::apiWifiClear, this, std::placeholders::_1, std::placeholders::_2),
-                    "Clear WiFi settings");
-    endpoints.addEndpoint("wax", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
-                    std::bind(&RestAPISystem::apiWifiExtAntenna, this, std::placeholders::_1, std::placeholders::_2), 
-                    "Set external WiFi Antenna");
-    endpoints.addEndpoint("wai", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
-                    std::bind(&RestAPISystem::apiWifiIntAntenna, this, std::placeholders::_1, std::placeholders::_2), 
-                    "Set internal WiFi Antenna");
-    endpoints.addEndpoint("mq", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
-                    std::bind(&RestAPISystem::apiMQTTSet, this, std::placeholders::_1, std::placeholders::_2),
-                    "Setup MQTT server/port/intopic/outtopic .. not ~ replaces / in topics");
-    endpoints.addEndpoint("reset", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
-                    std::bind(&RestAPISystem::apiReset, this, std::placeholders::_1, std::placeholders::_2), 
-                    "Restart program");
-    endpoints.addEndpoint("checkupdate", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
-                    std::bind(&RestAPISystem::apiCheckUpdate, this, std::placeholders::_1, std::placeholders::_2), 
-                    "Check for updates");
-    endpoints.addEndpoint("v", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
-                    std::bind(&RestAPISystem::apiGetVersion, this, std::placeholders::_1, std::placeholders::_2), 
-                    "Get version info");
-    endpoints.addEndpoint("loglevel", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
-                    std::bind(&RestAPISystem::apiNetLogLevel, this, std::placeholders::_1, std::placeholders::_2), 
-                    "Set log level");
-    endpoints.addEndpoint("logmqtt", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
-                    std::bind(&RestAPISystem::apiNetLogMQTT, this, std::placeholders::_1, std::placeholders::_2), 
-                    "Set log to MQTT /enable/topic");
-    endpoints.addEndpoint("loghttp", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
-                    std::bind(&RestAPISystem::apiNetLogHTTP, this, std::placeholders::_1, std::placeholders::_2), 
-                    "Set log to HTTP /enable/host/port/url");
-    endpoints.addEndpoint("logserial", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
-                    std::bind(&RestAPISystem::apiNetLogSerial, this, std::placeholders::_1, std::placeholders::_2), 
-                    "Set log to serial /enable/port");
-    endpoints.addEndpoint("logcmd", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
-                    std::bind(&RestAPISystem::apiNetLogCmdSerial, this, std::placeholders::_1, std::placeholders::_2), 
-                    "Set log to cmdSerial /enable/port");
-    endpoints.addEndpoint("reformatfs", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
-                    std::bind(&RestAPISystem::apiReformatFS, this, std::placeholders::_1, std::placeholders::_2), 
-                    "Reformat file system e.g. /spiffs");
-    endpoints.addEndpoint("filelist", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
-                    std::bind(&RestAPISystem::apiFileList, this, std::placeholders::_1, std::placeholders::_2), 
-                    "List files in folder e.g. /spiffs/folder ... ~ for / in folder");
-    endpoints.addEndpoint("fileread", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
-                    std::bind(&RestAPISystem::apiFileRead, this, std::placeholders::_1, std::placeholders::_2), 
-                    "Read file ... name", "text/plain");
-    endpoints.addEndpoint("deleteFile", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
-                    std::bind(&RestAPISystem::apiDeleteFile, this, std::placeholders::_1, std::placeholders::_2), 
-                    "Delete file e.g. /spiffs/filename ... ~ for / in filename");
-    endpoints.addEndpoint("uploadtofileman", 
-                    RestAPIEndpointDef::ENDPOINT_CALLBACK, 
-                    RestAPIEndpointDef::ENDPOINT_POST,
-                    std::bind(&RestAPISystem::apiUploadToFileManComplete, this, 
-                            std::placeholders::_1, std::placeholders::_2),
-                    "Upload file", "application/json", 
-                    NULL, 
-                    true, 
-                    NULL,
-                    NULL,
-                    std::bind(&RestAPISystem::apiUploadToFileManPart, this, 
-                            std::placeholders::_1, std::placeholders::_2, 
-                            std::placeholders::_3, std::placeholders::_4,
-                            std::placeholders::_5, std::placeholders::_6,
-                            std::placeholders::_7));                       
-    }
-
-String RestAPISystem::getWifiStatusStr()
-{
-    if (WiFi.status() == WL_CONNECTED)
-        return "C";
-    if (WiFi.status() == WL_NO_SHIELD)
-        return "4";
-    if (WiFi.status() == WL_IDLE_STATUS)
-        return "I";
-    if (WiFi.status() == WL_NO_SSID_AVAIL)
-        return "N";
-    if (WiFi.status() == WL_SCAN_COMPLETED)
-        return "S";
-    if (WiFi.status() == WL_CONNECT_FAILED)
-        return "F";
-    if (WiFi.status() == WL_CONNECTION_LOST)
-        return "L";
-    return "D";
+    // Handle with OTA update
+    _otaUpdate.directFirmwareUpdatePart(filename, contentLen, index, data, len, finalBlock);
 }
 
-int RestAPISystem::reportHealth(int bitPosStart, unsigned long *pOutHash, String *pOutStr)
+void RestAPISystem::apiESPFirmwareUpdateDone(String &reqStr, String &respStr)
 {
-    // Generate hash if required
-    if (pOutHash)
-    {
-        unsigned long hashVal = (WiFi.status() == WL_CONNECTED);
-        hashVal = hashVal << bitPosStart;
-        *pOutHash += hashVal;
-        *pOutHash ^= WiFi.localIP();
-    }
-    // Generate JSON string if needed
-    if (pOutStr)
-    {
-        byte mac[6];
-        WiFi.macAddress(mac);
-        String macStr = String(mac[0], HEX) + ":" + String(mac[1], HEX) + ":" + String(mac[2], HEX) + ":" +
-                        String(mac[3], HEX) + ":" + String(mac[4], HEX) + ":" + String(mac[5], HEX);
-        String sOut = "\"wifiIP\":\"" + WiFi.localIP().toString() + "\",\"wifiConn\":\"" + getWifiStatusStr() + "\","
-                                                                                                                "\"ssid\":\"" +
-                      WiFi.SSID() + "\",\"MAC\":\"" + macStr + "\",\"RSSI\":" + String(WiFi.RSSI());
-        *pOutStr = sOut;
-    }
-    // Return number of bits in hash
-    return 8;
+    // Handle with OTA update
+    _otaUpdate.directFirmwareUpdateDone();
+    Utils::setJsonBoolResult(respStr, true);
 }
+

@@ -8,6 +8,7 @@
 #include <ArduinoLog.h>
 #include "Utils.h"
 #include "ConfigBase.h"
+#include "esp_ota_ops.h"
 
 class RdOTAUpdate
 {
@@ -15,6 +16,7 @@ private:
 
     // Enabled
     bool _otaEnabled;
+    bool _otaDirectEnabled;
 
     enum OTAUpdateState
     {
@@ -23,6 +25,8 @@ private:
         OTA_UPDATE_STATE_GET_DOWNLOAD_LEN,
         OTA_UPDATE_STATE_DOWNLOADING
     };
+
+    static const int TIME_TO_WAIT_BEFORE_RESTART_MS = 1000;
 
     static constexpr const char *HTTP_REQUEST_BASE =
         "GET /deployota/[project]/[filename] HTTP/1.1\r\n"
@@ -78,24 +82,16 @@ private:
     // TCP client
     WiFiClient _wifiClient;
 
+    // Direct update restart pending
+    bool _directUpdateRestartPending;
+    int _directUpdateRestartPendingStartMs;
+
+    // Direct update vars
+    bool _otaDirectInProgress;
+    esp_ota_handle_t _otaDirectUpdateHandle;
+
 public:
-    RdOTAUpdate()
-    {
-        _otaEnabled = false;
-        // Header parsing
-        _lastLineBlank = false;
-        _headerComplete = false;
-        _contentDataLength = 0;
-        _contentRxCount = 0;
-        // Progress
-        _targetFileLength = 0;
-        _updateBytesWritten = 0;
-        _updateHasBeenStarted = false;
-        // Flag indicating a firmware update check needed
-        _firmwareCheckRequired = false;
-        // Initially idle
-        _otaUpdateState = OTA_UPDATE_STATE_IDLE;
-    }
+    RdOTAUpdate();
 
     // Setup
     void setup(ConfigBase& config, const char *projectName, const char *currentVers);
@@ -108,6 +104,11 @@ public:
 
     // Call this frequently
     void service();
+
+    // Direct firmware update
+    void directFirmwareUpdatePart(String& filename, size_t contentLen, size_t index, 
+                uint8_t *data, size_t len, bool finalBlock);
+    void directFirmwareUpdateDone();
 
 private:
     // Start an update process
@@ -142,4 +143,5 @@ private:
 
     // Handle received data
     void onDataReceived(uint8_t *pDataReceived, size_t dataReceivedLen);
+
 };
