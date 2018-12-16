@@ -254,3 +254,46 @@ String Utils::getJSONFromHTTPQueryStr(const char* inStr, bool mustStartWithQuest
     return outStr;
 }
 
+// Get Nth field from string
+String Utils::getNthField(const char* inStr, int N, char separator)
+{
+	String retStr;
+	// Find separators
+	const char* pStr = inStr;
+	int len = -1;
+	const char* pField = NULL;
+	int sepIdx = 0;
+	// Find the field and length
+	while (true)
+	{
+		// Check if this is the start of the field we want
+		if ((sepIdx == N) && (*pStr != '\0') && (pField == NULL))
+			pField = pStr;
+		// Check for separator (or end)
+		if ((*pStr == separator) || (*pStr == '\0'))
+			sepIdx++;
+		// See if we have found the end point of the field
+		if (sepIdx == N + 1)
+		{
+			len = pStr - pField;
+			break;
+		}
+		// End?
+		if (*pStr == '\0')
+			break;
+		// Bump
+		pStr++;
+	}
+	// Return if invalid
+	if ((pField == NULL) || (len == -1))
+		return retStr;
+	// Create buffer for the string
+	char* pTmpStr = new char[len + 1];
+	if (!pTmpStr)
+		return retStr;
+	memcpy(pTmpStr, pField, len);
+	pTmpStr[len] = 0;
+	retStr = pTmpStr;
+	delete[] pTmpStr;
+	return retStr;
+}

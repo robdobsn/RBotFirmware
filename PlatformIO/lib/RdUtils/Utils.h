@@ -32,4 +32,7 @@ public:
     // Convert HTTP query format to JSON
     // JSON only contains name/value pairs and not {}
     static String getJSONFromHTTPQueryStr(const char* inStr, bool mustStartWithQuestionMark = true);
+
+    // Get Nth field from string
+    static String getNthField(const char* inStr, int N, char separator);
 };
