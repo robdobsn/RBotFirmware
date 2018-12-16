@@ -10,11 +10,11 @@ void MotionHoming::configure(const char *configJSON)
 {
     // Sequence of commands for homing
     bool isValid = false;
-    _homingSequence = RdJson::getString("homingSeq", "", configJSON, isValid);
+    _homingSequence = RdJson::getString("homing/homingSeq", "", configJSON, isValid);
     if (!isValid)
         _homingSequence = "";
     // Max time homing
-    _maxHomingSecs = RdJson::getLong("maxHomingSecs", maxHomingSecs_default, configJSON);
+    _maxHomingSecs = RdJson::getLong("homing/maxHomingSecs", maxHomingSecs_default, configJSON);
     // No homing currently
     _homingStrPos = 0;
     _commandInProgress = false;
