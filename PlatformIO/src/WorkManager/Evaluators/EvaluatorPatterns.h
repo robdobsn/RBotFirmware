@@ -26,6 +26,9 @@ public:
     void setConfig(const char* configStr);
     const char* getConfig();
 
+    // Is Busy
+    bool isBusy();
+    
     // Expressions
     void addExpression(const char* exprStr, bool isInitialValue);
     void evalExpressions(bool procInitialValues, bool procLoopValues);
@@ -34,7 +37,6 @@ public:
     // Return false if invalid
     bool getPoint(AxisFloats &pt);
     bool getStopVar(bool& stopVar);
-
 
     // Control
     void start();

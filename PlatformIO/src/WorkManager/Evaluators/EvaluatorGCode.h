@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "WorkItem.h"
+#include "../WorkItem.h"
 
 class EvaluatorGCode
 {

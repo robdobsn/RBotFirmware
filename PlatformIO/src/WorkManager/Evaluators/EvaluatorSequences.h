@@ -18,6 +18,9 @@ public:
     void setConfig(const char* configStr);
     const char* getConfig();
 
+    // Is Busy
+    bool isBusy();
+    
     // Check valid
     bool isValid(WorkItem& workItem);
 

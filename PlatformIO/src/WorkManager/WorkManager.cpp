@@ -5,10 +5,26 @@
 #include "ConfigBase.h"
 #include "RobotMotion/RobotController.h"
 #include "RestAPISystem.h"
-#include "EvaluatorGCode.h"
+#include "Evaluators/EvaluatorGCode.h"
 #include "RobotConfigurations.h"
 
 static const char* MODULE_PREFIX = "WorkManager: ";
+
+WorkManager::WorkManager(ConfigBase& mainConfig,
+            ConfigBase &robotConfig, 
+            RobotController &robotController,
+            RestAPISystem &restAPISystem,
+            FileManager& fileManager) :
+            _systemConfig(mainConfig),
+            _robotConfig(robotConfig),
+            _robotController(robotController),
+            _restAPISystem(restAPISystem),
+            _fileManager(fileManager),
+            _evaluatorSequences(fileManager),
+            _evaluatorFiles(fileManager),
+            _evaluatorThetaRhoLine()
+{
+}
 
 void WorkManager::queryStatus(String &respStr)
 {
@@ -48,14 +64,18 @@ void WorkManager::getRobotConfig(String &respStr)
 
 bool WorkManager::setRobotConfig(const uint8_t *pData, int len)
 {
+    Log.trace("%ssetRobotConfig len %d\n", MODULE_PREFIX, len);
     // Check sensible length
     if (len + 10 > _robotConfig.getMaxLen())
         return false;
-    char tmpBuf[len + 1];
-    memcpy(tmpBuf, pData, len);
-    tmpBuf[len] = 0;
+    char* pTmp = new char[len + 1];
+    if (!pTmp)
+        return false;
+    memcpy(pTmp, pData, len);
+    pTmp[len] = 0;
     // Make sure string is terminated
-    _robotConfig.setConfigData(tmpBuf);
+    _robotConfig.setConfigData(pTmp);
+    delete[] pTmp;
     // Reconfigure the robot
     reconfigure();
     // Store the configuration permanently
@@ -83,9 +103,7 @@ void WorkManager::processSingle(const char *pCmdStr, String &retStr)
     {
         _robotController.stop();
         _workItemQueue.clear();
-        _evaluatorPatterns.stop();
-        _evaluatorSequences.stop();
-        _evaluatorFiles.stop();
+        evaluatorsStop();
         retStr = okRslt;
     }
     else
@@ -161,10 +179,10 @@ bool WorkManager::execWorkItem(WorkItem& workItem)
     handledOk = _evaluatorPatterns.execWorkItem(workItem, _fileManager);
     if (handledOk)
         return handledOk;
-    // See if it is a command sequencer
-    if (_evaluatorSequences.isValid(workItem))
+    // See if it is a theta-rho line
+    if (_evaluatorThetaRhoLine.isValid(workItem))
     {
-        handledOk = _evaluatorSequences.execWorkItem(workItem);
+        handledOk = _evaluatorThetaRhoLine.execWorkItem(workItem);
         if (handledOk)
             return handledOk;
     }
@@ -172,6 +190,13 @@ bool WorkManager::execWorkItem(WorkItem& workItem)
     if (_evaluatorFiles.isValid(workItem))
     {
         handledOk = _evaluatorFiles.execWorkItem(workItem);
+        if (handledOk)
+            return handledOk;
+    }
+    // See if it is a command sequencer
+    if (_evaluatorSequences.isValid(workItem))
+    {
+        handledOk = _evaluatorSequences.execWorkItem(workItem);
         if (handledOk)
             return handledOk;
     }
@@ -185,13 +210,14 @@ void WorkManager::service()
     // Check if the RobotController can accept more
     if (_robotController.canAcceptCommand())
     {
+        // Get a new work item
         WorkItem workItem;
         bool rslt = _workItemQueue.get(workItem);
         if (rslt)
         {
             Log.verbose("%sgetWorkflow rlst=%d (waiting %d), %s\n", MODULE_PREFIX, rslt,
-                      _workItemQueue.size(),
-                      workItem.getString().c_str());
+                    _workItemQueue.size(),
+                    workItem.getString().c_str());
 
             // Check for extended commands
             rslt = execWorkItem(workItem);
@@ -203,9 +229,7 @@ void WorkManager::service()
     }
 
     // Service command extender (which pumps the state machines associated with extended commands)
-    _evaluatorPatterns.service(this);
-    _evaluatorSequences.service(this);
-    _evaluatorFiles.service(this);
+    evaluatorsService();
 }
 
 void WorkManager::reconfigure()
@@ -233,6 +257,8 @@ void WorkManager::reconfigure()
     // Init robot controller and workflow manager
     _robotController.init(robotConfigStr.c_str());
     _workItemQueue.init(robotConfigStr.c_str(), "workItemQueue");
+    // Set config into evaluators
+    evaluatorsSetConfig(robotConfigStr.c_str());
 }
 
 void WorkManager::handleStartupCommands()
@@ -257,4 +283,46 @@ void WorkManager::handleStartupCommands()
         WorkItem workItem(runAtStart);
         addWorkItem(workItem, retStr);
     }
+}
+
+void WorkManager::evaluatorsStop()
+{
+    _evaluatorPatterns.stop();
+    _evaluatorSequences.stop();
+    _evaluatorFiles.stop();
+    _evaluatorThetaRhoLine.stop();
+}
+
+void WorkManager::evaluatorsService()
+{
+    _evaluatorPatterns.service(this);
+    _evaluatorFiles.service(this);
+    _evaluatorThetaRhoLine.service(this);
+    if (!evaluatorsBusy())
+        _evaluatorSequences.service(this);
+}
+
+bool WorkManager::evaluatorsBusy()
+{
+    // Check if we're creating a pattern or handling a file, etc
+    if (_evaluatorPatterns.isBusy())
+        return true;
+    if (_evaluatorThetaRhoLine.isBusy())
+        return true;
+    // Evaluator files must be after any other evaluators that might be in the process
+    // of handling a line from a file already
+    if (_evaluatorFiles.isBusy())
+        return true;
+    // Note that evaluatorSequences is not included here. That's because sequences operate
+    // at a higher level than other evaluators and only gets services when the workitem
+    // queue is completely empty and nothing else is busy
+    return false;
+}
+
+void WorkManager::evaluatorsSetConfig(const char* configJson)
+{
+    _evaluatorPatterns.setConfig(configJson);
+    _evaluatorSequences.setConfig(configJson);
+    _evaluatorFiles.setConfig(configJson);
+    _evaluatorThetaRhoLine.setConfig(configJson);
 }

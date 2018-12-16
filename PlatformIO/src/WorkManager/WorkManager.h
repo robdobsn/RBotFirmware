@@ -5,9 +5,10 @@
 
 #include <Arduino.h>
 #include "WorkItemQueue.h"
-#include "EvaluatorPatterns.h"
-#include "EvaluatorSequences.h"
-#include "EvaluatorFiles.h"
+#include "Evaluators/EvaluatorPatterns.h"
+#include "Evaluators/EvaluatorSequences.h"
+#include "Evaluators/EvaluatorFiles.h"
+#include "Evaluators/EvaluatorThetaRhoLine.h"
 
 class ConfigBase;
 class RobotController;
@@ -29,22 +30,14 @@ private:
     EvaluatorPatterns _evaluatorPatterns;
     EvaluatorSequences _evaluatorSequences;
     EvaluatorFiles _evaluatorFiles;
+    EvaluatorThetaRhoLine _evaluatorThetaRhoLine;
 
 public:
     WorkManager(ConfigBase& mainConfig,
                 ConfigBase &robotConfig, 
                 RobotController &robotController,
                 RestAPISystem &restAPISystem,
-                FileManager& fileManager) :
-                _systemConfig(mainConfig),
-                _robotConfig(robotConfig),
-                _robotController(robotController),
-                _restAPISystem(restAPISystem),
-                _fileManager(fileManager),
-                _evaluatorSequences(fileManager),
-                _evaluatorFiles(fileManager)
-    {
-    }
+                FileManager& fileManager);
 
     // Check if queue can accept a work item
     bool canAcceptWorkItem();
@@ -78,4 +71,15 @@ private:
     // Process a single 
     void processSingle(const char *pCmdStr, String &retStr);
 
+    // Stop Evaluators
+    void evaluatorsStop();
+
+    // Service evaluators
+    void evaluatorsService();
+
+    // Check evaluators busy
+    bool evaluatorsBusy();
+
+    // Set config
+    void evaluatorsSetConfig(const char* configJson);
 };

@@ -5,7 +5,7 @@
 #include <ArduinoLog.h>
 #include "EvaluatorFiles.h"
 #include "RdJson.h"
-#include "WorkManager.h"
+#include "../WorkManager.h"
 
 static const char* MODULE_PREFIX = "EvaluatorFiles: ";
 
@@ -23,6 +23,12 @@ void EvaluatorFiles::setConfig(const char* configStr)
 const char* EvaluatorFiles::getConfig()
 {
     return "";
+}
+
+// Is Busy
+bool EvaluatorFiles::isBusy()
+{
+    return _inProgress;
 }
 
 int EvaluatorFiles::getFileTypeFromExtension(String& fileName)
@@ -113,7 +119,7 @@ void EvaluatorFiles::service(WorkManager* pWorkManager)
                 int spacePos = newLine.indexOf(" ");
                 if (spacePos > 0)
                 {
-                    newLine = "G0 U" + newLine.substring(0,spacePos) + " V" + newLine.substring(spacePos+1);
+                    newLine = (chunkPos == 0 ? "_THRLINE0_/" : "_THRLINEN_/") + newLine.substring(0,spacePos) + "/" + newLine.substring(spacePos+1);
                 }
                 else
                 {

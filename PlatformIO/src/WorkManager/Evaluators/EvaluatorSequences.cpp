@@ -5,7 +5,7 @@
 #include <ArduinoLog.h>
 #include "EvaluatorSequences.h"
 #include "RdJson.h"
-#include "WorkManager.h"
+#include "../WorkManager.h"
 
 static const char* MODULE_PREFIX = "EvaluatorSequences: ";
 
@@ -25,6 +25,12 @@ void EvaluatorSequences::setConfig(const char* configStr)
 const char* EvaluatorSequences::getConfig()
 {
     return _jsonConfigStr.c_str();
+}
+
+// Is Busy
+bool EvaluatorSequences::isBusy()
+{
+    return _inProgress;
 }
 
 // Check if valid

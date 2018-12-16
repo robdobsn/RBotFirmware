@@ -2,7 +2,7 @@
 // Rob Dobson 2017
 
 #include "EvaluatorPatterns.h"
-#include "WorkManager.h"
+#include "../WorkManager.h"
 
 static const char* MODULE_PREFIX = "EvaluatorPatterns: ";
 
@@ -20,6 +20,11 @@ void EvaluatorPatterns::setConfig(const char* configStr)
 const char* EvaluatorPatterns::getConfig()
 {
     return _jsonConfigStr.c_str();
+}
+
+bool EvaluatorPatterns::isBusy()
+{
+    return _isRunning;
 }
 
 void EvaluatorPatterns::addExpression(const char* exprStr, bool isInitialValue)
