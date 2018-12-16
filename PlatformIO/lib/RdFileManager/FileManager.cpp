@@ -158,7 +158,7 @@ bool FileManager::getFileInfo(const String& fileSystemStr, const String& filenam
 {
     String nameOfFS;
     if (!checkFileSystem(fileSystemStr, nameOfFS)) {
-        Log.trace("%getFileInfo %s invalid file system %s\n", MODULE_PREFIX, filename.c_str(), fileSystemStr.c_str());
+        Log.trace("%sgetFileInfo %s invalid file system %s\n", MODULE_PREFIX, filename.c_str(), fileSystemStr.c_str());
         return false;
     }
 
@@ -172,13 +172,13 @@ bool FileManager::getFileInfo(const String& fileSystemStr, const String& filenam
     if (stat(rootFilename.c_str(), &st) != 0)
     {
         xSemaphoreGive(_fileSysMutex);
-        Log.trace("%getFileInfo %s cannot stat\n", MODULE_PREFIX, rootFilename.c_str());
+        Log.trace("%sgetFileInfo %s cannot stat\n", MODULE_PREFIX, rootFilename.c_str());
         return false;
     }
     if (!S_ISREG(st.st_mode))
     {
         xSemaphoreGive(_fileSysMutex);
-        Log.trace("%getFileInfo %s is a folder\n", MODULE_PREFIX, rootFilename.c_str());
+        Log.trace("%sgetFileInfo %s is a folder\n", MODULE_PREFIX, rootFilename.c_str());
         return false;
     }
     xSemaphoreGive(_fileSysMutex);
