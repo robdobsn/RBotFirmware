@@ -37,11 +37,25 @@ void RestAPIRobot::apiPostSettings(String &reqStr, String &respStr)
     Utils::setJsonBoolResult(respStr, true);      
 }
 
+void RestAPIRobot::apiSetLed(String &reqStr, String &respStr)
+{
+    Log.notice("%sSetLed %s\n", MODULE_PREFIX, reqStr.c_str());
+    // Result
+    Utils::setJsonBoolResult(respStr, true);      
+}
+
 void RestAPIRobot::apiPostSettingsBody(String& reqStr, uint8_t *pData, size_t len, size_t index, size_t total)
 {
     Log.notice("%sPostSettingsBody len %d\n", MODULE_PREFIX, len);
     // Store the settings
     _workManager.setRobotConfig(pData, len);
+}
+
+void RestAPIRobot::apiSetLedBody(String& reqStr, uint8_t *pData, size_t len, size_t index, size_t total)
+{
+    Log.notice("%sSetLedBody len %d, %s\n", MODULE_PREFIX, len, reqStr.c_str());
+    // Store the settings
+    _workManager.setLedStripConfig(pData, len);
 }
 
 void RestAPIRobot::apiExec(String &reqStr, String &respStr)
@@ -98,6 +112,15 @@ void RestAPIRobot::setup(RestAPIEndpoints &endpoints)
     endpoints.addEndpoint("status", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET,
                             std::bind(&RestAPIRobot::apiQueryStatus, this, std::placeholders::_1, std::placeholders::_2),
                             "Query status");
+                            
+    // Set LED Strip
+    endpoints.addEndpoint("setled", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_POST,
+                            std::bind(&RestAPIRobot::apiSetLed, this, std::placeholders::_1, std::placeholders::_2),
+                            "Set LED Strip Settings", "application/json", NULL, true, NULL, 
+                            std::bind(&RestAPIRobot::apiSetLedBody, this, 
+                            std::placeholders::_1, std::placeholders::_2, 
+                            std::placeholders::_3, std::placeholders::_4,
+                            std::placeholders::_5));
 };
 
 

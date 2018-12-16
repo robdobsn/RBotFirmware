@@ -112,6 +112,13 @@ ConfigNVS mqttConfig("mqtt", 200);
 // Config for network logging
 ConfigNVS netLogConfig("netLog", 200);
 
+// Config for LED Strip
+ConfigNVS ledStripConfig("ledStrip", 100);
+
+// LED Strip
+#include "LedStrip.h"
+LedStrip ledStrip(ledStripConfig);
+
 // CommandSerial port - used to monitor activity remotely and send commands
 #include "CommandSerial.h"
 CommandSerial commandSerial(fileManager);
@@ -139,6 +146,7 @@ RobotController _robotController;
 WorkManager _workManager(hwConfig,
                 robotConfig, 
                 _robotController,
+                ledStrip,
                 restAPISystem,
                 fileManager);
 
@@ -188,6 +196,12 @@ void setup()
 
     // NetLog Config
     netLogConfig.setup();
+
+    // Led Strip Config
+    ledStripConfig.setup();
+
+    // Led Strip
+    ledStrip.setup(&robotConfig, "robotConfig/ledStrip");
 
     // Serial console
     serialConsole.setup(hwConfig, restAPIEndpoints);
@@ -251,6 +265,9 @@ void loop()
 
     // Service the status LED
     wifiStatusLed.service();
+
+    // Service the LED Strip
+    ledStrip.service();
 
     // Service the system API (restart)
     restAPISystem.service();

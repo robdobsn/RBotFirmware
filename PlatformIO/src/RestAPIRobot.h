@@ -25,7 +25,9 @@ class RestAPIRobot
     void apiRobotConfiguration(String &reqStr, String &respStr);
     void apiGetSettings(String &reqStr, String &respStr);
     void apiPostSettings(String &reqStr, String &respStr);
+    void apiSetLed(String &reqStr, String &respStr);
     void apiPostSettingsBody(String& reqStr, uint8_t *pData, size_t len, size_t index, size_t total);
+    void apiSetLedBody(String& reqStr, uint8_t *pData, size_t len, size_t index, size_t total);
     void apiExec(String &reqStr, String &respStr);
     void apiPattern(String &reqStr, String &respStr);
     void apiSequence(String &reqStr, String &respStr);
