@@ -4,6 +4,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include "LedStrip.h"
 #include "WorkItemQueue.h"
 #include "Evaluators/EvaluatorPatterns.h"
 #include "Evaluators/EvaluatorSequences.h"
@@ -22,6 +23,7 @@ private:
     ConfigBase& _systemConfig;
     ConfigBase& _robotConfig;
     RobotController& _robotController;
+    LedStrip& _ledStrip;
     WorkItemQueue _workItemQueue;
     RestAPISystem& _restAPISystem;
     FileManager& _fileManager;
@@ -36,6 +38,7 @@ public:
     WorkManager(ConfigBase& mainConfig,
                 ConfigBase &robotConfig, 
                 RobotController &robotController,
+                LedStrip &ledStrip,
                 RestAPISystem &restAPISystem,
                 FileManager& fileManager);
 
@@ -51,6 +54,7 @@ public:
     // Configuration of the robot
     void getRobotConfig(String& respStr);
     bool setRobotConfig(const uint8_t* pData, int len);
+    bool setLedStripConfig(const uint8_t* pData, int len);
 
     // Apply configuration
     void reconfigure();

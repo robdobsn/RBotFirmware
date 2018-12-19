@@ -13,11 +13,13 @@ static const char* MODULE_PREFIX = "WorkManager: ";
 WorkManager::WorkManager(ConfigBase& mainConfig,
             ConfigBase &robotConfig, 
             RobotController &robotController,
+            LedStrip &ledStrip,
             RestAPISystem &restAPISystem,
             FileManager& fileManager) :
             _systemConfig(mainConfig),
             _robotConfig(robotConfig),
             _robotController(robotController),
+            _ledStrip(ledStrip),
             _restAPISystem(restAPISystem),
             _fileManager(fileManager),
             _evaluatorSequences(fileManager),
@@ -43,6 +45,10 @@ void WorkManager::queryStatus(String &respStr)
     if (innerJsonStr.length() > 0)
         innerJsonStr += ",";
     innerJsonStr += healthStrRobot;
+    String ledStrip = _ledStrip.getConfigStrPtr();
+    if (innerJsonStr.length() > 0)
+        innerJsonStr += ",";
+    innerJsonStr += ledStrip.substring(1, ledStrip.length() - 1);    
     // System information
     respStr = "{" + innerJsonStr + "}";
 }
@@ -60,6 +66,16 @@ bool WorkManager::queueIsEmpty()
 void WorkManager::getRobotConfig(String &respStr)
 {
     respStr = _robotConfig.getConfigString();
+}
+
+bool WorkManager::setLedStripConfig(const uint8_t* pData, int len) {
+    char tmpBuf[len + 1];
+    memcpy(tmpBuf, pData, len);
+    tmpBuf[len] = 0;
+    // Make sure string is terminated
+    _ledStrip.updateLedFromConfig(tmpBuf);
+    
+    return true;
 }
 
 bool WorkManager::setRobotConfig(const uint8_t *pData, int len)
