@@ -91,11 +91,12 @@ static const char *hwConfigJSON = {
     "\"mqttEnabled\":0,"
     "\"webServerEnabled\":1,"
     "\"webServerPort\":80,"
-    "\"OTAUpdate\":{\"enabled\":1,\"server\":\"domoticzoff\",\"port\":5076,\"direcOk\":1},"
+    "\"OTAUpdate\":{\"enabled\":1,\"server\":\"domoticzoff\",\"port\":5076,\"directOk\":1},"
     "\"serialConsole\":{\"portNum\":0},"
     "\"commandSerial\":{\"portNum\":-1,\"baudRate\":115200},"
     "\"defaultRobotType\":\"SandTableScara\""
-    "}"};
+    "}"
+};
 
 // Config for hardware
 ConfigBase hwConfig(hwConfigJSON);
@@ -217,7 +218,7 @@ void setup()
 
     // Add debug blocks
     debugLoopTimer.blockAdd(0, "Web");
-    debugLoopTimer.blockAdd(1, "Serial");
+    debugLoopTimer.blockAdd(1, "Console");
     debugLoopTimer.blockAdd(2, "MQTT");
     debugLoopTimer.blockAdd(3, "OTA");
     debugLoopTimer.blockAdd(4, "Robot");
