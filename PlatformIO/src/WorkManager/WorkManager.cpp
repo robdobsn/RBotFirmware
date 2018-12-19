@@ -311,14 +311,15 @@ void WorkManager::evaluatorsStop()
 
 void WorkManager::evaluatorsService()
 {
-    _evaluatorPatterns.service(this);
-    _evaluatorFiles.service(this);
     _evaluatorThetaRhoLine.service(this);
-    if (!evaluatorsBusy())
+    _evaluatorPatterns.service(this);
+    if (!evaluatorsBusy(false))
+        _evaluatorFiles.service(this);
+    if (!evaluatorsBusy(true))
         _evaluatorSequences.service(this);
 }
 
-bool WorkManager::evaluatorsBusy()
+bool WorkManager::evaluatorsBusy(bool includeFileEvaluator)
 {
     // Check if we're creating a pattern or handling a file, etc
     if (_evaluatorPatterns.isBusy())
@@ -327,8 +328,9 @@ bool WorkManager::evaluatorsBusy()
         return true;
     // Evaluator files must be after any other evaluators that might be in the process
     // of handling a line from a file already
-    if (_evaluatorFiles.isBusy())
-        return true;
+    if (includeFileEvaluator)
+        if (_evaluatorFiles.isBusy())
+            return true;
     // Note that evaluatorSequences is not included here. That's because sequences operate
     // at a higher level than other evaluators and only gets services when the workitem
     // queue is completely empty and nothing else is busy
@@ -341,4 +343,9 @@ void WorkManager::evaluatorsSetConfig(const char* configJson)
     _evaluatorSequences.setConfig(configJson);
     _evaluatorFiles.setConfig(configJson);
     _evaluatorThetaRhoLine.setConfig(configJson);
+}
+
+String WorkManager::getDebugStr()
+{
+    return (_workItemQueue.isFull() ? " QFULL" : " QOK");
 }

@@ -74,7 +74,7 @@ bool EvaluatorThetaRhoLine::execWorkItem(WorkItem& workItem)
         _curRho = newRho;
     }
     double rhoDiff = newRho - _curRho;
-    _totalSteps = int(ceilf(thetaDiff * 180 / M_PI / _stepAngleDegrees)) + 1;
+    _totalSteps = int(ceilf(abs(thetaDiff * 180 / M_PI / _stepAngleDegrees))) + 1;
     _curStep = 0;
     _thetaInc = thetaDiff / _totalSteps;
     _rhoInc = rhoDiff / _totalSteps;

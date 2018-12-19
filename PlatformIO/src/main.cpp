@@ -165,7 +165,7 @@ void debugLoopInfoCallback(String &infoStr)
         infoStr = wifiManager.getHostname() + " V" + String(systemVersion) + " SSID " + WiFi.SSID() + " IP " + WiFi.localIP().toString() + " Heap " + String(ESP.getFreeHeap());
     else
         infoStr = "WiFi Disabled, Heap " + String(ESP.getFreeHeap());
-    // infoStr += " Q " + String(_workItemQueue.size()) + " R " + String(_workItemQueue.canAcceptWorkItem();
+    infoStr += _workManager.getDebugStr();
     infoStr += _robotController.getDebugStr();
 }
 DebugLoopTimer debugLoopTimer(10000, debugLoopInfoCallback);

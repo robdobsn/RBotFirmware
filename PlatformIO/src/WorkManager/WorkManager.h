@@ -68,6 +68,9 @@ public:
     // Add a work item to the queue
     void addWorkItem(WorkItem& workItem, String &retStr, int cmdIdx = -1);
 
+    // Get debug string
+    String getDebugStr();
+
 private:
     // Execute an item of work
     bool execWorkItem(WorkItem& workItem);
@@ -82,7 +85,7 @@ private:
     void evaluatorsService();
 
     // Check evaluators busy
-    bool evaluatorsBusy();
+    bool evaluatorsBusy(bool includeFileEvaluator);
 
     // Set config
     void evaluatorsSetConfig(const char* configJson);
