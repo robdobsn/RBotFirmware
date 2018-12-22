@@ -46,5 +46,5 @@ private:
     double _thetaInc;
     double _rhoInc;
     double _thetaStartOffset;
-
+    double _maxAngle;
 };

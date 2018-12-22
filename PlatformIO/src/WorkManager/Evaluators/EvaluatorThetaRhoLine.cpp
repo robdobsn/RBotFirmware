@@ -26,7 +26,9 @@ void EvaluatorThetaRhoLine::setConfig(const char* configStr)
     _stepAngleDegrees = RdJson::getDouble("thrStepDegs", 5, configStr);
     _continueFromPrevious = RdJson::getLong("thrContinue", 1, configStr) != 0;
     Log.trace("%ssetConfig StepAngleDegrees %F\n", MODULE_PREFIX, 
-            _stepAngleDegrees);    
+            _stepAngleDegrees);
+    // TODO read from config?
+    _maxAngle = M_PI / 64.0;
 }
 
 // Is Busy
@@ -74,10 +76,25 @@ bool EvaluatorThetaRhoLine::execWorkItem(WorkItem& workItem)
         _curRho = newRho;
     }
     double rhoDiff = newRho - _curRho;
-    _totalSteps = int(ceilf(abs(thetaDiff * 180 / M_PI / _stepAngleDegrees))) + 1;
-    _curStep = 0;
-    _thetaInc = thetaDiff / _totalSteps;
-    _rhoInc = rhoDiff / _totalSteps;
+
+    /// new
+    if (thetaDiff < _maxAngle) {
+        _totalSteps = 1;
+        _thetaInc = 0;
+        _rhoInc = 0;
+    } else {
+        _thetaInc = _maxAngle;
+        _rhoInc = _maxAngle / abs(thetaDiff) * (rhoDiff);
+        _totalSteps = (int)((double)abs(thetaDiff) / _maxAngle);
+    }
+
+    /// old
+    // _totalSteps = int(ceilf(abs(thetaDiff * 180 / M_PI / _stepAngleDegrees))) + 1;
+    // _curStep = 0;
+    // _thetaInc = thetaDiff / _totalSteps;
+    // _rhoInc = rhoDiff / _totalSteps;
+
+    ///
     _inProgress = true;
     Log.trace("%sexecWorkItem Theta %F Rho %F CurTheta %F CurRho %F TotalSteps %d ThetaInc %F RhoInc %F\n", MODULE_PREFIX, 
             newTheta, newRho, _curTheta, _curRho, _totalSteps, _thetaInc, _rhoInc);
