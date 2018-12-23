@@ -78,10 +78,12 @@ bool EvaluatorThetaRhoLine::execWorkItem(WorkItem& workItem)
     double rhoDiff = newRho - _curRho;
 
     /// new
-    if (thetaDiff < _maxAngle) {
+
+    // Theta diff is minimal, no interpolation
+    if (abs(thetaDiff) < _maxAngle) {
         _totalSteps = 1;
         _thetaInc = 0;
-        _rhoInc = 0;
+        _rhoInc = rhoDiff; //? not sure here
     } else {
         _thetaInc = _maxAngle;
         _rhoInc = _maxAngle / abs(thetaDiff) * (rhoDiff);
