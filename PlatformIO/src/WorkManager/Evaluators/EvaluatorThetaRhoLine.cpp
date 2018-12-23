@@ -25,8 +25,8 @@ void EvaluatorThetaRhoLine::setConfig(const char* configStr)
     // Set the theta-rho angle step
     _stepAngleDegrees = RdJson::getDouble("thrStepDegs", 5, configStr);
     _continueFromPrevious = RdJson::getLong("thrContinue", 1, configStr) != 0;
-    Log.trace("%ssetConfig StepAngleDegrees %F\n", MODULE_PREFIX, 
-            _stepAngleDegrees);    
+    Log.trace("%ssetConfig StepAngleDegrees %F continueFromPrevious %s\n", MODULE_PREFIX, 
+            _stepAngleDegrees, _continueFromPrevious ? "Y" : "N");
 }
 
 // Is Busy
@@ -74,13 +74,20 @@ bool EvaluatorThetaRhoLine::execWorkItem(WorkItem& workItem)
         _curRho = newRho;
     }
     double rhoDiff = newRho - _curRho;
-    _totalSteps = int(ceilf(abs(thetaDiff * 180 / M_PI / _stepAngleDegrees))) + 1;
+    double absThetaDiffDegs = abs(thetaDiff) * 180 / M_PI;
+    _totalSteps = int(ceilf(absThetaDiffDegs / _stepAngleDegrees));
+    if (_totalSteps <= 0)
+        return true;
     _curStep = 0;
     _thetaInc = thetaDiff / _totalSteps;
     _rhoInc = rhoDiff / _totalSteps;
+    // Bump total steps so that we end up at the right point - the reason for this is that the
+    // first command issued will be the start point (and the final one should be the end point)
+    // but will be one increment fewer unless we increment one more time
+    _totalSteps++;
     _inProgress = true;
-    Log.trace("%sexecWorkItem Theta %F Rho %F CurTheta %F CurRho %F TotalSteps %d ThetaInc %F RhoInc %F\n", MODULE_PREFIX, 
-            newTheta, newRho, _curTheta, _curRho, _totalSteps, _thetaInc, _rhoInc);
+    Log.trace("%sexecWorkItem Theta %F Rho %F CurTheta %F CurRho %F TotalSteps %d ThetaInc %F RhoInc %F AbsThetaDiffDegs %F StepAng %F\n", MODULE_PREFIX, 
+            newTheta, newRho, _curTheta, _curRho, _totalSteps, _thetaInc, _rhoInc, absThetaDiffDegs, _stepAngleDegrees);
     return true;
 }
 
@@ -100,7 +107,7 @@ void EvaluatorThetaRhoLine::service(WorkManager* pWorkManager)
     String retStr;
     WorkItem workItem(lineBuf);
     pWorkManager->addWorkItem(workItem, retStr);
-    Log.verbose("%sservice %s\n", MODULE_PREFIX, lineBuf);
+    Log.trace("%sservice %s\n", MODULE_PREFIX, lineBuf);
 
     // Inc
     _curTheta += _thetaInc;
@@ -110,7 +117,7 @@ void EvaluatorThetaRhoLine::service(WorkManager* pWorkManager)
     // Check complete
     if (_curStep >= _totalSteps)
     {
-        Log.verbose("%sservice finished\n", MODULE_PREFIX);
+        Log.trace("%sservice finished\n", MODULE_PREFIX);
         _inProgress = false;
     }
 

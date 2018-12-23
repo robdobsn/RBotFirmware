@@ -88,5 +88,5 @@ private:
     bool evaluatorsBusy(bool includeFileEvaluator);
 
     // Set config
-    void evaluatorsSetConfig(const char* configJson);
+    void evaluatorsSetConfig(const char* configJson, const char* jsonPath);
 };

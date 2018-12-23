@@ -7,6 +7,8 @@
 #include "Utils.h"
 #include "AxisValues.h"
 
+// #define MOTION_LOG_DEBUG 1
+
 static const char* MODULE_PREFIX = "MotionHelper: ";
 
 MotionHelper::MotionHelper() : _motionActuator(_motionIO, &_motionPipeline),
@@ -53,16 +55,18 @@ void MotionHelper::configure(const char *robotConfigJSON)
     // Config geometry
     String robotGeom = RdJson::getString("robotGeom", "NONE", robotConfigJSON);
 
-    // Pipeline length and block size
+    // Config settings
     int pipelineLen = int(RdJson::getLong("pipelineLen", pipelineLen_default, robotGeom.c_str()));
     _blockDistanceMM = float(RdJson::getDouble("blockDistanceMM", blockDistanceMM_default, robotGeom.c_str()));
     _allowAllOutOfBounds = bool(RdJson::getLong("allowOutOfBounds", false, robotGeom.c_str()));
-    Log.notice("%sconfigMotionPipeline len %d, _blockDistanceMM %F (0=no-max)\n", MODULE_PREFIX,
-               pipelineLen, _blockDistanceMM);
+    float junctionDeviation = float(RdJson::getDouble("junctionDeviation", junctionDeviation_default, robotGeom.c_str()));
+    Log.notice("%sconfigMotionPipeline len %d, blockDistMM %F (0=no-max), allowOoB %s, jnDev %F\n", MODULE_PREFIX,
+               pipelineLen, _blockDistanceMM, _allowAllOutOfBounds ? "Y" : "N", junctionDeviation);
+
+    // Pipeline length and block size
     _motionPipeline.init(pipelineLen);
 
     // Motion Pipeline and Planner
-    float junctionDeviation = float(RdJson::getDouble("junctionDeviation", junctionDeviation_default, robotGeom.c_str()));
     _motionPlanner.configure(junctionDeviation);
 
     // MotionIO
@@ -153,8 +157,10 @@ void MotionHelper::getCurStatus(RobotCommandArgs &args)
     args.setEndStops(endstops);
     // Absolute/Relative movement
     args.setMoveType(_moveRelative ? RobotMoveTypeArg_Relative : RobotMoveTypeArg_Absolute);
-    // paused
+    // flags
     args.setPause(_isPaused);
+    args.setIsHoming(_motionHoming.isHomingInProgress());
+    args.setHasHomed(_motionHoming._isHomedOk);
     // Queue length
     args.setNumQueued(_motionPipeline.count());
 }
@@ -274,14 +280,28 @@ bool MotionHelper::addToPlanner(RobotCommandArgs &args)
 
     // Plan the move
     if (moveOk)
+    {
         moveOk = _motionPlanner.moveTo(args, actuatorCoords, _curAxisPosition, _axesParams, _motionPipeline);
+#ifdef MOTION_LOG_DEBUG
+    Log.trace("~M%d %d %d %F %F OOB %d %d\n", millis(), int(actuatorCoords.getVal(0)), 
+            int(actuatorCoords.getVal(1)), 
+            args.getPointMM().getVal(0), args.getPointMM().getVal(1),
+            args.getAllowOutOfBounds(), _allowAllOutOfBounds);
+#endif
+    }
     if (moveOk)
     {
         // Update axisMotion
         _curAxisPosition._axisPositionMM = args.getPointMM();
         // Correct overflows
         if (_correctStepOverflowFn)
+        {
             _correctStepOverflowFn(_curAxisPosition, _axesParams);
+#ifdef MOTION_LOG_DEBUG
+    Log.trace("~A%d %d\n", _curAxisPosition._stepsFromHome.getVal(0), 
+            _curAxisPosition._stepsFromHome.getVal(1));
+#endif
+        }            
     }
     return moveOk;
 }

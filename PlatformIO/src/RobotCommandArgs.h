@@ -26,6 +26,8 @@ class RobotCommandArgs
     bool _allowOutOfBounds : 1;
     bool _pause : 1;
     bool _moreMovesComing : 1;
+    bool _isHoming: 1;
+    bool _hasHomed: 1;
     // Command control
     int _queuedCommands;
     int _numberedCommandIndex;
@@ -294,6 +296,14 @@ class RobotCommandArgs
     {
         _pause = pause;
     }
+    void setIsHoming(bool isHoming)
+    {
+        _isHoming = isHoming;
+    }
+    void setHasHomed(bool hasHomed)
+    {
+        _hasHomed = hasHomed;
+    }
     String toJSON(bool includeBraces = true)
     {
         String jsonStr;
@@ -322,6 +332,9 @@ class RobotCommandArgs
         jsonStr += ", \"num\":" + numberedCmdStr;
         String queuedCommandsStr = String(_queuedCommands);
         jsonStr += ", \"Qd\":" + queuedCommandsStr;
+        jsonStr += String(", \"Hmd\":") + (_hasHomed ? "1" : "0");
+        if (_isHoming)
+            jsonStr += ", \"Homing\":1";
         jsonStr += String(", \"pause\":") + (_pause ? "1" : "0");
         if (includeBraces)
             jsonStr += "}";

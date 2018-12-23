@@ -44,7 +44,7 @@
             }
             else 
             {
-                if (settings.robotConfig && settings.robotConfig.robotType && settings.robotConfig.robotType === "SandTableScara")
+                if (settings.robotConfig && settings.robotConfig.webui && settings.robotConfig.webui.toLowerCase() === "sandui")
                     window.location.replace("sandUI.html");
                 else
                     window.location.replace("cncUI.html");
