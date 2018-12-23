@@ -85,7 +85,7 @@ bool EvaluatorThetaRhoLine::execWorkItem(WorkItem& workItem)
         _thetaInc = 0;
         _rhoInc = rhoDiff; //? not sure here
     } else {
-        _thetaInc = _maxAngle;
+        _thetaInc = (thetaDiff < 0) ?  -_maxAngle : _maxAngle;
         _rhoInc = _maxAngle / abs(thetaDiff) * (rhoDiff);
         _totalSteps = (int)((double)abs(thetaDiff) / _maxAngle);
     }
