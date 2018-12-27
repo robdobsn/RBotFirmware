@@ -115,6 +115,12 @@ void WorkManager::processSingle(const char *pCmdStr, String &retStr)
         _robotController.pause(false);
         retStr = okRslt;
     }
+    else if (strcasecmp(pCmdStr, "playpause") == 0)
+    {
+        // Toggle pause state
+        _robotController.pause(!_robotController.isPaused());
+        retStr = okRslt;
+    }
     else if (strcasecmp(pCmdStr, "stop") == 0)
     {
         _robotController.stop();
