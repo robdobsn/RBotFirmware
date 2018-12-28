@@ -15,6 +15,14 @@
 
 static const char* MODULE_PREFIX = "WebServer: ";
 
+WebServer::WebServer()
+{
+    _pServer = NULL;
+    _begun = false;
+    _webServerEnabled = false;
+    _pAsyncEvents = NULL;
+}
+
 WebServer::~WebServer()
 {
     if (_pServer)
@@ -226,4 +234,32 @@ void WebServer::serveStaticFiles(const char* baseUrl, const char* baseFolder, co
     Log.trace("%sserveStaticFiles url %s folder %s\n", MODULE_PREFIX, baseUrl, baseFolder);
     AsyncStaticFileHandler* handler = new AsyncStaticFileHandler(baseUrl, baseFolder, cache_control);
     _pServer->addHandler(handler);
+}
+
+void WebServer::enableAsyncEvents(const String& eventsURL)
+{
+    // Enable events
+    if (_pAsyncEvents)
+        return;
+    _pAsyncEvents = new AsyncEventSource(eventsURL);
+    if (!_pAsyncEvents)
+        return;
+
+    // Handle connection
+    // _pAsyncEvents->onConnect([](AsyncEventSourceClient *client) {
+        // if(client->lastId())
+        // {
+        //     Log.trace("%sevent client reconn - last messageID got is: %d\n", MODULE_PREFIX,
+        //             client->lastId());
+        // }
+    // });
+
+    // Add handler for events
+    _pServer->addHandler(_pAsyncEvents);
+}
+
+void WebServer::sendAsyncEvent(const char* eventContent, const char* eventGroup)
+{
+    if (_pAsyncEvents)
+        _pAsyncEvents->send(eventContent, eventGroup, millis());
 }

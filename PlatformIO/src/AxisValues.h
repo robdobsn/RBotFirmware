@@ -61,6 +61,19 @@ class AxisFloats
         _validityFlags |= yValid ? 0x02 : 0;
         _validityFlags |= zValid ? 0x04 : 0;
     }
+    bool operator==(const AxisFloats& other)
+    {
+        if (_validityFlags != other._validityFlags)
+            return false;
+        for (int i = 0; i < RobotConsts::MAX_AXES; i++)
+            if ((_validityFlags & (0x01 << i)) && (_pt[i] != other._pt[i]))
+                return false;
+        return true;
+    }
+    bool operator!=(const AxisFloats& other)
+    {
+        return !(*this == other);
+    }
     void clear()
     {
         for (int i = 0; i < RobotConsts::MAX_AXES; i++)
@@ -277,6 +290,14 @@ class AxisValidBools
         _uint = other._uint;
         return *this;
     }
+    bool operator==(const AxisValidBools& other)
+    {
+        return _uint == other._uint;
+    }
+    bool operator!=(const AxisValidBools& other)
+    {
+        return !(*this == other);
+    }
     bool isValid(int axisIdx)
     {
         return _uint & (1 << axisIdx);
@@ -350,6 +371,14 @@ class AxisMinMaxBools
     {
         _uint = other._uint;
         return *this;
+    }
+    bool operator==(const AxisMinMaxBools& other)
+    {
+        return _uint == other._uint;
+    }
+    bool operator!=(const AxisMinMaxBools& other)
+    {
+        return !(*this == other);
     }
     bool isValid()
     {
@@ -439,6 +468,17 @@ class AxisInt32s
         vals[0] = xVal;
         vals[1] = yVal;
         vals[2] = zVal;
+    }
+    bool operator==(const AxisInt32s& other)
+    {
+        for (int i = 0; i < RobotConsts::MAX_AXES; i++)
+            if (vals[i] != other.vals[i])
+                return false;
+        return true;
+    }
+    bool operator!=(const AxisInt32s& other)
+    {
+        return !(*this == other);
     }
     void clear()
     {

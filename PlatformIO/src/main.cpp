@@ -223,6 +223,7 @@ void setup()
     webServer.addEndpoints(restAPIEndpoints);
     webServer.serveStaticFiles("/files/spiffs", "/spiffs/");
     webServer.serveStaticFiles("/files/sd", "/sd/");
+    webServer.enableAsyncEvents("/events");
 
     // MQTT
     mqttManager.setup(hwConfig, &mqttConfig);
@@ -300,4 +301,13 @@ void loop()
     debugLoopTimer.blockStart(5);
     _workManager.service();
     debugLoopTimer.blockEnd(5);
+
+    // Check for changes to status
+    if (_workManager.checkStatusChanged())
+    {
+        // Send changed status
+        String newStatus;
+        _workManager.queryStatus(newStatus);
+        webServer.sendAsyncEvent(newStatus.c_str(), "status");
+    }
 }

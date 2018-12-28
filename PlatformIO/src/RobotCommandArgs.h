@@ -14,7 +14,7 @@ enum RobotMoveTypeArg
 
 class RobotCommandArgs
 {
-  private:
+private:
     // Flags
     bool _ptUnitsSteps : 1;
     bool _ptCoordUnitsThetaRho : 1;
@@ -40,7 +40,7 @@ class RobotCommandArgs
     RobotMoveTypeArg _moveType;
     AxisMinMaxBools _endstops;
 
-  public:
+public:
     RobotCommandArgs()
     {
         clear();
@@ -71,7 +71,56 @@ class RobotCommandArgs
         _endstops.none();
     }
 
-  private:
+    RobotCommandArgs& operator=(const RobotCommandArgs& copyFrom)
+    {
+        copy(copyFrom);
+        return *this;
+    }
+
+    bool operator==(const RobotCommandArgs& other)
+    {
+        bool isEqual =
+            // Flags
+            (_ptUnitsSteps == other._ptUnitsSteps) &&
+            (_ptCoordUnitsThetaRho == other._ptCoordUnitsThetaRho) &&
+            (_dontSplitMove == other._dontSplitMove) &&
+            (_extrudeValid == other._extrudeValid) &&
+            (_feedrateValid == other._feedrateValid) &&
+            (_moveClockwise == other._moveClockwise) &&
+            (_moveRapid == other._moveRapid) &&
+            (_allowOutOfBounds == other._allowOutOfBounds) &&
+            (_pause == other._pause) &&
+            (_moreMovesComing == other._moreMovesComing) &&
+            // Command control
+            (_queuedCommands == other._queuedCommands) &&
+            (_numberedCommandIndex == other._numberedCommandIndex) &&
+            // Endstops etc
+            (_extrudeValue == other._extrudeValue) &&
+            (_feedrateValue == other._feedrateValue) &&
+            (_moveType == other._moveType) &&
+            (_endstops == other._endstops);
+        if (!isEqual)
+            return false;
+        // Coords, etc
+        for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+        {
+            if (_ptInMM.isValid(axisIdx) != _ptInMM.isValid(axisIdx))
+                return false;
+            if (_ptInMM.isValid(axisIdx) &&
+                ((_ptInMM != other._ptInMM) ||
+                (_ptInCoordUnits != other._ptInCoordUnits) ||
+                (_ptInSteps != other._ptInSteps)))
+                return false;
+        }
+        return true;
+    }
+
+    bool operator!=(const RobotCommandArgs& other)
+    {
+        return !(*this == other);
+    }
+
+private:
     void copy(const RobotCommandArgs &copyFrom)
     {
         clear();
@@ -99,15 +148,10 @@ class RobotCommandArgs
         _endstops = copyFrom._endstops;
     }
 
-  public:
+public:
     RobotCommandArgs(const RobotCommandArgs &other)
     {
         copy(other);
-    }
-    RobotCommandArgs &operator=(const RobotCommandArgs &other)
-    {
-        copy(other);
-        return *this;
     }
     void setAxisValMM(int axisIdx, float value, bool isValid)
     {

@@ -26,6 +26,8 @@ WorkManager::WorkManager(ConfigBase& mainConfig,
             _evaluatorFiles(fileManager),
             _evaluatorThetaRhoLine()
 {
+    _statusReportLastCheck = 0;
+    _statusLastHashVal = 0;
 }
 
 void WorkManager::queryStatus(String &respStr)
@@ -350,6 +352,42 @@ void WorkManager::evaluatorsSetConfig(const char* configJson, const char* jsonPa
     _evaluatorSequences.setConfig(evaluatorConfig.c_str());
     _evaluatorFiles.setConfig(evaluatorConfig.c_str());
     _evaluatorThetaRhoLine.setConfig(evaluatorConfig.c_str());
+}
+
+bool WorkManager::checkStatusChanged()
+{
+    // Check for status change
+    if (!Utils::isTimeout(millis(), _statusReportLastCheck, STATUS_CHECK_MS))
+        return false;
+    _statusReportLastCheck = millis();
+
+    // Check if always update timed out
+    bool statusChanged = false;
+    if (Utils::isTimeout(millis(), _statusAlwaysLastCheck, STATUS_ALWAYS_UPDATE_MS))
+    {
+        _statusAlwaysLastCheck = millis();
+        statusChanged = true;
+    }
+
+    // Check for system status changes
+    unsigned long statusNewHash = 0;
+    _restAPISystem.reportHealth(0, &statusNewHash, NULL);
+
+    // Check for robot status changes
+    RobotCommandArgs cmdArgs;
+    _robotController.getCurStatus(cmdArgs);
+
+    // Check if anything changed
+    statusChanged |= (_statusLastHashVal != statusNewHash) | (_statusLastCmdArgs != cmdArgs);
+    if (statusChanged)
+    {
+        _statusLastHashVal = statusNewHash;
+        _statusLastCmdArgs = cmdArgs;
+        Log.trace("%sstatus changed %d %d\n", MODULE_PREFIX,
+                    (_statusLastHashVal != statusNewHash), (_statusLastCmdArgs != cmdArgs));
+        return true;
+    }
+    return false;
 }
 
 String WorkManager::getDebugStr()

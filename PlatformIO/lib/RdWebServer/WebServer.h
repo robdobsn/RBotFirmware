@@ -11,6 +11,7 @@ class AsyncWebServer;
 class AsyncWebServerResponse;
 class AsyncWebServerRequest;
 class WebServerResource;
+class AsyncEventSource;
 
 class WebServer
 {
@@ -18,14 +19,9 @@ public:
     AsyncWebServer* _pServer;
     bool _begun;
     bool _webServerEnabled;
+    AsyncEventSource* _pAsyncEvents;
 
-    WebServer()
-    {
-        _pServer = NULL;
-        _begun = false;
-        _webServerEnabled = false;
-    }
-
+    WebServer();
     ~WebServer();
 
     void setup(ConfigBase& hwConfig);
@@ -36,6 +32,9 @@ public:
     static void parseAndAddHeaders(AsyncWebServerResponse *response, const char *pHeaders);
     static String recreatedReqUrl(AsyncWebServerRequest *request);
     void serveStaticFiles(const char* baseUrl, const char* baseFolder, const char* cache_control = NULL);
+    // Async event handler (one-way text to browser)
+    void enableAsyncEvents(const String& eventsURL);
+    void sendAsyncEvent(const char* eventContent, const char* eventGroup);
 
 private:
     void addStaticResource(const WebServerResource *pResource, const char *pAliasPath = NULL);

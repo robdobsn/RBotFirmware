@@ -28,6 +28,22 @@
 				sandTableSettingsCallbackOk(
 					JSON.stringify(window.pageState));
 			} else {
+				// Setup async events (text-only messages pushed to browser)
+				if (!!window.EventSource) {
+					let source = new EventSource('/events');
+					// Events on async event source
+					source.addEventListener('open', function(e) {
+						console.log("Async events connected");
+					}, false);
+					source.addEventListener('error', function(e) {
+					    if (e.target.readyState != EventSource.OPEN) {
+							console.log("Events Disconnected");
+					    }
+					}, false);
+					source.addEventListener('status', function(e) {
+						console.log("status", e.data);
+					}, false);
+				}				
 				reqFileListAndUpdate();
 			}
 		}

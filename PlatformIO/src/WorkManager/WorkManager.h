@@ -10,6 +10,7 @@
 #include "Evaluators/EvaluatorSequences.h"
 #include "Evaluators/EvaluatorFiles.h"
 #include "Evaluators/EvaluatorThetaRhoLine.h"
+#include "RobotCommandArgs.h"
 
 class ConfigBase;
 class RobotController;
@@ -33,6 +34,16 @@ private:
     EvaluatorSequences _evaluatorSequences;
     EvaluatorFiles _evaluatorFiles;
     EvaluatorThetaRhoLine _evaluatorThetaRhoLine;
+
+    // Status updates
+    RobotCommandArgs _statusLastCmdArgs;
+    unsigned long _statusLastHashVal;
+    unsigned long _statusReportLastCheck;
+    unsigned long _statusAlwaysLastCheck;
+    // Time between status change checks
+    const unsigned long STATUS_CHECK_MS = 250;
+    // A status update will always be sent (even if no change) after this time
+    const unsigned long STATUS_ALWAYS_UPDATE_MS = 10000;
 
 public:
     WorkManager(ConfigBase& mainConfig,
@@ -67,6 +78,9 @@ public:
 
     // Add a work item to the queue
     void addWorkItem(WorkItem& workItem, String &retStr, int cmdIdx = -1);
+
+    // Check status changed
+    bool checkStatusChanged();
 
     // Get debug string
     String getDebugStr();
