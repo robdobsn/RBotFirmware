@@ -48,8 +48,13 @@
 						try {
 							const statusInfo = JSON.parse(e.data);
 							const statusConn = document.getElementById("status-connected");
-							statusConn.style.visibility = "hidden";
+							statusConn.classList.add("nodisplay");
 							window.stState.lastStatusRxTime = new Date();
+							const statusPaused = document.getElementById("status-paused");
+							if (statusInfo.pause == 0)
+								statusPaused.classList.add("nodisplay");
+							else
+								statusPaused.classList.remove("nodisplay");
 						}
 						catch(e)
 						{
@@ -67,7 +72,7 @@
 			if (nowTime - window.stState.lastStatusRxTime > window.stState.statusUpdateTooLateMs)
 			{
 				const statusConn = document.getElementById("status-connected");
-				statusConn.style.visibility = "visible";
+				statusConn.classList.remove("nodisplay");
 			}
 		}
 		function reqFileListAndUpdate()
@@ -277,7 +282,7 @@
 //			}
 			else if (label === "RunAtStart")
 			{
-				oStr += '<svg class="icon-action"><use xlink:href="#ico-run-at-start" style="fill:' + (curState ? '#78BFC1' : '#e0e0e0') + '"></use></svg>';
+				oStr += '<svg class="icon-action"><use xlink:href="#ico-run-at-start" style="fill:' + (curState ? '#407ea6' : '#fafcee') + '"></use></svg>';
 			}
 			else if (label === "Play-Pause")
 			{
@@ -337,7 +342,12 @@
 			oStr += "</div>";
 			oStr += "<div class='body-part-status backGrad1'>";
 			oStr += "<div class='body-commands'>";
-			oStr += "<div class='body-status-box'><div id='status-connected' style='visibility:hidden'><svg class='icon-toolbar'><use xlink:href='#ico-broken'></use></div></svg></div>"
+			oStr += "<div class='body-status-box'>"
+			oStr += "<div id='status-connected' class='nodisplay'><svg class='icon-toolbar'><use xlink:href='#ico-broken'></use></svg></div>"
+			oStr += "</div>";
+			oStr += "<div class='body-status-box'>"
+			oStr += "<div id='status-paused' class='nodisplay'><svg class='icon-toolbar icon-red'><use xlink:href='#ico-pause'></use></svg></div>"
+			oStr += "</div>";
 			oStr += "</div>";
 			oStr += "</div>";
 			oStr += "</div>";
@@ -862,7 +872,7 @@
 		flex-grow: 1;
 	}
 	.body-part-status{
-		flex-grow: 0.2;
+		flex-grow: .2;
 	}
 	.body-sep{
 		flex-grow: 0.01;
@@ -970,7 +980,7 @@
 		cursor:pointer;
 	}
 	.body-status-box {
-		color: red;
+		color: #D5354E;
 	}
 	.body-config {
 		padding: 20px;
@@ -1025,6 +1035,9 @@
 	.hidden{
 		visibility: hidden;
 	}
+	.nodisplay {
+		visibility: hidden;
+	}
 	progress {
 		background-color: #fafcee;
 		border-color: #fafcee;
@@ -1064,6 +1077,10 @@
 		height: 32px;
 		vertical-align: middle;
 		padding-left: 15px;
+	}
+	.icon-red {
+		fill:#D5354E;
+		color:#D5354E;
 	}
 	.select-style {
 		position: relative;
