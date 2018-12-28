@@ -2,9 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="a6546d1b-6b84-477e-8b73-cfca16147a37" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/lib/RdFileManager/FileManager.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/lib/RdFileManager/FileManager.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/lib/RdFileManager/FileManager.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/lib/RdFileManager/FileManager.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/lib/RdRestAPISystem/RestAPISystem.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/lib/RdRestAPISystem/RestAPISystem.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RestAPIRobot.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RestAPIRobot.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WebAutogenResources.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WebAutogenResources.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/WorkManager.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/WorkManager.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../WebUI/ComboUI/sandUI.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../WebUI/ComboUI/sandUI.html" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -93,7 +94,7 @@
     <detection-done>true</detection-done>
     <sorting>DEFINITION_ORDER</sorting>
   </component>
-  <component name="ProjectFrameBounds">
+  <component name="ProjectFrameBounds" extendedState="1">
     <option name="x" value="1825" />
     <option name="y" value="269" />
     <option name="width" value="1754" />
@@ -213,10 +214,9 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="1825" y="269" width="1754" height="1152" extended-state="0" />
-    <editor active="true" />
+    <frame x="1825" y="269" width="1754" height="1152" extended-state="1" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.27272728" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.27272728" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -229,7 +229,7 @@
       <window_info anchor="bottom" id="Docker" order="7" show_stripe_button="false" />
       <window_info anchor="bottom" id="Version Control" order="8" />
       <window_info anchor="bottom" id="Database Changes" order="9" show_stripe_button="false" />
-      <window_info anchor="bottom" id="Event Log" order="10" sideWeight="0.5010504" side_tool="true" visible="true" weight="0.56286836" />
+      <window_info active="true" anchor="bottom" id="Event Log" order="10" sideWeight="0.5010504" side_tool="true" visible="true" weight="0.56286836" />
       <window_info anchor="bottom" id="Terminal" order="11" sideWeight="0.49943504" weight="0.32937893" />
       <window_info anchor="bottom" id="Python Console" order="12" />
       <window_info anchor="right" id="Commander" order="0" weight="0.4" />

@@ -16,7 +16,7 @@
 				curFileType: "param",
 				newFileType: "param",
 				fileSystemBasePath: "",
-				lastStatusRxTime: 0,
+				lastStatusRxTime: new Date(),
 				statusUpdateCheckMs: 2000,
 				statusUpdateTooLateMs: 15000
 			};
@@ -58,13 +58,13 @@
 					}, false);
 				}				
 				reqFileListAndUpdate();
-				setInterval(statusUpdateTimerHandler, window.pageState.statusUpdateCheckMs);
+				setInterval(statusUpdateTimerHandler, window.stState.statusUpdateCheckMs);
 			}
 		}
 		function statusUpdateTimerHandler()
 		{
 			let nowTime = new Date();
-			if (nowTime - window.stState.lastStatusRxTime > window.pageState.statusUpdateTooLateMs)
+			if (nowTime - window.stState.lastStatusRxTime > window.stState.statusUpdateTooLateMs)
 			{
 				const statusConn = document.getElementById("status-connected");
 				statusConn.style.visibility = "visible";
@@ -337,7 +337,7 @@
 			oStr += "</div>";
 			oStr += "<div class='body-part-status backGrad1'>";
 			oStr += "<div class='body-commands'>";
-			oStr += "<div class='body-status-box'><div id='status-connected'><svg class='icon-toolbar'><use xlink:href='#ico-broken'></use></div></svg></div>"
+			oStr += "<div class='body-status-box'><div id='status-connected' style='visibility:hidden'><svg class='icon-toolbar'><use xlink:href='#ico-broken'></use></div></svg></div>"
 			oStr += "</div>";
 			oStr += "</div>";
 			oStr += "</div>";

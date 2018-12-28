@@ -26,7 +26,7 @@ void RestAPIRobot::apiRobotConfiguration(String &reqStr, String &respStr)
 
 void RestAPIRobot::apiGetSettings(String &reqStr, String &respStr)
 {
-    Log.notice("%sGetSettings\n", MODULE_PREFIX);
+    Log.verbose("%sGetSettings\n", MODULE_PREFIX);
     _workManager.getRobotConfig(respStr);
 }
 

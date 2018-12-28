@@ -383,7 +383,7 @@ bool WorkManager::checkStatusChanged()
     {
         _statusLastHashVal = statusNewHash;
         _statusLastCmdArgs = cmdArgs;
-        Log.trace("%sstatus changed %d %d\n", MODULE_PREFIX,
+        Log.verbose("%sstatus changed %d %d\n", MODULE_PREFIX,
                     (_statusLastHashVal != statusNewHash), (_statusLastCmdArgs != cmdArgs));
         return true;
     }
