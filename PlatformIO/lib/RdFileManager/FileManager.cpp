@@ -24,6 +24,7 @@ void FileManager::setup(ConfigBase& config, const char* pConfigPath)
     // Init
     _spiffsIsOk = false;
     _sdIsOk = false;
+    _cachedFileListValid = false;
 
     // Get config
     String pathStr = "fileManager";
@@ -148,6 +149,7 @@ void FileManager::reformat(const String& fileSystemStr, String& respStr)
     }
     
     // Reformat
+    _cachedFileListValid = false;
     esp_err_t ret = esp_spiffs_format(NULL);
     // bool rslt = SPIFFS.format();
     Utils::setJsonBoolResult(respStr, ret == ESP_OK);
@@ -196,8 +198,19 @@ bool FileManager::getFilesJSON(const String& fileSystemStr, const String& folder
         return false;
     }
 
+    // Check if cached version can be used
+    if ((_cachedFileListValid) && (_cachedFileListResponse.length() != 0))
+    {
+        respStr = _cachedFileListResponse;
+        return true;
+        
+    }
     // Take mutex
-    xSemaphoreTake(_fileSysMutex, portMAX_DELAY);
+    if (xSemaphoreTake(_fileSysMutex, 0) != pdTRUE)
+    {
+        respStr = "{\"rslt\":\"fail\",\"error\":\"fsbusy\",\"files\":[]}";
+        return false;
+    }
 
     // Get size of file systems
     String baseFolderForFS;
@@ -301,8 +314,12 @@ bool FileManager::getFilesJSON(const String& fileSystemStr, const String& folder
 
     // Finished with file list
     closedir(dir);
-    respStr += "]}";
     xSemaphoreGive(_fileSysMutex);
+
+    // Complete string and replenish cache
+    respStr += "]}";
+    _cachedFileListResponse = respStr;
+    _cachedFileListValid = true;
     return true;
 }
 
@@ -404,8 +421,15 @@ bool FileManager::setFileContents(const String& fileSystemStr, const String& fil
     fclose(pFile);
 
     // Clean up
+    _cachedFileListValid = false;
     xSemaphoreGive(_fileSysMutex);
     return bytesWritten == fileContents.length();
+}
+
+void FileManager::uploadAPIBlocksComplete()
+{
+    // Cached file list now invalid
+    _cachedFileListValid = false;
 }
 
 void FileManager::uploadAPIBlockHandler(const char* fileSystem, const String& req, const String& filename, 
@@ -488,6 +512,7 @@ bool FileManager::deleteFile(const String& fileSystemStr, const String& filename
         unlink(rootFilename.c_str());
     }
 
+    _cachedFileListValid = false;
     xSemaphoreGive(_fileSysMutex);   
     return true;
 }

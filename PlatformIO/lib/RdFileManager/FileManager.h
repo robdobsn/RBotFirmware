@@ -15,6 +15,7 @@ private:
     bool _enableSD;
     bool _defaultToSPIFFS;
     bool _sdIsOk;
+    bool _cachedFileListValid;
 
     // SD card
     void* _pSDCard;
@@ -28,6 +29,9 @@ private:
     int _chunkedFileLen;
     bool _chunkOnLineEndings;
 
+    // Cached file list response
+    String _cachedFileListResponse;
+
     // Mutex controlling access to file system
     SemaphoreHandle_t _fileSysMutex;
 
@@ -38,6 +42,7 @@ public:
         _spiffsIsOk = false;
         _enableSD = false;
         _sdIsOk = false;
+        _cachedFileListValid = false;
         _defaultToSPIFFS = true;
         _chunkedFileLen = 0;
         _chunkedFilePos = 0;
@@ -62,6 +67,7 @@ public:
 
     // Handle a file upload block - same API as ESPAsyncWebServer file handler
     void uploadAPIBlockHandler(const char* fileSystem, const String& req, const String& filename, int fileLength, size_t index, uint8_t *data, size_t len, bool finalBlock);
+    void uploadAPIBlocksComplete();
 
     // Delete file on file system
     bool deleteFile(const String& fileSystemStr, const String& filename);

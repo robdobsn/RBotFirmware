@@ -15,7 +15,10 @@
 				latestFileListInfo: {},
 				curFileType: "param",
 				newFileType: "param",
-                fileSystemBasePath: ""
+				fileSystemBasePath: "",
+				lastStatusRxTime: 0,
+				statusUpdateCheckMs: 2000,
+				statusUpdateTooLateMs: 15000
 			};
 			window.pageState = {
 				"maxCfgLen": 2000,
@@ -42,9 +45,29 @@
 					}, false);
 					source.addEventListener('status', function(e) {
 						console.log("status", e.data);
+						try {
+							const statusInfo = JSON.parse(e.data);
+							const statusConn = document.getElementById("status-connected");
+							statusConn.style.visibility = "hidden";
+							window.stState.lastStatusRxTime = new Date();
+						}
+						catch(e)
+						{
+							console.error("Failed to parse status JSON");
+						}
 					}, false);
 				}				
 				reqFileListAndUpdate();
+				setInterval(statusUpdateTimerHandler, window.pageState.statusUpdateCheckMs);
+			}
+		}
+		function statusUpdateTimerHandler()
+		{
+			let nowTime = new Date();
+			if (nowTime - window.stState.lastStatusRxTime > window.pageState.statusUpdateTooLateMs)
+			{
+				const statusConn = document.getElementById("status-connected");
+				statusConn.style.visibility = "visible";
 			}
 		}
 		function reqFileListAndUpdate()
@@ -302,11 +325,20 @@
 		function genBodyHeadingSection()
 		{
 			// Control section
-			let oStr = "<div class='body-group backGrad1'>";
+			let oStr = "<div class='body-controls'>"
+			oStr += "<div class='body-part-buttons backGrad1'>";
 			oStr += "<div class='body-commands'>";
+			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/g28", "", "Home", 'body-commands-button') + "</div>";
 			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/playpause", "", "Play-Pause", 'body-commands-button') + "</div>";
 			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/stop", "", "Stop", 'body-commands-button') + "</div>";
-			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/g28", "", "Home", 'body-commands-button') + "</div>";
+			oStr += "</div>";
+			oStr += "</div>";
+			oStr += "<div class='body-sep'>";
+			oStr += "</div>";
+			oStr += "<div class='body-part-status backGrad1'>";
+			oStr += "<div class='body-commands'>";
+			oStr += "<div class='body-status-box'><div id='status-connected'><svg class='icon-toolbar'><use xlink:href='#ico-broken'></use></div></svg></div>"
+			oStr += "</div>";
 			oStr += "</div>";
 			oStr += "</div>";
 			return oStr;
@@ -784,21 +816,21 @@
 	</script>
 	<style>
 	body {
-	  font-family: Century Gothic, sans-serif;
-	  line-height: 1.4em;
-	  font-size: 14pt;
-	  background-color:  #E3CDA6;
-	  color: #c0c0c0;
+		font-family: Century Gothic, sans-serif;
+		line-height: 1.4em;
+		font-size: 14pt;
+		background-color:  #E3CDA6;
+		color: #c0c0c0;
 		margin: 0;
 	}
 	.page-header{
-	  padding-top: 20px;
-	  padding-bottom: 20px;
-	  background-color:  #E3CDA6;
-	  width: 100%;
-	  font-size: 1.5em;
-	  color: #f0f0f0;
-	  text-align: center;
+		padding-top: 20px;
+		padding-bottom: 20px;
+		background-color:  #E3CDA6;
+		width: 100%;
+		font-size: 1.5em;
+		color: #f0f0f0;
+		text-align: center;
 	}
 	.page-header-text {
 		margin-top:10px;
@@ -812,13 +844,12 @@
 	}
 	.body-commands{
 		width: 80%;
-		margin-left:auto;
 		margin-right:auto;
 		padding-top: 20px;
 		padding-bottom:20px;
-	  display: flex;
-	  justify-content:space-between;
-	  list-style-type: none;
+		display: flex;
+		justify-content:space-evenly;
+		list-style-type: none;
 	}
 	.body-commands-item{
 	}
@@ -826,6 +857,19 @@
 		font-size: 1.2em;
 		color: #fafcee;
 		cursor: pointer;
+	}
+	.body-part-buttons{
+		flex-grow: 1;
+	}
+	.body-part-status{
+		flex-grow: 0.2;
+	}
+	.body-sep{
+		flex-grow: 0.01;
+	    background-color: #407ea6;
+	}
+	.body-controls{
+		display: flex;
 	}
 	.body-group{
 		background: -webkit-linear-gradient(top, #b9a888 0%, #c9b693 10px, #E3CDA6 100%);
@@ -902,11 +946,11 @@
 	}
 	.body-list-item{
 		display: inline-block;
-	  padding: 10px;
-	  padding-left: 20px;
-	  /*width: 25%;*/
-	  font-size: 1.2em;
-	  color: #fafcee;
+		padding: 10px;
+		padding-left: 20px;
+		/*width: 25%;*/
+		font-size: 1.2em;
+		color: #fafcee;
 	}
 	.body-list-actions{
 		margin-right: 20px;
@@ -914,16 +958,19 @@
 		padding-top: 10px;
 	}
 	.body-list-item span {
-	  /*text-decoration: none;*/
-	  color: #fafcee;
+		/*text-decoration: none;*/
+		color: #fafcee;
 		/*cursor:pointer;*/
 	}
 	.body-list-edit span {
 		color: #fafcee;
 	}
 	.body-list-button {
-	  color: #94f3ff;
+		color: #94f3ff;
 		cursor:pointer;
+	}
+	.body-status-box {
+		color: red;
 	}
 	.body-config {
 		padding: 20px;
@@ -936,11 +983,11 @@
 		padding-top: 10px;
 		padding-bottom: 10px;
 		margin-top: 30px;
-	  background-color: #202020;
-	  width: 100%;
-	  font-size: 1.2em;
-	  color: #000000;
-	  text-align: center;
+		background-color: #202020;
+		width: 100%;
+		font-size: 1.2em;
+		color: #000000;
+		text-align: center;
 	}
 	.body-advanced a {
 	  text-decoration: none;
@@ -1004,19 +1051,19 @@
 	.btn {
 	}
 	.icon-toolbar {
-	color: #fafcee;
-	fill: #fafcee;
-	width: 48px;
-	height: 48px;
-	vertical-align: middle;
+		color: #fafcee;
+		fill: #fafcee;
+		width: 48px;
+		height: 48px;
+		vertical-align: middle;
 	}
 	.icon-action {
-	color: #fafcee;
-	fill: #fafcee;
-	width: 32px;
-	height: 32px;
-	vertical-align: middle;
-	padding-left: 15px;
+		color: #fafcee;
+		fill: #fafcee;
+		width: 32px;
+		height: 32px;
+		vertical-align: middle;
+		padding-left: 15px;
 	}
 	.select-style {
 		position: relative;
@@ -1131,21 +1178,40 @@
 			<path d="m 22.177493,28.743986 7.616455,-8.3333" fill="none" stroke-width="4" stroke="#fafcee"/>
 	   </g>
 	</symbol>
-	</symbol>
-		<symbol id="ico-run-at-start" viewBox="100 50 120 150">
+	<symbol id="ico-run-at-start" viewBox="100 50 120 150">
 		<g>
 			<path d="m 200,200 c -4.35878,-1.14794 -5.49015,-3.7954 -8.2485,-19.30195 -2.19682,-12.34983 -2.66103,-13.64007 -9.28184,-25.7981 -3.83316,-7.03896 -7.18705,-12.58042 -7.45311,-12.31436 -0.26606,0.26605 -2.15305,7.1502 -4.19333,15.2981 l -3.70958,14.81436 -20.7132,0.27036 -20.7132,0.27037 -2.47491,-2.47491 c -4.35871,-4.35871 -2.78064,-9.77311 3.35866,-11.52363 1.83347,-0.52278 8.80395,-0.87661 15.48997,-0.78629 12.1092,0.16358 12.15924,0.15467 12.89213,-2.29584 0.40466,-1.35303 1.67163,-10.88581 2.81549,-21.18394 l 2.07975,-18.72388 8.11439,-13.11213 c 6.12254,-9.89348 7.79116,-13.3119 6.79762,-13.92595 -1.06027,-0.65528 -17.26314,-4.01416 -19.36388,-4.01416 -0.30487,0 -2.64213,3.83018 -5.19393,8.51152 -2.5518,4.68133 -5.51736,8.98126 -6.59014,9.5554 -2.82117,1.50984 -5.76682,0.2119 -6.5442,-2.88357 -0.53306,-2.12261 0.66803,-5.26676 5.74768,-15.04598 3.53185,-6.79944 6.9994,-12.59097 7.70565,-12.87007 2.27529,-0.89915 31.55607,4.80241 35.55298,6.92288 5.16148,2.7383 6.30561,1.46922 4.21825,-4.67895 -2.03972,-6.00785 -1.21221,-10.69349 2.66925,-15.11423 5.82929,-6.6392 15.76006,-6.59533 21.63475,0.0956 7.32702,8.34502 3.71469,20.54186 -6.99172,23.60714 -7.83845,2.24417 -8.53147,3.69756 -3.41948,7.17125 1.89647,1.28869 7.06225,6.86646 11.47951,12.39506 8.0213,10.03937 8.03902,10.05362 14.10508,11.34092 9.99138,2.12032 13.92644,7.00804 8.50304,10.56158 -2.27585,1.4912 -3.09767,1.47917 -10.75,-0.15729 l -8.28576,-1.77192 -9.08037,-9.49703 -9.08038,-9.49702 -6.12185,11.12076 -6.12184,11.12076 7.4305,17.24009 c 6.86365,15.92488 7.67298,18.5563 10.60883,34.49313 2.95722,16.05285 3.06756,17.42208 1.58612,19.68305 -1.93692,2.95611 -4.19231,3.62242 -8.45843,2.4989 z"/>
 		</g>
 	</symbol>
-	</symbol>
-		<symbol id="ico-edit" viewBox="0 0 530 530">
-		<g><path d="M328.883,89.125l107.59,107.589l-272.34,272.34L56.604,361.465L328.883,89.125z M518.113,63.177l-47.981-47.981   c-18.543-18.543-48.653-18.543-67.259,0l-45.961,45.961l107.59,107.59l53.611-53.611   C532.495,100.753,532.495,77.559,518.113,63.177z M0.3,512.69c-1.958,8.812,5.998,16.708,14.811,14.565l119.891-29.069 L27.473,390.597L0.3,512.69z"/>
+	<symbol id="ico-edit" viewBox="0 0 530 530">
+		<g>
+			<path d="M328.883,89.125l107.59,107.589l-272.34,272.34L56.604,361.465L328.883,89.125z M518.113,63.177l-47.981-47.981   c-18.543-18.543-48.653-18.543-67.259,0l-45.961,45.961l107.59,107.59l53.611-53.611   C532.495,100.753,532.495,77.559,518.113,63.177z M0.3,512.69c-1.958,8.812,5.998,16.708,14.811,14.565l119.891-29.069 L27.473,390.597L0.3,512.69z"/>
 		</g>
 	</symbol>
-	</symbol>
-		<symbol id="ico-add" viewBox="170 60 200 150">
-		<g><path d="m 250,50 0,150 m 75,-75 -150,0" 
+	<symbol id="ico-add" viewBox="170 60 200 150">
+		<g>
+			<path d="m 250,50 0,150 m 75,-75 -150,0" 
 			style="fill:none;stroke:#fafcee;stroke-width:22;stroke-linecap:round;"/>
+		</g>
+	</symbol>
+	<symbol id="ico-broken" viewBox="-1 -1 55 55">
+		<g>
+			<path d="M24.008,13.401L33.2,4.208 c4.278-4.278,11.278-4.278,15.556,0l0,0c4.278,4.278,4.278,11.278,0,15.556L36.735,31.786c-4.278,4.278-11.278,4.278-15.556,0l0,0"
+				style="fill:none;stroke:#D5354E;stroke-width:4;stroke-linecap:round;stroke-miterlimit:10;"/>
+			<path d="M27.543,40.978l-7.778,7.778 c-4.278,4.278-11.278,4.278-15.556,0l0,0c-4.278-4.278-4.278-11.278,0-15.556l11.314-11.314c4.278-4.278,11.278-4.278,15.556,0l0,0" 
+				style="fill:none;stroke:#D5354E;stroke-width:4;stroke-linecap:round;stroke-miterlimit:10;"/>
+			<path d="m 33.965,45 v 6"
+				style="fill:none;stroke:#D5354E;stroke-width:4;stroke-linecap:round;stroke-miterlimit:10;"/>
+			<path d="m 37.722,43 4.243,4.243"
+				style="fill:none;stroke:#D5354E;stroke-width:4;stroke-linecap:round;stroke-miterlimit:10;"/>
+			<path d="m 38.965,39 h 6"
+				style="fill:none;stroke:#D5354E;stroke-width:4;stroke-linecap:round;stroke-miterlimit:10;"/>
+			<path d="M 15.965,10 V 4"
+				style="fill:none;stroke:#D5354E;stroke-width:4;stroke-linecap:round;stroke-miterlimit:10;"/>
+			<path d="M 12.207,12 7.9650002,7.757"
+				style="fill:none;stroke:#D5354E;stroke-width:4;stroke-linecap:round;stroke-miterlimit:10;"/>
+			<path d="M 10.965,16 H 4.9650002"
+				style="fill:none;stroke:#D5354E;stroke-width:4;stroke-linecap:round;stroke-miterlimit:10;"/>
 		</g>
 	</symbol>
 

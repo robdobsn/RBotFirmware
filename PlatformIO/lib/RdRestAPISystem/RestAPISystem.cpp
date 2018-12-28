@@ -364,6 +364,7 @@ void RestAPISystem::apiDeleteFile(String &reqStr, String& respStr)
 void RestAPISystem::apiUploadToFileManComplete(String &reqStr, String &respStr)
 {
     Log.trace("%sapiUploadToFileManComplete %s\n", MODULE_PREFIX, reqStr.c_str());
+    _fileManager.uploadAPIBlocksComplete();
     Utils::setJsonBoolResult(respStr, true);
 }
 
