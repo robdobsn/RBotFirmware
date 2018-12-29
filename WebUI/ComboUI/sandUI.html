@@ -18,7 +18,9 @@
 				fileSystemBasePath: "",
 				lastStatusRxTime: new Date(),
 				statusUpdateCheckMs: 2000,
-				statusUpdateTooLateMs: 15000
+				statusUpdateTooLateMs: 15000,
+				patternPointList: [],
+				maxIterationsInEval: 1000
 			};
 			window.pageState = {
 				"maxCfgLen": 2000,
@@ -471,21 +473,36 @@
 				}
 				// Fields
 				listStr += "<div class='body-form-label'>Setup expressions</div>";
-				listStr += "<textarea id='patsetup' class='body-form-field' cols='50' rows='10'>" + 
+				listStr += "<textarea id='patsetup' oninput='patSetupChange();' class='body-form-field' cols='50' rows='10'>" + 
 							patternInfo.setup + "</textarea>";
 				listStr += "</div>";
 				listStr += "<div class='body-form-line'>";
 				listStr += "<div class='body-form-label'>Loop expressions</div>";
-				listStr += "<textarea id='patloop' class='body-form-field' cols='50' rows='10'>" + 
+				listStr += "<textarea id='patloop' oninput='patLoopChange();' class='body-form-field' cols='50' rows='10'>" + 
 							patternInfo.loop + "</textarea>";
+				listStr += "</div>";
+				listStr += "<div class='body-form-line'>";
+				listStr += "<div class='body-form-label'>Validity check";
+				listStr += "<label class=body-form-label-container>Auto Evaluate"
+				listStr += "<input class='body-form-checkbox' type='checkbox' id='auto-evaluate' onclick='autoEvalClicked()'></input>";
+				listStr += "<span class='body-form-checkmark'></span>";
+				listStr += "</label>";
+				listStr += "</div>";
+				listStr += "<textarea readonly id='validity-check' class='body-form-field' cols='50' rows='1'></textarea>";
 			}
+			listStr += "</div>";
+			listStr += "<div class='body-form-line'>";
+			listStr += "<div class='body-form-label'>View</div>";
+			listStr += "<div class='body-view'><canvas class='body-canvas'></canvas></div>";
 			listStr += "</div>";
 			listStr += "</fieldset>";
 			listStr += "</form>";
 			listStr += "</div>";
 			pageBodyFormDiv.innerHTML = listStr;        
 
-
+			// Evaluate expression
+			if (window.stState.curFileType == "param")
+				evaluateParametric();
 		}
 		function genFileEditHeading()
 		{
@@ -649,7 +666,164 @@
 			formData.append('file', file);
 			xhr.send(formData);
 		}
+		function evalInContext(scr, context)
+		{
+			return (new Function("self", "window", "top", "with(this) { return (" + scr + ")}")).call(context);
+		}
+		function objClone(obj) 
+		{
+			if (null == obj || "object" != typeof obj) return obj;
+			let copy = obj.constructor();
+			for (let attr in obj) 
+			{
+				if (obj.hasOwnProperty(attr)) 
+					copy[attr] = obj[attr];
+			}
+			return copy;
+		}
+		function parseParamSetValid(s, warn)
+		{
+			const validityCheck = document.getElementById("validity-check");
+			validityCheck.innerHTML = s;
+			if (warn)
+				validityCheck.classList.add("warning");
+			else
+				validityCheck.classList.remove("warning");
+		}
+		function evaluateParametric(validityOnly)
+		{
+			// Extract variables for context
+			let localContext = { };
+			let loopCtxOnly = {};
+			const setupExprs = document.getElementById("patsetup").value;
+			const setupLines = setupExprs.split(/[\r\n]+/);
+			const loopExprs = document.getElementById("patloop").value;
+			const loopLines = loopExprs.split(/[\r\n]+/);
+			let regEx = /([a-zA-Z_][a-zA-Z0-9_]*)\s*=[^;=]/;
+			let parseResult = "";
+			exprList = [setupLines, loopLines];
+			let curLine = 0;
+			let curExprType = 0;
+			try 
+			{
+				for (curExprType = 0; curExprType < exprList.length; curExprType++)
+				{
+					// Find assignments
+					const inLines = exprList[curExprType];
+					for (let curLine = 0; curLine < inLines.length; curLine++)
+					{
+						let foundVals = inLines[curLine].match(regEx);
+						if (foundVals !== null && foundVals.length > 1)
+						{
+							localContext[foundVals[1]] = 0;
+							if (curExprType == 1)
+								loopCtxOnly[foundVals[1]] = 0;
+						}
+					}
+				}
+			}
+			catch(excp)
+			{
+				parseResult = "Error in " + (curExprType === 0 ? "Setup" : "Loop") + " expression line " + (curLine+1);
+				console.log("Error processing setup " + excp.message);
+			}
 
+			// Check valid
+			if (parseResult.length > 0)
+			{
+				parseParamSetValid(parseResult, true);
+				return;
+			}
+
+			
+			// Process setup expressions
+			try 
+			{
+				for (curLine = 0; curLine < setupLines.length; curLine++)
+					if (setupLines[curLine].trim().length > 0)
+						evalInContext(setupLines[curLine], localContext);
+			}
+			catch(excp)
+			{
+				parseResult = "Error in Setup expression line " + (curLine+1);
+				console.log("Error evaluating setup " + excp.message);
+			}
+			// Check valid
+			if (parseResult.length > 0)
+			{
+				parseParamSetValid(parseResult, true);
+				return;
+			}
+
+			// Check required vars present
+			if ((!loopCtxOnly.hasOwnProperty("x")) && (!loopCtxOnly.hasOwnProperty("X")))
+				parseResult += "x";
+			if ((!loopCtxOnly.hasOwnProperty("y")) && (!loopCtxOnly.hasOwnProperty("Y")))
+				parseResult += (parseResult.length > 0 ? ", " : "") + "y";
+			if ((!loopCtxOnly.hasOwnProperty("stop")) && (!loopCtxOnly.hasOwnProperty("STOP")))
+				parseResult += (parseResult.length > 0 ? " and " : "") + "stop";
+			if (parseResult.length > 0)
+			{
+				parseResult = "Loop must set variable(s) " + parseResult;
+				parseParamSetValid(parseResult, true);
+				return;
+			}
+
+			// Process loop expressions
+			window.stState.patternPointList = [];
+			if (loopLines.length == 0)
+				return;
+			let numIterations = window.stState.maxIterationsInEval;
+			const autoEval = document.getElementById("auto-evaluate");
+			console.log("Atuo eval val " + autoEval.checked);
+			if ((!autoEval.checked) || validityOnly)
+				numIterations = 1;
+			for (let k = 0; k < numIterations; k++)
+			{
+				try 
+				{
+					for (curLine = 0; curLine < loopLines.length; curLine++)
+						if (loopLines[curLine].trim().length > 0)
+							evalInContext(loopLines[curLine], localContext);
+					// console.log(context.x, context.y, context.stop);
+					if (localContext.stop != 0)
+						break;
+					window.stState.patternPointList.push([localContext.x, localContext.y])
+				}
+				catch(excp)
+				{
+					parseResult = "Error in Loop expression line " + (curLine+1);
+					console.log("Error evaluating " + excp.message);
+					break;
+				}
+			}
+
+			// Check valid
+			if (parseResult.length > 0)
+			{
+				parseParamSetValid(parseResult, true);
+				return;
+			}
+
+			// Show points
+			console.log("points " + window.stState.patternPointList.length);
+			parseParamSetValid("Passed", false);
+
+		}
+		function patSetupChange()
+		{
+			console.log("patsetupchange");			
+			evaluateParametric(false);
+		}
+		function patLoopChange()
+		{
+			console.log("patloopchange");
+			evaluateParametric(true);
+		}
+		function autoEvalClicked()
+		{
+			evaluateParametric(true);
+		}
 		function callAjax(url, okCallback, failCallback)
 		{
 			const xmlhttp = new XMLHttpRequest();
@@ -939,6 +1113,81 @@
 		border:none;
 		font-size: 14pt;
 	}
+
+	.body-form-label-container {
+		display: block;
+		float: right;
+		position: relative;
+		padding-left: 35px;
+		margin-bottom: 12px;
+		cursor: pointer;
+		-webkit-user-select: none;
+		-moz-user-select: none;
+		-ms-user-select: none;
+		user-select: none;
+	}
+
+	/* Hide the browser's default checkbox */
+	.body-form-label-container input {
+		position: absolute;
+		opacity: 0;
+		cursor: pointer;
+		height: 0;
+		width: 0;
+	}
+
+	/* Create a custom checkbox */
+	.body-form-checkmark {
+		position: absolute;
+		top: 0;
+		left: 0;
+		height: 25px;
+		width: 25px;
+		background-color: #eee;
+	}
+
+	/* On mouse-over, add a background color */
+	.body-form-label-container:hover input ~ .body-form-checkmark {
+		background-color: #74b5b1;
+	}
+	/* When the checkbox is checked, add a blue background */
+	.body-form-label-container input:checked ~ .body-form-checkmark {
+		background-color: #407ea6;
+	}
+
+	/* Create the checkmark/indicator (hidden when not checked) */
+		.body-form-checkmark:after {
+		content: "";
+		position: absolute;
+		display: none;
+	}
+
+	/* Show the checkmark when checked */
+	.body-form-label-container input:checked ~ .body-form-checkmark:after {
+		display: block;
+	}
+
+	/* Style the checkmark/indicator */
+	.body-form-label-container .body-form-checkmark:after {
+		left: 9px;
+		top: 5px;
+		width: 5px;
+		height: 10px;
+		border: solid white;
+		border-width: 0 3px 3px 0;
+		-webkit-transform: rotate(45deg);
+		-ms-transform: rotate(45deg);
+		transform: rotate(45deg);
+	}
+	.body-view{
+		width: 100%;
+		background-color: #A89062;
+		display: flex;
+	}
+	.body-canvas{
+		width: 100%;
+		margin:5px;
+	}
 	.body-fieldset{
 		border: none;
 	}
@@ -1080,6 +1329,9 @@
 	}
 	.icon-red {
 		fill:#D5354E;
+		color:#D5354E;
+	}
+	.warning {
 		color:#D5354E;
 	}
 	.select-style {
