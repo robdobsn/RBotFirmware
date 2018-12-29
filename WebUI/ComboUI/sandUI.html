@@ -8,6 +8,7 @@
 		function bodyIsLoaded()
 		{
 			window.stState = {
+				defaultTableSizeMM: 370,
 				curPage: '',
 				curFileContentJson: '',
 				nonServerHostWarn: (location.hostname === ""),
@@ -20,7 +21,10 @@
 				statusUpdateCheckMs: 2000,
 				statusUpdateTooLateMs: 15000,
 				patternPointList: [],
-				maxIterationsInEval: 1000
+				maxIterationsInEval: 50,
+				maxIterationsInTotal: 10000,
+				patternEvalIntervalMs: 100,
+				tableCanvasPtIsValid: false
 			};
 			window.pageState = {
 				"maxCfgLen": 2000,
@@ -66,6 +70,7 @@
 				}				
 				reqFileListAndUpdate();
 				setInterval(statusUpdateTimerHandler, window.stState.statusUpdateCheckMs);
+				window.addEventListener('resize', resizeEventHandler);
 			}
 		}
 		function statusUpdateTimerHandler()
@@ -76,6 +81,10 @@
 				const statusConn = document.getElementById("status-connected");
 				statusConn.classList.remove("nodisplay");
 			}
+		}
+		function resizeEventHandler()
+		{
+			setCanvasShapeAndSize();
 		}
 		function reqFileListAndUpdate()
 		{
@@ -258,51 +267,55 @@
 		{
 			reqFileListAndUpdate();
 		}
-		function genButton(clickFn, keyVal, label, cssClass, curState, isEnabled)
+		function genButton(clickFn, keyVal, label, tooltip, iconType, cssClass, curState, isEnabled)
 		{
 //		    console.log("Gen BUTTON url " + url + " clickFn " + clickFn + " label " + label);
 			let oStr = "";
 			clickFn = clickFn.replace("~key~", keyVal);
 			oStr += "<span class='" + cssClass + " btn" + "' onclick='" + clickFn + "' " + (isEnabled?"":"disabled") + ">";
-			if (label === "Edit")
+			if (iconType === "Edit")
 			{
 				oStr += '<svg class="icon-action"><use xlink:href="#ico-edit"></use></svg>';
 			}
-			else if (label === "Run")
+			else if (iconType === "Run")
 			{
 				oStr += '<svg class="icon-action"><use xlink:href="#ico-play"></use></svg>';
 			}
-			else if (label === "Add")
+			else if (iconType === "Add")
 			{
 				oStr += '<svg class="icon-action"><use xlink:href="#ico-add"></use></svg>';
 			}
-//			else if (label == "Delete")
+//			else if (iconType == "Delete")
 //			{
 //				oStr += '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="30px" height="30px" viewBox="0 0 414 414">';
 //				oStr += '<g><path d="m 107.34348,113.4774 200.6666,201.54286 M 107.34348,315.4584 308.88635,110.84858" style="fill:none;fill-rule:evenodd;stroke:#dcded0;stroke-width:59.9;stroke-linecap:round;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none"/></g>';
 //				oStr += '</svg>';
 //			}
-			else if (label === "RunAtStart")
+			else if (iconType === "RunAtStart")
 			{
 				oStr += '<svg class="icon-action"><use xlink:href="#ico-run-at-start" style="fill:' + (curState ? '#407ea6' : '#fafcee') + '"></use></svg>';
 			}
-			else if (label === "Play-Pause")
+			else if (iconType === "Play-Pause")
 			{
 				oStr += '<svg class="icon-toolbar"><use xlink:href="#ico-playpause"></use></svg>';
 			}
-			else if (label === "Pause")
+			else if (iconType === "Pause")
 			{
 				oStr += '<svg class="icon-toolbar"><use xlink:href="#ico-pause"></use></svg>';
 			}
-			else if (label === "Stop")
+			else if (iconType === "Stop")
 			{
 				oStr += '<svg class="icon-toolbar"><use xlink:href="#ico-stop"></use></svg>';
 			}
-			else if (label === "Home")
+			else if (iconType === "Home")
 			{
 				oStr += '<svg class="icon-toolbar"><use xlink:href="#ico-centre"></use></svg>';
 			}
-			else
+			else if (iconType === "Simulate")
+			{
+				oStr += '<svg class="icon-inline"><use xlink:href="#ico-spiral-out"></use></svg>';
+			}
+			if (label.length > 0)
 			{
 				oStr += label;
 			}
@@ -311,9 +324,9 @@
 //		    console.log("genButton -> " + rtnStr);
 			return oStr;
 		}
-		function genAjaxButton(url, key, label, cssClass)
+		function genAjaxButton(url, key, iconType, cssClass)
 		{
-			return genButton("callAjax(\"" + url + "\",ajaxDefaultCallback)", key, label, cssClass, false, true);
+			return genButton("callAjax(\"" + url + "\",ajaxDefaultCallback)", key, "", "", iconType, cssClass, false, true);
 		}
 		function genPageHeader()
 		{
@@ -362,7 +375,7 @@
 			listStr += "<div class='body-group-header'><span>Patterns</span>";
 			listStr += "<div class='body-group-actions'>";
 			listStr += "<progress id=\"progress-bar-file-manager\" class=\"body-group-button hidden\" max=100 value=0></progress>";
-			listStr += genButton("userAction(\"file\",\"add\",\"\")", "", "Add", 'body-group-button', false, true);
+			listStr += genButton("userAction(\"file\",\"add\",\"\")", "", "", "New pattern", "Add", 'body-group-button', false, true);
 			listStr += "</div>";
 			listStr += "</div>";
 			listStr += "<div class='body-list drop-zone' id='patternsList'>";
@@ -395,7 +408,7 @@
 			if (!addMode)
 			{
 				listStr += "<div class='body-group-actions'>";
-				listStr += genButton("userAction(\"" + itemTypeStr + "\",\"delete\",\"~key~\")", argStr, "Delete", 'body-group-button', false, !addMode);
+				listStr += genButton("userAction(\"" + itemTypeStr + "\",\"delete\",\"~key~\")", argStr, "", "Delete pattern", "Delete", 'body-group-button', false, !addMode);
 				listStr += "</div>";
 			}
 			else
@@ -410,10 +423,10 @@
 				listStr += "</div>";
 			}
 			listStr += "<div class='body-group-actions'>";
-			listStr += genButton("userAction(\"" + itemTypeStr + "\",\"save\",\"~key~\")", argStr, "Save", 'body-group-button', false, true);
+			listStr += genButton("userAction(\"" + itemTypeStr + "\",\"save\",\"~key~\")", argStr, "Save", "Save pattern", "Save", 'body-group-button', false, true);
 			listStr += "</div>";
 			listStr += "<div class='body-group-actions'>";
-			listStr += genButton("userAction(\"" + itemTypeStr + "\",\"cancel\",\"~key~\")", argStr, "Cancel", 'body-group-button', false, true);
+			listStr += genButton("userAction(\"" + itemTypeStr + "\",\"cancel\",\"~key~\")", argStr, "Cancel", "Cancel", "Cancel", 'body-group-button', false, true);
 			listStr += "</div>";
 			listStr += "</div>";
 			return listStr;
@@ -482,9 +495,14 @@
 							patternInfo.loop + "</textarea>";
 				listStr += "</div>";
 				listStr += "<div class='body-form-line'>";
-				listStr += "<div class='body-form-label'>Validity check";
-				listStr += "<label class=body-form-label-container>Auto Evaluate"
-				listStr += "<input class='body-form-checkbox' type='checkbox' id='auto-evaluate' onclick='autoEvalClicked()'></input>";
+				listStr += "<div class='body-form-label'>";
+				listStr += "<div class='body-form-label-container'>Validity check";
+				listStr += "</div>";			
+				listStr += "<div class='body-form-label-container'>";
+				listStr += genButton("paramSimulate()", "", "Evaluate Now", "Evaluate", "Simulate", 'body-form-button', false, true);
+				listStr += "</div>";
+				listStr += "<label class='body-form-label-checkbox'>Auto Evaluate"
+				listStr += "<input class='body-form-checkbox' type='checkbox' id='auto-evaluate' onclick='autoEvalClicked()' checked></input>";
 				listStr += "<span class='body-form-checkmark'></span>";
 				listStr += "</label>";
 				listStr += "</div>";
@@ -493,16 +511,35 @@
 			listStr += "</div>";
 			listStr += "<div class='body-form-line'>";
 			listStr += "<div class='body-form-label'>View</div>";
-			listStr += "<div class='body-view'><canvas class='body-canvas'></canvas></div>";
+			listStr += "<div class='body-view' id='table-view'><canvas id='table-canvas' class='body-canvas'></canvas></div>";
 			listStr += "</div>";
 			listStr += "</fieldset>";
 			listStr += "</form>";
 			listStr += "</div>";
-			pageBodyFormDiv.innerHTML = listStr;        
+			pageBodyFormDiv.innerHTML = listStr;
+
+			// Set canvas
+			setCanvasShapeAndSize();
 
 			// Evaluate expression
 			if (window.stState.curFileType == "param")
-				evaluateParametric();
+				parametricValidate();
+		}
+		function setCanvasShapeAndSize()
+		{
+			const tableView = document.getElementById("table-view");
+			const tableCanvas = document.getElementById("table-canvas");
+			if (tableView && tableCanvas)
+			{
+				tableCanvas.width = 10;
+				canvasMargin = tableView.clientWidth * 0.03;
+				canvasSize = tableView.clientWidth - canvasMargin * 2;
+				tableCanvas.width = canvasSize;
+				tableCanvas.height = canvasSize;
+				tableCanvas.style.marginTop = canvasMargin;
+				tableCanvas.style.marginBottom = canvasMargin;
+			}
+			parametricValidate(false);
 		}
 		function genFileEditHeading()
 		{
@@ -556,9 +593,9 @@
 					listStr += genAjaxButton("/playFile/"+fileName, "", fileNameNoExtension, 'body-group-button');
 				listStr += "</div>";
 				listStr += "<div class='body-list-actions'>";
-				listStr += genButton("userAction(\"file\",\"run\",\"~key~\")", fileName, "Run", 'body-group-button', false, true);
-				listStr += genButton("userAction(\"file\",\"runAtStart\",\"~key~\"," + (fileName === window.pageState.startup) + ")", fileName, "RunAtStart", 'body-group-button', (fileName === window.pageState.startup), true);
-				listStr += genButton("userAction(\"file\",\"edit\",\"~key~\")", fileName, "Edit", 'body-group-button', false, true);
+				listStr += genButton("userAction(\"file\",\"run\",\"~key~\")", fileName, "", "Run", "Run pattern", 'body-group-button', false, true);
+				listStr += genButton("userAction(\"file\",\"runAtStart\",\"~key~\"," + (fileName === window.pageState.startup) + ")", fileName, "", "Run at startup", "RunAtStart", 'body-group-button', (fileName === window.pageState.startup), true);
+				listStr += genButton("userAction(\"file\",\"edit\",\"~key~\")", fileName, "", "Edit", "Edit pattern", 'body-group-button', false, true);
 				listStr += "</div>";
 				listStr += "</div>";
 			}
@@ -668,7 +705,8 @@
 		}
 		function evalInContext(scr, context)
 		{
-			return (new Function("self", "window", "top", "with(this) { return (" + scr + ")}")).call(context);
+			const fn = new Function("self", "window", "top", "with(this) { return (" + scr + ")}");
+			return (fn).call(context);
 		}
 		function objClone(obj) 
 		{
@@ -681,7 +719,35 @@
 			}
 			return copy;
 		}
-		function parseParamSetValid(s, warn)
+		function extractTableSize(context)
+		{
+			// Check if valid
+			if (!(window.pageState.robotGeom && window.pageState.robotGeom.axis0 && window.pageState.robotGeom.axis0.maxVal && 
+				window.pageState.robotGeom.axis1 && window.pageState.robotGeom.axis1.maxVal && window.pageState.robotGeom))
+			{
+				let defSize = window.stState.defaultTableSizeMM;
+				context["SIZEX"] = defSize;
+				context["SIZEY"] = defSize;
+				context["ORIGINX"] = defSize/2;
+				context["ORIGINY"] = defSize/2;	
+			}
+			else if (window.pageState.robotGeom === "SingleArmScara")
+			{
+				let tableRadius = window.pageState.robotGeom.axis0.maxVal + window.pageState.robotGeom.axis1.maxVal;
+				context["SIZEX"] = 2 * tableRadius;
+				context["SIZEY"] = 2 * tableRadius;
+				context["ORIGINX"] = tableRadius;
+				context["ORIGINY"] = tableRadius;	
+			}
+			else
+			{
+				context["SIZEX"] = window.pageState.robotGeom.axis0.maxVal;
+				context["SIZEY"] = window.pageState.robotGeom.axis1.maxVal;
+				context["ORIGINX"] = 0;
+				context["ORIGINY"] = 0;	
+			}
+		}
+		function parametricShowValidity(s, warn)
 		{
 			const validityCheck = document.getElementById("validity-check");
 			validityCheck.innerHTML = s;
@@ -690,20 +756,59 @@
 			else
 				validityCheck.classList.remove("warning");
 		}
-		function evaluateParametric(validityOnly)
+		function parametricAddMathsToContext(ctx)
 		{
-			// Extract variables for context
-			let localContext = { };
-			let loopCtxOnly = {};
+			ctx["sin"] = Math.sin;
+			ctx["cos"] = Math.cos;
+			ctx["tan"] = Math.tan;
+			ctx["asin"] = Math.asin;
+			ctx["acos"] = Math.acos;
+			ctx["atan"] = Math.atan;
+			ctx["atan2"] = Math.atan2;
+			ctx["sinh"] = Math.sinh;
+			ctx["cosh"] = Math.cosh;
+			ctx["tanh"] = Math.tanh;
+			ctx["asinh"] = Math.asinh;
+			ctx["acosh"] = Math.acosh;
+			ctx["atanh"] = Math.atanh;
+			ctx["abs"] = Math.abs;
+			ctx["ceil"] = Math.ceil;
+			ctx["floor"] = Math.floor;
+			ctx["round"] = Math.round;
+			ctx["trunc"] = Math.trunc;
+			ctx["sign"] = Math.sign;
+			ctx["exp"] = Math.exp;
+			ctx["pow"] = Math.pow;
+			ctx["sqrt"] = Math.sqrt;
+			ctx["e"] = Math.E;
+			ctx["log"] = Math.log10;
+			ctx["log10"] = Math.log10;
+			ctx["log2"] = Math.log2;
+			ctx["ln"] = Math.log;
+			ctx["pi"] = Math.PI;
+			ctx["max"] = Math.max;
+			ctx["min"] = Math.min;
+			ctx["random"] = Math.random;
+		}
+		function reformatParseResult(s)
+		{
+			if (s.startsWith("Unexpected token )"))
+				return " - expression incomplete"
+			return " - " + s;
+		}
+		function parametricSetupContext(fullContext, loopContext)
+		{
+			extractTableSize(fullContext);
+			parametricAddMathsToContext(fullContext);
 			const setupExprs = document.getElementById("patsetup").value;
 			const setupLines = setupExprs.split(/[\r\n]+/);
 			const loopExprs = document.getElementById("patloop").value;
 			const loopLines = loopExprs.split(/[\r\n]+/);
 			let regEx = /([a-zA-Z_][a-zA-Z0-9_]*)\s*=[^;=]/;
-			let parseResult = "";
 			exprList = [setupLines, loopLines];
 			let curLine = 0;
 			let curExprType = 0;
+			let parseResult = "";
 			try 
 			{
 				for (curExprType = 0; curExprType < exprList.length; curExprType++)
@@ -715,43 +820,89 @@
 						let foundVals = inLines[curLine].match(regEx);
 						if (foundVals !== null && foundVals.length > 1)
 						{
-							localContext[foundVals[1]] = 0;
-							if (curExprType == 1)
-								loopCtxOnly[foundVals[1]] = 0;
+							fullContext[foundVals[1]] = 0;
+							if (curExprType === 1)
+								loopContext[foundVals[1]] = 0;
 						}
 					}
 				}
 			}
 			catch(excp)
 			{
-				parseResult = "Error in " + (curExprType === 0 ? "Setup" : "Loop") + " expression line " + (curLine+1);
+				parseResult = "Error in " + (curExprType === 0 ? "Setup" : "Loop") + 
+							" expression line " + (curLine+1) + reformatParseResult(excp.message);
 				console.log("Error processing setup " + excp.message);
 			}
-
-			// Check valid
-			if (parseResult.length > 0)
-			{
-				parseParamSetValid(parseResult, true);
-				return;
-			}
-
-			
-			// Process setup expressions
+			return parseResult;
+		}
+		function parametricEvalSetup(context)
+		{
+			const setupExprs = document.getElementById("patsetup").value;
+			const setupLines = setupExprs.split(/[\r\n]+/);
+			let curLine = 0;
+			let parseResult = "";
 			try 
 			{
 				for (curLine = 0; curLine < setupLines.length; curLine++)
-					if (setupLines[curLine].trim().length > 0)
-						evalInContext(setupLines[curLine], localContext);
+				{
+					let lin = setupLines[curLine].trim();
+					if (lin.length > 0)
+						evalInContext(lin, context);
+				}
 			}
 			catch(excp)
 			{
-				parseResult = "Error in Setup expression line " + (curLine+1);
+				parseResult = "Error in Setup expression line " + (curLine+1) + reformatParseResult(excp.message);
 				console.log("Error evaluating setup " + excp.message);
 			}
+			return parseResult;
+		}
+		function parametricEvalLoop(context)
+		{
+			const loopExprs = document.getElementById("patloop").value;
+			const loopLines = loopExprs.split(/[\r\n]+/);
+			if (loopLines.length == 0)
+				return;
+			let curLine = 0;
+			let parseResult = "";
+			try 
+			{
+				for (curLine = 0; curLine < loopLines.length; curLine++)
+				{
+					let lin = loopLines[curLine].trim();
+					if (lin.length > 0)
+						evalInContext(lin, context);
+				// console.log(context.x, context.y, context.stop);
+				}
+			}
+			catch(excp)
+			{
+				parseResult = "Error in Loop expression line " + (curLine+1) + reformatParseResult(excp.message);
+				console.log("Error evaluating " + excp.message);
+			}
+			return parseResult;
+		}
+		function parametricValidate(validityOnly)
+		{
+			// Extract variables for context
+			let localContext = { };
+			let loopCtxOnly = {};
+			let parseResult = parametricSetupContext(localContext, loopCtxOnly);
+
 			// Check valid
 			if (parseResult.length > 0)
 			{
-				parseParamSetValid(parseResult, true);
+				parametricShowValidity(parseResult, true);
+				return;
+			}
+			
+			// Process setup expressions
+			parseResult = parametricEvalSetup(localContext);
+
+			// Check valid
+			if (parseResult.length > 0)
+			{
+				parametricShowValidity(parseResult, true);
 				return;
 			}
 
@@ -765,64 +916,127 @@
 			if (parseResult.length > 0)
 			{
 				parseResult = "Loop must set variable(s) " + parseResult;
-				parseParamSetValid(parseResult, true);
+				parametricShowValidity(parseResult, true);
 				return;
 			}
 
 			// Process loop expressions
-			window.stState.patternPointList = [];
-			if (loopLines.length == 0)
-				return;
-			let numIterations = window.stState.maxIterationsInEval;
-			const autoEval = document.getElementById("auto-evaluate");
-			console.log("Atuo eval val " + autoEval.checked);
-			if ((!autoEval.checked) || validityOnly)
-				numIterations = 1;
-			for (let k = 0; k < numIterations; k++)
-			{
-				try 
-				{
-					for (curLine = 0; curLine < loopLines.length; curLine++)
-						if (loopLines[curLine].trim().length > 0)
-							evalInContext(loopLines[curLine], localContext);
-					// console.log(context.x, context.y, context.stop);
-					if (localContext.stop != 0)
-						break;
-					window.stState.patternPointList.push([localContext.x, localContext.y])
-				}
-				catch(excp)
-				{
-					parseResult = "Error in Loop expression line " + (curLine+1);
-					console.log("Error evaluating " + excp.message);
-					break;
-				}
-			}
+			parseResult = parametricEvalLoop(localContext);
 
 			// Check valid
 			if (parseResult.length > 0)
 			{
-				parseParamSetValid(parseResult, true);
+				parametricShowValidity(parseResult, true);
 				return;
 			}
 
 			// Show points
 			console.log("points " + window.stState.patternPointList.length);
-			parseParamSetValid("Passed", false);
+			parametricShowValidity("Passed", false);
 
+			// Check for auto-evaluation
+			const autoEval = document.getElementById("auto-evaluate");
+			if (autoEval.checked)
+			{
+				paramSimulate();
+			}
 		}
 		function patSetupChange()
 		{
 			console.log("patsetupchange");			
-			evaluateParametric(false);
+			parametricValidate(false);
 		}
 		function patLoopChange()
 		{
 			console.log("patloopchange");
-			evaluateParametric(true);
+			parametricValidate(true);
 		}
 		function autoEvalClicked()
 		{
-			evaluateParametric(true);
+			parametricValidate(true);
+		}
+		function paramSimulate()
+		{
+			// Point list empty
+			window.stState.patternPointList = [];
+			window.stState.parametricContext = {};
+			let ctx = window.stState.parametricContext;
+			let localCtx = {};
+			let parseResult = parametricSetupContext(ctx, localCtx);
+			if (parseResult.length > 0)
+				return;
+			if (!(ctx.hasOwnProperty("x") && ctx.hasOwnProperty("y") &&
+						ctx.hasOwnProperty("stop")))
+				return;
+			parametricEvalSetup(ctx, parseResult);
+			if (parseResult.length > 0)
+				return;
+			window.stState.parmetricIteration = 0;
+			tableShowStart();
+
+			// Start timer to evaluate
+			paramStep();
+		}
+		function paramStep()
+		{
+			// Process some values
+			let ctx = window.stState.parametricContext;
+			for (let k = 0; k < window.stState.maxIterationsInEval; k++)
+			{
+				// Evaluate
+				const parseResult = parametricEvalLoop(ctx)
+				if (parseResult.length > 0)
+					return;
+
+				// Add values to list
+				window.stState.patternPointList.push([ctx.x, ctx.y]);
+				
+				// Display
+				tableShowNextPoint(ctx);
+
+				// Check max iterations
+				window.stState.parmetricIteration++;
+				if (window.stState.parmetricIteration >= window.stState.maxIterationsInTotal)
+					return;
+
+				// Check for stop
+				if (ctx.stop)
+					return;
+			}
+			// Request another timeslot
+			window.stState.paramSimulateTimer = setTimeout(paramStep, window.stState.patternEvalIntervalMs);
+		}
+		function tableShowStart()
+		{
+			let canvas = document.getElementById('table-canvas');
+			let canvasContext = canvas.getContext('2d');
+			canvasContext.closePath();
+			canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+			canvasContext.beginPath();
+			canvasContext.strokeStyle = "#e3cda6";
+			window.stState.tableCanvasPtIsValid = false;
+		}
+		function tableShowNextPoint(varContext)
+		{
+			let canvas = document.getElementById('table-canvas');
+			let canvasContext = canvas.getContext('2d');
+			pointXY = getCanvasXY(canvas, varContext);
+			if (!window.stState.tableCanvasPtIsValid)
+			{
+				canvasContext.moveTo(pointXY[0], pointXY[1]);
+			}
+			else
+			{
+				canvasContext.lineTo(pointXY[0], pointXY[1]);
+				canvasContext.stroke();
+			}
+			window.stState.tableCanvasPtIsValid = true;
+		}
+		function getCanvasXY(canvas, varContext)
+		{
+			let xPos = ((varContext.x + varContext.ORIGINX)  / varContext.SIZEX) * canvas.width;
+			let yPos = canvas.height - (((varContext.y + varContext.ORIGINY)  / varContext.SIZEY) * canvas.height);
+			return [ xPos, yPos];
 		}
 		function callAjax(url, okCallback, failCallback)
 		{
@@ -1105,6 +1319,8 @@
 	.body-form-label{
 		color:#64523c;
 		font-weight: bold;
+		display: flex;
+		justify-content: space-between;
 	}
 	.body-form-field{
 		width: 100%;
@@ -1115,8 +1331,15 @@
 	}
 
 	.body-form-label-container {
+		margin-bottom: 12px;
+		-webkit-user-select: none;
+		-moz-user-select: none;
+		-ms-user-select: none;
+		user-select: none;
+	}
+
+	.body-form-label-checkbox {
 		display: block;
-		float: right;
 		position: relative;
 		padding-left: 35px;
 		margin-bottom: 12px;
@@ -1128,7 +1351,7 @@
 	}
 
 	/* Hide the browser's default checkbox */
-	.body-form-label-container input {
+	.body-form-label-checkbox input {
 		position: absolute;
 		opacity: 0;
 		cursor: pointer;
@@ -1147,11 +1370,11 @@
 	}
 
 	/* On mouse-over, add a background color */
-	.body-form-label-container:hover input ~ .body-form-checkmark {
+	.body-form-label-checkbox:hover input ~ .body-form-checkmark {
 		background-color: #74b5b1;
 	}
 	/* When the checkbox is checked, add a blue background */
-	.body-form-label-container input:checked ~ .body-form-checkmark {
+	.body-form-label-checkbox input:checked ~ .body-form-checkmark {
 		background-color: #407ea6;
 	}
 
@@ -1163,12 +1386,12 @@
 	}
 
 	/* Show the checkmark when checked */
-	.body-form-label-container input:checked ~ .body-form-checkmark:after {
+	.body-form-label-checkbox input:checked ~ .body-form-checkmark:after {
 		display: block;
 	}
 
 	/* Style the checkmark/indicator */
-	.body-form-label-container .body-form-checkmark:after {
+	.body-form-label-checkbox .body-form-checkmark:after {
 		left: 9px;
 		top: 5px;
 		width: 5px;
@@ -1185,8 +1408,7 @@
 		display: flex;
 	}
 	.body-canvas{
-		width: 100%;
-		margin:5px;
+		margin: 20px auto;
 	}
 	.body-fieldset{
 		border: none;
@@ -1327,6 +1549,16 @@
 		vertical-align: middle;
 		padding-left: 15px;
 	}
+	.icon-inline {
+		color: #fafcee;
+		fill: #fafcee;
+		width: 32px;
+		height: 32px;
+		vertical-align: middle;
+	}
+	.right {
+		float: right;
+	}
 	.icon-red {
 		fill:#D5354E;
 		color:#D5354E;
@@ -1460,7 +1692,21 @@
 	<symbol id="ico-add" viewBox="170 60 200 150">
 		<g>
 			<path d="m 250,50 0,150 m 75,-75 -150,0" 
-			style="fill:none;stroke:#fafcee;stroke-width:22;stroke-linecap:round;"/>
+				style="fill:none;stroke:#fafcee;stroke-width:22;stroke-linecap:round;"/>
+		</g>
+	</symbol>
+	<symbol id="ico-spiral-out" viewBox="0 0 60 60">
+		<g>
+			<path d="M 16.626269 37.930484 C 11.069585 32.169257 10.915446 22.769927 16.059324 16.546608 C 22.25908 9.045835 33.691208 8.4231682 41.048731 14.576272 C 49.216975 21.407384 49.873432 33.92053 43.093219 41.949154"
+				style="fill:none;stroke:#fafcee;stroke-width:4;stroke-linecap:round;"/>
+			<path d="M 22.672616 34.307554 C 22.639635 34.284406 22.606813 34.260983 22.574152 34.237287 C 18.40035 31.209074 17.947519 25.158834 20.974577 21.165253 C 24.640751 16.328491 31.761797 15.841432 36.430086 19.491526 C 41.026781 23.085641 42.14651 29.39851 39.896968 34.493598"
+				style="fill:none;stroke:#fafcee;stroke-width:4;stroke-linecap:round;"/>
+			<path d="M 25.611669 27.084562 C 25.609686 26.626495 25.705996 26.168258 25.889831 25.783897 C 26.947985 23.571521 29.863752 23.225486 31.811441 24.40678 C 34.669754 26.140375 35.052573 30.075688 33.262712 32.711864 C 33.068275 32.998237 32.856564 33.264048 32.629889 33.509443"
+				style="fill:none;stroke:#fafcee;stroke-width:4;stroke-linecap:round;"/>
+			<path d="M 29.555087,29.286207 V 39.725063"
+				style="fill:none;stroke:#fafcee;stroke-width:4;stroke-linecap:round;"/>
+			<path d="m 20.142972,38.256665 18.734462,0.08233 -9.209931,9.755171 z"
+				style="fill:#fafcee;fill-opacity:1;stroke:#fafcee;stroke-width:2.5;stroke-linecap:round;"/>
 		</g>
 	</symbol>
 	<symbol id="ico-broken" viewBox="-1 -1 55 55">
