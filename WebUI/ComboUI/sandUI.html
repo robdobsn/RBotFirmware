@@ -874,10 +874,11 @@
 		}
 		function parametricEvalLoop(context)
 		{
+			let loopLines = [];
 			try
 			{
 				const loopExprs = document.getElementById("patloop").value;
-				const loopLines = loopExprs.split(/[\r\n]+/);
+				loopLines = loopExprs.split(/[\r\n]+/);
 			}
 			catch(excp)
 			{
