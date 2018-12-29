@@ -165,6 +165,16 @@ void MotionHelper::getCurStatus(RobotCommandArgs &args)
     args.setNumQueued(_motionPipeline.count());
 }
 
+// Get attributes of robot
+void MotionHelper::getRobotAttributes(String& robotAttrs)
+{
+    char attrStr[MAX_ATTR_STR_LEN];
+    sprintf(attrStr, "{\"sizeX\":%0.2f,\"sizeY\":%0.2f,\"sizeZ\":%0.2f,\"originX\":%0.2f,\"originY\":%0.2f,\"originZ\":%0.2f}",
+            _axesParams.getAxisMaxRange(0), _axesParams.getAxisMaxRange(1), _axesParams.getAxisMaxRange(2),
+            0.0, 0.0, 0.0);
+    robotAttrs = attrStr;
+}
+
 // Command the robot to home one or more axes
 void MotionHelper::goHome(RobotCommandArgs &args)
 {

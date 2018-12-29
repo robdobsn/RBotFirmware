@@ -12,13 +12,19 @@ stSettings = {
 }
 
 stFileInfo = {
-    "rslt":"ok","diskSize":1374476,"diskUsed":1004,"folder":"/","files":
+    "rslt":"ok",
+    "fsName":"sd",
+    "fsBase":"/sd",
+    "diskSize":1374476,
+    "diskUsed":1004,
+    "folder":"/sd/","files":
             [
                 {"name":"/test1.gcode","size":79},
                 {"name":"/pattern.param","size":200},
                 {"name":"/robot.json","size":47}
             ]
         }
+
 
 # stFile1 = {
 #         "setup": "angle=0;diam=10",
@@ -44,8 +50,8 @@ def staticFiles(request):
 def getsettings(request):
     return json.dumps(stSettings)
 
-@route('/filelist/SPIFFS', branch=False)
-def filelistspiffs(request):
+@route('/filelist/', branch=False)
+def filelist(request):
     return json.dumps(stFileInfo)
 
 # @route('/fileread/<string:fileName>', branch=False)

@@ -165,6 +165,15 @@ void RobotController::getCurStatus(RobotCommandArgs& args)
     _pRobot->getCurStatus(args);
 }
 
+// Get robot attributes
+void RobotController::getRobotAttributes(String& robotAttrs)
+{
+    robotAttrs = "{}";
+    if (!_pRobot)
+        return;
+    _pRobot->getRobotAttributes(robotAttrs);
+}
+
 // Go Home
 void RobotController::goHome(RobotCommandArgs& args)
 {

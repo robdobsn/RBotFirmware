@@ -18,6 +18,7 @@ public:
     static constexpr float junctionDeviation_default = 0.05f;
     static constexpr float distToTravelMM_ignoreBelow = 0.01f;
     static constexpr int pipelineLen_default = 100;
+    static constexpr int MAX_ATTR_STR_LEN = 400;
 
 private:
     // Pause
@@ -116,6 +117,7 @@ public:
     bool moveTo(RobotCommandArgs &args);
     void setMotionParams(RobotCommandArgs &args);
     void getCurStatus(RobotCommandArgs &args);
+    void getRobotAttributes(String& robotAttrs);
     void goHome(RobotCommandArgs &args);
     int getLastCompletedNumberedCmdIdx()
     {

@@ -24,13 +24,20 @@
 				maxIterationsInEval: 50,
 				maxIterationsInTotal: 10000,
 				patternEvalIntervalMs: 100,
-				tableCanvasPtIsValid: false
+				tableCanvasPtIsValid: false,
+				fileTypes: [["param", "Parametric"],["gcode", "G-Code"],["thr", "Theta-Rho"],["seq", "Sequence"]],
+				fileTypeLookup: {},
+				paramNewJson: { setup:"t=0\nR=sizeX/2\n", loop:"x=R*sin(t)\ny=R*cos(t)\nR=R-0.3\nt=t+0.1\nstop=R<20\n" }
 			};
 			window.pageState = {
 				"maxCfgLen": 2000,
 				"name": "Sand Table",
 				"startup": ""
 			};
+			// Filetypes lookup
+			let fileTypes = window.stState.fileTypes;
+			for (let j = 0; j < fileTypes.length; j++)
+				window.stState.fileTypeLookup[fileTypes[j][0]] = fileTypes[j][1];
 			// Handle running directly in browser
 			if (window.stState.nonServerHostWarn) {
 				window.pageState.name = "Sand Table - I must run on a server!"
@@ -158,7 +165,7 @@
 				fileNameNoExtension = fileNameNoExtension.replace('\\','');
 				fileNameNoExtension = fileNameNoExtension.replace('?','');
 				// Check filename is valid
-				if (fileNameNoExtension.trim().length == 0)
+				if (fileNameNoExtension.trim().length === 0)
 					return;
 				// Get contents
 				let fileText = "";
@@ -285,7 +292,7 @@
 			{
 				oStr += '<svg class="icon-action"><use xlink:href="#ico-add"></use></svg>';
 			}
-//			else if (iconType == "Delete")
+//			else if (iconType === "Delete")
 //			{
 //				oStr += '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="30px" height="30px" viewBox="0 0 414 414">';
 //				oStr += '<g><path d="m 107.34348,113.4774 200.6666,201.54286 M 107.34348,315.4584 308.88635,110.84858" style="fill:none;fill-rule:evenodd;stroke:#dcded0;stroke-width:59.9;stroke-linecap:round;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none"/></g>';
@@ -324,9 +331,9 @@
 //		    console.log("genButton -> " + rtnStr);
 			return oStr;
 		}
-		function genAjaxButton(url, key, iconType, cssClass)
+		function genAjaxButton(url, key, label, tooltip, iconType, cssClass)
 		{
-			return genButton("callAjax(\"" + url + "\",ajaxDefaultCallback)", key, "", "", iconType, cssClass, false, true);
+			return genButton("callAjax(\"" + url + "\",ajaxDefaultCallback)", key, label, tooltip, iconType, cssClass, false, true);
 		}
 		function genPageHeader()
 		{
@@ -348,9 +355,9 @@
 			let oStr = "<div class='body-controls'>"
 			oStr += "<div class='body-part-buttons backGrad1'>";
 			oStr += "<div class='body-commands'>";
-			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/g28", "", "Home", 'body-commands-button') + "</div>";
-			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/playpause", "", "Play-Pause", 'body-commands-button') + "</div>";
-			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/stop", "", "Stop", 'body-commands-button') + "</div>";
+			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/g28", "", "", "Home the robot", "Home", 'body-commands-button') + "</div>";
+			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/playpause", "", "", "Toggle play/pause", "Play-Pause", 'body-commands-button') + "</div>";
+			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/stop", "", "", "Stop", "Stop", 'body-commands-button') + "</div>";
 			oStr += "</div>";
 			oStr += "</div>";
 			oStr += "<div class='body-sep'>";
@@ -407,6 +414,12 @@
 			listStr += "<div class='body-group-header'>";
 			if (!addMode)
 			{
+				listStr += "<div class='body-group-info'>";
+				if (window.stState.fileTypeLookup.hasOwnProperty(window.stState.curFileType))
+					listStr += window.stState.fileTypeLookup[window.stState.curFileType];
+				else
+					listStr += window.stState.curFileType;
+				listStr += "</div>";
 				listStr += "<div class='body-group-actions'>";
 				listStr += genButton("userAction(\"" + itemTypeStr + "\",\"delete\",\"~key~\")", argStr, "", "Delete pattern", "Delete", 'body-group-button', false, !addMode);
 				listStr += "</div>";
@@ -415,10 +428,9 @@
 			{
 				listStr += "<div class='body-group-select select-style'>";
 				listStr += "<select id=\"fileTypeSelect\">";
-				listStr += genOptionStr("param", "Parametric", window.stState.curFileType);
-				listStr += genOptionStr("gcode", "G-Code", window.stState.curFileType);
-				listStr += genOptionStr("thr", "Theta-Rho", window.stState.curFileType);
-				listStr += genOptionStr("seq", "Sequence", window.stState.curFileType);
+				let fileTypes = window.stState.fileTypes;
+				for (let j = 0; j < fileTypes.length; j++)
+					listStr += genOptionStr(fileTypes[j][0], fileTypes[j][1], window.stState.curFileType);
 				listStr += "</select>";
 				listStr += "</div>";
 			}
@@ -484,6 +496,10 @@
 						console.error(excp);
 					}
 				}
+				else
+				{
+					patternInfo = window.stState.paramNewJson;
+				}
 				// Fields
 				listStr += "<div class='body-form-label'>Setup expressions</div>";
 				listStr += "<textarea id='patsetup' oninput='patSetupChange();' class='body-form-field' cols='50' rows='10'>" + 
@@ -521,9 +537,8 @@
 			// Set canvas
 			setCanvasShapeAndSize();
 
-			// Evaluate expression
-			if (window.stState.curFileType == "param")
-				parametricValidate();
+			// Validate (if needed)
+			patternValidate();
 		}
 		function setCanvasShapeAndSize()
 		{
@@ -539,7 +554,7 @@
 				tableCanvas.style.marginTop = canvasMargin;
 				tableCanvas.style.marginBottom = canvasMargin;
 			}
-			parametricValidate(false);
+			patternValidate(false);
 		}
 		function genFileEditHeading()
 		{
@@ -590,12 +605,12 @@
 				if (fileExtension === "JSON")
 					listStr += "<span>" + fileName + "</span>"
 				else
-					listStr += genAjaxButton("/playFile/"+fileName, "", fileNameNoExtension, 'body-group-button');
+					listStr += genAjaxButton("/playFile/"+fileName, "", fileNameNoExtension, "Play file", "", 'body-group-button');
 				listStr += "</div>";
 				listStr += "<div class='body-list-actions'>";
-				listStr += genButton("userAction(\"file\",\"run\",\"~key~\")", fileName, "", "Run", "Run pattern", 'body-group-button', false, true);
+				listStr += genButton("userAction(\"file\",\"run\",\"~key~\")", fileName, "", "Run pattern", "Run", 'body-group-button', false, true);
 				listStr += genButton("userAction(\"file\",\"runAtStart\",\"~key~\"," + (fileName === window.pageState.startup) + ")", fileName, "", "Run at startup", "RunAtStart", 'body-group-button', (fileName === window.pageState.startup), true);
-				listStr += genButton("userAction(\"file\",\"edit\",\"~key~\")", fileName, "", "Edit", "Edit pattern", 'body-group-button', false, true);
+				listStr += genButton("userAction(\"file\",\"edit\",\"~key~\")", fileName, "", "Edit pattern", "Edit", 'body-group-button', false, true);
 				listStr += "</div>";
 				listStr += "</div>";
 			}
@@ -692,10 +707,10 @@
 			});
 
 			xhr.addEventListener('readystatechange', function(e) {
-				if (xhr.readyState == 4 && xhr.status == 200) {
+				if (xhr.readyState === 4 && xhr.status === 200) {
 					updateProgress(i, 100, progressBarName)
 					reqFileListAndUpdate();
-				} else if (xhr.readyState == 4 && xhr.status != 200) {
+				} else if (xhr.readyState === 4 && xhr.status !== 200) {
 					// Error
 				}
 			});
@@ -726,25 +741,25 @@
 				window.pageState.robotGeom.axis1 && window.pageState.robotGeom.axis1.maxVal && window.pageState.robotGeom))
 			{
 				let defSize = window.stState.defaultTableSizeMM;
-				context["SIZEX"] = defSize;
-				context["SIZEY"] = defSize;
-				context["ORIGINX"] = defSize/2;
-				context["ORIGINY"] = defSize/2;	
+				context["sizeX"] = defSize;
+				context["sizeY"] = defSize;
+				context["originX"] = defSize/2;
+				context["originY"] = defSize/2;	
 			}
 			else if (window.pageState.robotGeom === "SingleArmScara")
 			{
 				let tableRadius = window.pageState.robotGeom.axis0.maxVal + window.pageState.robotGeom.axis1.maxVal;
-				context["SIZEX"] = 2 * tableRadius;
-				context["SIZEY"] = 2 * tableRadius;
-				context["ORIGINX"] = tableRadius;
-				context["ORIGINY"] = tableRadius;	
+				context["sizeX"] = 2 * tableRadius;
+				context["sizeY"] = 2 * tableRadius;
+				context["originX"] = tableRadius;
+				context["originY"] = tableRadius;	
 			}
 			else
 			{
-				context["SIZEX"] = window.pageState.robotGeom.axis0.maxVal;
-				context["SIZEY"] = window.pageState.robotGeom.axis1.maxVal;
-				context["ORIGINX"] = 0;
-				context["ORIGINY"] = 0;	
+				context["sizeX"] = window.pageState.robotGeom.axis0.maxVal;
+				context["sizeY"] = window.pageState.robotGeom.axis1.maxVal;
+				context["originX"] = 0;
+				context["originY"] = 0;	
 			}
 		}
 		function parametricShowValidity(s, warn)
@@ -859,9 +874,17 @@
 		}
 		function parametricEvalLoop(context)
 		{
-			const loopExprs = document.getElementById("patloop").value;
-			const loopLines = loopExprs.split(/[\r\n]+/);
-			if (loopLines.length == 0)
+			try
+			{
+				const loopExprs = document.getElementById("patloop").value;
+				const loopLines = loopExprs.split(/[\r\n]+/);
+			}
+			catch(excp)
+			{
+				console.log("Failed to get patloop - probably exited edit mode");
+				return "No longer in edit mode";
+			}
+			if (loopLines.length === 0)
 				return;
 			let curLine = 0;
 			let parseResult = "";
@@ -882,8 +905,12 @@
 			}
 			return parseResult;
 		}
-		function parametricValidate(validityOnly)
+		function patternValidate(validityOnly)
 		{
+			// Check in parametric mode
+			if (window.stState.curFileType !== "param")
+				return;
+
 			// Extract variables for context
 			let localContext = { };
 			let loopCtxOnly = {};
@@ -907,11 +934,11 @@
 			}
 
 			// Check required vars present
-			if ((!loopCtxOnly.hasOwnProperty("x")) && (!loopCtxOnly.hasOwnProperty("X")))
+			if (!loopCtxOnly.hasOwnProperty("x"))
 				parseResult += "x";
-			if ((!loopCtxOnly.hasOwnProperty("y")) && (!loopCtxOnly.hasOwnProperty("Y")))
+			if (!loopCtxOnly.hasOwnProperty("y"))
 				parseResult += (parseResult.length > 0 ? ", " : "") + "y";
-			if ((!loopCtxOnly.hasOwnProperty("stop")) && (!loopCtxOnly.hasOwnProperty("STOP")))
+			if (!loopCtxOnly.hasOwnProperty("stop"))
 				parseResult += (parseResult.length > 0 ? " and " : "") + "stop";
 			if (parseResult.length > 0)
 			{
@@ -944,16 +971,16 @@
 		function patSetupChange()
 		{
 			console.log("patsetupchange");			
-			parametricValidate(false);
+			patternValidate(false);
 		}
 		function patLoopChange()
 		{
 			console.log("patloopchange");
-			parametricValidate(true);
+			patternValidate(true);
 		}
 		function autoEvalClicked()
 		{
-			parametricValidate(true);
+			patternValidate(true);
 		}
 		function paramSimulate()
 		{
@@ -1034,8 +1061,8 @@
 		}
 		function getCanvasXY(canvas, varContext)
 		{
-			let xPos = ((varContext.x + varContext.ORIGINX)  / varContext.SIZEX) * canvas.width;
-			let yPos = canvas.height - (((varContext.y + varContext.ORIGINY)  / varContext.SIZEY) * canvas.height);
+			let xPos = ((varContext.x + varContext.originX)  / varContext.sizeX) * canvas.width;
+			let yPos = canvas.height - (((varContext.y + varContext.originY)  / varContext.sizeY) * canvas.height);
 			return [ xPos, yPos];
 		}
 		function callAjax(url, okCallback, failCallback)
@@ -1301,6 +1328,10 @@
 	}
 	.body-group-select{
 		float: left;
+	}
+	.body-group-info{
+		display: inline;
+		font-size: 1.2em;
 	}
 	.body-name{
 	  padding: 10px;

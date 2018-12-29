@@ -21,8 +21,8 @@ public:
     int getVariableIdx(const char* name, bool caseInsensitive = false);
     int getVariableFlags(int varIdx);
     String getVariableName(int varIdx);
-    int addVariable(const char* name, const double* pVal, unsigned int flags);
-    int addAssignment(const char* inStr, String& expr);
+    int addAssignment(const char* inStr, String& outExpr);
+    int addConstant(const char* name, double val);
     te_variable* getVars();
 	int getNumVars();
 	double getVal(const char* varName, bool& isValid, bool caseInsensitive = false);
@@ -31,6 +31,7 @@ public:
 	void cleanUp();
     
 private:
+    int addVariablePtr(const char* name, const double* pVal, unsigned int flags);
     te_variable* _pTeVars;
     unsigned int* _pTeVarFlags;
     int _numTeVars;

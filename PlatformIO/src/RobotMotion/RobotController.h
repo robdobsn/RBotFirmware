@@ -45,6 +45,9 @@ public:
     // Get status
     void getCurStatus(RobotCommandArgs& args);
 
+    // Get robot attributes
+    void getRobotAttributes(String& robotAttrs);
+
     // Go Home
     void goHome(RobotCommandArgs& args);
 

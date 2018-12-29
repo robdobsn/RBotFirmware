@@ -282,7 +282,9 @@ void WorkManager::reconfigure()
     _robotController.init(robotConfigStr.c_str());
     _workItemQueue.init(robotConfigStr.c_str(), "workItemQueue");
     // Set config into evaluators
-    evaluatorsSetConfig(robotConfigStr.c_str(), "evaluators");
+    String robotAttributes;
+    _robotController.getRobotAttributes(robotAttributes);
+    evaluatorsSetConfig(robotConfigStr.c_str(), "evaluators", robotAttributes.c_str());
 }
 
 void WorkManager::handleStartupCommands()
@@ -345,10 +347,11 @@ bool WorkManager::evaluatorsBusy(bool includeFileEvaluator)
     return false;
 }
 
-void WorkManager::evaluatorsSetConfig(const char* configJson, const char* jsonPath)
+void WorkManager::evaluatorsSetConfig(const char* configJson, const char* jsonPath,
+            const char* robotAttributes)
 {
     String evaluatorConfig = RdJson::getString(jsonPath, "{}", configJson);
-    _evaluatorPatterns.setConfig(evaluatorConfig.c_str());
+    _evaluatorPatterns.setConfig(evaluatorConfig.c_str(), robotAttributes);
     _evaluatorSequences.setConfig(evaluatorConfig.c_str());
     _evaluatorFiles.setConfig(evaluatorConfig.c_str());
     _evaluatorThetaRhoLine.setConfig(evaluatorConfig.c_str());

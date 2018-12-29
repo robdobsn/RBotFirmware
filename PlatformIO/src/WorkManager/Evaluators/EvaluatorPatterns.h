@@ -23,7 +23,7 @@ public:
     void cleanUp();
 
     // Config
-    void setConfig(const char* configStr);
+    void setConfig(const char* configStr, const char* robotAttributes);
     const char* getConfig();
 
     // Is Busy
@@ -51,6 +51,9 @@ public:
 private:
     // Full configuration JSON
     String _jsonConfigStr;
+
+    // Robot attributes (size, etc)
+    String _robotAttribStr;
 
     // All variables used in the pattern
     EvaluatorPattern_Vars _patternVars;

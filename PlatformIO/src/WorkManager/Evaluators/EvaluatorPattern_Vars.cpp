@@ -4,6 +4,8 @@
 #include "EvaluatorPattern_Vars.h"
 #include "ArduinoLog.h"
 
+//#define DEBUG_EVALUATOR_EXPRESSIONS 1
+
 static const char* MODULE_PREFIX = "EvaluatorPattern_Vars: ";
 
 EvaluatorPattern_Vars::~EvaluatorPattern_Vars()
@@ -64,12 +66,12 @@ int EvaluatorPattern_Vars::getVariableFlags(int varIdx)
 
 String EvaluatorPattern_Vars::getVariableName(int varIdx)
 {
-    if ((varIdx >= 0) && (varIdx < _numTeVars))
+    if ((varIdx < 0) || (varIdx >= _numTeVars))
         return "";
     return _pTeVars[varIdx].name;
 }
 
-int EvaluatorPattern_Vars::addVariable(const char* name, const double* pVal, unsigned int flags)
+int EvaluatorPattern_Vars::addVariablePtr(const char* name, const double* pVal, unsigned int flags)
 {
     // Check empty
     int newVarIdx = 0;
@@ -116,19 +118,40 @@ int EvaluatorPattern_Vars::addVariable(const char* name, const double* pVal, uns
     _pTeVarFlags[newVarIdx] = flags;
 
     // Show vars
-    // Log.trace("%sNumVars = %d\n", MODULE_PREFIX, _numTeVars);
-    // for (int i = 0; i < _numTeVars; i++)
-    // {
-    // 	Log.trace("%sVar %d %s = %F flags %x context %d\n", MODULE_PREFIX, i, _pTeVars[i].name,
-    //             *((double*)(_pTeVars[i].address)), _pTeVarFlags[i], _pTeVars[i].context);
-    // }
+#ifdef DEBUG_EVALUATOR_EXPRESSIONS
+    Log.trace("%sNumVars = %d\n", MODULE_PREFIX, _numTeVars);
+    for (int i = 0; i < _numTeVars; i++)
+    {
+    	Log.trace("%sVar %d %s = %F flags %x context %d\n", MODULE_PREFIX, i, _pTeVars[i].name,
+                *((double*)(_pTeVars[i].address)), _pTeVarFlags[i], _pTeVars[i].context);
+    }
+#endif
     return newVarIdx;
 }
 
-int EvaluatorPattern_Vars::addAssignment(const char* inStr, String& expr)
+int EvaluatorPattern_Vars::addConstant(const char* name, double val)
+{
+    // Check if already exists
+    int varIdx = getVariableIdx(name);
+    if (varIdx >= 0)
+        return varIdx;
+
+    // Create storage (will be freed on cleanup)
+    double* pVal = new double;
+    *pVal = val;
+    unsigned int flags = TEVARS_FREE_VALUE_ADDR_REQD;
+    varIdx = addVariablePtr(name, pVal, flags);
+#ifdef DEBUG_EVALUATOR_EXPRESSIONS
+    Log.trace("%sAddConst name %s val %F varIdx %d flags 0x%x numVars %d\n", MODULE_PREFIX,
+            name, val, varIdx, flags, _numTeVars);   
+#endif
+    return varIdx;
+}
+
+int EvaluatorPattern_Vars::addAssignment(const char* inStr, String& outExpr)
 {
     String varName;
-    splitAssignmentExpr(inStr, varName, expr);
+    splitAssignmentExpr(inStr, varName, outExpr);
     if (varName.length() > 0)
     {
         // Check if it already exists
@@ -142,12 +165,13 @@ int EvaluatorPattern_Vars::addAssignment(const char* inStr, String& expr)
             // Create the value for this variable
             double* pVal = new double;
             *pVal = 0;
-            int err = 0;
             // Create the variable using this value
             unsigned int flags = TEVARS_FREE_VALUE_ADDR_REQD;
-            varIdx = addVariable(varName.c_str(), pVal, flags);
-            Log.trace("%sAddVar %s, expr %s, val %F, flags 0x%x, err %d, numVars %d\n", MODULE_PREFIX,
-                varName.c_str(), expr.c_str(), *pVal, flags, err, _numTeVars);
+            varIdx = addVariablePtr(varName.c_str(), pVal, flags);
+#ifdef DEBUG_EVALUATOR_EXPRESSIONS
+            Log.trace("%sAddAssign var %s, expr %s, varIdx %d, flags 0x%x, numVars %d\n", MODULE_PREFIX,
+                varName.c_str(), outExpr.c_str(), varIdx, flags, _numTeVars);
+#endif
         }
 
         return varIdx;

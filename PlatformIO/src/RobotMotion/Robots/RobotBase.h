@@ -31,6 +31,7 @@ class RobotBase
     virtual void moveTo(RobotCommandArgs &args);
     virtual void setMotionParams(RobotCommandArgs &args);
     virtual void getCurStatus(RobotCommandArgs &args);
+    virtual void getRobotAttributes(String& robotAttrs);
     // Homing commands
     virtual void goHome(RobotCommandArgs &args);
     virtual void setHome(RobotCommandArgs &args);

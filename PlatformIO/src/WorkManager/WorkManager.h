@@ -102,5 +102,5 @@ private:
     bool evaluatorsBusy(bool includeFileEvaluator);
 
     // Set config
-    void evaluatorsSetConfig(const char* configJson, const char* jsonPath);
+    void evaluatorsSetConfig(const char* configJson, const char* jsonPath, const char* robotAttributes);
 };

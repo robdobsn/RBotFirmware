@@ -74,6 +74,11 @@ void RobotBase::getCurStatus(RobotCommandArgs &args)
     _motionHelper.getCurStatus(args);
 }
 
+void RobotBase::getRobotAttributes(String& robotAttrs)
+{
+    _motionHelper.getRobotAttributes(robotAttrs);
+}
+
 // Homing commands
 void RobotBase::goHome(RobotCommandArgs &args)
 {
