@@ -20,14 +20,15 @@
 				lastStatusRxTime: new Date(),
 				statusUpdateCheckMs: 2000,
 				statusUpdateTooLateMs: 15000,
-				patternPointList: [],
 				maxIterationsInEval: 50,
 				maxIterationsInTotal: 10000,
 				patternEvalIntervalMs: 100,
 				tableCanvasPtIsValid: false,
 				fileTypes: [["param", "Parametric"],["gcode", "G-Code"],["thr", "Theta-Rho"],["seq", "Sequence"]],
 				fileTypeLookup: {},
-				paramNewJson: { setup:"t=0\nR=sizeX/2\n", loop:"x=R*sin(t)\ny=R*cos(t)\nR=R-0.3\nt=t+0.1\nstop=R<20\n" }
+				paramNewJson: { setup:"t=0\nR=sizeX/2\n", loop:"x=R*sin(t)\ny=R*cos(t)\nR=R-0.3\nt=t+0.1\nstop=R<20\n" },
+				canvasBorder: 10,
+				canvasSize: 200,
 			};
 			window.pageState = {
 				"maxCfgLen": 2000,
@@ -476,7 +477,7 @@
 			{
 				// Fields
 				listStr += "<div class='body-form-label'>Contents</div>";
-				listStr += "<textarea id='textcontents' class='body-form-field' cols='50' rows='10'>" + 
+				listStr += "<textarea id='textcontents' oninput='fileContentChange()' class='body-form-field' cols='50' rows='10'>" + 
 							window.stState.curFileContentJson + "</textarea>";
 			}
 			else
@@ -510,20 +511,20 @@
 				listStr += "<textarea id='patloop' oninput='patLoopChange();' class='body-form-field' cols='50' rows='10'>" + 
 							patternInfo.loop + "</textarea>";
 				listStr += "</div>";
-				listStr += "<div class='body-form-line'>";
-				listStr += "<div class='body-form-label'>";
-				listStr += "<div class='body-form-label-container'>Validity check";
-				listStr += "</div>";			
-				listStr += "<div class='body-form-label-container'>";
-				listStr += genButton("paramSimulate()", "", "Evaluate Now", "Evaluate", "Simulate", 'body-form-button', false, true);
-				listStr += "</div>";
-				listStr += "<label class='body-form-label-checkbox'>Auto Evaluate"
-				listStr += "<input class='body-form-checkbox' type='checkbox' id='auto-evaluate' onclick='autoEvalClicked()' checked></input>";
-				listStr += "<span class='body-form-checkmark'></span>";
-				listStr += "</label>";
-				listStr += "</div>";
-				listStr += "<textarea readonly id='validity-check' class='body-form-field' cols='50' rows='1'></textarea>";
 			}
+			listStr += "<div class='body-form-line'>";
+			listStr += "<div class='body-form-label'>";
+			listStr += "<div class='body-form-label-container'>Validity check";
+			listStr += "</div>";			
+			listStr += "<div class='body-form-label-container'>";
+			listStr += genButton("patternSimulate()", "", "Evaluate Now", "Evaluate", "Simulate", 'body-form-button', false, true);
+			listStr += "</div>";
+			listStr += "<label class='body-form-label-checkbox'>Auto Evaluate"
+			listStr += "<input class='body-form-checkbox' type='checkbox' id='auto-evaluate' onclick='autoEvalClicked()' checked></input>";
+			listStr += "<span class='body-form-checkmark'></span>";
+			listStr += "</label>";
+			listStr += "</div>";
+			listStr += "<textarea readonly id='validity-check' class='body-form-field' cols='50' rows='1'></textarea>";
 			listStr += "</div>";
 			listStr += "<div class='body-form-line'>";
 			listStr += "<div class='body-form-label'>View</div>";
@@ -553,8 +554,10 @@
 				tableCanvas.height = canvasSize;
 				tableCanvas.style.marginTop = canvasMargin;
 				tableCanvas.style.marginBottom = canvasMargin;
+				window.stState.canvasBorder = canvasSize * 0.02;
+				window.stState.canvasSize = canvasSize - 2 * window.stState.canvasBorder;
 			}
-			patternValidate(false);
+			patternValidate();
 		}
 		function genFileEditHeading()
 		{
@@ -906,12 +909,8 @@
 			}
 			return parseResult;
 		}
-		function patternValidate(validityOnly)
+		function parametricValidate()
 		{
-			// Check in parametric mode
-			if (window.stState.curFileType !== "param")
-				return;
-
 			// Extract variables for context
 			let localContext = { };
 			let loopCtxOnly = {};
@@ -959,34 +958,51 @@
 			}
 
 			// Show points
-			console.log("points " + window.stState.patternPointList.length);
 			parametricShowValidity("Passed", false);
+		}
+		function patternValidate()
+		{
+			// Check in parametric mode
+			if (window.stState.curFileType === "param")
+				parametricValidate();
 
 			// Check for auto-evaluation
 			const autoEval = document.getElementById("auto-evaluate");
 			if (autoEval.checked)
 			{
-				paramSimulate();
+				patternSimulate();
 			}
+		}
+		function fileContentChange()
+		{
+			console.log("patsetupchange");			
+			patternValidate();
 		}
 		function patSetupChange()
 		{
 			console.log("patsetupchange");			
-			patternValidate(false);
+			patternValidate();
 		}
 		function patLoopChange()
 		{
 			console.log("patloopchange");
-			patternValidate(true);
+			patternValidate();
 		}
 		function autoEvalClicked()
 		{
-			patternValidate(true);
+			patternValidate();
+		}
+		function patternSimulate()
+		{
+			// Check mode
+			if (window.stState.curFileType === "param")
+				paramSimulate();
+			else if (window.stState.curFileType === "gcode")
+				gcodeSimulate();		
 		}
 		function paramSimulate()
 		{
 			// Point list empty
-			window.stState.patternPointList = [];
 			window.stState.parametricContext = {};
 			let ctx = window.stState.parametricContext;
 			let localCtx = {};
@@ -1000,9 +1016,9 @@
 			if (parseResult.length > 0)
 				return;
 			window.stState.parmetricIteration = 0;
-			tableShowStart();
+			tableShowStart(ctx);
 
-			// Start timer to evaluate
+			// Take first steps
 			paramStep();
 		}
 		function paramStep()
@@ -1016,9 +1032,6 @@
 				if (parseResult.length > 0)
 					return;
 
-				// Add values to list
-				window.stState.patternPointList.push([ctx.x, ctx.y]);
-				
 				// Display
 				tableShowNextPoint(ctx);
 
@@ -1032,23 +1045,124 @@
 					return;
 			}
 			// Request another timeslot
-			window.stState.paramSimulateTimer = setTimeout(paramStep, window.stState.patternEvalIntervalMs);
+			setTimeout(paramStep, window.stState.patternEvalIntervalMs);
 		}
-		function tableShowStart()
+		function gcodeEvalLine(ctx)
+		{
+			if (ctx.lines.length <= ctx.lineIdx)
+				return "done";
+			const lin = ctx.lines[ctx.lineIdx];
+			const linElems = lin.split(" ");
+			if (!(linElems[0].toLowerCase().includes("g0") || linElems[0].toLowerCase().includes("g1")))
+				return "ignore";
+			if (linElems.length < 3)
+				return "ignore";
+			let xValid = false, yValid = false;
+			for (let i = 1; i < linElems.length; i++)
+			{
+				if (linElems[i].trim().toLowerCase().startsWith("x"))
+				{
+					let x = parseInt(linElems[i].trim().substr(1));
+					if (!isNaN(x))
+					{
+						xValid = true;
+						ctx.x = x;
+					}
+				}
+				if (linElems[i].trim().toLowerCase().startsWith("y"))
+				{
+					let y = parseInt(linElems[i].trim().substr(1));
+					if (!isNaN(y))
+					{
+						yValid = true;
+						ctx.y = y;
+					}
+				}
+			}
+			if (xValid && yValid)
+				return "";
+			return "invalid";
+		}
+		function gcodeSimulate()
+		{
+			let gcodeLines = [];
+			try
+			{
+				const gcodeText = document.getElementById("textcontents").value;
+				if (gcodeText.length > 0)
+					gcodeLines = gcodeText.split(/[\r\n]+/);
+			}
+			catch(excp)
+			{
+				console.log("Failed to get textcontents - probably exited edit mode");
+				return "No longer in edit mode";
+			}
+			if (gcodeLines.length === 0)
+				return;
+			window.stState.gcodeContext = { lineIdx: 0, lines: gcodeLines, stop: false, x: 0, y:0 };
+			extractTableSize(window.stState.gcodeContext);
+			tableShowStart(window.stState.gcodeContext);
+			gcodeStep();
+		}
+		function gcodeStep()
+		{
+			let ctx = window.stState.gcodeContext;
+			for (let k = 0; k < window.stState.maxIterationsInEval; k++)
+			{
+				// Evaluate
+				const parseResult = gcodeEvalLine(ctx)
+				ctx.lineIdx++;
+				if (parseResult.length > 0)
+				{
+					if ((parseResult === "ignore") || (parseResult === "invalid"))
+						continue;
+					return;
+				}
+
+				// Display
+				tableShowNextPoint(ctx);
+
+				// Check max iterations
+				window.stState.parmetricIteration++;
+				if (window.stState.parmetricIteration >= window.stState.maxIterationsInTotal)
+					return;
+
+				// Check for stop
+				if (ctx.stop)
+					return;
+			}
+			// Request another timeslot
+			setTimeout(gcodeStep, window.stState.patternEvalIntervalMs);
+		}
+		function tableShowStart(varContext)
 		{
 			let canvas = document.getElementById('table-canvas');
 			let canvasContext = canvas.getContext('2d');
 			canvasContext.closePath();
 			canvasContext.clearRect(0, 0, canvas.width, canvas.height);
-			canvasContext.beginPath();
-			canvasContext.strokeStyle = "#e3cda6";
 			window.stState.tableCanvasPtIsValid = false;
+			// Show outline of table edge
+			canvasContext.strokeStyle = "#407ea6";
+			canvasContext.lineWidth = 10;
+			if ((!window.pageState.robotGeom) || window.pageState.robotGeom === "SingleArmScara")
+			{
+				canvasContext.beginPath();
+				varContext.x = 0;
+				varContext.y = 0;
+				const pointXY = getCanvasXY(canvas, varContext);
+				canvasContext.arc(pointXY[0], pointXY[1], window.stState.canvasSize/2, 0, 2 * Math.PI);
+				canvasContext.stroke();
+				canvasContext.closePath();
+			}
+			canvasContext.strokeStyle = "#e3cda6";
+			canvasContext.lineWidth = 1;
+			canvasContext.beginPath();
 		}
 		function tableShowNextPoint(varContext)
 		{
 			let canvas = document.getElementById('table-canvas');
 			let canvasContext = canvas.getContext('2d');
-			pointXY = getCanvasXY(canvas, varContext);
+			const pointXY = getCanvasXY(canvas, varContext);
 			if (!window.stState.tableCanvasPtIsValid)
 			{
 				canvasContext.moveTo(pointXY[0], pointXY[1]);
@@ -1062,8 +1176,8 @@
 		}
 		function getCanvasXY(canvas, varContext)
 		{
-			let xPos = ((varContext.x + varContext.originX)  / varContext.sizeX) * canvas.width;
-			let yPos = canvas.height - (((varContext.y + varContext.originY)  / varContext.sizeY) * canvas.height);
+			let xPos = ((varContext.x + varContext.originX)  / varContext.sizeX) * window.stState.canvasSize + window.stState.canvasBorder;
+			let yPos = canvas.height - (((varContext.y + varContext.originY)  / varContext.sizeY) * window.stState.canvasSize + window.stState.canvasBorder);
 			return [ xPos, yPos];
 		}
 		function callAjax(url, okCallback, failCallback)
