@@ -20,7 +20,7 @@
 				lastStatusRxTime: new Date(),
 				statusUpdateCheckMs: 2000,
 				statusUpdateTooLateMs: 15000,
-				maxIterationsInEval: 50,
+				maxIterationsInEval: 500,
 				maxIterationsInTotal: 10000,
 				patternEvalIntervalMs: 100,
 				tableCanvasPtIsValid: false,
@@ -29,6 +29,7 @@
 				paramNewJson: { setup:"t=0\nR=sizeX/2\n", loop:"x=R*sin(t)\ny=R*cos(t)\nR=R-0.3\nt=t+0.1\nstop=R<20\n" },
 				canvasBorder: 10,
 				canvasSize: 200,
+				thrMaxThetaInc: Math.PI/64
 			};
 			window.pageState = {
 				"maxCfgLen": 2000,
@@ -997,8 +998,8 @@
 			// Check mode
 			if (window.stState.curFileType === "param")
 				paramSimulate();
-			else if (window.stState.curFileType === "gcode")
-				gcodeSimulate();		
+			else if ((window.stState.curFileType === "gcode") || (window.stState.curFileType === "thr"))
+				textFileSimulate();
 		}
 		function paramSimulate()
 		{
@@ -1015,7 +1016,7 @@
 			parametricEvalSetup(ctx, parseResult);
 			if (parseResult.length > 0)
 				return;
-			window.stState.parmetricIteration = 0;
+			window.stState.interpIteration = 0;
 			tableShowStart(ctx);
 
 			// Take first steps
@@ -1036,8 +1037,8 @@
 				tableShowNextPoint(ctx);
 
 				// Check max iterations
-				window.stState.parmetricIteration++;
-				if (window.stState.parmetricIteration >= window.stState.maxIterationsInTotal)
+				window.stState.interpIteration++;
+				if (window.stState.interpIteration >= window.stState.maxIterationsInTotal)
 					return;
 
 				// Check for stop
@@ -1052,6 +1053,7 @@
 			if (ctx.lines.length <= ctx.lineIdx)
 				return "done";
 			const lin = ctx.lines[ctx.lineIdx];
+			ctx.lineIdx++;
 			const linElems = lin.split(" ");
 			if (!(linElems[0].toLowerCase().includes("g0") || linElems[0].toLowerCase().includes("g1")))
 				return "ignore";
@@ -1062,7 +1064,7 @@
 			{
 				if (linElems[i].trim().toLowerCase().startsWith("x"))
 				{
-					let x = parseInt(linElems[i].trim().substr(1));
+					let x = parseFloat(linElems[i].trim().substr(1));
 					if (!isNaN(x))
 					{
 						xValid = true;
@@ -1071,7 +1073,7 @@
 				}
 				if (linElems[i].trim().toLowerCase().startsWith("y"))
 				{
-					let y = parseInt(linElems[i].trim().substr(1));
+					let y = parseFloat(linElems[i].trim().substr(1));
 					if (!isNaN(y))
 					{
 						yValid = true;
@@ -1083,35 +1085,103 @@
 				return "";
 			return "invalid";
 		}
-		function gcodeSimulate()
+		function thrProcPoint(ctx, thrPoint)
 		{
-			let gcodeLines = [];
+			ctx.interpolateIdx = 0;
+			if (!ctx.hasOwnProperty("nextPoint"))
+			{
+				ctx.nextPoint = thrPoint;
+				return "ignore";
+			}
+			ctx.prevPoint = ctx.nextPoint;
+			ctx.nextPoint = thrPoint;
+			ctx.deltaTheta = ctx.nextPoint[0] - ctx.prevPoint[0];
+			ctx.thetaInc = ctx.deltaTheta >= 0 ? window.stState.thrMaxThetaInc : -window.stState.thrMaxThetaInc;
+			let rhoDiff = (ctx.nextPoint[1] - ctx.prevPoint[1]);
+			if (Math.abs(ctx.deltaTheta) < window.stState.thrMaxThetaInc)
+			{
+				ctx.thetaInc = ctx.deltaTheta;
+				ctx.interpolateSteps = 1;
+				ctx.rhoInc = rhoDiff;
+			}
+			else
+			{	
+				ctx.interpolateSteps = Math.ceil(Math.abs(ctx.deltaTheta) / window.stState.thrMaxThetaInc);
+				if (ctx.interpolateSteps < 1)
+					return "ignore";
+				ctx.rhoInc = rhoDiff * window.stState.thrMaxThetaInc / Math.abs(ctx.deltaTheta);
+			}
+			ctx.curTheta = ctx.prevPoint[0];
+			ctx.curRho = ctx.prevPoint[1];
+			if (thrProcInterp(ctx))
+				return "";
+			return "ignore";
+		}
+		function thrProcInterp(ctx)
+		{
+			ctx.x = (ctx.sizeX / 2) * ctx.curRho * Math.sin(ctx.curTheta);
+			ctx.y = (ctx.sizeY / 2) * ctx.curRho * Math.cos(ctx.curTheta);
+			ctx.curRho += ctx.rhoInc;
+			ctx.curTheta += ctx.thetaInc;
+			ctx.interpolateIdx++;
+			return (ctx.interpolateIdx <= ctx.interpolateSteps);
+		}
+		function thrEvalLine(ctx)
+		{
+			if (ctx.interpolateIdx != 0)
+				if (thrProcInterp(ctx))
+					return "";
+			if (ctx.lines.length <= ctx.lineIdx)
+				return "done";
+			const lin = ctx.lines[ctx.lineIdx];
+			ctx.lineIdx++;
+			if (lin.includes("#"))
+				return "ignore";
+			const linElems = lin.split(" ");
+			if (linElems.length < 2)
+				return "ignore";
+			const theta = parseFloat(linElems[0]);
+			const rho = parseFloat(linElems[1]);
+			if (isNaN(theta) || isNaN(rho))
+				return "ignore";
+			return thrProcPoint(ctx, [theta, rho])
+		}
+		function textFileSimulate()
+		{
+			let fileLines = [];
 			try
 			{
-				const gcodeText = document.getElementById("textcontents").value;
-				if (gcodeText.length > 0)
-					gcodeLines = gcodeText.split(/[\r\n]+/);
+				const fileText = document.getElementById("textcontents").value;
+				if (fileText.length > 0)
+					fileLines = fileText.split(/[\r\n]+/);
 			}
 			catch(excp)
 			{
 				console.log("Failed to get textcontents - probably exited edit mode");
 				return "No longer in edit mode";
 			}
-			if (gcodeLines.length === 0)
+			if (fileLines.length === 0)
 				return;
-			window.stState.gcodeContext = { lineIdx: 0, lines: gcodeLines, stop: false, x: 0, y:0 };
-			extractTableSize(window.stState.gcodeContext);
-			tableShowStart(window.stState.gcodeContext);
-			gcodeStep();
+			window.stState.textFileContext = { 
+				fileType: window.stState.curFileType, lineIdx: 0, 
+				interpolateIdx: 0, lines: fileLines, 
+				stop: false, x: 0, y:0
+			};
+			extractTableSize(window.stState.textFileContext);
+			tableShowStart(window.stState.textFileContext);
+			textFileStep();
 		}
-		function gcodeStep()
+		function textFileStep()
 		{
-			let ctx = window.stState.gcodeContext;
+			let ctx = window.stState.textFileContext;
 			for (let k = 0; k < window.stState.maxIterationsInEval; k++)
 			{
 				// Evaluate
-				const parseResult = gcodeEvalLine(ctx)
-				ctx.lineIdx++;
+				let parseResult = "";
+				if (ctx.fileType === "gcode")
+					parseResult = gcodeEvalLine(ctx);
+				else
+					parseResult = thrEvalLine(ctx);
 				if (parseResult.length > 0)
 				{
 					if ((parseResult === "ignore") || (parseResult === "invalid"))
@@ -1123,8 +1193,8 @@
 				tableShowNextPoint(ctx);
 
 				// Check max iterations
-				window.stState.parmetricIteration++;
-				if (window.stState.parmetricIteration >= window.stState.maxIterationsInTotal)
+				window.stState.interpIteration++;
+				if (window.stState.interpIteration >= window.stState.maxIterationsInTotal)
 					return;
 
 				// Check for stop
@@ -1132,7 +1202,7 @@
 					return;
 			}
 			// Request another timeslot
-			setTimeout(gcodeStep, window.stState.patternEvalIntervalMs);
+			setTimeout(textFileStep, window.stState.patternEvalIntervalMs);
 		}
 		function tableShowStart(varContext)
 		{
