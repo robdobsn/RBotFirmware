@@ -14,6 +14,7 @@ EvaluatorFiles::EvaluatorFiles(FileManager& fileManager) :
 {
     _inProgress = false;
     _fileType = FILE_TYPE_UNKNOWN;
+    _firstValidLineProcessed = false;
 }
 
 void EvaluatorFiles::setConfig(const char* configStr)
@@ -76,6 +77,7 @@ bool EvaluatorFiles::execWorkItem(WorkItem& workItem)
     Log.trace("%sstarted chunked file %s type is %s\n", MODULE_PREFIX, 
             fileName.c_str(), (_fileType == FILE_TYPE_GCODE ? "GCODE" : "THR"));
     _inProgress = true;
+    _firstValidLineProcessed = false;
     return retc;
 }
 
@@ -113,13 +115,13 @@ void EvaluatorFiles::service(WorkManager* pWorkManager)
         if (!isComment)
         {
             bool isValid = true;
-            // Form GCode if Theta-Rho
+            // Format line if Theta-Rho
             if (_fileType == FILE_TYPE_THETA_RHO)
             {
                 int spacePos = newLine.indexOf(" ");
                 if (spacePos > 0)
                 {
-                    newLine = (chunkPos == 0 ? "_THRLINE0_/" : "_THRLINEN_/") + newLine.substring(0,spacePos) + "/" + newLine.substring(spacePos+1);
+                    newLine = (!_firstValidLineProcessed ? "_THRLINE0_/" : "_THRLINEN_/") + newLine.substring(0,spacePos) + "/" + newLine.substring(spacePos+1);
                 }
                 else
                 {
@@ -133,6 +135,7 @@ void EvaluatorFiles::service(WorkManager* pWorkManager)
                 String retStr;
                 WorkItem workItem(newLine.c_str());
                 pWorkManager->addWorkItem(workItem, retStr);
+                _firstValidLineProcessed = true;
             }
         }
     }

@@ -49,6 +49,9 @@ private:
     // File type
     int _fileType;
 
+    // Start of file handling
+    bool _firstValidLineProcessed;
+
 private:
     int getFileTypeFromExtension(String& fileName);
 

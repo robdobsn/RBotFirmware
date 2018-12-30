@@ -29,6 +29,9 @@ public:
     // Is Busy
     bool isBusy();
     
+    // Check valid
+    bool isValid(WorkItem& workItem);
+
     // Expressions
     void addExpression(const char* exprStr, bool isInitialValue);
     void evalExpressions(bool procInitialValues, bool procLoopValues);

@@ -32,7 +32,7 @@ public:
 
 private:
     // Config
-    float _stepAngleDegrees;
+    double _stepAngle;
     bool _continueFromPrevious;
 
     // Pattern in progress
@@ -41,10 +41,12 @@ private:
     // Pattern vars
     double _curTheta;
     double _curRho;
-    int _totalSteps;
+    int _interpolateSteps;
     int _curStep;
     double _thetaInc;
     double _rhoInc;
     double _thetaStartOffset;
+    double _prevTheta;
+    double _prevRho;
 
 };

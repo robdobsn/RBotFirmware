@@ -103,4 +103,7 @@ private:
 
     // Set config
     void evaluatorsSetConfig(const char* configJson, const char* jsonPath, const char* robotAttributes);
+
+    // Can be processed
+    bool canBeProcessed(WorkItem& workItem);
 };

@@ -30,6 +30,19 @@ bool EvaluatorPatterns::isBusy()
     return _isRunning;
 }
 
+// Check valid
+bool EvaluatorPatterns::isValid(WorkItem& workItem)
+{
+    // Evaluator patterns should have the file extension .param
+    String fileName = workItem.getString();
+    String fileExt = FileManager::getFileExtension(fileName);
+    if (!fileExt.equalsIgnoreCase("param"))
+    {
+        return false;
+    }
+    return true;
+}
+
 void EvaluatorPatterns::addExpression(const char* exprStr, bool isInitialValue)
 {
     const char* pExpr = exprStr;
@@ -212,15 +225,9 @@ void EvaluatorPatterns::service(WorkManager* pWorkManager)
 // Process WorkItem
 bool EvaluatorPatterns::execWorkItem(WorkItem& workItem, FileManager& fileManager)
 {
-    // Evaluator patterns should have the file extension .param
+    // The command should be a valid file name
     String fileName = workItem.getString();
     String fileExt = FileManager::getFileExtension(fileName);
-    if (!fileExt.equalsIgnoreCase("param"))
-    {
-        return false;
-    }
-
-    // The command should be a valid file name
     String patternJson = fileManager.getFileContents("", fileName, 0);
     if (patternJson.length() <= 0)
     {

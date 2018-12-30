@@ -1097,19 +1097,19 @@
 			ctx.nextPoint = thrPoint;
 			ctx.deltaTheta = ctx.nextPoint[0] - ctx.prevPoint[0];
 			ctx.thetaInc = ctx.deltaTheta >= 0 ? window.stState.thrMaxThetaInc : -window.stState.thrMaxThetaInc;
-			let rhoDiff = (ctx.nextPoint[1] - ctx.prevPoint[1]);
+			let deltaRho = (ctx.nextPoint[1] - ctx.prevPoint[1]);
 			if (Math.abs(ctx.deltaTheta) < window.stState.thrMaxThetaInc)
 			{
 				ctx.thetaInc = ctx.deltaTheta;
 				ctx.interpolateSteps = 1;
-				ctx.rhoInc = rhoDiff;
+				ctx.rhoInc = deltaRho;
 			}
 			else
 			{	
 				ctx.interpolateSteps = Math.ceil(Math.abs(ctx.deltaTheta) / window.stState.thrMaxThetaInc);
 				if (ctx.interpolateSteps < 1)
 					return "ignore";
-				ctx.rhoInc = rhoDiff * window.stState.thrMaxThetaInc / Math.abs(ctx.deltaTheta);
+				ctx.rhoInc = deltaRho * window.stState.thrMaxThetaInc / Math.abs(ctx.deltaTheta);
 			}
 			ctx.curTheta = ctx.prevPoint[0];
 			ctx.curRho = ctx.prevPoint[1];
@@ -1119,12 +1119,14 @@
 		}
 		function thrProcInterp(ctx)
 		{
+			if (ctx.interpolateIdx > ctx.interpolateSteps)
+				return false;
+			ctx.interpolateIdx++;
 			ctx.x = (ctx.sizeX / 2) * ctx.curRho * Math.sin(ctx.curTheta);
 			ctx.y = (ctx.sizeY / 2) * ctx.curRho * Math.cos(ctx.curTheta);
 			ctx.curRho += ctx.rhoInc;
 			ctx.curTheta += ctx.thetaInc;
-			ctx.interpolateIdx++;
-			return (ctx.interpolateIdx <= ctx.interpolateSteps);
+			return true;
 		}
 		function thrEvalLine(ctx)
 		{

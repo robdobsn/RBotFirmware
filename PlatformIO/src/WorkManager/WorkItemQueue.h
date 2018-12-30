@@ -71,6 +71,20 @@ public:
         return true;
     }
 
+    // Peek the queue
+    bool peek(WorkItem& workItem)
+    {
+        // Check if queue is empty
+        if (_workItemQueue.empty())
+        {
+            return false;
+        }
+
+        // read the item and remove
+        workItem = _workItemQueue.front();
+        return true;
+    }
+
     // Get from queue
     bool get(WorkItem& workItem)
     {

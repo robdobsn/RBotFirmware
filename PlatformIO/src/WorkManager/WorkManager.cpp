@@ -195,14 +195,39 @@ void WorkManager::addWorkItem(WorkItem& workItem, String &retStr, int cmdIdx)
     }
 }
 
+bool WorkManager::canBeProcessed(WorkItem& workItem)
+{
+    // See if it is a pattern evaluator work item
+    if (_evaluatorPatterns.isValid(workItem))
+        return !_evaluatorPatterns.isBusy();
+
+    // See if it is a theta-rho evaluator work item
+    if (_evaluatorThetaRhoLine.isValid(workItem))
+        return !_evaluatorThetaRhoLine.isBusy();
+
+    // See if it is a file to process
+    if (_evaluatorFiles.isValid(workItem))
+        return !_evaluatorFiles.isBusy();
+
+    // See if it is command sequence
+    if (_evaluatorSequences.isValid(workItem))
+        return !_evaluatorSequences.isBusy();
+
+    // Assume it is gcode
+    return _robotController.canAcceptCommand();
+}
+
 bool WorkManager::execWorkItem(WorkItem& workItem)
 {
     // See if the command is a pattern generator
     bool handledOk = false;
     // See if it is a pattern evaluator
-    handledOk = _evaluatorPatterns.execWorkItem(workItem, _fileManager);
-    if (handledOk)
-        return handledOk;
+    if (_evaluatorPatterns.isValid(workItem))
+    {
+        handledOk = _evaluatorPatterns.execWorkItem(workItem, _fileManager);
+        if (handledOk)
+            return handledOk;
+    }
     // See if it is a theta-rho line
     if (_evaluatorThetaRhoLine.isValid(workItem))
     {
@@ -217,7 +242,7 @@ bool WorkManager::execWorkItem(WorkItem& workItem)
         if (handledOk)
             return handledOk;
     }
-    // See if it is a command sequencer
+    // See if it is a command sequence
     if (_evaluatorSequences.isValid(workItem))
     {
         handledOk = _evaluatorSequences.execWorkItem(workItem);
@@ -234,21 +259,29 @@ void WorkManager::service()
     // Check if the RobotController can accept more
     if (_robotController.canAcceptCommand())
     {
-        // Get a new work item
+        // Peek at next work item
         WorkItem workItem;
-        bool rslt = _workItemQueue.get(workItem);
+        bool rslt = _workItemQueue.peek(workItem);
         if (rslt)
         {
-            Log.verbose("%sgetWorkflow rlst=%d (waiting %d), %s\n", MODULE_PREFIX, rslt,
-                    _workItemQueue.size(),
-                    workItem.getString().c_str());
+            // Check if this work item can be processed
+            if (canBeProcessed(workItem))
+            {
+                rslt = _workItemQueue.get(workItem);
+                if (rslt)
+                {
+                    Log.verbose("%sgetWorkflow rlst=%d (waiting %d), %s\n", MODULE_PREFIX, rslt,
+                            _workItemQueue.size(),
+                            workItem.getString().c_str());
 
-            // Check for extended commands
-            rslt = execWorkItem(workItem);
+                    // Check for extended commands
+                    rslt = execWorkItem(workItem);
 
-            // Check for GCode
-            if (!rslt)
-                EvaluatorGCode::interpretGcode(workItem, &_robotController, true);
+                    // Check for GCode
+                    if (!rslt)
+                        EvaluatorGCode::interpretGcode(workItem, &_robotController, true);
+                }
+            }
         }
     }
 
