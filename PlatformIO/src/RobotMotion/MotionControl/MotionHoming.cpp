@@ -179,6 +179,17 @@ bool MotionHoming::extractAndExecNextCmd(AxesParams &axesParams)
                         _homingStrPos++;
                     }
                 }
+                // "S" sets the speed directly to a multiple of 5
+                else if ((_homingSequence.charAt(_homingStrPos) == 'S') || (_homingSequence.charAt(_homingStrPos) == 's'))
+                {
+                    _homingStrPos++;
+                    if ((_homingSequence.charAt(_homingStrPos) >= '1') && (_homingSequence.charAt(_homingStrPos) <= '9'))
+                    {
+                        int mult = _homingSequence.charAt(_homingStrPos) - '0' + 1;
+                        _curCommand.setFeedrate(mult * 5);
+                        _homingStrPos++;
+                    }
+                }
                 // Endstops
                 // Log.notice("%stestingCh %c, speed %F, dist %F\n", MODULE_PREFIX, _homingSequence.charAt(_homingStrPos),
                 //             _curCommand.getFeedrate(), _curCommand.getValMM(axisIdx));
