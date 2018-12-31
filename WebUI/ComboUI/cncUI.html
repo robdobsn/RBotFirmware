@@ -182,6 +182,12 @@
                 document.getElementById("td_RobotName_input").value = settings["name"];
             }
 
+            // Command Schedule
+            if (settings.hasOwnProperty("cmdSched"))
+            {
+                document.getElementById("td_CmdSchedule_input").value = JSON.stringify(settings["cmdSched"]);
+            }
+
             // Chack strings valid
             checkJsonStrings(false);
         }
@@ -201,6 +207,7 @@
                 try
                 {
                     window.pageState.settings.robotConfig = JSON.parse(document.getElementById('td_RobotConfig_input').value);
+                    window.pageState.settings.cmdSched = JSON.parse(document.getElementById('td_CmdSchedule_input').value);
                 }
                 catch (e)
                 {
@@ -1488,6 +1495,12 @@
                         <th class="th-status">RobotConfig</th>
                         <td id="td_RobotConfig" style="border-right: 1px;">
                             <textarea class="textAreaInput" id="td_RobotConfig_input"></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th-status">Schedule</th>
+                        <td id="td_CmdSchedule" style="border-right: 1px;">
+                            <textarea class="textAreaInput" id="td_CmdSchedule_input"></textarea>
                         </td>
                     </tr>
                     <tr>

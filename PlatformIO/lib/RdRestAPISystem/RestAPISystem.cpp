@@ -47,6 +47,12 @@ void RestAPISystem::setup(RestAPIEndpoints &endpoints)
     endpoints.addEndpoint("logcmd", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
                     std::bind(&RestAPISystem::apiNetLogCmdSerial, this, std::placeholders::_1, std::placeholders::_2), 
                     "Set log to cmdSerial /enable/port");
+    endpoints.addEndpoint("ntp", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                    std::bind(&RestAPISystem::apiNTPSetConfig, this, std::placeholders::_1, std::placeholders::_2), 
+                    "Set NTP to gmt/dst/server1/s2/s3");
+    endpoints.addEndpoint("ntpget", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                    std::bind(&RestAPISystem::apiNTPGetConfig, this, std::placeholders::_1, std::placeholders::_2), 
+                    "Set NTP to gmt/dst/server1/s2/s3");
     endpoints.addEndpoint("reformatfs", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
                     std::bind(&RestAPISystem::apiReformatFS, this, std::placeholders::_1, std::placeholders::_2), 
                     "Reformat file system e.g. /spiffs");
@@ -89,6 +95,18 @@ void RestAPISystem::setup(RestAPIEndpoints &endpoints)
                                 std::placeholders::_3, std::placeholders::_4,
                                 std::placeholders::_5, std::placeholders::_6,
                                 std::placeholders::_7));
+
+    // Gat and set cmd scheduler JSON
+    endpoints.addEndpoint("cmdScheduleGet", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                std::bind(&RestAPISystem::apiCmdSchedGetConfig, this, std::placeholders::_1, std::placeholders::_2), 
+                "Set command scheduler");
+    endpoints.addEndpoint("cmdScheduleSet", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_POST,
+                            std::bind(&RestAPISystem::apiPostCmdSchedule, this, std::placeholders::_1, std::placeholders::_2),
+                            "Set command schedule", "application/json", NULL, true, NULL, 
+                            std::bind(&RestAPISystem::apiPostCmdScheduleBody, this, 
+                            std::placeholders::_1, std::placeholders::_2, 
+                            std::placeholders::_3, std::placeholders::_4,
+                            std::placeholders::_5));
     }
 
 String RestAPISystem::getWifiStatusStr()
@@ -283,6 +301,55 @@ void RestAPISystem::apiNetLogHTTP(String &reqStr, String &respStr)
     Log.trace("%sNetLogHTTP %s, ipHost %s, port %s, url %s\n", MODULE_PREFIX, 
                         onOffFlag.c_str(), ipAddrOrHostname.c_str(), httpPortStr.c_str(), urlStr.c_str());
     _netLog.setHTTP(onOffFlag != "0", ipAddrOrHostname.c_str(), httpPortStr.c_str(), urlStr.c_str());
+    Utils::setJsonBoolResult(respStr, true);
+}
+
+void RestAPISystem::apiCmdSchedGetConfig(String &reqStr, String &respStr)
+{
+    // Get config
+    String configStr;
+    _commandScheduler.getConfig(configStr);
+    Utils::setJsonBoolResult(respStr, true, configStr.c_str());
+}
+
+void RestAPISystem::apiPostCmdSchedule(String &reqStr, String &respStr)
+{
+    Log.notice("%sPostCmdSchedule %s\n", MODULE_PREFIX, reqStr.c_str());
+    // Result
+    Utils::setJsonBoolResult(respStr, true);      
+}
+
+void RestAPISystem::apiPostCmdScheduleBody(String& reqStr, uint8_t *pData, size_t len, size_t index, size_t total)
+{
+    Log.notice("%sPostCmdScheduleBody len %d\n", MODULE_PREFIX, len);
+    // Store the settings
+    _commandScheduler.setConfig(pData, len);
+}
+
+void RestAPISystem::apiNTPGetConfig(String &reqStr, String &respStr)
+{
+    // Get NTP config
+    String configStr;
+    _ntpClient.getConfig(configStr);
+    configStr = "\"ntp\":" + configStr;
+    Utils::setJsonBoolResult(respStr, true, configStr.c_str());
+}
+
+void RestAPISystem::apiNTPSetConfig(String &reqStr, String &respStr)
+{
+    // Set NTP
+    String gmtOffsetSecsStr = RestAPIEndpoints::getNthArgStr(reqStr.c_str(), 1);
+    String dstOffsetSecsStr = RestAPIEndpoints::getNthArgStr(reqStr.c_str(), 2);
+    String server1Str = RestAPIEndpoints::getNthArgStr(reqStr.c_str(), 3);
+    String server2Str = RestAPIEndpoints::getNthArgStr(reqStr.c_str(), 4);
+    String server3Str = RestAPIEndpoints::getNthArgStr(reqStr.c_str(), 5);
+    int gmtOffsetSecs = atoi(gmtOffsetSecsStr.c_str());
+    int dstOffsetSecs = atoi(dstOffsetSecsStr.c_str());
+    Log.trace("%sNNTPSetup GMT %d DST %d S1 %s S2 %s S3 %s\n", MODULE_PREFIX, 
+            gmtOffsetSecs, dstOffsetSecs,
+            server1Str.c_str(), server3Str.c_str(), server3Str.c_str());
+    _ntpClient.setConfig(gmtOffsetSecs, dstOffsetSecs, 
+            server1Str.c_str(), server3Str.c_str(), server3Str.c_str());
     Utils::setJsonBoolResult(respStr, true);
 }
 

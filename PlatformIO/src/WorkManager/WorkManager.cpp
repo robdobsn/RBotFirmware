@@ -15,13 +15,15 @@ WorkManager::WorkManager(ConfigBase& mainConfig,
             RobotController &robotController,
             LedStrip &ledStrip,
             RestAPISystem &restAPISystem,
-            FileManager& fileManager) :
+            FileManager& fileManager,
+            CommandScheduler& commandScheduler) :
             _systemConfig(mainConfig),
             _robotConfig(robotConfig),
             _robotController(robotController),
             _ledStrip(ledStrip),
             _restAPISystem(restAPISystem),
             _fileManager(fileManager),
+            _commandScheduler(commandScheduler),
             _evaluatorSequences(fileManager),
             _evaluatorFiles(fileManager),
             _evaluatorThetaRhoLine()
@@ -112,9 +114,16 @@ void WorkManager::processSingle(const char *pCmdStr, String &retStr)
         _robotController.pause(true);
         retStr = okRslt;
     }
+    else if (strcasecmp(pCmdStr, "sleep") == 0)
+    {
+        _robotController.pause(true);
+        _ledStrip.setSleepMode(true);
+        retStr = okRslt;
+    }
     else if (strcasecmp(pCmdStr, "resume") == 0)
     {
         _robotController.pause(false);
+        _ledStrip.setSleepMode(false);
         retStr = okRslt;
     }
     else if (strcasecmp(pCmdStr, "playpause") == 0)

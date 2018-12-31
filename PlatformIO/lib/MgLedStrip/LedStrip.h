@@ -15,6 +15,7 @@ public:
     void service();
     void updateLedFromConfig(const char* pLedJson);
     const char* getConfigStrPtr();
+    void setSleepMode(int sleep);
 
 private:
     void configChanged();
@@ -26,6 +27,7 @@ private:
     ConfigBase* _pHwConfig;
     static const int NUM_SENSOR_VALUES = 100;
     bool _isSetup;
+    bool _isSleeping;
     int _ledPin;
     int _sensorPin;
 

@@ -9,6 +9,8 @@
 #include "MQTTManager.h"
 #include "NetLog.h"
 #include "FileManager.h"
+#include "NTPClient.h"
+#include "CommandScheduler.h"
 
 class RestAPISystem
 {
@@ -28,17 +30,21 @@ private:
     RdOTAUpdate& _otaUpdate;
     NetLog& _netLog;
     FileManager& _fileManager;
+    NTPClient& _ntpClient;
+    CommandScheduler& _commandScheduler;
     String _systemType;
     String _systemVersion;
     
 public:
     RestAPISystem(WiFiManager& wifiManager, MQTTManager& mqttManager,
                 RdOTAUpdate& otaUpdate, NetLog& netLog,
-                FileManager& fileManager,
+                FileManager& fileManager, NTPClient& ntpClient,
+                CommandScheduler& commandScheduler,
                 const char* systemType, const char* systemVersion) :
                 _wifiManager(wifiManager), _mqttManager(mqttManager), 
                 _otaUpdate(otaUpdate), _netLog(netLog),
-                _fileManager(fileManager)
+                _fileManager(fileManager), _ntpClient(ntpClient),
+                _commandScheduler(commandScheduler)
     {
         _deviceRestartPending = false;
         _deviceRestartMs = 0;
@@ -74,6 +80,15 @@ public:
     void apiNetLogSerial(String &reqStr, String &respStr);
     void apiNetLogCmdSerial(String &reqStr, String &respStr);
     void apiNetLogHTTP(String &reqStr, String &respStr);
+
+    // Command scheduler
+    void apiCmdSchedGetConfig(String &reqStr, String &respStr);
+    void apiPostCmdSchedule(String &reqStr, String &respStr);
+    void apiPostCmdScheduleBody(String& reqStr, uint8_t *pData, size_t len, size_t index, size_t total);
+
+    // NTP settings
+    void apiNTPGetConfig(String &reqStr, String &respStr);
+    void apiNTPSetConfig(String &reqStr, String &respStr);
 
     // Check for OTA updates
     void apiCheckUpdate(String &reqStr, String& respStr);

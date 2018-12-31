@@ -2,35 +2,38 @@
 // Rob Dobson 2016-2018
 
 // API used for web, MQTT and BLE (future)
-//   Get version:    /v                   - returns version info
-//   Set WiFi:       /w/ssss/pppp/hhhh    - ssss = ssid, pppp = password - assumes WPA2, hhhh = hostname
-//                                        - does not clear previous WiFi so clear first if required
-//   Clear WiFi:     /wc                  - clears all stored SSID, etc
-//   Set MQTT:       /mq/ss/ii/oo/pp      - ss = server, ii and oo are in/out topics, pp = port
-//                                        - in topics / should be replaced by ~
-//                                        - (e.g. /devicename/in becomes ~devicename~in)
-//   Check updates:  /checkupdate         - check for updates on the update server
-//   Reset:          /reset               - reset device
-//   Log level:      /loglevel/lll        - Logging level (for MQTT and HTTP)
-//                                        - lll one of v (verbose), t (trace), n (notice), w (warning), e (error), f (fatal)
-//   Log to MQTT:    /logmqtt/en/topic    - Control logging to MQTT
-//                                        - en = 0 or 1 for off/on, topic is the topic logging messages are sent to
-//   Log to HTTP:    /loghttp/en/ip/po/ur - Control logging to HTTP
-//                                        - en = 0 or 1 for off/on
-//                                        - ip is the IP address of the computer to log to (or hostname) and po is the port
-//                                        - ur is the HTTP url logging messages are POSTed to
-//   Log to serial:  /logserial/en/port   - Control logging to serial
-//                                        - en = 0 or 1 for off/on
-//                                        - port is the port number 0 = standard USB port
-//   Log to cmd:     /logcmd/en           - Control logging to command port (extra serial if configured)
-//                                        - en = 0 or 1 for off/on
+//   Get version:    /v                     - returns version info
+//   Set WiFi:       /w/ssss/pppp/hhhh      - ssss = ssid, pppp = password - assumes WPA2, hhhh = hostname
+//                                          - does not clear previous WiFi so clear first if required
+//   Clear WiFi:     /wc                    - clears all stored SSID, etc
+//   Set MQTT:       /mq/ss/ii/oo/pp        - ss = server, ii and oo are in/out topics, pp = port
+//                                          - in topics / should be replaced by ~
+//                                          - (e.g. /devicename/in becomes ~devicename~in)
+//   Check updates:  /checkupdate           - check for updates on the update server
+//   Reset:          /reset                 - reset device
+//   Log level:      /loglevel/lll          - Logging level (for MQTT and HTTP)
+//                                          - lll one of v (verbose), t (trace), n (notice), w (warning), e (error), f (fatal)
+//   Log to MQTT:    /logmqtt/en/topic      - Control logging to MQTT
+//                                          - en = 0 or 1 for off/on, topic is the topic logging messages are sent to
+//   Log to HTTP:    /loghttp/en/ip/po/ur   - Control logging to HTTP
+//                                          - en = 0 or 1 for off/on
+//                                          - ip is the IP address of the computer to log to (or hostname) and po is the port
+//                                          - ur is the HTTP url logging messages are POSTed to
+//   Log to serial:  /logserial/en/port     - Control logging to serial
+//                                          - en = 0 or 1 for off/on
+//                                          - port is the port number 0 = standard USB port
+//   Log to cmd:     /logcmd/en             - Control logging to command port (extra serial if configured)
+//                                          - en = 0 or 1 for off/on
+//   Set NTP:        /ntp/gmt/dst/s1/s2/s3  - Set NTP server(s)
+//                                          - gmt = GMT offset in seconds, dst = Daylight Savings Offset in seconds
+//                                          - s1, s2, s3 = NTP servers, e.g. pool.ntp.org
 
 // System type - this is duplicated here to make it easier for automated updater which parses the systemName = "aaaa" line
 #define SYSTEM_TYPE_NAME "RBotFirmware"
 const char* systemType = "RBotFirmware";
 
 // System version
-const char* systemVersion = "2.016.001";
+const char* systemVersion = "2.018.001";
 
 // Build date
 const char* buildDate = __DATE__;
@@ -58,9 +61,13 @@ StatusIndicator wifiStatusLed;
 #include "ConfigNVS.h"
 #include "ConfigFile.h"
 
-// // WiFi Manager
+// WiFi Manager
 #include "WiFiManager.h"
 WiFiManager wifiManager;
+
+// NTP Client
+#include "NTPClient.h"
+NTPClient ntpClient;
 
 // File manager
 #include "FileManager.h"
@@ -94,7 +101,8 @@ static const char *hwConfigJSON = {
     "\"OTAUpdate\":{\"enabled\":1,\"server\":\"domoticzoff\",\"port\":5076,\"directOk\":1},"
     "\"serialConsole\":{\"portNum\":0},"
     "\"commandSerial\":{\"portNum\":-1,\"baudRate\":115200},"
-    "\"defaultRobotType\":\"SandTableScara\""
+    "\"defaultRobotType\":\"SandTableScara\","
+    "\"ntpConfig\":{\"ntpServer\":\"pool.ntp.org\", \"gmtOffsetSecs\":0, \"gmtOffsetSecs\":0}"
     "}"
 };
 
@@ -107,11 +115,17 @@ ConfigNVS robotConfig("robot", 2000);
 // Config for WiFi
 ConfigNVS wifiConfig("wifi", 100);
 
+// Config for NTP
+ConfigNVS ntpConfig("ntp", 200);
+
 // Config for MQTT
 ConfigNVS mqttConfig("mqtt", 200);
 
 // Config for network logging
 ConfigNVS netLogConfig("netLog", 200);
+
+// Config for CommandScheduler
+ConfigNVS cmdSchedulerConfig("cmdSched", 500);
 
 // Config for LED Strip
 ConfigNVS ledStripConfig("ledStrip", 100);
@@ -119,6 +133,10 @@ ConfigNVS ledStripConfig("ledStrip", 100);
 // LED Strip
 #include "LedStrip.h"
 LedStrip ledStrip(ledStripConfig);
+
+// CommandScheduler - time-based commands
+#include "CommandScheduler.h"
+CommandScheduler commandScheduler;
 
 // CommandSerial port - used to monitor activity remotely and send commands
 #include "CommandSerial.h"
@@ -135,7 +153,8 @@ NetLog netLog(Serial, mqttManager, commandSerial);
 // REST API System
 #include "RestAPISystem.h"
 RestAPISystem restAPISystem(wifiManager, mqttManager,
-                            otaUpdate, netLog, fileManager,
+                            otaUpdate, netLog, fileManager, ntpClient,
+                            commandScheduler,
                             systemType, systemVersion);
 
 // Robot controller
@@ -149,7 +168,8 @@ WorkManager _workManager(hwConfig,
                 _robotController,
                 ledStrip,
                 restAPISystem,
-                fileManager);
+                fileManager,
+                commandScheduler);
 
 // REST API Robot
 #include "RestAPIRobot.h"
@@ -192,6 +212,9 @@ void setup()
     // WiFi Config
     wifiConfig.setup();
 
+    // NTP Config
+    ntpConfig.setup();
+
     // MQTT Config
     mqttConfig.setup();
 
@@ -204,11 +227,18 @@ void setup()
     // Led Strip
     ledStrip.setup(&robotConfig, "robotConfig/ledStrip");
 
+    // Command scheduler
+    // ConfigBase cmdSchedulerConfig("{\"commandScheduler\":{\"jobs\":[{\"hour\":23,\"minute\":59,\"cmd\":\"sleep\"}]}}");
+    commandScheduler.setup(&robotConfig, "cmdSched", &cmdSchedulerConfig, restAPIEndpoints);
+
     // Serial console
     serialConsole.setup(hwConfig, restAPIEndpoints);
 
     // WiFi Manager
     wifiManager.setup(hwConfig, &wifiConfig, systemType, &wifiStatusLed);
+
+    // NTP Client
+    ntpClient.setup(&hwConfig, "ntpConfig", &ntpConfig);
 
     // Firmware update
     otaUpdate.setup(hwConfig, systemType, systemVersion);
@@ -310,4 +340,10 @@ void loop()
         _workManager.queryStatus(newStatus);
         webServer.sendAsyncEvent(newStatus.c_str(), "status");
     }
+
+    // Service command scheduler
+    commandScheduler.service();
+
+    // Service NTP
+    ntpClient.service();
 }

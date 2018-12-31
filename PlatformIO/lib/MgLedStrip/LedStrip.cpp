@@ -11,6 +11,7 @@ static const char* MODULE_PREFIX = "LedStrip: ";
 LedStrip::LedStrip(ConfigBase &ledNvValues) : _ledNvValues(ledNvValues)
 {
     _isSetup = false;
+    _isSleeping = false;
     _ledPin = -1;
     _sensorPin = -1;
 }
@@ -132,8 +133,8 @@ void LedStrip::service()
     if (!_isSetup)
         return;
 
-    // If the switch is off, turn off the led
-    if (!_ledOn)
+    // If the switch is off or sleeping, turn off the led
+    if (!_ledOn || _isSleeping)
     {
         _ledValue = 0x0;
     }
@@ -206,4 +207,10 @@ uint16_t LedStrip::getAverageSensorReading() {
         sum += sensorValues[i];
     }
     return sum / NUM_SENSOR_VALUES;
+}
+
+// Set sleep mode
+void LedStrip::setSleepMode(int sleep)
+{
+    _isSleeping = sleep;
 }

@@ -16,6 +16,7 @@ class ConfigBase;
 class RobotController;
 class RestAPISystem;
 class FileManager;
+class CommandScheduler;
 
 // Work Manager - handles all workflow for the robot
 class WorkManager
@@ -28,6 +29,7 @@ private:
     WorkItemQueue _workItemQueue;
     RestAPISystem& _restAPISystem;
     FileManager& _fileManager;
+    CommandScheduler& _commandScheduler;
 
     // Evaluators
     EvaluatorPatterns _evaluatorPatterns;
@@ -51,7 +53,8 @@ public:
                 RobotController &robotController,
                 LedStrip &ledStrip,
                 RestAPISystem &restAPISystem,
-                FileManager& fileManager);
+                FileManager& fileManager,
+                CommandScheduler& commandScheduler);
 
     // Check if queue can accept a work item
     bool canAcceptWorkItem();
