@@ -179,7 +179,7 @@ const char *RobotConfigurations::_robotConfigs[] = {
 "   \"model\": \"SingleArmScara\","
 "   \"homing\":"
 "   {"
-"     \"homingSeq\":\"A-10000R9N;B+10000R9#;A-10000R9n;B+10000R9;#;A+470R9;B-470R9;#;B-10000R9N;#;B-10000R9n;#;B+750R9;#;A=h;B=h;$\","
+"     \"homingSeq\":\"A-10000S2N;B+10000S2#;A-10000S2n;B+10000S2;#;A+470S2;B-470S2;#;B-10000S2N;#;B-10000S2n;#;B+850S2;#;A=h;B=h;$\","
 "     \"maxHomingSecs\": 120"
 "   }"
 "   ,"
