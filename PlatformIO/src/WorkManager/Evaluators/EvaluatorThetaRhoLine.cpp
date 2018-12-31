@@ -78,24 +78,29 @@ bool EvaluatorThetaRhoLine::execWorkItem(WorkItem& workItem)
     double rhoDiff = newRho - _curRho;
 
     /// new
-
-    // Theta diff is minimal, no interpolation
-    if (abs(thetaDiff) < _maxAngle) {
-        _totalSteps = 1;
-        _thetaInc = 0;
-        _rhoInc = rhoDiff; //? not sure here
-    } else {
-        _thetaInc = (thetaDiff < 0) ?  -_maxAngle : _maxAngle;
-        _rhoInc = _maxAngle / abs(thetaDiff) * (rhoDiff);
-        _totalSteps = (int)((double)abs(thetaDiff) / _maxAngle);
-    }
+    // if (abs(thetaDiff) < _maxAngle) {
+    //     _totalSteps = 1;
+    //     _thetaInc = 0;
+    //     _rhoInc = rhoDiff;
+    // } else {
+    //     _thetaInc = (thetaDiff < 0) ? -_maxAngle : _maxAngle;
+    //     _rhoInc = _maxAngle / abs(thetaDiff) * (rhoDiff);
+    //     _totalSteps = (int)((double)abs(thetaDiff) / _maxAngle);
+    // }
+    // _curStep = 0;
 
     /// old
-    // _totalSteps = int(ceilf(abs(thetaDiff * 180 / M_PI / _stepAngleDegrees))) + 1;
-    // _curStep = 0;
-    // _thetaInc = thetaDiff / _totalSteps;
-    // _rhoInc = rhoDiff / _totalSteps;
-
+    // if (abs(thetaDiff) < 0.05)  {
+        _totalSteps = 1;
+        _thetaInc = thetaDiff;
+        _rhoInc = rhoDiff;
+    // } else {
+    //     _totalSteps = int(ceilf(abs(thetaDiff * 180 / M_PI / _stepAngleDegrees))) + 1;
+    //     _thetaInc = thetaDiff / _totalSteps;
+    //     _rhoInc = rhoDiff / _totalSteps;
+    // }
+    _curStep = 0;
+ 
     ///
     _inProgress = true;
     Log.trace("%sexecWorkItem Theta %F Rho %F CurTheta %F CurRho %F TotalSteps %d ThetaInc %F RhoInc %F\n", MODULE_PREFIX, 
