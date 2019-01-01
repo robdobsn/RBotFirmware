@@ -27,6 +27,7 @@
 				fileTypes: [["param", "Parametric"],["gcode", "G-Code"],["thr", "Theta-Rho"],["seq", "Sequence"]],
 				fileTypeLookup: {},
 				paramNewJson: { setup:"t=0\nR=sizeX/2\n", loop:"x=R*sin(t)\ny=R*cos(t)\nR=R-0.3\nt=t+0.1\nstop=R<20\n" },
+				thrNewContent: "0 0\n62.8 1",
 				canvasBorder: 10,
 				canvasSize: 200,
 				thrMaxThetaInc: Math.PI/64
@@ -473,15 +474,7 @@
 			listStr += (window.stState.curPage.trim() === 'patEdit') ? "disabled" : "";
 			listStr += ">" + fileNameNoExtension + "</textarea>";
 			listStr += "</div>";
-			listStr += "<div class='body-form-line'>";
-			if (window.stState.curFileType !== "param")
-			{
-				// Fields
-				listStr += "<div class='body-form-label'>Contents</div>";
-				listStr += "<textarea id='textcontents' oninput='fileContentChange()' class='body-form-field' cols='50' rows='10'>" + 
-							window.stState.curFileContentJson + "</textarea>";
-			}
-			else
+			if (window.stState.curFileType === "param")
 			{
 				let patternInfo = { setup:"", loop:""};
 				if (window.stState.curFileContentJson.length > 0)
@@ -503,8 +496,9 @@
 					patternInfo = window.stState.paramNewJson;
 				}
 				// Fields
+				listStr += "<div class='body-form-line'>";
 				listStr += "<div class='body-form-label'>Setup expressions</div>";
-				listStr += "<textarea id='patsetup' oninput='patSetupChange();' class='body-form-field' cols='50' rows='10'>" + 
+				listStr += "<textarea id='patsetup' oninput='patSetupChange();' class='body-form-field' cols='50' rows='3'>" + 
 							patternInfo.setup + "</textarea>";
 				listStr += "</div>";
 				listStr += "<div class='body-form-line'>";
@@ -513,24 +507,58 @@
 							patternInfo.loop + "</textarea>";
 				listStr += "</div>";
 			}
-			listStr += "<div class='body-form-line'>";
-			listStr += "<div class='body-form-label'>";
-			listStr += "<div class='body-form-label-container'>Validity check";
-			listStr += "</div>";			
-			listStr += "<div class='body-form-label-container'>";
-			listStr += genButton("patternSimulate()", "", "Evaluate Now", "Evaluate", "Simulate", 'body-form-button', false, true);
-			listStr += "</div>";
-			listStr += "<label class='body-form-label-checkbox'>Auto Evaluate"
-			listStr += "<input class='body-form-checkbox' type='checkbox' id='auto-evaluate' onclick='autoEvalClicked()' checked></input>";
-			listStr += "<span class='body-form-checkmark'></span>";
-			listStr += "</label>";
-			listStr += "</div>";
-			listStr += "<textarea readonly id='validity-check' class='body-form-field' cols='50' rows='1'></textarea>";
-			listStr += "</div>";
-			listStr += "<div class='body-form-line'>";
-			listStr += "<div class='body-form-label'>View</div>";
-			listStr += "<div class='body-view' id='table-view'><canvas id='table-canvas' class='body-canvas'></canvas></div>";
-			listStr += "</div>";
+			else if (window.stState.curFileType === "seq")
+			{
+				// 
+				listStr += "<div class='body-form-line'>";
+				listStr += "<div class='body-form-label'>Contents</div>";
+				listStr += "<div class='body-form-2-col'>";
+				listStr += "<div class='body-form-col'>";
+				listStr += "<textarea id='textcontents' oninput='fileContentChange()' ondrop='seqContentDrop(event)'" +
+							" ondragover='seqContentAllowDrop(event)' class='body-form-field body-form-textarea' cols='50' rows='10'>" + 
+							window.stState.curFileContentJson + "</textarea>";
+				listStr += "</div>";
+				listStr += "<div class='body-form-colsep'></div>";
+				listStr += "<div class='body-form-col body-form-field' id='patternsList'>HELLO FILES";
+				listStr += "</div>";
+				listStr += "</div>";
+				listStr += "</div>";
+			}
+			else
+			{
+				// Fields
+				listStr += "<div class='body-form-line'>";
+				listStr += "<div class='body-form-label'>Contents</div>";
+				let fileContent = window.stState.curFileContentJson;
+				if ((window.stState.curFileContentJson.length == 0) && (window.stState.curPage.trim() === 'patAdd') && (window.stState.curFileType === 'thr'))
+					fileContent = window.stState.thrNewContent;
+				listStr += "<textarea id='textcontents' oninput='fileContentChange()' class='body-form-field' cols='50' rows='10'>" + 
+					fileContent + "</textarea>";
+				listStr += "</div>";
+			}
+
+			// Common code
+			if (window.stState.curFileType !== "seq")
+			{
+				listStr += "<div class='body-form-line'>";
+				listStr += "<div class='body-form-label'>";
+				listStr += "<div class='body-form-label-container'>Validity check";
+				listStr += "</div>";			
+				listStr += "<div class='body-form-label-container'>";
+				listStr += genButton("patternSimulate()", "", "Evaluate Now", "Evaluate", "Simulate", 'body-form-button', false, true);
+				listStr += "</div>";
+				listStr += "<label class='body-form-label-checkbox'>Auto Evaluate"
+				listStr += "<input class='body-form-checkbox' type='checkbox' id='auto-evaluate' onclick='autoEvalClicked()' checked></input>";
+				listStr += "<span class='body-form-checkmark'></span>";
+				listStr += "</label>";
+				listStr += "</div>";
+				listStr += "<textarea readonly id='validity-check' class='body-form-field' cols='50' rows='1'></textarea>";
+				listStr += "</div>";
+				listStr += "<div class='body-form-line'>";
+				listStr += "<div class='body-form-label'>View</div>";
+				listStr += "<div class='body-view' id='table-view'><canvas id='table-canvas' class='body-canvas'></canvas></div>";
+				listStr += "</div>";
+			}
 			listStr += "</fieldset>";
 			listStr += "</form>";
 			listStr += "</div>";
@@ -541,6 +569,31 @@
 
 			// Validate (if needed)
 			patternValidate();
+
+			// Show file list if sequence add/editing
+			if (window.stState.curFileType === "seq")
+				fileListShow(true);
+		}
+		function seqContentAllowDrop(event)
+		{
+			event.preventDefault();
+		}
+		function seqContentDrop(event)
+		{
+			let srcFileName = event.dataTransfer.getData("fileName");
+			const destTextArea = document.getElementById("textcontents");
+			addToTextarea(destTextArea, srcFileName + "\n");
+		}
+		function addToTextarea(el, newText) 
+		{
+			var start = el.selectionStart
+			var end = el.selectionEnd
+			var text = el.value
+			var before = text.substring(0, start)
+			var after  = text.substring(end, text.length)
+			el.value = (before + newText + after)
+			el.selectionStart = el.selectionEnd = start + newText.length
+			el.focus()
 		}
 		function setCanvasShapeAndSize()
 		{
@@ -584,10 +637,10 @@
 			else
 			{
 				genHomePageBody();
-				fileListShow();
+				fileListShow(false);
 			}
 		}
-		function fileListShow()
+		function fileListShow(inEditor)
 		{
 			// Set the new patterns list
 			let divPatternsList = document.getElementById("patternsList");
@@ -604,43 +657,66 @@
 				// Check for excluded files
 				if (window.stState.fileExcludes.includes(fileName.toUpperCase()))
 					continue;
-				listStr += "<div class='body-list-line'>";
-				listStr += "<div class='body-list-item'>";
-				if (fileExtension === "JSON")
-					listStr += "<span>" + fileName + "</span>"
+				if (inEditor)
+				{
+					listStr += "<div class='body-list-line body-list-small'>";
+					listStr += "<div class='body-list-draggable'>";
+					listStr += "<span draggable='true' ondragstart='fileItemDragStart(event)'>" + fileName + "</span>"
+					listStr += "</div>";
+					listStr += "</div>";
+				}
 				else
-					listStr += genAjaxButton("/playFile/"+fileName, "", fileNameNoExtension, "Play file", "", 'body-group-button');
-				listStr += "</div>";
-				listStr += "<div class='body-list-actions'>";
-				listStr += genButton("userAction(\"file\",\"run\",\"~key~\")", fileName, "", "Run pattern", "Run", 'body-group-button', false, true);
-				listStr += genButton("userAction(\"file\",\"runAtStart\",\"~key~\"," + (fileName === window.pageState.startup) + ")", fileName, "", "Run at startup", "RunAtStart", 'body-group-button', (fileName === window.pageState.startup), true);
-				listStr += genButton("userAction(\"file\",\"edit\",\"~key~\")", fileName, "", "Edit pattern", "Edit", 'body-group-button', false, true);
+				{
+					listStr += "<div class='body-list-line'>";
+					listStr += "<div class='body-list-item'>";
+					if (fileExtension === "JSON")
+						listStr += "<span>" + fileName + "</span>"
+					else
+						listStr += genAjaxButton("/playFile/"+fileName, "", fileNameNoExtension, "Play file", "", 'body-group-button');
+					listStr += "</div>";
+					listStr += "<div class='body-list-actions'>";
+					listStr += genButton("userAction(\"file\",\"run\",\"~key~\")", fileName, "", "Run pattern", "Run", 'body-group-button', false, true);
+					listStr += genButton("userAction(\"file\",\"runAtStart\",\"~key~\"," + (fileName === window.pageState.startup) + ")", fileName, "", "Run at startup", "RunAtStart", 'body-group-button', (fileName === window.pageState.startup), true);
+					listStr += genButton("userAction(\"file\",\"edit\",\"~key~\")", fileName, "", "Edit pattern", "Edit", 'body-group-button', false, true);
+					listStr += "</div>";
+				}
 				listStr += "</div>";
 				listStr += "</div>";
 			}
 			divPatternsList.innerHTML = listStr;
 			// Drag and drop
-			let dropZones = document.getElementsByClassName("drop-zone");
-			Array.from(dropZones).forEach(function(dropZone) {
+			if (inEditor)
+			{
+				// 
+			}
+			else
+			{
+				let dropZones = document.getElementsByClassName("drop-zone");
+				Array.from(dropZones).forEach(function(dropZone) {
 
-				// Prevent default drag behaviors
-				['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-					dropZone.addEventListener(eventName, preventDefaults, false)
-					document.body.addEventListener(eventName, preventDefaults, false)
-				});
+					// Prevent default drag behaviors
+					['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+						dropZone.addEventListener(eventName, preventDefaults, false)
+						document.body.addEventListener(eventName, preventDefaults, false)
+					});
 
-				// Highlight drop area when item is dragged over it
-				['dragenter', 'dragover'].forEach(eventName => {
-					dropZone.addEventListener(eventName, highlight, false)
-				});
+					// Highlight drop area when item is dragged over it
+					['dragenter', 'dragover'].forEach(eventName => {
+						dropZone.addEventListener(eventName, highlight, false)
+					});
 
-				['dragleave', 'drop'].forEach(eventName => {
-					dropZone.addEventListener(eventName, unhighlight, false)
-				});
+					['dragleave', 'drop'].forEach(eventName => {
+						dropZone.addEventListener(eventName, unhighlight, false)
+					});
 
-				// Handle dropped files
-				dropZone.addEventListener('drop', handleDrop, false);
-			}); 
+					// Handle dropped files
+					dropZone.addEventListener('drop', handleDrop, false);
+				}); 
+			}
+		}
+		function fileItemDragStart(event)
+		{
+			event.dataTransfer.setData("fileName", event.target.innerHTML);
 		}
 		function fileReadToEdit(fileContent)
 		{
@@ -963,15 +1039,25 @@
 		}
 		function patternValidate()
 		{
+			if (window.stState.curFileType === "seq")
+				return;
+
 			// Check in parametric mode
 			if (window.stState.curFileType === "param")
 				parametricValidate();
 
 			// Check for auto-evaluation
-			const autoEval = document.getElementById("auto-evaluate");
-			if (autoEval.checked)
+			try
 			{
-				patternSimulate();
+				const autoEval = document.getElementById("auto-evaluate");
+				if (autoEval.checked)
+				{
+					patternSimulate();
+				}
+			}
+			catch(excp)
+			{
+				
 			}
 		}
 		function fileContentChange()
@@ -1531,6 +1617,15 @@
 		display: block;
 		clear: both;
 	}
+	.body-form-2-col {
+		display: flex;
+	}
+	.body-form-col {
+		flex: 50%;
+	}
+	.body-form-colsep {
+		width: 15px;
+	}
 	.body-form-line{
 		padding:5px;
 	}
@@ -1547,7 +1642,10 @@
 		border:none;
 		font-size: 14pt;
 	}
-
+	textarea.body-form-field{
+		box-sizing: border-box;
+		height: 100%;
+	}
 	.body-form-label-container {
 		margin-bottom: 12px;
 		-webkit-user-select: none;
@@ -1643,6 +1741,13 @@
 		padding: 10px;
 		clear: both;
 	}
+	.body-list-draggable{
+		background: #407ea6;
+		display: inline-block;
+		padding: 5px;
+		font-size: 1.2em;
+		color: #fafcee;
+	}
 	.body-list-item{
 		display: inline-block;
 		padding: 10px;
@@ -1650,6 +1755,9 @@
 		/*width: 25%;*/
 		font-size: 1.2em;
 		color: #fafcee;
+	}
+	.body-list-small {
+		padding: 5px;
 	}
 	.body-list-actions{
 		margin-right: 20px;
