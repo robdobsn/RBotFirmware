@@ -80,7 +80,7 @@ public:
             return false;
         }
 
-        // read the item and remove
+        // read the item
         workItem = _workItemQueue.front();
         return true;
     }

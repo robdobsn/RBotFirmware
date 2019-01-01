@@ -8,6 +8,8 @@
 #include "Utils.h"
 #include "../WorkManager.h"
 
+//#define THETA_RHO_DEBUG 1
+
 static const char* MODULE_PREFIX = "EvaluatorThetaRhoLine: ";
 
 EvaluatorThetaRhoLine::EvaluatorThetaRhoLine()
@@ -97,41 +99,51 @@ bool EvaluatorThetaRhoLine::execWorkItem(WorkItem& workItem)
     _prevRho = newRho;
     _curStep = 0;
     _inProgress = true;
+#ifdef THETA_RHO_DEBUG
     Log.trace("%sexecWorkItem Theta %F Rho %F CurTheta %F CurRho %F TotalSteps %d ThetaInc %F RhoInc %F AbsDeltaTheta %F StepAng %F\n", MODULE_PREFIX, 
             newTheta, newRho, _curTheta, _curRho, _interpolateSteps, _thetaInc, _rhoInc, absDeltaTheta, _stepAngle);
+#endif
     return true;
 }
 
 void EvaluatorThetaRhoLine::service(WorkManager* pWorkManager)
 {
-    // Check in progress
-    if (!_inProgress)
-        return;
-
-    // See if we can add to the queue
-    if (!pWorkManager->canAcceptWorkItem())
-        return;
-
-    // Next iteration
-    char lineBuf[100];
-    sprintf(lineBuf, "G0 U%0.5f V%0.5f", _curTheta, _curRho);
-    String retStr;
-    WorkItem workItem(lineBuf);
-    pWorkManager->addWorkItem(workItem, retStr);
-    Log.trace("%sservice %s\n", MODULE_PREFIX, lineBuf);
-
-    // Check complete
-    _curStep++;
-    if (_curStep >= _interpolateSteps)
+    // Process multiple if possible
+    for (int i = 0; i < PROCESS_STEPS_PER_SERVICE; i++)
     {
-        Log.trace("%sservice finished\n", MODULE_PREFIX);
-        _inProgress = false;
-        return;
-    }
+        // Check in progress
+        if (!_inProgress)
+            return;
 
-    // Inc
-    _curTheta += _thetaInc;
-    _curRho += _rhoInc;
+        // See if we can add to the queue
+        if (!pWorkManager->canAcceptWorkItem())
+            return;
+
+        // Next iteration
+        char lineBuf[100];
+        sprintf(lineBuf, "G0 U%0.5f V%0.5f", _curTheta, _curRho);
+        String retStr;
+        WorkItem workItem(lineBuf);
+#ifdef THETA_RHO_DEBUG
+        Log.trace("%sservice %s\n", MODULE_PREFIX, lineBuf);
+#endif
+        pWorkManager->addWorkItem(workItem, retStr);
+
+        // Check complete
+        _curStep++;
+        if (_curStep >= _interpolateSteps)
+        {
+#ifdef THETA_RHO_DEBUG
+            Log.trace("%sservice finished\n", MODULE_PREFIX);
+#endif
+            _inProgress = false;
+            return;
+        }
+
+        // Inc
+        _curTheta += _thetaInc;
+        _curRho += _rhoInc;
+    }
 }
 
 void EvaluatorThetaRhoLine::stop()

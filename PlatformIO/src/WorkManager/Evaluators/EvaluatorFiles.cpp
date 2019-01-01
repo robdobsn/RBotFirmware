@@ -91,6 +91,14 @@ void EvaluatorFiles::service(WorkManager* pWorkManager)
     if (!pWorkManager->canAcceptWorkItem())
         return;
 
+    // If the file type is not pure GCODE then
+    // only add to the queue if the queue is completely empty
+    if (_fileType != FILE_TYPE_GCODE)
+    {
+        if (!pWorkManager->queueIsEmpty())
+            return;
+    }
+
     // Get next line from file
     String filename = "";
     int fileLen = 0;

@@ -2,11 +2,14 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="a6546d1b-6b84-477e-8b73-cfca16147a37" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/lib/RdRestAPISystem/RestAPISystem.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/lib/RdRestAPISystem/RestAPISystem.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/lib/RdRestAPISystem/RestAPISystem.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/lib/RdRestAPISystem/RestAPISystem.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WebAutogenResources.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WebAutogenResources.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/main.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../WebUI/ComboUI/cncUI.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../WebUI/ComboUI/cncUI.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/lib/RdCommandScheduler/CommandScheduler.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/lib/RdCommandScheduler/CommandScheduler.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionHelper.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionHelper.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorThetaRhoLine.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorThetaRhoLine.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorThetaRhoLine.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorThetaRhoLine.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/WorkItemQueue.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/WorkItemQueue.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/WorkManager.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/WorkManager.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/WorkManager.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/WorkManager.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -22,7 +25,7 @@
     <session id="-1091900226">
       <usages-collector id="statistics.lifecycle.project">
         <counts>
-          <entry key="project.closed" value="3" />
+          <entry key="project.closed" value="4" />
           <entry key="project.open.time.0" value="4" />
           <entry key="project.open.time.5" value="1" />
           <entry key="project.opened" value="5" />

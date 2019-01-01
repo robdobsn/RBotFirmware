@@ -49,4 +49,7 @@ private:
     double _prevTheta;
     double _prevRho;
 
+    // Process steps per service
+    static const int PROCESS_STEPS_PER_SERVICE = 20;
+
 };

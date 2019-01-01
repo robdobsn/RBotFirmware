@@ -3,6 +3,8 @@
 
 #pragma once
 
+// #define DEBUG_WORK_ITEM_SERVICE 1
+
 #include <Arduino.h>
 #include "LedStrip.h"
 #include "WorkItemQueue.h"
@@ -46,6 +48,12 @@ private:
     const unsigned long STATUS_CHECK_MS = 250;
     // A status update will always be sent (even if no change) after this time
     const unsigned long STATUS_ALWAYS_UPDATE_MS = 10000;
+
+    // Debug
+#ifdef DEBUG_WORK_ITEM_SERVICE
+    uint32_t _debugLastWorkServiceMs;
+    static const uint32_t DEBUG_BETWEEN_WORK_ITEM_SERVICES_MS = 0;
+#endif
 
 public:
     WorkManager(ConfigBase& mainConfig,

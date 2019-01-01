@@ -30,6 +30,9 @@ WorkManager::WorkManager(ConfigBase& mainConfig,
 {
     _statusReportLastCheck = 0;
     _statusLastHashVal = 0;
+#ifdef DEBUG_WORK_ITEM_SERVICE
+    _debugLastWorkServiceMs = 0;
+#endif
 }
 
 void WorkManager::queryStatus(String &respStr)
@@ -144,6 +147,10 @@ void WorkManager::processSingle(const char *pCmdStr, String &retStr)
         // Send the line to the workflow manager
         if (strlen(pCmdStr) != 0)
         {
+#ifdef DEBUG_WORK_ITEM_SERVICE
+            Log.trace("%sprocessSingle add %s\n", MODULE_PREFIX, 
+                        pCmdStr);
+#endif
             bool rslt = _workItemQueue.add(pCmdStr);
             if (!rslt)
                 retStr = "{\"rslt\":\"busy\"}";
@@ -163,7 +170,9 @@ void WorkManager::addWorkItem(WorkItem& workItem, String &retStr, int cmdIdx)
     }
 
     // Handle multiple commands (semicolon delimited)
-    //Log.trace("%s addWorkItem %s\n", MODULE_PREFIX, pCmdStr);
+// #ifdef DEBUG_WORK_ITEM_SERVICE
+//     Log.trace("%s addWorkItem %s\n", MODULE_PREFIX, workItem.getCString());
+// #endif
     const int MAX_TEMP_CMD_STR_LEN = 1000;
     const char *pCurStr = workItem.getCString();
     const char *pCurStrEnd = pCurStr;
@@ -189,7 +198,9 @@ void WorkManager::addWorkItem(WorkItem& workItem, String &retStr, int cmdIdx)
             // process
             if (cmdIdx == -1 || cmdIdx == curCmdIdx)
             {
-                //Log.trace("%ssingle %d %s\n", MODULE_PREFIX, stLen, pCurCmd);
+// #ifdef DEBUG_WORK_ITEM_SERVICE
+//                 Log.trace("%ssingle %d %s\n", MODULE_PREFIX, stLen, pCurCmd);
+// #endif            
                 processSingle(pCurCmd, retStr);
             }
             delete[] pCurCmd;
@@ -264,6 +275,42 @@ bool WorkManager::execWorkItem(WorkItem& workItem)
 
 void WorkManager::service()
 {
+#ifdef DEBUG_WORK_ITEM_SERVICE
+    if (!Utils::isTimeout(millis(), _debugLastWorkServiceMs, DEBUG_BETWEEN_WORK_ITEM_SERVICES_MS))
+        return;
+    _debugLastWorkServiceMs = millis();
+    {
+    WorkItem workItem;
+    bool rslt = _workItemQueue.peek(workItem);
+    bool prc = false;
+    const char* pStr = "";
+    if (rslt)
+    {
+        prc = canBeProcessed(workItem);
+        pStr = workItem.getString().c_str();
+    }
+    Log.trace("%sservice robotCanAccept %d waiting %d rslt %d canProc %d peek %s\n", MODULE_PREFIX,
+                _robotController.canAcceptCommand(),
+                _workItemQueue.size(), rslt, prc,
+                pStr);
+    std::queue<WorkItem> newQ;
+    int qSize = _workItemQueue.size();
+    for (int i = 0; i < qSize; i++)
+    {
+        WorkItem it;
+        _workItemQueue.get(it);
+        newQ.push(it);
+        Log.trace("QUEUE ITEM %d = %s\n", i, it.getCString());
+    }
+    for (int i = 0; i < qSize; i++)
+    {
+        WorkItem it = newQ.front();
+        _workItemQueue.add(it.getCString());
+        newQ.pop();
+    }
+    }
+#endif
+
     // Pump the workflow here
     // Check if the RobotController can accept more
     if (_robotController.canAcceptCommand())
@@ -279,10 +326,11 @@ void WorkManager::service()
                 rslt = _workItemQueue.get(workItem);
                 if (rslt)
                 {
-                    Log.verbose("%sgetWorkflow rlst=%d (waiting %d), %s\n", MODULE_PREFIX, rslt,
+#ifdef DEBUG_WORK_ITEM_SERVICE
+                    Log.trace("%sgetWorkflow rlst=%d (waiting %d), %s\n", MODULE_PREFIX, rslt,
                             _workItemQueue.size(),
                             workItem.getString().c_str());
-
+#endif
                     // Check for extended commands
                     rslt = execWorkItem(workItem);
 
@@ -294,7 +342,7 @@ void WorkManager::service()
         }
     }
 
-    // Service command extender (which pumps the state machines associated with extended commands)
+    // Service evaluators
     evaluatorsService();
 }
 
