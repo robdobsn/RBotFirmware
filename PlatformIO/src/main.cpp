@@ -102,7 +102,7 @@ static const char *hwConfigJSON = {
     "\"serialConsole\":{\"portNum\":0},"
     "\"commandSerial\":{\"portNum\":-1,\"baudRate\":115200},"
     "\"defaultRobotType\":\"SandTableScara\","
-    "\"ntpConfig\":{\"ntpServer\":\"pool.ntp.org\", \"gmtOffsetSecs\":0, \"gmtOffsetSecs\":0}"
+    "\"ntpConfig\":{\"ntpServer\":\"pool.ntp.org\", \"gmtOffsetSecs\":0, \"dstOffsetSecs\":0}"
     "}"
 };
 
