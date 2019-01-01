@@ -262,12 +262,21 @@ void setup()
     netLog.setup(&netLogConfig, wifiManager.getHostname().c_str());
 
     // Add debug blocks
-    debugLoopTimer.blockAdd(0, "Web");
-    debugLoopTimer.blockAdd(1, "Console");
-    debugLoopTimer.blockAdd(2, "MQTT");
-    debugLoopTimer.blockAdd(3, "OTA");
-    debugLoopTimer.blockAdd(4, "Robot");
-    debugLoopTimer.blockAdd(5, "CMD");
+    debugLoopTimer.blockAdd(0, "LoopTimer");
+    debugLoopTimer.blockAdd(1, "WiFi");
+    debugLoopTimer.blockAdd(2, "Web");
+    debugLoopTimer.blockAdd(3, "WifiLed");
+    debugLoopTimer.blockAdd(4, "LedStrip");
+    debugLoopTimer.blockAdd(5, "SysAPI");
+    debugLoopTimer.blockAdd(6, "Console");
+    debugLoopTimer.blockAdd(7, "MQTT");
+    debugLoopTimer.blockAdd(8, "OTA");
+    debugLoopTimer.blockAdd(9, "NetLog");
+    debugLoopTimer.blockAdd(10, "Robot");
+    debugLoopTimer.blockAdd(11, "CMD");
+    debugLoopTimer.blockAdd(12, "Status");
+    debugLoopTimer.blockAdd(13, "Sched");
+    debugLoopTimer.blockAdd(14, "NTP");
 
     // Reconfigure the robot and other settings
     _workManager.reconfigure();
@@ -281,58 +290,71 @@ void loop()
 {
 
     // Debug loop Timing
+    debugLoopTimer.blockStart(0);
     debugLoopTimer.service();
+    debugLoopTimer.blockEnd(0);
 
     // Service WiFi
+    debugLoopTimer.blockStart(1);
     wifiManager.service();
+    debugLoopTimer.blockEnd(1);
 
     // Service the web server
     if (wifiManager.isConnected())
     {
         // Begin the web server
-        debugLoopTimer.blockStart(0);
+        debugLoopTimer.blockStart(2);
         webServer.begin(true);
-        debugLoopTimer.blockEnd(0);
+        debugLoopTimer.blockEnd(2);
     }
 
     // Service the status LED
-    wifiStatusLed.service();
-
-    // Service the LED Strip
-    ledStrip.service();
-
-    // Service the system API (restart)
-    restAPISystem.service();
-
-    // Serial console
-    debugLoopTimer.blockStart(1);
-    serialConsole.service();
-    debugLoopTimer.blockEnd(1);
-
-    // Service MQTT
-    debugLoopTimer.blockStart(2);
-    mqttManager.service();
-    debugLoopTimer.blockEnd(2);
-
-    // Service OTA Update
     debugLoopTimer.blockStart(3);
-    otaUpdate.service();
+    wifiStatusLed.service();
     debugLoopTimer.blockEnd(3);
 
-    // Service NetLog
-    netLog.service(serialConsole.getXonXoff());
-
-    // Service the robot controller
+    // Service the LED Strip
     debugLoopTimer.blockStart(4);
-    _robotController.service();
+    ledStrip.service();
     debugLoopTimer.blockEnd(4);
 
-    // Service the command interface (which pumps the workflow queue)
+    // Service the system API (restart)
     debugLoopTimer.blockStart(5);
-    _workManager.service();
+    restAPISystem.service();
     debugLoopTimer.blockEnd(5);
 
+    // Serial console
+    debugLoopTimer.blockStart(6);
+    serialConsole.service();
+    debugLoopTimer.blockEnd(6);
+
+    // Service MQTT
+    debugLoopTimer.blockStart(7);
+    mqttManager.service();
+    debugLoopTimer.blockEnd(7);
+
+    // Service OTA Update
+    debugLoopTimer.blockStart(8);
+    otaUpdate.service();
+    debugLoopTimer.blockEnd(8);
+
+    // Service NetLog
+    debugLoopTimer.blockStart(9);
+    netLog.service(serialConsole.getXonXoff());
+    debugLoopTimer.blockStart(9);
+
+    // Service the robot controller
+    debugLoopTimer.blockStart(10);
+    _robotController.service();
+    debugLoopTimer.blockEnd(10);
+
+    // Service the command interface (which pumps the workflow queue)
+    debugLoopTimer.blockStart(11);
+    _workManager.service();
+    debugLoopTimer.blockEnd(11);
+
     // Check for changes to status
+    debugLoopTimer.blockStart(12);
     if (_workManager.checkStatusChanged())
     {
         // Send changed status
@@ -340,10 +362,15 @@ void loop()
         _workManager.queryStatus(newStatus);
         webServer.sendAsyncEvent(newStatus.c_str(), "status");
     }
+    debugLoopTimer.blockEnd(12);
 
     // Service command scheduler
+    debugLoopTimer.blockStart(13);
     commandScheduler.service();
+    debugLoopTimer.blockEnd(13);
 
     // Service NTP
+    debugLoopTimer.blockStart(14);
     ntpClient.service();
+    debugLoopTimer.blockEnd(14);
 }

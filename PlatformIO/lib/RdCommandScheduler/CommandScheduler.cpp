@@ -40,9 +40,10 @@ void CommandScheduler::service()
     // Check for a command to schedule
     if (Utils::isTimeout(millis(), _lastCheckForJobsMs, TIME_BETWEEN_CHECKS_MS))
     {
+        _lastCheckForJobsMs = millis();
         // Get time
         struct tm timeinfo;
-        if (!getLocalTime(&timeinfo))
+        if (!getLocalTime(&timeinfo, 0))
         {
             Log.trace("%sservice failed to get time\n", MODULE_PREFIX);
             return;
@@ -70,7 +71,6 @@ void CommandScheduler::service()
                 }
             }
         }
-        _lastCheckForJobsMs = millis();
     }
 }
 
