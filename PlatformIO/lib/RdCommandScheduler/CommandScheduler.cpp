@@ -45,7 +45,7 @@ void CommandScheduler::service()
         struct tm timeinfo;
         if (!getLocalTime(&timeinfo, 0))
         {
-            Log.trace("%sservice failed to get time\n", MODULE_PREFIX);
+            Log.verbose("%sservice failed to get time\n", MODULE_PREFIX);
             return;
         }
 

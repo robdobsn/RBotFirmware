@@ -1,7 +1,7 @@
 // RBotFirmware
 // Rob Dobson 2017
 
-#define DEBUG_EVALUATOR_PATTERN 1
+// #define DEBUG_EVALUATOR_PATTERN 1
 
 #include "EvaluatorPatterns.h"
 #include "../WorkManager.h"

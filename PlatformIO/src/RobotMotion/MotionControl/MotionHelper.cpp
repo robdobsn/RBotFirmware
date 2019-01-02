@@ -7,7 +7,7 @@
 #include "Utils.h"
 #include "AxisValues.h"
 
-#define MOTION_LOG_DEBUG 1
+// #define MOTION_LOG_DEBUG 1
 
 static const char* MODULE_PREFIX = "MotionHelper: ";
 
