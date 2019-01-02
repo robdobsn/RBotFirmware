@@ -11,7 +11,7 @@
 //                                          - (e.g. /devicename/in becomes ~devicename~in)
 //   Check updates:  /checkupdate           - check for updates on the update server
 //   Reset:          /reset                 - reset device
-//   Log level:      /loglevel/lll          - Logging level (for MQTT and HTTP)
+//   Log level:      /loglevel/lll          - Logging level (for MQTT, HTTP and Papertrail)
 //                                          - lll one of v (verbose), t (trace), n (notice), w (warning), e (error), f (fatal)
 //   Log to MQTT:    /logmqtt/en/topic      - Control logging to MQTT
 //                                          - en = 0 or 1 for off/on, topic is the topic logging messages are sent to
@@ -19,6 +19,10 @@
 //                                          - en = 0 or 1 for off/on
 //                                          - ip is the IP address of the computer to log to (or hostname) and po is the port
 //                                          - ur is the HTTP url logging messages are POSTed to
+//   Log to Papertail:    /logpt/en/ho/po   - Control logging to Papertrail
+//                                          - en = 0 or 1 for off/on
+//                                          - ho is the papertrail host
+//                                          - po is the papertrail port
 //   Log to serial:  /logserial/en/port     - Control logging to serial
 //                                          - en = 0 or 1 for off/on
 //                                          - port is the port number 0 = standard USB port
