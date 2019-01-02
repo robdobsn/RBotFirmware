@@ -41,6 +41,9 @@ void RestAPISystem::setup(RestAPIEndpoints &endpoints)
     endpoints.addEndpoint("loghttp", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
                     std::bind(&RestAPISystem::apiNetLogHTTP, this, std::placeholders::_1, std::placeholders::_2), 
                     "Set log to HTTP /enable/host/port/url");
+    endpoints.addEndpoint("logpt", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                    std::bind(&RestAPISystem::apiNetLogPT, this, std::placeholders::_1, std::placeholders::_2), 
+                    "Set log to Papertail /enable/host/port");
     endpoints.addEndpoint("logserial", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
                     std::bind(&RestAPISystem::apiNetLogSerial, this, std::placeholders::_1, std::placeholders::_2), 
                     "Set log to serial /enable/port");
@@ -301,6 +304,18 @@ void RestAPISystem::apiNetLogHTTP(String &reqStr, String &respStr)
     Log.trace("%sNetLogHTTP %s, ipHost %s, port %s, url %s\n", MODULE_PREFIX, 
                         onOffFlag.c_str(), ipAddrOrHostname.c_str(), httpPortStr.c_str(), urlStr.c_str());
     _netLog.setHTTP(onOffFlag != "0", ipAddrOrHostname.c_str(), httpPortStr.c_str(), urlStr.c_str());
+    Utils::setJsonBoolResult(respStr, true);
+}
+
+void RestAPISystem::apiNetLogPT(String &reqStr, String &respStr)
+{
+    // Set PaperTrail as a destination for logging
+    String onOffFlag = RestAPIEndpoints::getNthArgStr(reqStr.c_str(), 1);
+    String hostName = RestAPIEndpoints::getNthArgStr(reqStr.c_str(), 2);
+    String portStr = RestAPIEndpoints::getNthArgStr(reqStr.c_str(), 3);
+    Log.trace("%sNetLogPT %s, host %s, port %s\n", MODULE_PREFIX, 
+                        onOffFlag.c_str(), hostName.c_str(), portStr.c_str());
+    _netLog.setPapertrail(onOffFlag != "0", hostName.c_str(), portStr.c_str());
     Utils::setJsonBoolResult(respStr, true);
 }
 
