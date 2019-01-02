@@ -48,8 +48,6 @@ private:
     const unsigned long STATUS_CHECK_MS = 250;
     // A status update will always be sent (even if no change) after this time
     const unsigned long STATUS_ALWAYS_UPDATE_MS = 10000;
-    struct tm timeinfo;
-    char localTimeString[19];
 
     // Debug
 #ifdef DEBUG_WORK_ITEM_SERVICE

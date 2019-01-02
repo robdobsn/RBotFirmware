@@ -58,10 +58,11 @@ void WorkManager::queryStatus(String &respStr)
     innerJsonStr += ledStrip.substring(1, ledStrip.length() - 1);    
     // Time of Day
     String timeJsonStr;
+    struct tm timeinfo;
+    const int MAX_LOCAL_TIME_STR_LEN = 40;
+    char localTimeString[MAX_LOCAL_TIME_STR_LEN];
     if (getLocalTime(&timeinfo, 0)) {
-        //tm_mon months since January - [ 0 to 11 ]
-        //tm_year years since 1900
-        sprintf(localTimeString, "%04d-%02d-%02d %02d:%02d:%02d", (timeinfo.tm_year + 1900), (timeinfo.tm_mon + 1), timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+        strftime(localTimeString, MAX_LOCAL_TIME_STR_LEN, "%Y-%m-%d %H:%M:%S", &timeinfo);
         timeJsonStr += "\"tod\":\"";
         timeJsonStr += localTimeString;
         timeJsonStr += "\"";
