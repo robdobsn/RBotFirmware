@@ -98,14 +98,6 @@ class AxesParams
         maxVal = _axisParams[axisIdx]._maxVal;
         return true;
     }
-
-    float getAxisMaxRange(int axisIdx)
-    {
-        if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
-            return 0;
-        return fabsf(_axisParams[axisIdx]._maxVal - _axisParams[axisIdx]._minVal);
-    }
-
     int32_t getAxisMaxSteps(int axisIdx)
     {
         if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)

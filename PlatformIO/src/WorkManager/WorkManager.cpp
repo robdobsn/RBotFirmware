@@ -153,9 +153,14 @@ void WorkManager::processSingle(const char *pCmdStr, String &retStr)
 #endif
             bool rslt = _workItemQueue.add(pCmdStr);
             if (!rslt)
+            {
                 retStr = "{\"rslt\":\"busy\"}";
+                Log.trace("%sprocessSingle failed to add\n", MODULE_PREFIX);
+            }
             else
+            {
                 retStr = okRslt;
+            }
         }
     }
     // Log.verbose("%sprocSingle rslt %s\n", MODULE_PREFIX, retStr.c_str());

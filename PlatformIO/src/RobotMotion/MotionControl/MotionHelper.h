@@ -18,7 +18,6 @@ public:
     static constexpr float junctionDeviation_default = 0.05f;
     static constexpr float distToTravelMM_ignoreBelow = 0.01f;
     static constexpr int pipelineLen_default = 100;
-    static constexpr int MAX_ATTR_STR_LEN = 400;
 
 private:
     // Pause
@@ -29,11 +28,14 @@ private:
     bool _allowAllOutOfBounds;
     // Axes parameters
     AxesParams _axesParams;
+    // Robot attributes
+    String _robotAttributes;
     // Callbacks for coordinate conversion etc
     ptToActuatorFnType _ptToActuatorFn;
     actuatorToPtFnType _actuatorToPtFn;
     correctStepOverflowFnType _correctStepOverflowFn;
     convertCoordsFnType _convertCoordsFn;
+    setRobotAttributesFnType _setRobotAttributes;
     // Relative motion
     bool _moveRelative;
     // Planner used to plan the pipeline of motion
@@ -72,7 +74,7 @@ public:
 
     void setTransforms(ptToActuatorFnType ptToActuatorFn, actuatorToPtFnType actuatorToPtFn,
                        correctStepOverflowFnType correctStepOverflowFn,
-                       convertCoordsFnType convertCoordsFn);
+                       convertCoordsFnType convertCoordsFn, setRobotAttributesFnType setRobotAttributes);
 
     void configure(const char *robotConfigJSON);
 

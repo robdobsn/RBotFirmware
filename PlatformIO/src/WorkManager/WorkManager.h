@@ -52,7 +52,7 @@ private:
     // Debug
 #ifdef DEBUG_WORK_ITEM_SERVICE
     uint32_t _debugLastWorkServiceMs;
-    static const uint32_t DEBUG_BETWEEN_WORK_ITEM_SERVICES_MS = 0;
+    static const uint32_t DEBUG_BETWEEN_WORK_ITEM_SERVICES_MS = 100;
 #endif
 
 public:

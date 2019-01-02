@@ -7,7 +7,7 @@
 #include "Utils.h"
 #include "AxisValues.h"
 
-// #define MOTION_LOG_DEBUG 1
+#define MOTION_LOG_DEBUG 1
 
 static const char* MODULE_PREFIX = "MotionHelper: ";
 
@@ -40,13 +40,14 @@ MotionHelper::~MotionHelper()
 // which have continuous rotation as step counts would otherwise overflow 32bit integer values
 void MotionHelper::setTransforms(ptToActuatorFnType ptToActuatorFn, actuatorToPtFnType actuatorToPtFn,
                                  correctStepOverflowFnType correctStepOverflowFn,
-                                 convertCoordsFnType convertCoordsFn)
+                                 convertCoordsFnType convertCoordsFn, setRobotAttributesFnType setRobotAttributes)
 {
     // Store callbacks
     _ptToActuatorFn = ptToActuatorFn;
     _actuatorToPtFn = actuatorToPtFn;
     _correctStepOverflowFn = correctStepOverflowFn;
     _convertCoordsFn = convertCoordsFn;
+    _setRobotAttributes = setRobotAttributes;
 }
 
 // Configure the robot and pipeline parameters using a JSON input string
@@ -83,6 +84,10 @@ void MotionHelper::configure(const char *robotConfigJSON)
             _motionIO.configureAxis(axisJSON.c_str(), axisIdx);
         }
     }
+
+    // Set the robot attributes
+    if (_setRobotAttributes)
+        _setRobotAttributes(_axesParams, _robotAttributes);
 
     // Homing
     _motionHoming.configure(robotGeom.c_str());
@@ -168,11 +173,7 @@ void MotionHelper::getCurStatus(RobotCommandArgs &args)
 // Get attributes of robot
 void MotionHelper::getRobotAttributes(String& robotAttrs)
 {
-    char attrStr[MAX_ATTR_STR_LEN];
-    sprintf(attrStr, "{\"sizeX\":%0.2f,\"sizeY\":%0.2f,\"sizeZ\":%0.2f,\"originX\":%0.2f,\"originY\":%0.2f,\"originZ\":%0.2f}",
-            _axesParams.getAxisMaxRange(0), _axesParams.getAxisMaxRange(1), _axesParams.getAxisMaxRange(2),
-            0.0, 0.0, 0.0);
-    robotAttrs = attrStr;
+    robotAttrs = _robotAttributes;
 }
 
 // Command the robot to home one or more axes

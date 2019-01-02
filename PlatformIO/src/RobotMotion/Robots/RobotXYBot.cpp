@@ -10,7 +10,7 @@
 RobotXYBot::RobotXYBot(const char* pRobotTypeName, MotionHelper& motionHelper) :
     RobotBase(pRobotTypeName, motionHelper)
 {
-    _motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow, convertCoords);
+    _motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow, convertCoords, setRobotAttributes);
 }
 
 bool RobotXYBot::ptToActuator(AxisFloats& targetPt, AxisFloats& outActuator, 
@@ -56,4 +56,28 @@ void RobotXYBot::correctStepOverflow(AxisPosition& curPos, AxesParams& axesParam
 
 void RobotXYBot::convertCoords(RobotCommandArgs& cmdArgs, AxesParams& axesParams)
 {
+}
+
+// Set robot attributes
+void RobotXYBot::setRobotAttributes(AxesParams& axesParams, String& robotAttributes)
+{
+    // Calculate max and min cartesian size of robot
+    float xMin = 0, xMax = 0, yMin = 0, yMax = 0;
+	axesParams.getMaxVal(0, xMin);
+	bool axis0MaxValid = axesParams.getMaxVal(0, xMax);
+	axesParams.getMaxVal(1, yMin);
+	bool axis1MaxValid = axesParams.getMaxVal(1, yMax);
+    // If not valid set to some values to avoid arithmetic errors
+	if (!axis0MaxValid)
+		xMax = 100;
+	if (!axis1MaxValid)
+		yMax = 100;
+
+    // Set attributes
+    constexpr int MAX_ATTR_STR_LEN = 400;
+    char attrStr[MAX_ATTR_STR_LEN];
+    sprintf(attrStr, "{\"sizeX\":%0.2f,\"sizeY\":%0.2f,\"sizeZ\":%0.2f,\"originX\":%0.2f,\"originY\":%0.2f,\"originZ\":%0.2f}",
+            fabsf(xMax-xMin), fabsf(yMax-yMin), 0.0,
+            0.0, 0.0, 0.0);
+    robotAttributes = attrStr;
 }

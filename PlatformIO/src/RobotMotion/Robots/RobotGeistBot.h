@@ -24,6 +24,18 @@ private:
 
 public:
 
+    RobotGeistBot(const char* pRobotTypeName, MotionHelper& motionHelper) :
+        RobotBase(pRobotTypeName, motionHelper)
+    {
+        _homingState = HOMING_STATE_IDLE;
+        _homeReqMillis = 0;
+        _homingStepsDone = 0;
+        _homingStepsLimit = 0;
+        _maxHomingSecs = maxHomingSecs_default;
+        _timeBetweenHomingStepsUs = _homingRotateSlowStepTimeUs;
+        _motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow, convertCoords, setRobotAttributes);
+    }
+
     static bool ptToActuator(AxisFloats& targetPt, AxisFloats& outActuator, AxisPosition& curPos, AxesParams& axesParams, bool allowOutOfBounds)
     {
         // // Trig for required position (azimuth is measured clockwise from North)
@@ -150,6 +162,30 @@ public:
     {
     }    
 
+    // Set robot attributes
+    static void setRobotAttributes(AxesParams& axesParams, String& robotAttributes)
+    {
+        // Calculate max and min cartesian size of robot
+        float xMin = 0, xMax = 0, yMin = 0, yMax = 0;
+        axesParams.getMaxVal(0, xMin);
+        bool axis0MaxValid = axesParams.getMaxVal(0, xMax);
+        axesParams.getMaxVal(1, yMin);
+        bool axis1MaxValid = axesParams.getMaxVal(1, yMax);
+        // If not valid set to some values to avoid arithmetic errors
+        if (!axis0MaxValid)
+            xMax = 100;
+        if (!axis1MaxValid)
+            yMax = 100;
+
+        // Set attributes
+        constexpr int MAX_ATTR_STR_LEN = 400;
+        char attrStr[MAX_ATTR_STR_LEN];
+        sprintf(attrStr, "{\"sizeX\":%0.2f,\"sizeY\":%0.2f,\"sizeZ\":%0.2f,\"originX\":%0.2f,\"originY\":%0.2f,\"originZ\":%0.2f}",
+                fabsf(xMax-xMin), fabsf(yMax-yMin), 0.0,
+                0.0, 0.0, 0.0);
+        robotAttributes = attrStr;
+    }
+
 private:
     // Homing state
     typedef enum HOMING_STATE
@@ -188,19 +224,6 @@ private:
     HOMING_STEP_TYPE _homingAxis0Step;
     HOMING_STEP_TYPE _homingAxis1Step;
     double _timeBetweenHomingStepsUs;
-
-public:
-    RobotGeistBot(const char* pRobotTypeName, MotionHelper& motionHelper) :
-        RobotBase(pRobotTypeName, motionHelper)
-    {
-        _homingState = HOMING_STATE_IDLE;
-        _homeReqMillis = 0;
-        _homingStepsDone = 0;
-        _homingStepsLimit = 0;
-        _maxHomingSecs = maxHomingSecs_default;
-        _timeBetweenHomingStepsUs = _homingRotateSlowStepTimeUs;
-        _motionHelper.setTransforms(ptToActuator, actuatorToPt, correctStepOverflow, convertCoords);
-    }
 
     // Set config
 //     bool init(const char* robotConfigStr)

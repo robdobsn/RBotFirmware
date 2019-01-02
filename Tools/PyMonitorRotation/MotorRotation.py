@@ -8,7 +8,7 @@ import threading
 logger = logging.getLogger(__name__)
 
 class MotorRotation:
-    def __init__(self, sourceIsSerial, source, axisIdx, gearingRatio, stepsPerRotation):
+    def __init__(self, sourceIsSerial, source, axisIdx, gearingRatio, stepsPerRotation, maxLen):
         self.sourceIsSerial = sourceIsSerial
         self.axisIdx = axisIdx
         self.gearingRatio = gearingRatio
@@ -23,7 +23,7 @@ class MotorRotation:
         self.addToMillis = True
         self.measurements = deque()
         self.measLock = threading.Lock()
-        self.maxMeasurementsLen = 3000
+        self.maxMeasurementsLen = maxLen
 
     def _readChars(self, maxChars):
         if not self.running:
@@ -82,9 +82,10 @@ class MotorRotation:
         with self.measLock:
             self.measurements = deque()
 
-    def getMeasurements(self):
+    def getNewMeasurements(self):
         with self.measLock:
             measList = list(self.measurements)
+            self.measurements.clear()
         return measList
 
     def startReader(self):

@@ -48,6 +48,9 @@ private:
     // Convert coordinates in place (used for coordinate system theta-rho)
     static void convertCoords(RobotCommandArgs& cmdArgs, AxesParams& axesParams);
 
+    // Set robot attributes
+    static void setRobotAttributes(AxesParams& axesParams, String& robotAttributes);
+
 private:
     static bool cartesianToPolar(AxisFloats& targetPt, AxisFloats& targetSoln1, 
                     AxisFloats& targetSoln2, AxesParams& axesParams);

@@ -33,4 +33,6 @@ public:
     // Convert coordinates in place (used for coordinate system Theta-Rho)
     static void convertCoords(RobotCommandArgs& cmdArgs, AxesParams& axesParams);
 
+    // Set robot attributes
+    static void setRobotAttributes(AxesParams& axesParams, String& robotAttributes);
 };

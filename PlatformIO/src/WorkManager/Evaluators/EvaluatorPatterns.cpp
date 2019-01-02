@@ -1,7 +1,7 @@
 // RBotFirmware
 // Rob Dobson 2017
 
-//#define DEBUG_EVALUATOR_PATTERN 1
+#define DEBUG_EVALUATOR_PATTERN 1
 
 #include "EvaluatorPatterns.h"
 #include "../WorkManager.h"
@@ -182,7 +182,7 @@ void EvaluatorPatterns::service(WorkManager* pWorkManager)
     if (!_isRunning)
         return;
 
-    // Check if the command interpreter can accept new stuff
+    // Check if the work manager can accept new stuff
     if (!pWorkManager->canAcceptWorkItem())
         return;
 

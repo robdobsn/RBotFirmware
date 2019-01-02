@@ -187,6 +187,10 @@
             {
                 document.getElementById("td_CmdSchedule_input").value = JSON.stringify(settings["cmdSched"]);
             }
+            else
+            {
+                document.getElementById("td_CmdSchedule_input").value = JSON.stringify({jobs:[]});
+            }
 
             // Chack strings valid
             checkJsonStrings(false);
@@ -207,7 +211,10 @@
                 try
                 {
                     window.pageState.settings.robotConfig = JSON.parse(document.getElementById('td_RobotConfig_input').value);
-                    window.pageState.settings.cmdSched = JSON.parse(document.getElementById('td_CmdSchedule_input').value);
+                    if (document.getElementById('td_CmdSchedule_input').value.length != 0)
+                        window.pageState.settings.cmdSched = JSON.parse(document.getElementById('td_CmdSchedule_input').value);
+                    else
+                        window.pageState.settings.cmdSched = {jobs:[]};
                 }
                 catch (e)
                 {
