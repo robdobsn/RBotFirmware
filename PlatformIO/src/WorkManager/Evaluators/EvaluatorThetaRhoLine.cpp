@@ -27,7 +27,7 @@ EvaluatorThetaRhoLine::EvaluatorThetaRhoLine()
 void EvaluatorThetaRhoLine::setConfig(const char* configStr)
 {
     // Set the theta-rho angle step
-    _stepAngle = RdJson::getDouble("thrStepDegs", 5, configStr) * M_PI / 180;
+    _stepAngle = RdJson::getDouble("thrStepDegs", 2.8, configStr) * M_PI / 180;
     _continueFromPrevious = RdJson::getLong("thrContinue", 1, configStr) != 0;
     Log.trace("%ssetConfig StepAngleDegrees %F continueFromPrevious %s\n", MODULE_PREFIX, 
             _stepAngle, _continueFromPrevious ? "Y" : "N");
@@ -57,23 +57,23 @@ bool EvaluatorThetaRhoLine::isValid(WorkItem& workItem)
 bool EvaluatorThetaRhoLine::execWorkItem(WorkItem& workItem)
 {
     // Extract the details
-    String cmdStr = workItem.getString();
-    String thetaStr = Utils::getNthField(cmdStr.c_str(), 1, '/');
-    String rhoStr = Utils::getNthField(cmdStr.c_str(), 2, '/');
+    String thetaStr = Utils::getNthField(workItem.getCString(), 1, '/');
+    String rhoStr = Utils::getNthField(workItem.getCString(), 2, '/');
     double newTheta = atof(thetaStr.c_str());
     double newRho = atof(rhoStr.c_str());
-    if (cmdStr.startsWith("_THRLINE0_"))
+#ifdef THETA_RHO_DEBUG
+    Log.trace("%sexecWorkItem %s\n", MODULE_PREFIX, 
+            workItem.getCString());
+#endif
+    if (workItem.getString().startsWith("_THRLINE0_"))
     {
-        _prevRho = newRho;
         if (_continueFromPrevious)
         {
             _thetaStartOffset = newTheta - _prevTheta;
         }
         else
         {
-            _prevTheta = newTheta;
             _thetaStartOffset = 0;
-            return true;
         }
     }
     double deltaTheta = newTheta - _thetaStartOffset - _prevTheta;
@@ -88,8 +88,8 @@ bool EvaluatorThetaRhoLine::execWorkItem(WorkItem& workItem)
     }
     else
     {
-        _interpolateSteps = int(ceilf(absDeltaTheta / _stepAngle));
-        if (_interpolateSteps <= 0)
+        _interpolateSteps = int(floorf(absDeltaTheta / _stepAngle));
+        if (_interpolateSteps < 1)
             return true;
         _rhoInc = deltaRho * _stepAngle / absDeltaTheta;
     }
@@ -119,6 +119,10 @@ void EvaluatorThetaRhoLine::service(WorkManager* pWorkManager)
         if (!pWorkManager->canAcceptWorkItem())
             return;
 
+        // Inc
+        _curTheta += _thetaInc;
+        _curRho += _rhoInc;
+
         // Next iteration
         char lineBuf[100];
         sprintf(lineBuf, "G0 U%0.5f V%0.5f", _curTheta, _curRho);
@@ -139,10 +143,6 @@ void EvaluatorThetaRhoLine::service(WorkManager* pWorkManager)
             _inProgress = false;
             return;
         }
-
-        // Inc
-        _curTheta += _thetaInc;
-        _curRho += _rhoInc;
     }
 }
 

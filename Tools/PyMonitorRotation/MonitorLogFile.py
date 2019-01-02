@@ -23,7 +23,7 @@ stepsPerRotation = 9600
 def calcXY(steps1, steps2):
     ang1 = steps1 * math.pi * 2 / stepsPerRotation
     ang2 = (stepsPerRotation/2 - steps2) * math.pi * 2 / stepsPerRotation
-    print(steps1, steps2, ang1 * 180 / math.pi, ang2 * 180 / math.pi)
+    # print(steps1, steps2, ang1 * 180 / math.pi, ang2 * 180 / math.pi)
     l1 = 92.5
     l2 = 92.5
     elbowX = math.sin(ang1) * l1
@@ -49,7 +49,7 @@ def drawNext():
     millis, s1, s2 = logReader.getNewValue(100)
     if millis > 0:
         x,y = calcXY(s1, s2)
-        print(x,y)
+        # print(x,y)
         x,y = scaleXY(x,y)
         line = canvas.create_line(curX,curY,x,y,fill="red")
             # canvas.create_line(0,0,100,100+y,fill="red")

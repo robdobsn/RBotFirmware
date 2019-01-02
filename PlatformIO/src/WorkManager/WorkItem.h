@@ -29,7 +29,7 @@ public:
         return _str.c_str();
     }
 
-    const String getString()
+    const String& getString()
     {
         return _str;
     }

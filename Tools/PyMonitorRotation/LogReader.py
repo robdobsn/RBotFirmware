@@ -23,7 +23,7 @@ class LogReader:
                 self.curLine = ""
                 return self._parseLine(lin)
             self.curLine += ch
-            if len(self.curLine) > 150:
+            if len(self.curLine) > 250:
                 self.curLine = ""
         return -1,0,0
 

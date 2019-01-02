@@ -895,6 +895,8 @@
 		{
 			extractTableSize(fullContext);
 			parametricAddMathsToContext(fullContext);
+			if (!document.getElementById("patsetup"))
+				return;
 			const setupExprs = document.getElementById("patsetup").value;
 			const setupLines = setupExprs.split(/[\r\n]+/);
 			const loopExprs = document.getElementById("patloop").value;
@@ -1192,7 +1194,7 @@
 			}
 			else
 			{	
-				ctx.interpolateSteps = Math.ceil(Math.abs(ctx.deltaTheta) / window.stState.thrMaxThetaInc);
+				ctx.interpolateSteps = Math.floor(Math.abs(ctx.deltaTheta) / window.stState.thrMaxThetaInc);
 				if (ctx.interpolateSteps < 1)
 					return "ignore";
 				ctx.rhoInc = deltaRho * window.stState.thrMaxThetaInc / Math.abs(ctx.deltaTheta);
@@ -1205,13 +1207,14 @@
 		}
 		function thrProcInterp(ctx)
 		{
-			if (ctx.interpolateIdx > ctx.interpolateSteps)
+			if (ctx.interpolateIdx >= ctx.interpolateSteps)
 				return false;
 			ctx.interpolateIdx++;
 			ctx.x = (ctx.sizeX / 2) * ctx.curRho * Math.sin(ctx.curTheta);
 			ctx.y = (ctx.sizeY / 2) * ctx.curRho * Math.cos(ctx.curTheta);
 			ctx.curRho += ctx.rhoInc;
 			ctx.curTheta += ctx.thetaInc;
+			console.log("~G0 U" + parseFloat(Math.round(ctx.curTheta * 100000) / 100000).toFixed(5) + ", V" + parseFloat(Math.round(ctx.curRho * 100000) / 100000).toFixed(5))
 			return true;
 		}
 		function thrEvalLine(ctx)
