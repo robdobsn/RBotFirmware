@@ -56,6 +56,23 @@ void WorkManager::queryStatus(String &respStr)
     if (innerJsonStr.length() > 0)
         innerJsonStr += ",";
     innerJsonStr += ledStrip.substring(1, ledStrip.length() - 1);    
+    // Time of Day
+    String timeJsonStr;
+    if (getLocalTime(&timeinfo, 0)) {
+        //tm_mon months since January - [ 0 to 11 ]
+        //tm_year years since 1900
+        sprintf(localTimeString, "%04d-%02d-%02d %02d:%02d:%02d", (timeinfo.tm_year + 1900), (timeinfo.tm_mon + 1), timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+        timeJsonStr += "\"tod\":\"";
+        timeJsonStr += localTimeString;
+        timeJsonStr += "\"";
+    }
+    if (timeJsonStr.length() > 0)
+    {
+        if (innerJsonStr.length() > 0)
+            innerJsonStr += ",";
+        innerJsonStr += timeJsonStr;
+    }
+
     // System information
     respStr = "{" + innerJsonStr + "}";
 }
@@ -490,5 +507,7 @@ bool WorkManager::checkStatusChanged()
 
 String WorkManager::getDebugStr()
 {
-    return (_workItemQueue.isFull() ? " QFULL" : " QOK");
+    String returnStr = (_workItemQueue.isFull() ? " QFULL:" : " QOK:");
+    returnStr += _workItemQueue.size();
+    return returnStr;
 }
