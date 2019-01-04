@@ -2,12 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="a6546d1b-6b84-477e-8b73-cfca16147a37" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionHelper.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionHelper.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorThetaRhoLine.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorThetaRhoLine.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/platformio.ini" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/platformio.ini" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotConfigurations.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotConfigurations.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/WorkManager.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/WorkManager.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../Tools/PyMonitorRotation/LogReader.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../Tools/PyMonitorRotation/LogReader.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../Tools/PyMonitorRotation/MonitorLogFile.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../Tools/PyMonitorRotation/MonitorLogFile.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../WebUI/ComboUI/sandUI.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../WebUI/ComboUI/sandUI.html" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -23,11 +21,12 @@
     <session id="-1091900226">
       <usages-collector id="statistics.lifecycle.project">
         <counts>
-          <entry key="project.closed" value="4" />
+          <entry key="project.closed" value="6" />
           <entry key="project.open.time.0" value="5" />
           <entry key="project.open.time.1" value="1" />
+          <entry key="project.open.time.2" value="1" />
           <entry key="project.open.time.5" value="1" />
-          <entry key="project.opened" value="7" />
+          <entry key="project.opened" value="8" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
@@ -220,13 +219,13 @@
     <frame x="1608" y="345" width="1754" height="1152" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.27981108" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.283353" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
       <window_info anchor="bottom" id="Run" order="2" />
-      <window_info active="true" anchor="bottom" id="Debug" order="3" sideWeight="0.49763873" visible="true" weight="0.39980355" />
+      <window_info anchor="bottom" id="Debug" order="3" sideWeight="0.49763873" weight="0.39980355" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />

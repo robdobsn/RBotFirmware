@@ -365,7 +365,7 @@
         {
             const axisNames = window.pageState.axisNames;
             // Set relative positioning and restore to absolute afterwards
-            streamGCodeLines("G91\nG0 " + axisNames[axis].toUpperCase() + dist.toString() + "\nG90");
+            streamGCodeImmediate("G91\nG0 " + axisNames[axis].toUpperCase() + dist.toString() + "\nG90");
         }
 
         function goHomeClick(axis)
@@ -407,7 +407,7 @@
             e.preventDefault();
         }
 
-        function btnUploadCancel(e)
+        function btnStreamGCodeCancel(e)
         {
             clearTimeout(window.pageState.streamGCodeRetryTimer);
             callAjax("/exec/stop");
@@ -450,7 +450,7 @@
             // See if streaming in progress
             if (window.pageState.streamingInProgress)
             {
-                console.log("Streaming in progress");
+                console.log("Streaming already in progress");
                 return;
             }
             // Check if the file is within bounds
@@ -473,6 +473,17 @@
             streamGCodeReadFile().then(streamGCodeLines, streamGCodeReadFailed);
         }
 
+        function streamGCodeImmediate(dataToSend)
+        {
+            // Check if already streaming
+            if (window.pageState.streamingInProgress)
+            {
+                alert("Upload in progress");
+                return;
+            }
+            window.pageState.streamingInProgress = true;
+            streamGCodeLines(dataToSend);
+        }
         function streamGCodeLines(dataToSend)
         {
             // Split file into lines
@@ -576,6 +587,9 @@
 
         function streamGCodeSendNextChunk()
         {
+            // Check if still streaming
+            if (!window.pageState.streamingInProgress)
+                return;
             // Find next line to send
             while (true)
             {
@@ -735,7 +749,7 @@
             // See if upload in progress
             if (window.pageState.streamingInProgress)
             {
-                alert("Previous upload in progress");
+                alert("Upload in progress");
                 return;
             }
             window.pageState.fileDialogType = "filesystem";

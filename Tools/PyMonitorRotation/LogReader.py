@@ -3,9 +3,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 class LogReader:
-    def __init__(self, serial):
+    def __init__(self, serial, stepsPerRot1, stepsPerRot2):
         self.serial = serial
         self.curLine = ""
+        self.stepsPerRot1 = stepsPerRot1
+        self.stepsPerRot2 = stepsPerRot2
 
     def getNewValue(self, maxChars):
         charIdx = 0
@@ -37,8 +39,8 @@ class LogReader:
         if len(lineFields) >= 3:
             try:
                 millis = int(lineFields[0])
-                a1 = int(lineFields[1])
-                a2 = int(lineFields[2])
+                a1 = 360 * int(lineFields[1]) / self.stepsPerRot1
+                a2 = 360 * int(lineFields[2]) / self.stepsPerRot2
                 return millis, a1, a2
             except Exception as excp:
                 print(excp)
