@@ -173,7 +173,7 @@ void WorkManager::processSingle(const char *pCmdStr, String &retStr)
             if (!rslt)
             {
                 retStr = "{\"rslt\":\"busy\"}";
-                Log.trace("%sprocessSingle failed to add\n", MODULE_PREFIX);
+                Log.verbose("%sprocessSingle failed to add\n", MODULE_PREFIX);
             }
             else
             {
