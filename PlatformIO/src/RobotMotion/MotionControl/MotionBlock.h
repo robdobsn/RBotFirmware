@@ -30,14 +30,16 @@ public:
     float _feedrateMMps;
     // Distance (pythagorean) to move considering primary axes only
     float _moveDistPrimaryAxesMM;
-    // Unit vector on axis with max steps
-    float _unitVecAxisWithMaxSteps;
+    // Unit vector on axis with max movement
+    float _unitVecAxisWithMaxDist;
     // Computed max entry speed for a block based on max junction deviation calculation
     float _maxEntrySpeedMMps;
     // Computed entry speed for this block
     float _entrySpeedMMps;
     // Computed exit speed for this block
     float _exitSpeedMMps;
+    // Step distance in MM
+    float _stepDistMM;
     // End-stops to test
     AxisMinMaxBools _endStopsToCheck;
     // Numbered command index - to help keep track of block execution from other processes
@@ -77,14 +79,15 @@ public:
         // Clear values
         _feedrateMMps = 0;
         _moveDistPrimaryAxesMM = 0;
-        _unitVecAxisWithMaxSteps = 0;
         _maxEntrySpeedMMps = 0;
         _entrySpeedMMps = 0;
         _exitSpeedMMps = 0;
+        _stepDistMM = 0;
         _isExecuting = false;
         _canExecute = false;
         _blockIsFollowed = false;
         _axisIdxWithMaxSteps = 0;
+        _unitVecAxisWithMaxDist = 0;
         _accStepsPerTTicksPerMS = 0;
         _finalStepRatePerTTicks = 0;
         _initialStepRatePerTTicks = 0;
@@ -114,4 +117,12 @@ public:
     // Debug
     void debugShowBlkHead();
     void debugShowBlock(int elemIdx, AxesParams &axesParams);
+    float debugStepRateToMMps(float val)
+    {
+        return (((val * 1.0) * MotionBlock::TICKS_PER_SEC) / MotionBlock::TTICKS_VALUE) * _stepDistMM;
+    }
+    float debugStepRateToMMps2(float val)
+    {
+        return (((val * 1.0) * 1000 * MotionBlock::TICKS_PER_SEC) / MotionBlock::TTICKS_VALUE) * _stepDistMM;
+    }
 };

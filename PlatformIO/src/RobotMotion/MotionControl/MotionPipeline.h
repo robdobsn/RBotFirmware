@@ -140,4 +140,15 @@ class MotionPipeline
             }
         }
     }
+
+    // Debug
+    void debugShowTopBlock(AxesParams &axesParams)
+    {
+        int cnt = count();
+        if (cnt == 0)
+            return;
+        MotionBlock *pBlock = peekNthFromPut(cnt-1);
+        if (pBlock)
+            pBlock->debugShowBlock(0, axesParams);
+    }
 };

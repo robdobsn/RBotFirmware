@@ -12,9 +12,11 @@ class AxisParams
     static constexpr float acceleration_default = 100.0f;
     static constexpr float stepsPerRot_default = 1.0f;
     static constexpr float unitsPerRot_default = 1.0f;
+    static constexpr float maxRPM_default = 300.0f;
     static constexpr float homeOffsetVal_default = 0.0f;
     static constexpr long homeOffSteps_default = 0;
     static constexpr float minSpeedMMps_default = 0.0f;
+    static constexpr uint32_t stepsForAxisHoming_default = 100000;
 
     // Parameters
     float _maxSpeedMMps;
@@ -22,6 +24,7 @@ class AxisParams
     float _maxAccelMMps2;
     float _stepsPerRot;
     float _unitsPerRot;
+    float _maxRPM;
     bool _minValValid;
     float _minVal;
     bool _maxValValid;
@@ -46,6 +49,7 @@ class AxisParams
         _maxAccelMMps2 = acceleration_default;
         _stepsPerRot = stepsPerRot_default;
         _unitsPerRot = unitsPerRot_default;
+        _maxRPM = maxRPM_default;
         _minValValid = false;
         _minVal = 0;
         _maxValValid = false;
@@ -89,6 +93,7 @@ class AxisParams
         _maxAccelMMps2 = float(RdJson::getDouble("maxAcc", AxisParams::acceleration_default, axisJSON));
         _stepsPerRot = float(RdJson::getDouble("stepsPerRot", AxisParams::stepsPerRot_default, axisJSON));
         _unitsPerRot = float(RdJson::getDouble("unitsPerRot", AxisParams::unitsPerRot_default, axisJSON));
+        _maxRPM = float(RdJson::getDouble("maxRPM", AxisParams::maxRPM_default, axisJSON));
         _minVal = float(RdJson::getDouble("minVal", 0, _minValValid, axisJSON));
         _maxVal = float(RdJson::getDouble("maxVal", 0, _maxValValid, axisJSON));
         _isDominantAxis = RdJson::getLong("isDominantAxis", 0, axisJSON) != 0;
@@ -100,8 +105,8 @@ class AxisParams
 
     void debugLog(int axisIdx)
     {
-        Log.notice("Axis%d params maxSpeed %F, acceleration %F, stepsPerRot %F, unitsPerRot %F\n",
-                   axisIdx, _maxSpeedMMps, _maxAccelMMps2, _stepsPerRot, _unitsPerRot);
+        Log.notice("Axis%d params maxSpeed %F, acceleration %F, stepsPerRot %F, unitsPerRot %F, maxRPM %F\n",
+                   axisIdx, _maxSpeedMMps, _maxAccelMMps2, _stepsPerRot, _unitsPerRot, _maxRPM);
         Log.notice("Axis%d params minVal %F (%d), maxVal %F (%d), isDominant %d, isServo %d, homeOffVal %F, homeOffSteps %d\n",
                    axisIdx, _minVal, _minValValid, _maxVal, _maxValValid, _isDominantAxis, _isServoAxis, _homeOffsetVal, _homeOffSteps);
     }

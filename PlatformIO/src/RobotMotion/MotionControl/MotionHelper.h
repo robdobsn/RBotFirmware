@@ -134,6 +134,7 @@ public:
 
     // Test code
     void debugShowBlocks();
+    void debugShowTopBlock();
     void debugShowTiming();
     String getDebugStr();
     int testGetPipelineCount();

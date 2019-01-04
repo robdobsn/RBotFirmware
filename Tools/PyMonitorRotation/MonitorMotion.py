@@ -70,7 +70,7 @@ def calcXYBot(ang1, ang2):
     return x, y
 
 def scaleXY(x,y):
-    return canvasXNoBorder * (x + originX) / sizeX + border, canvasYNoBorder - ((canvasYNoBorder * (y + originY) / sizeY) + border)
+    return canvasXNoBorder * (x + originX) / sizeX + border, (canvasY - border) - ((canvasYNoBorder * (y + originY) / sizeY) + border)
 
 # Heatmap rgb colors in mapping order (ascending).
 # From https://stackoverflow.com/questions/29267532/heat-map-from-data-points

@@ -355,6 +355,11 @@ void MotionHelper::debugShowBlocks()
     _motionPipeline.debugShowBlocks(_axesParams);
 }
 
+void MotionHelper::debugShowTopBlock()
+{
+    _motionPipeline.debugShowTopBlock(_axesParams);
+}
+
 String MotionHelper::getDebugStr()
 {
     return _motionActuator.getDebugStr();

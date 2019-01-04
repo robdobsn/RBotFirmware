@@ -7,8 +7,6 @@
 
 static const char* MODULE_PREFIX = "MotionBlock: ";
 
-#define DEBUG_STEP_TTICKS_TO_MMPS(val, axesParams, axisIdx) (((val * 1.0) * MotionBlock::TICKS_PER_SEC) / MotionBlock::TTICKS_VALUE) * axesParams.getStepDistMM(axisIdx)
-
 void MotionBlock::setNumberedCommandIndex(int cmdIdx)
 {
     _numberedCommandIndex = cmdIdx;
@@ -82,9 +80,14 @@ bool MotionBlock::prepareForStepping(AxesParams &axesParams)
     uint32_t absMaxStepsForAnyAxis = abs(_stepsTotalMaybeNeg[_axisIdxWithMaxSteps]);
 
     // Get the initial step rate, final step rate and max acceleration for the axis with max steps
-    float initialStepRatePerSec = _entrySpeedMMps * _unitVecAxisWithMaxSteps / axesParams.getStepDistMM(_axisIdxWithMaxSteps);
-    float finalStepRatePerSec = _exitSpeedMMps * _unitVecAxisWithMaxSteps / axesParams.getStepDistMM(_axisIdxWithMaxSteps);
-    float axisAccStepsPerSec2 = axesParams.getMaxAccStepsPerSec2(_axisIdxWithMaxSteps);
+    double stepDistMM = _moveDistPrimaryAxesMM * _unitVecAxisWithMaxDist / abs(_stepsTotalMaybeNeg[_axisIdxWithMaxSteps]);
+    float initialStepRatePerSec = _entrySpeedMMps * _unitVecAxisWithMaxDist / stepDistMM;
+    if (initialStepRatePerSec > axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps))
+        initialStepRatePerSec = axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps);
+    float finalStepRatePerSec = _exitSpeedMMps * _unitVecAxisWithMaxDist / stepDistMM;
+    if (finalStepRatePerSec > axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps))
+        finalStepRatePerSec = axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps);
+    float maxAccStepsPerSec2 = axesParams.getMaxAccel(_axisIdxWithMaxSteps) * _unitVecAxisWithMaxDist / stepDistMM;
 
     // Calculate the distance decelerating and ensure within bounds
     // Using the facts for the block ... (assuming max accleration followed by max deceleration):
@@ -95,7 +98,7 @@ bool MotionBlock::prepareForStepping(AxesParams &axesParams)
     uint32_t stepsAccelerating = 0;
     float stepsAcceleratingFloat =
         ceilf((powf(finalStepRatePerSec, 2) - powf(initialStepRatePerSec, 2)) / 4 /
-                    axisAccStepsPerSec2 +
+                    maxAccStepsPerSec2 +
                 absMaxStepsForAnyAxis / 2);
     if (stepsAcceleratingFloat > 0)
     {
@@ -108,12 +111,14 @@ bool MotionBlock::prepareForStepping(AxesParams &axesParams)
     uint32_t stepsDecelerating = 0;
 
     // Find max possible rate for axis with max steps
-    float axisMaxStepRatePerSec = _feedrateMMps * _unitVecAxisWithMaxSteps / axesParams.getStepDistMM(_axisIdxWithMaxSteps);
+    float axisMaxStepRatePerSec = _feedrateMMps * _unitVecAxisWithMaxDist / stepDistMM;
+    if (axisMaxStepRatePerSec > axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps))
+        axisMaxStepRatePerSec = axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps);
 
     // See if max speed will be reached
     uint32_t stepsToMaxSpeed =
         uint32_t((powf(axisMaxStepRatePerSec, 2) - powf(initialStepRatePerSec, 2)) /
-                    2 / axisAccStepsPerSec2);
+                    2 / maxAccStepsPerSec2);
     if (stepsAccelerating > stepsToMaxSpeed)
     {
         // Max speed will be reached
@@ -122,46 +127,51 @@ bool MotionBlock::prepareForStepping(AxesParams &axesParams)
         // Decelerating steps
         stepsDecelerating =
             uint32_t((powf(axisMaxStepRatePerSec, 2) - powf(finalStepRatePerSec, 2)) /
-                        2 / axisAccStepsPerSec2);
+                        2 / maxAccStepsPerSec2);
     }
     else
     {
         // Calculate max speed that will be reached
         axisMaxStepRatePerSec =
-            sqrtf(powf(initialStepRatePerSec, 2) + 2.0F * axisAccStepsPerSec2 * stepsAccelerating);
+            sqrtf(powf(initialStepRatePerSec, 2) + 2.0F * maxAccStepsPerSec2 * stepsAccelerating);
 
         // Decelerating steps
         stepsDecelerating = absMaxStepsForAnyAxis - stepsAccelerating;
     }
 
     // Fill in the step values for this axis
-    _initialStepRatePerTTicks = uint32_t(roundf((initialStepRatePerSec * TTICKS_VALUE) / TICKS_PER_SEC / TICK_INTERVAL_NS)) * TICK_INTERVAL_NS;
-    _maxStepRatePerTTicks = uint32_t(roundf((axisMaxStepRatePerSec * TTICKS_VALUE) / TICKS_PER_SEC / TICK_INTERVAL_NS)) * TICK_INTERVAL_NS;
-    _finalStepRatePerTTicks = uint32_t(roundf((finalStepRatePerSec * TTICKS_VALUE) / TICKS_PER_SEC / TICK_INTERVAL_NS)) * TICK_INTERVAL_NS;
-    _accStepsPerTTicksPerMS = uint32_t(roundf(axesParams.getMaxAccStepsPerTTicksPerMs(_axisIdxWithMaxSteps, TTICKS_VALUE, TICKS_PER_SEC)));
+    _initialStepRatePerTTicks = uint32_t((initialStepRatePerSec * TTICKS_VALUE) / TICKS_PER_SEC);
+    _maxStepRatePerTTicks = uint32_t((axisMaxStepRatePerSec * TTICKS_VALUE) / TICKS_PER_SEC);
+    _finalStepRatePerTTicks = uint32_t((finalStepRatePerSec * TTICKS_VALUE) / TICKS_PER_SEC);
+    _accStepsPerTTicksPerMS = uint32_t((maxAccStepsPerSec2 * TTICKS_VALUE) / TICKS_PER_SEC / 1000);
     _stepsBeforeDecel = absMaxStepsForAnyAxis - stepsDecelerating;
+    _stepDistMM = stepDistMM;
 
     return true;
 }
 
 void MotionBlock::debugShowBlkHead()
 {
-    Log.notice("#i EntMMps ExtMMps StTotX StTotY StTotZ St>Dec    Init      Pk     Fin       Acc    InitSt\n");
+    Log.notice("#i EntMMps ExtMMps StTotX StTotY StTotZ St>Dec    Init     (perTT)      Pk     (perTT)     Fin     (perTT)     Acc     (perTT) UnitVecMaxIx FeedRtMMps StepDistMM  MaxStepRate\n");
 }
 
 void MotionBlock::debugShowBlock(int elemIdx, AxesParams &axesParams)
 {
     char tmpBuf[200];
-    sprintf(tmpBuf, "%2d%8.3f%8.3f%7d%7d%7d%7u%8.3f%8.3f%8.3f%10u%10u", elemIdx,
-                _entrySpeedMMps, _exitSpeedMMps,
+    sprintf(tmpBuf, "%2d%8.3f%8.3f%7d%7d%7d%7u%8.3f(%10d)%8.3f(%10d)%8.3f(%10d)%8.3f(%10u)%13.8f%11.6f%11.8f%11.3f", elemIdx,
+                _entrySpeedMMps,
+                _exitSpeedMMps,
                 getStepsToTarget(0),
                 getStepsToTarget(1),
                 getStepsToTarget(2),
                 _stepsBeforeDecel,
-                DEBUG_STEP_TTICKS_TO_MMPS(_initialStepRatePerTTicks, axesParams, 0),
-                DEBUG_STEP_TTICKS_TO_MMPS(_maxStepRatePerTTicks, axesParams, 0),
-                DEBUG_STEP_TTICKS_TO_MMPS(_finalStepRatePerTTicks, axesParams, 0),
-                _accStepsPerTTicksPerMS,
-                _initialStepRatePerTTicks);
+                debugStepRateToMMps(_initialStepRatePerTTicks), _initialStepRatePerTTicks,
+                debugStepRateToMMps(_maxStepRatePerTTicks), _maxStepRatePerTTicks,
+                debugStepRateToMMps(_finalStepRatePerTTicks), _finalStepRatePerTTicks,
+                debugStepRateToMMps2(_accStepsPerTTicksPerMS),_accStepsPerTTicksPerMS,
+                _unitVecAxisWithMaxDist,
+                _feedrateMMps,
+                _stepDistMM,
+                axesParams.getMaxStepRatePerSec(0));
     Log.notice("%s\n", tmpBuf);
 }

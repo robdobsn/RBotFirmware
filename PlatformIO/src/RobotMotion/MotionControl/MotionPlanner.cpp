@@ -18,6 +18,7 @@ bool MotionPlanner::moveTo(RobotCommandArgs &args,
     float deltas[RobotConsts::MAX_AXES];
     bool isAMove = false;
     bool isAPrimaryMove = false;
+    int axisWithMaxMoveDist = 0;
     float squareSum = 0;
     for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
     {
@@ -31,6 +32,8 @@ bool MotionPlanner::moveTo(RobotCommandArgs &args,
                 isAPrimaryMove = true;
             }
         }
+        if (fabsf(deltas[axisIdx]) > fabsf(deltas[axisWithMaxMoveDist]))
+            axisWithMaxMoveDist = axisIdx;
     }
 
     // Distance being moved
@@ -64,7 +67,7 @@ bool MotionPlanner::moveTo(RobotCommandArgs &args,
         if (axesParams.isPrimaryAxis(axisIdx))
         {
             // Unit vector calculation
-            unitVectors._pt[axisIdx] = float(deltas[axisIdx] / moveDist);
+            unitVectors._pt[axisIdx] = deltas[axisIdx] / moveDist;
 
             // Check the feedrate
             float axisSpeedAtRequestedFeedrateMMps = fabsf(unitVectors._pt[axisIdx] * validFeedrateMMps);
@@ -74,13 +77,9 @@ bool MotionPlanner::moveTo(RobotCommandArgs &args,
         }
     }
 
-#ifdef DEBUG_MOTIONPLANNER_INFO
-    Log.notice("ValidatedFeedrate %F\n", validFeedrateMMps);
-#endif
-
     // Store values in the block
-    block._feedrateMMps = float(validFeedrateMMps);
-    block._moveDistPrimaryAxesMM = float(moveDist);
+    block._feedrateMMps = validFeedrateMMps;
+    block._moveDistPrimaryAxesMM = moveDist;
 
     // Find if there are any steps
     bool hasSteps = false;
@@ -95,12 +94,20 @@ bool MotionPlanner::moveTo(RobotCommandArgs &args,
         block.setStepsToTarget(axisIdx, steps);
     }
 
+#ifdef DEBUG_MOTIONPLANNER_DETAILED_INFO
+    Log.notice("F %F D %F uX %F uY %F, uZ %F maxStAx %d maxDAx %d %s\n", validFeedrateMMps,
+            moveDist, 
+            unitVectors.getVal(0), unitVectors.getVal(1), unitVectors.getVal(2), 
+            block._axisIdxWithMaxSteps, axisWithMaxMoveDist,
+            hasSteps ? "has steps" : "NO STEPS");
+#endif
+
     // Check there are some actual steps
     if (!hasSteps)
         return false;
 
     // Set the dist moved on the axis with max steps
-    block._unitVecAxisWithMaxSteps = unitVectors.getVal(block._axisIdxWithMaxSteps);
+    block._unitVecAxisWithMaxDist = unitVectors.getVal(axisWithMaxMoveDist);
 
     // If there is a prior block then compute the maximum speed at exit of the second block to keep
     // the junction deviation within bounds - there are more comments in the Smoothieware (and GRBL) code
@@ -140,7 +147,7 @@ bool MotionPlanner::moveTo(RobotCommandArgs &args,
     }
     block._maxEntrySpeedMMps = vmaxJunction;
 
-#ifdef DEBUG_MOTIONPLANNER_INFO
+#ifdef DEBUG_MOTIONPLANNER_DETAILED_INFO
     Log.notice("PrevMoveInQueue %d, JunctionDeviation %F, VmaxJunction %F\n",
                 motionPipeline.canGet(), junctionDeviation, vmaxJunction);
 #endif
@@ -193,7 +200,7 @@ void MotionPlanner::recalculatePipeline(MotionPipeline &motionPipeline, AxesPara
     //    Set the entry speed for the next block using this exit speed
     // Finally prepare the block for stepper motor actuation
 
-#ifdef DEBUG_MOTIONPLANNER_INFO
+#ifdef DEBUG_MOTIONPLANNER_DETAILED_INFO
     Log.notice("^^^^^^^^^^^^^^^^^^^^^^^BEFORE RECALC^^^^^^^^^^^^^^^^^^^^^^^^\n");
     motionPipeline.debugShowBlocks(axesParams);
 #endif
@@ -224,7 +231,7 @@ void MotionPlanner::recalculatePipeline(MotionPipeline &motionPipeline, AxesPara
         // going to be made by going back further
         if (pBlock->_entrySpeedMMps == pBlock->_maxEntrySpeedMMps && blockIdx > 1)
         {
-#ifdef DEBUG_MOTIONPLANNER_INFO
+#ifdef DEBUG_MOTIONPLANNER_DETAILED_INFO
             Log.notice("++++++++++++++++++++++++++++++ Optimizing block %d, prevSpeed %F\n", blockIdx, pBlock->_exitSpeedMMps);
 #endif
             //Get the exit speed from this block to use as the entry speed when going forwards
@@ -301,9 +308,11 @@ void MotionPlanner::recalculatePipeline(MotionPipeline &motionPipeline, AxesPara
         }
     }
 
-#ifdef DEBUG_MOTIONPLANNER_INFO
+#ifdef DEBUG_MOTIONPLANNER_DETAILED_INFO
     Log.notice(".................AFTER RECALC.......................\n");
     motionPipeline.debugShowBlocks(axesParams);
+#elif DEBUG_MOTIONPLANNER_INFO
+    motionPipeline.debugShowTopBlock(axesParams);
 #endif
 }
 

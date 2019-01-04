@@ -18,13 +18,8 @@ class AxesParams
   public:
     // Cache values for master axis as they are used frequently in the planner
     float _masterAxisMaxAccMMps2;
-    float _masterAxisStepDistanceMM;
-    // Cache max and min step rates
+    // Cache max step rate
     AxisFloats _maxStepRatesPerSec;
-    AxisFloats _minStepRatesPerSec;
-    // Cache MaxAccStepsPerTTicksPerMs
-    AxisFloats _maxAccStepsPerTTicksPerMs;
-    float _cacheLastTickRatePerSec;
 
   public:
     AxesParams()
@@ -36,10 +31,8 @@ class AxesParams
     {
         _masterAxisIdx = -1;
         _masterAxisMaxAccMMps2 = AxisParams::acceleration_default;
-        _masterAxisStepDistanceMM = AxisParams::unitsPerRot_default / AxisParams::stepsPerRot_default;
         for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
             _axisParams[axisIdx].clear();
-        _cacheLastTickRatePerSec = 0;
     }
 
     float getStepsPerUnit(int axisIdx)
@@ -98,13 +91,6 @@ class AxesParams
         maxVal = _axisParams[axisIdx]._maxVal;
         return true;
     }
-    int32_t getAxisMaxSteps(int axisIdx)
-    {
-        if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
-            return 0;
-        float axisMaxDist = fabsf(_axisParams[axisIdx]._maxVal - _axisParams[axisIdx]._minVal);
-        return int32_t(ceilf(axisMaxDist * getStepsPerUnit(axisIdx)));
-    }
 
     float getMaxSpeed(int axisIdx)
     {
@@ -120,11 +106,11 @@ class AxesParams
         return _axisParams[axisIdx]._minSpeedMMps;
     }
 
-    float getStepDistMM(int axisIdx)
+    float getMaxStepRatePerSec(int axisIdx)
     {
         if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
-            return AxisParams::unitsPerRot_default / AxisParams::stepsPerRot_default;
-        return _axisParams[axisIdx]._unitsPerRot / _axisParams[axisIdx]._stepsPerRot;
+            return AxisParams::maxRPM_default * AxisParams::stepsPerRot_default / 60;
+        return _axisParams[axisIdx]._maxRPM * _axisParams[axisIdx]._stepsPerRot / 60;
     }
 
     float getMaxAccel(int axisIdx)
@@ -132,27 +118,6 @@ class AxesParams
         if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
             return AxisParams::acceleration_default;
         return _axisParams[axisIdx]._maxAccelMMps2;
-    }
-
-    float getMaxAccStepsPerSec2(int axisIdx)
-    {
-        return getMaxAccel(axisIdx) / getStepDistMM(axisIdx);
-    }
-
-    float getMaxAccStepsPerTTicksPerMs(int axisIdx, uint32_t T_VALUE, float tickRatePerSec)
-    {
-        if (_cacheLastTickRatePerSec != tickRatePerSec)
-        {
-            // Recalculate based on new tickRate
-            for (int i = 0; i < RobotConsts::MAX_AXES; i++)
-            {
-                float maxAccStepsPerSec2 = getMaxAccel(i) / getStepDistMM(i);
-                float maxAccStepsPerTTicksPerMs = (T_VALUE * maxAccStepsPerSec2) / tickRatePerSec / 1000;
-                _maxAccStepsPerTTicksPerMs.setVal(i, maxAccStepsPerTTicksPerMs);
-            }
-            _cacheLastTickRatePerSec = tickRatePerSec;
-        }
-        return _maxAccStepsPerTTicksPerMs.getVal(axisIdx);
     }
 
     bool isPrimaryAxis(int axisIdx)
@@ -191,20 +156,17 @@ class AxesParams
         // Cache axis max and min step rates
         for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
         {
-            _maxStepRatesPerSec.setVal(axisIdx, getMaxSpeed(axisIdx) / getStepDistMM(axisIdx));
-            _minStepRatesPerSec.setVal(axisIdx, getMinSpeed(axisIdx) / getStepDistMM(axisIdx));
+            _maxStepRatesPerSec.setVal(axisIdx, getMaxStepRatePerSec(axisIdx));
         }
         return true;
     }
 
     // Set the master axis either to the dominant axis (if there is one)
-    // or from the primary axis with highest steps per unit
     // or just the first one found
     void setMasterAxis(int fallbackAxisIdx)
     {
         int dominantIdx = -1;
         int primaryIdx = -1;
-        float primaryAxisMaxStepsPerUnit = 0;
         for (int i = 0; i < RobotConsts::MAX_AXES; i++)
         {
             if (_axisParams[i]._isDominantAxis)
@@ -214,11 +176,8 @@ class AxesParams
             }
             if (_axisParams[i]._isPrimaryAxis)
             {
-                if (primaryIdx == -1 || primaryAxisMaxStepsPerUnit < getStepsPerUnit(i))
-                {
+                if (primaryIdx == -1)
                     primaryIdx = i;
-                    primaryAxisMaxStepsPerUnit = getStepsPerUnit(i);
-                }
             }
         }
         if (dominantIdx != -1)
@@ -230,6 +189,5 @@ class AxesParams
 
         // Cache values for master axis
         _masterAxisMaxAccMMps2 = getMaxAccel(_masterAxisIdx);
-        _masterAxisStepDistanceMM = getStepDistMM(_masterAxisIdx);
     }
 };

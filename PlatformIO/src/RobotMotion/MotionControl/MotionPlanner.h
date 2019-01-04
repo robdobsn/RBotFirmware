@@ -4,9 +4,9 @@
 #pragma once
 
 //#define DEBUG_TEST_DUMP 1
-//#define DEBUG_MOTIONPLANNER_INFO 1
+// #define DEBUG_MOTIONPLANNER_INFO 1
 #ifdef DEBUG_MOTIONPLANNER_INFO
-#define DEBUG_BLOCK_TO_DUMP_OR_MINUS1_FOR_ALL -1
+#define DEBUG_MOTIONPLANNER_DETAILED_INFO 1
 #endif
 
 #include "../AxisPosition.h"

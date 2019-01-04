@@ -143,7 +143,7 @@ bool MotionHoming::extractAndExecNextCmd(AxesParams &axesParams)
                     _homingStrPos++;
                 _curCommand.setMoveType(RobotMoveTypeArg_Relative);
                 // Handle direction
-                int32_t distToMove = axesParams.getAxisMaxSteps(axisIdx);
+                int32_t distToMove = AxisParams::stepsForAxisHoming_default;
                 if (ch2 == '-')
                     distToMove = -distToMove;
                 // Check for distance
