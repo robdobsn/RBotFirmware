@@ -99,6 +99,9 @@ bool MotionPlanner::moveTo(RobotCommandArgs &args,
     if (!hasSteps)
         return false;
 
+    // Set the dist moved on the axis with max steps
+    block._unitVecAxisWithMaxSteps = unitVectors.getVal(block._axisIdxWithMaxSteps);
+
     // If there is a prior block then compute the maximum speed at exit of the second block to keep
     // the junction deviation within bounds - there are more comments in the Smoothieware (and GRBL) code
     float junctionDeviation = _junctionDeviation;

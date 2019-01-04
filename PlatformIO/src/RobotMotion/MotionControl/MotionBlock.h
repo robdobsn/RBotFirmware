@@ -30,6 +30,8 @@ public:
     float _feedrateMMps;
     // Distance (pythagorean) to move considering primary axes only
     float _moveDistPrimaryAxesMM;
+    // Unit vector on axis with max steps
+    float _unitVecAxisWithMaxSteps;
     // Computed max entry speed for a block based on max junction deviation calculation
     float _maxEntrySpeedMMps;
     // Computed entry speed for this block
@@ -75,6 +77,7 @@ public:
         // Clear values
         _feedrateMMps = 0;
         _moveDistPrimaryAxesMM = 0;
+        _unitVecAxisWithMaxSteps = 0;
         _maxEntrySpeedMMps = 0;
         _entrySpeedMMps = 0;
         _exitSpeedMMps = 0;
