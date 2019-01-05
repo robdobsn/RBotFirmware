@@ -2,10 +2,15 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="a6546d1b-6b84-477e-8b73-cfca16147a37" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/platformio.ini" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/platformio.ini" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotConfigurations.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotConfigurations.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/WorkManager.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/WorkManager.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WebAutogenResources.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WebAutogenResources.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorThetaRhoLine.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorThetaRhoLine.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EmulateSandTable.py" beforeDir="false" afterPath="$PROJECT_DIR$/EmulateSandTable.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/testfiles/pattern.param" beforeDir="false" afterPath="$PROJECT_DIR$/testfiles/sd/pattern.param" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/testfiles/robot.json" beforeDir="false" afterPath="$PROJECT_DIR$/testfiles/sd/robot.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/testfiles/test1.gcode" beforeDir="false" afterPath="$PROJECT_DIR$/testfiles/sd/test1.gcode" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../WebUI/ComboUI/sandUI.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../WebUI/ComboUI/sandUI.html" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -15,48 +20,50 @@
   </component>
   <component name="CoverageDataManager">
     <SUITE FILE_PATH="coverage/EmulateWebServer$_win32stdio.coverage" NAME="_win32stdio Coverage Results" MODIFIED="1543233187943" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/internet" />
-    <SUITE FILE_PATH="coverage/EmulateWebServer$EmulateSandTable.coverage" NAME="EmulateSandTable Coverage Results" MODIFIED="1546434606986" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/EmulateWebServer$EmulateSandTable.coverage" NAME="EmulateSandTable Coverage Results" MODIFIED="1546682012229" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
   <component name="FUSProjectUsageTrigger">
     <session id="-1091900226">
       <usages-collector id="statistics.lifecycle.project">
         <counts>
           <entry key="project.closed" value="6" />
-          <entry key="project.open.time.0" value="5" />
+          <entry key="project.open.time.0" value="6" />
           <entry key="project.open.time.1" value="1" />
           <entry key="project.open.time.2" value="1" />
           <entry key="project.open.time.5" value="1" />
-          <entry key="project.opened" value="8" />
+          <entry key="project.opened" value="9" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
         <counts>
           <entry key="gcode" value="1" />
           <entry key="json" value="1" />
-          <entry key="param" value="1" />
-          <entry key="py" value="18" />
+          <entry key="param" value="2" />
+          <entry key="py" value="36" />
+          <entry key="thr" value="2" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.open">
         <counts>
-          <entry key="JSON" value="2" />
-          <entry key="PLAIN_TEXT" value="1" />
-          <entry key="Python" value="18" />
+          <entry key="JSON" value="3" />
+          <entry key="PLAIN_TEXT" value="3" />
+          <entry key="Python" value="36" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
+          <entry key="Python Console" value="15" />
           <entry key="gcode" value="3" />
           <entry key="json" value="1" />
           <entry key="param" value="1" />
-          <entry key="py" value="1041" />
+          <entry key="py" value="1356" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
           <entry key="JSON" value="2" />
           <entry key="PLAIN_TEXT" value="3" />
-          <entry key="Python" value="1041" />
+          <entry key="Python" value="1371" />
         </counts>
       </usages-collector>
     </session>
@@ -66,11 +73,57 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/EmulateSandTable.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="153">
-              <caret line="9" column="21" selection-start-line="9" selection-start-column="21" selection-end-line="9" selection-end-column="21" />
+            <state relative-caret-position="297">
+              <caret line="93" column="46" selection-start-line="93" selection-start-column="46" selection-end-line="93" selection-end-column="46" />
               <folding>
                 <element signature="e#0#35#0" expanded="true" />
+                <marker date="1546682014072" expanded="true" signature="1860:1897" ph="..." />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/klein/app.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="187">
+              <caret line="127" column="31" selection-start-line="127" selection-start-column="31" selection-end-line="127" selection-end-column="31" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/internet/defer.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="448">
+              <caret line="150" selection-start-line="150" selection-end-line="150" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/klein/resource.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="187">
+              <caret line="209" selection-start-line="209" selection-end-line="209" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/web/server.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="187">
+              <caret line="198" selection-start-line="198" selection-end-line="198" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/web/http.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="187">
+              <caret line="2189" selection-start-line="2189" selection-end-line="2189" />
             </state>
           </provider>
         </entry>
@@ -97,8 +150,8 @@
     <sorting>DEFINITION_ORDER</sorting>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="1608" />
-    <option name="y" value="345" />
+    <option name="x" value="1220" />
+    <option name="y" value="283" />
     <option name="width" value="1754" />
     <option name="height" value="1152" />
   </component>
@@ -120,6 +173,12 @@
               <item name="EmulateWebServer" type="462c0819:PsiDirectoryNode" />
               <item name="testfiles" type="462c0819:PsiDirectoryNode" />
             </path>
+            <path>
+              <item name="EmulateWebServer" type="b2602c69:ProjectViewProjectNode" />
+              <item name="EmulateWebServer" type="462c0819:PsiDirectoryNode" />
+              <item name="testfiles" type="462c0819:PsiDirectoryNode" />
+              <item name="sd" type="462c0819:PsiDirectoryNode" />
+            </path>
           </expand>
           <select />
         </subPane>
@@ -133,6 +192,11 @@
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="M:\RobDev\Projects\BotsCNC\RBotFirmware\Tests\EmulateWebServer\testfiles\sd" />
+    </key>
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -216,25 +280,24 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="1608" y="345" width="1754" height="1152" extended-state="0" />
-    <editor active="true" />
+    <frame x="1220" y="283" width="1754" height="1152" extended-state="0" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.283353" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.28689492" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
       <window_info anchor="bottom" id="Run" order="2" />
-      <window_info anchor="bottom" id="Debug" order="3" sideWeight="0.49763873" weight="0.39980355" />
+      <window_info anchor="bottom" id="Debug" order="3" sideWeight="0.49645808" visible="true" weight="0.40078586" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
       <window_info anchor="bottom" id="Docker" order="7" show_stripe_button="false" />
       <window_info anchor="bottom" id="Version Control" order="8" />
       <window_info anchor="bottom" id="Database Changes" order="9" show_stripe_button="false" />
-      <window_info anchor="bottom" id="Event Log" order="10" sideWeight="0.5023613" side_tool="true" visible="true" weight="0.39980355" />
+      <window_info anchor="bottom" id="Event Log" order="10" sideWeight="0.5035419" side_tool="true" visible="true" weight="0.40078586" />
       <window_info anchor="bottom" id="Terminal" order="11" sideWeight="0.49943504" weight="0.32937893" />
-      <window_info anchor="bottom" id="Python Console" order="12" />
+      <window_info anchor="bottom" id="Python Console" order="12" sideWeight="0.49940968" weight="0.32907662" />
       <window_info anchor="right" id="Commander" order="0" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
@@ -259,110 +322,124 @@
     <entry file="file://$PROJECT_DIR$/EmulateMugBot.py">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
-    <entry file="file://$PROJECT_DIR$/testfiles/pattern.param">
+    <entry file="file://$PROJECT_DIR$/testfiles/sd/pattern.param">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="34">
           <caret line="2" column="106" selection-start-line="2" selection-start-column="106" selection-end-line="2" selection-end-column="106" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/testfiles/robot.json">
+    <entry file="file://$PROJECT_DIR$/testfiles/sd/robot.json">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="17">
           <caret line="1" selection-start-line="1" selection-end-line="1" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/testfiles/test1.gcode">
+    <entry file="file://$PROJECT_DIR$/testfiles/sd/test1.gcode">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="51">
           <caret line="3" selection-start-line="3" selection-end-line="3" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/protocols/basic.py">
+    <entry file="file://$APPLICATION_HOME_DIR$/helpers/pydev/_pydev_imps/_pydev_execfile.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="278">
-          <caret line="578" selection-start-line="578" selection-end-line="578" />
+        <state relative-caret-position="289">
+          <caret line="17" column="22" selection-start-line="17" selection-start-column="22" selection-end-line="17" selection-end-column="22" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/internet/tcp.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="74">
+          <caret line="242" selection-start-line="242" selection-end-line="242" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/internet/selectreactor.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="74">
+          <caret line="142" selection-start-line="142" selection-end-line="142" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/internet/base.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="290">
+          <caret line="1278" selection-start-line="1278" selection-end-line="1278" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/python/context.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="438">
+        <state relative-caret-position="188">
           <caret line="121" selection-start-line="121" selection-end-line="121" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/python/log.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="567">
+        <state relative-caret-position="476">
           <caret line="102" selection-start-line="102" selection-end-line="102" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/internet/base.py">
+    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/protocols/basic.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="563">
-          <caret line="1278" selection-start-line="1278" selection-end-line="1278" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/internet/selectreactor.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="176">
-          <caret line="142" selection-start-line="142" selection-end-line="142" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/internet/tcp.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="176">
-          <caret line="242" selection-start-line="242" selection-end-line="242" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/web/http.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="270">
-          <caret line="2911" selection-start-line="2911" selection-end-line="2911" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/web/server.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="270">
-          <caret line="198" selection-start-line="198" selection-end-line="198" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/klein/resource.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="380">
-          <caret line="209" selection-start-line="209" selection-end-line="209" />
+        <state relative-caret-position="187">
+          <caret line="582" selection-start-line="582" selection-end-line="582" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/internet/defer.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="363">
-          <caret line="155" selection-start-line="155" selection-end-line="155" />
+        <state relative-caret-position="448">
+          <caret line="150" selection-start-line="150" selection-end-line="150" />
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/klein/resource.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="187">
+          <caret line="209" selection-start-line="209" selection-end-line="209" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/web/server.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="187">
+          <caret line="198" selection-start-line="198" selection-end-line="198" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/web/http.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="187">
+          <caret line="2189" selection-start-line="2189" selection-end-line="2189" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/testfiles/sd/asdasd.param">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/testfiles/sd/Hosta.thr">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
     <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/klein/app.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="287">
-          <caret line="49" selection-start-line="49" selection-end-line="49" />
+        <state relative-caret-position="187">
+          <caret line="127" column="31" selection-start-line="127" selection-start-column="31" selection-end-line="127" selection-end-column="31" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/EmulateSandTable.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="153">
-          <caret line="9" column="21" selection-start-line="9" selection-start-column="21" selection-end-line="9" selection-end-column="21" />
+        <state relative-caret-position="297">
+          <caret line="93" column="46" selection-start-line="93" selection-start-column="46" selection-end-line="93" selection-end-column="46" />
           <folding>
             <element signature="e#0#35#0" expanded="true" />
+            <marker date="1546682014072" expanded="true" signature="1860:1897" ph="..." />
           </folding>
         </state>
       </provider>

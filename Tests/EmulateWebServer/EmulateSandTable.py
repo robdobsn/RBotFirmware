@@ -4,6 +4,8 @@ from klein import run, route
 import json
 import os
 import cgi
+from os.path import isfile, join
+import re
 
 stSettings = {
     "maxCfgLen": 2000,
@@ -17,12 +19,14 @@ stFileInfo = {
     "fsBase":"/sd",
     "diskSize":1374476,
     "diskUsed":1004,
-    "folder":"/sd/","files":
-            [
-                {"name":"/test1.gcode","size":79},
-                {"name":"/pattern.param","size":200},
-                {"name":"/robot.json","size":47}
-            ]
+    "folder":"/sd/",
+    "files":
+        [
+            # {"name": "/test1.gcode", "size": 79},
+            # {"name": "/pattern.param", "size": 200},
+            # {"name": "/robot.json", "size": 47}
+        ]
+
         }
 
 
@@ -42,9 +46,13 @@ def static(request):
     with open(fileName, "r") as f:
         return f.read()
 
-@route('/files', branch=True)
-def staticFiles(request):
-    return File("./testfiles")
+@route('/files/sd', branch=True)
+def staticSd(request):
+    return(File("./testfiles/sd"))
+
+# @route('/files', branch=True)
+# def staticFiles(request):
+#     return File("./testfiles")
 
 @route('/getsettings', branch=False)
 def getsettings(request):
@@ -52,6 +60,7 @@ def getsettings(request):
 
 @route('/filelist/', branch=False)
 def filelist(request):
+    stFileInfo["files"] = [{"name":f,"size":1234} for f in os.listdir("./testfiles/sd/") if isfile(join("./testfiles/sd/", f))]
     return json.dumps(stFileInfo)
 
 # @route('/fileread/<string:fileName>', branch=False)
@@ -69,18 +78,22 @@ def filelist(request):
 def uploadtofileman(request):
     method = request.method.decode('utf-8').upper()
     content_type = request.getHeader('content-type')
-    content = request.content.read()
+    content = request.content.read().decode("utf-8")
+    fileInfo = request.args
+    print(fileInfo)
+    fileContent=fileInfo[b'file'][0].decode('utf-8')
     # fileContent = cgi.parse_multipart(content)
     # fileInfo = cgi.FieldStorage(
     #     fp = request.content,
     #     headers = request.getAllHeaders(),
     #     environ = {'REQUEST_METHOD': method, 'CONTENT_TYPE': content_type})
-    # name = fileInfo[b'datafile'].filename
+    # name = "./testfiles/" + fileInfo[b'datafile'].filename
     # print (f"Received file {name} content {request.args[b'datafile'][0]}")
-    print (f"Received file content {content}")
-    # with open(name, 'wb') as fileOutput:
-    #     # fileOutput.write(img['datafile'].value)
-    #     fileOutput.write(request.args[b'datafile'][0])
+    # print (f"Received file content {content}")
+    filename = re.search(r'name="file"; filename="(.*)"', content).group(1)
+    with open("./testfiles/sd/" + filename, 'w') as fileOutput:
+        # fileOutput.write(img['datafile'].value)
+        fileOutput.write(fileContent)
     return succeed(None)
 
 

@@ -21,7 +21,7 @@
 				statusUpdateCheckMs: 2000,
 				statusUpdateTooLateMs: 15000,
 				maxIterationsInEval: 500,
-				maxIterationsInTotal: 10000,
+				maxIterationsInTotal: 100000,
 				patternEvalIntervalMs: 100,
 				tableCanvasPtIsValid: false,
 				fileTypes: [["param", "Parametric"],["gcode", "G-Code"],["thr", "Theta-Rho"],["seq", "Sequence"]],
@@ -188,6 +188,7 @@
 				let contentBlob = new Blob([fileText], {type: 'plain/text'});
 				formData.append("file", contentBlob, fileNameNoExtension + "." + window.stState.curFileType);
 				let xmlhttp = new XMLHttpRequest();
+				let failCallback = fileSaveFail;
 				xmlhttp.onreadystatechange = function()
 				{
 					if (xmlhttp.readyState === 4) {
@@ -250,6 +251,11 @@
 		function fileDeleteFail()
 		{
 			console.log("Delete file failed");
+			reqFileListAndUpdate();
+		}
+		function fileSaveFail()
+		{
+			console.log("Save file failed");
 			reqFileListAndUpdate();
 		}
 		function postSettings()
@@ -424,7 +430,7 @@
 					listStr += window.stState.curFileType;
 				listStr += "</div>";
 				listStr += "<div class='body-group-actions'>";
-				listStr += genButton("userAction(\"" + itemTypeStr + "\",\"delete\",\"~key~\")", argStr, "", "Delete pattern", "Delete", 'body-group-button', false, !addMode);
+				listStr += genButton("userAction(\"" + itemTypeStr + "\",\"delete\",\"~key~\")", argStr, "Delete", "Delete pattern", "Delete", 'body-group-button', false, !addMode);
 				listStr += "</div>";
 			}
 			else
@@ -470,9 +476,9 @@
 			listStr += "<fieldset class='body-fieldset'>";
 			listStr += "<div class='body-form-line'>";
 			listStr += "<div class='body-form-label'>Name</div>";
-			listStr += "<textarea id='fileNameNoExtension' rows='1' class='body-form-field'";
+			listStr += "<input type='text' id='fileNameNoExtension' class='body-form-field'";
 			listStr += (window.stState.curPage.trim() === 'patEdit') ? "disabled" : "";
-			listStr += ">" + fileNameNoExtension + "</textarea>";
+			listStr += ">" + fileNameNoExtension + "</input>";
 			listStr += "</div>";
 			if (window.stState.curFileType === "param")
 			{
@@ -566,9 +572,6 @@
 
 			// Set canvas
 			setCanvasShapeAndSize();
-
-			// Validate (if needed)
-			patternValidate();
 
 			// Show file list if sequence add/editing
 			if (window.stState.curFileType === "seq")
@@ -1136,7 +1139,7 @@
 			// Request another timeslot
 			setTimeout(paramStep, window.stState.patternEvalIntervalMs);
 		}
-		function gcodeEvalLine(ctx)
+		function gcodeEvalService(ctx)
 		{
 			if (ctx.lines.length <= ctx.lineIdx)
 				return "done";
@@ -1201,9 +1204,18 @@
 			}
 			ctx.curTheta = ctx.prevPoint[0];
 			ctx.curRho = ctx.prevPoint[1];
+			console.log("Theta " + formatFP(ctx.nextPoint[0], 6) + " Rho " + formatFP(ctx.nextPoint[1], 6) + " CurTheta " + formatFP(ctx.curTheta, 6) +
+						" CurRho " + formatFP(ctx.curRho, 6) + " TotalSteps " + ctx.interpolateSteps + " ThetaInc " + formatFP(ctx.thetaInc, 6) +
+						" RhoInc " + formatFP(ctx.rhoInc, 6) + " AbsDeltaTheta " + formatFP(Math.abs(ctx.deltaTheta), 6) +
+						" StepAng " + formatFP(window.stState.thrMaxThetaInc, 6));
 			if (thrProcInterp(ctx))
 				return "";
 			return "ignore";
+		}
+		function formatFP(val, dp)
+		{
+			const divis = Math.pow(10, dp)
+			return parseFloat((val * divis) / divis).toFixed(dp)
 		}
 		function thrProcInterp(ctx)
 		{
@@ -1214,10 +1226,10 @@
 			ctx.y = (ctx.sizeY / 2) * ctx.curRho * Math.cos(ctx.curTheta);
 			ctx.curRho += ctx.rhoInc;
 			ctx.curTheta += ctx.thetaInc;
-			console.log("~G0 U" + parseFloat(Math.round(ctx.curTheta * 100000) / 100000).toFixed(5) + ", V" + parseFloat(Math.round(ctx.curRho * 100000) / 100000).toFixed(5))
+			console.log("G0 U" + formatFP(Math.round(ctx.curTheta), 6)  + " V" + formatFP(Math.round(ctx.curRho), 6))
 			return true;
 		}
-		function thrEvalLine(ctx)
+		function thrEvalService(ctx)
 		{
 			if (ctx.interpolateIdx != 0)
 				if (thrProcInterp(ctx))
@@ -1260,6 +1272,7 @@
 			};
 			extractTableSize(window.stState.textFileContext);
 			tableShowStart(window.stState.textFileContext);
+			window.stState.interpIteration = 0;
 			textFileStep();
 		}
 		function textFileStep()
@@ -1270,13 +1283,14 @@
 				// Evaluate
 				let parseResult = "";
 				if (ctx.fileType === "gcode")
-					parseResult = gcodeEvalLine(ctx);
+					parseResult = gcodeEvalService(ctx);
 				else
-					parseResult = thrEvalLine(ctx);
+					parseResult = thrEvalService(ctx);
 				if (parseResult.length > 0)
 				{
 					if ((parseResult === "ignore") || (parseResult === "invalid"))
 						continue;
+					console.log("Res too short")
 					return;
 				}
 
@@ -1286,13 +1300,20 @@
 				// Check max iterations
 				window.stState.interpIteration++;
 				if (window.stState.interpIteration >= window.stState.maxIterationsInTotal)
+				{
+					console.log("Max Iter")
 					return;
+				}
 
 				// Check for stop
 				if (ctx.stop)
+				{
+					console.log("Stop req")
 					return;
+				}
 			}
 			// Request another timeslot
+			console.log("Req TS")
 			setTimeout(textFileStep, window.stState.patternEvalIntervalMs);
 		}
 		function tableShowStart(varContext)
@@ -1322,6 +1343,8 @@
 		function tableShowNextPoint(varContext)
 		{
 			let canvas = document.getElementById('table-canvas');
+			if (!canvas)
+				return;
 			let canvasContext = canvas.getContext('2d');
 			const pointXY = getCanvasXY(canvas, varContext);
 			if (!window.stState.tableCanvasPtIsValid)

@@ -8,9 +8,9 @@
 #include "Utils.h"
 #include "../WorkManager.h"
 
-//#define THETA_RHO_DEBUG 1
+// #define THETA_RHO_DEBUG 1
 
-static const char* MODULE_PREFIX = "EvaluatorThetaRhoLine: ";
+static const char *MODULE_PREFIX = "EvaluatorThetaRhoLine: ";
 
 EvaluatorThetaRhoLine::EvaluatorThetaRhoLine()
 {
@@ -24,13 +24,13 @@ EvaluatorThetaRhoLine::EvaluatorThetaRhoLine()
     _prevRho = 0;
 }
 
-void EvaluatorThetaRhoLine::setConfig(const char* configStr)
+void EvaluatorThetaRhoLine::setConfig(const char *configStr)
 {
     // Set the theta-rho angle step
     _stepAngle = RdJson::getDouble("thrStepDegs", 2.8, configStr) * M_PI / 180;
     _continueFromPrevious = RdJson::getLong("thrContinue", 1, configStr) != 0;
-    Log.trace("%ssetConfig StepAngleDegrees %F continueFromPrevious %s\n", MODULE_PREFIX, 
-            _stepAngle, _continueFromPrevious ? "Y" : "N");
+    Log.trace("%ssetConfig StepAngleDegrees %F continueFromPrevious %s\n", MODULE_PREFIX,
+              _stepAngle, _continueFromPrevious ? "Y" : "N");
 }
 
 // Is Busy
@@ -39,13 +39,13 @@ bool EvaluatorThetaRhoLine::isBusy()
     return _inProgress;
 }
 
-const char* EvaluatorThetaRhoLine::getConfig()
+const char *EvaluatorThetaRhoLine::getConfig()
 {
     return "";
 }
 
 // Check if valid
-bool EvaluatorThetaRhoLine::isValid(WorkItem& workItem)
+bool EvaluatorThetaRhoLine::isValid(WorkItem &workItem)
 {
     // Check if theta-rho
     String cmdStr = workItem.getString();
@@ -54,7 +54,7 @@ bool EvaluatorThetaRhoLine::isValid(WorkItem& workItem)
 }
 
 // Process WorkItem
-bool EvaluatorThetaRhoLine::execWorkItem(WorkItem& workItem)
+bool EvaluatorThetaRhoLine::execWorkItem(WorkItem &workItem)
 {
     // Extract the details
     String thetaStr = Utils::getNthField(workItem.getCString(), 1, '/');
@@ -62,8 +62,8 @@ bool EvaluatorThetaRhoLine::execWorkItem(WorkItem& workItem)
     double newTheta = atof(thetaStr.c_str());
     double newRho = atof(rhoStr.c_str());
 #ifdef THETA_RHO_DEBUG
-    Log.trace("%sexecWorkItem %s\n", MODULE_PREFIX, 
-            workItem.getCString());
+    Log.trace("%sexecWorkItem %s\n", MODULE_PREFIX,
+              workItem.getCString());
 #endif
     if (workItem.getString().startsWith("_THRLINE0_"))
     {
@@ -75,11 +75,14 @@ bool EvaluatorThetaRhoLine::execWorkItem(WorkItem& workItem)
         {
             _thetaStartOffset = 0;
         }
+        _prevTheta = newTheta;
+        _prevRho = newRho;
+        return false;
     }
     double deltaTheta = newTheta - _thetaStartOffset - _prevTheta;
     double absDeltaTheta = abs(deltaTheta);
     _thetaInc = deltaTheta >= 0 ? _stepAngle : -_stepAngle;
-    double deltaRho = newRho - _curRho;
+    double deltaRho = newRho - _prevRho;
     if (absDeltaTheta < _stepAngle)
     {
         _thetaInc = deltaTheta;
@@ -88,7 +91,7 @@ bool EvaluatorThetaRhoLine::execWorkItem(WorkItem& workItem)
     }
     else
     {
-        _interpolateSteps = int(floorf(absDeltaTheta / _stepAngle));
+        _interpolateSteps = int(floor(absDeltaTheta / _stepAngle));
         if (_interpolateSteps < 1)
             return true;
         _rhoInc = deltaRho * _stepAngle / absDeltaTheta;
@@ -100,13 +103,15 @@ bool EvaluatorThetaRhoLine::execWorkItem(WorkItem& workItem)
     _curStep = 0;
     _inProgress = true;
 #ifdef THETA_RHO_DEBUG
-    Log.trace("%sexecWorkItem Theta %F Rho %F CurTheta %F CurRho %F TotalSteps %d ThetaInc %F RhoInc %F AbsDeltaTheta %F StepAng %F\n", MODULE_PREFIX, 
+    char debugStr[200];
+    sprintf(debugStr, "Theta %8.6f Rho %8.6f CurTheta %8.6f CurRho %8.6f TotalSteps %d ThetaInc %8.6f RhoInc %8.6f AbsDeltaTheta %8.6f StepAng %8.6f",
             newTheta, newRho, _curTheta, _curRho, _interpolateSteps, _thetaInc, _rhoInc, absDeltaTheta, _stepAngle);
+    Log.trace("%sexecWorkItem %s\n", MODULE_PREFIX, debugStr);
 #endif
     return true;
 }
 
-void EvaluatorThetaRhoLine::service(WorkManager* pWorkManager)
+void EvaluatorThetaRhoLine::service(WorkManager *pWorkManager)
 {
     // Process multiple if possible
     for (int i = 0; i < PROCESS_STEPS_PER_SERVICE; i++)
@@ -115,9 +120,21 @@ void EvaluatorThetaRhoLine::service(WorkManager* pWorkManager)
         if (!_inProgress)
             return;
 
+        if (_curStep >= _interpolateSteps)
+        {
+#ifdef THETA_RHO_DEBUG
+            Log.trace("%sservice finished\n", MODULE_PREFIX);
+#endif
+            _inProgress = false;
+            return;
+        }
+
         // See if we can add to the queue
         if (!pWorkManager->canAcceptWorkItem())
             return;
+
+        // Step
+        _curStep++;
 
         // Inc
         _curTheta += _thetaInc;
@@ -132,17 +149,6 @@ void EvaluatorThetaRhoLine::service(WorkManager* pWorkManager)
         Log.trace("%sservice %s\n", MODULE_PREFIX, lineBuf);
 #endif
         pWorkManager->addWorkItem(workItem, retStr);
-
-        // Check complete
-        _curStep++;
-        if (_curStep >= _interpolateSteps)
-        {
-#ifdef THETA_RHO_DEBUG
-            Log.trace("%sservice finished\n", MODULE_PREFIX);
-#endif
-            _inProgress = false;
-            return;
-        }
     }
 }
 
