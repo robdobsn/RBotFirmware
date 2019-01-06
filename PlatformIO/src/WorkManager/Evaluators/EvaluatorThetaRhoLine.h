@@ -32,7 +32,10 @@ public:
 
 private:
     // Config
+    const double DEFAULT_STEP_ANGLE = M_PI / 64;
+    const double RHO_AT_DEFAULT_STEP_ANGLE = 0.5;
     double _stepAngle;
+    bool _stepAdaptation;
     bool _continueFromPrevious;
 
     // Pattern in progress
