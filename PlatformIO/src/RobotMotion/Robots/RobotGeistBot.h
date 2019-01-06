@@ -108,7 +108,7 @@ public:
         double alphaDegs = alphaSteps / axesParams.getStepsPerUnit(0);
         if (actuatorCoords._pt[0] < 0)
             alphaDegs = axesParams.getunitsPerRot(0)-alphaDegs;
-        polarCoordsAzFirst[0] = alphaDegs * M_PI / 180;
+        polarCoordsAzFirst[0] = AxisUtils::d2r(alphaDegs);
 
         // Calculate linear position (note that this robot has interaction between azimuth and linear motion as the rack moves
         // if the pinion gear remains still and the arm assembly moves around it) - so the required linear calculation uses the

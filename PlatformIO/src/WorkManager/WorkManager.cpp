@@ -193,9 +193,9 @@ void WorkManager::addWorkItem(WorkItem& workItem, String &retStr, int cmdIdx)
     }
 
     // Handle multiple commands (semicolon delimited)
-// #ifdef DEBUG_WORK_ITEM_SERVICE
-//     Log.trace("%s addWorkItem %s\n", MODULE_PREFIX, workItem.getCString());
-// #endif
+#ifdef DEBUG_WORK_ITEM_SERVICE
+    Log.trace("%s addWorkItem %s\n", MODULE_PREFIX, workItem.getCString());
+#endif
     const int MAX_TEMP_CMD_STR_LEN = 1000;
     const char *pCurStr = workItem.getCString();
     const char *pCurStrEnd = pCurStr;
@@ -221,9 +221,9 @@ void WorkManager::addWorkItem(WorkItem& workItem, String &retStr, int cmdIdx)
             // process
             if (cmdIdx == -1 || cmdIdx == curCmdIdx)
             {
-// #ifdef DEBUG_WORK_ITEM_SERVICE
-//                 Log.trace("%ssingle %d %s\n", MODULE_PREFIX, stLen, pCurCmd);
-// #endif            
+#ifdef DEBUG_WORK_ITEM_SERVICE
+                Log.trace("%ssingle %d %s\n", MODULE_PREFIX, stLen, pCurCmd);
+#endif            
                 processSingle(pCurCmd, retStr);
             }
             delete[] pCurCmd;
@@ -268,6 +268,10 @@ bool WorkManager::execWorkItem(WorkItem& workItem)
     if (_evaluatorPatterns.isValid(workItem))
     {
         handledOk = _evaluatorPatterns.execWorkItem(workItem, _fileManager);
+#ifdef DEBUG_WORK_ITEM_SERVICE
+        Log.trace("%sexecWorkIterm %s isPattern handledOk = %s\n", MODULE_PREFIX, 
+                workItem.getCString(), handledOk ? "YES" : "NO");
+#endif
         if (handledOk)
             return handledOk;
     }
@@ -275,6 +279,10 @@ bool WorkManager::execWorkItem(WorkItem& workItem)
     if (_evaluatorThetaRhoLine.isValid(workItem))
     {
         handledOk = _evaluatorThetaRhoLine.execWorkItem(workItem);
+#ifdef DEBUG_WORK_ITEM_SERVICE
+        Log.trace("%sexecWorkIterm %s isTHR handledOk = %s\n", MODULE_PREFIX, 
+                workItem.getCString(), handledOk ? "YES" : "NO");
+#endif
         if (handledOk)
             return handledOk;
     }
@@ -282,6 +290,10 @@ bool WorkManager::execWorkItem(WorkItem& workItem)
     if (_evaluatorFiles.isValid(workItem))
     {
         handledOk = _evaluatorFiles.execWorkItem(workItem);
+#ifdef DEBUG_WORK_ITEM_SERVICE
+        Log.trace("%sexecWorkIterm %s isFile handledOk = %s\n", MODULE_PREFIX, 
+                workItem.getCString(), handledOk ? "YES" : "NO");
+#endif
         if (handledOk)
             return handledOk;
     }
@@ -289,6 +301,10 @@ bool WorkManager::execWorkItem(WorkItem& workItem)
     if (_evaluatorSequences.isValid(workItem))
     {
         handledOk = _evaluatorSequences.execWorkItem(workItem);
+#ifdef DEBUG_WORK_ITEM_SERVICE
+        Log.trace("%sexecWorkIterm %s isSequence handledOk = %s\n", MODULE_PREFIX, 
+                workItem.getCString(), handledOk ? "YES" : "NO");
+#endif
         if (handledOk)
             return handledOk;
     }
@@ -349,14 +365,15 @@ void WorkManager::service()
                 rslt = _workItemQueue.get(workItem);
                 if (rslt)
                 {
-#ifdef DEBUG_WORK_ITEM_SERVICE
-                    Log.trace("%sgetWorkflow rlst=%d (waiting %d), %s\n", MODULE_PREFIX, rslt,
-                            _workItemQueue.size(),
-                            workItem.getString().c_str());
-#endif
                     // Check for extended commands
                     rslt = execWorkItem(workItem);
 
+#ifdef DEBUG_WORK_ITEM_SERVICE
+                    Log.trace("%sgetWorkflow execRslt=%d (waiting %d), %s\n", MODULE_PREFIX,
+                            rslt,
+                            _workItemQueue.size(),
+                            workItem.getString().c_str());
+#endif
                     // Check for GCode
                     if (!rslt)
                         EvaluatorGCode::interpretGcode(workItem, &_robotController, true);

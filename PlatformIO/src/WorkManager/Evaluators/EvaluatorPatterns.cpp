@@ -36,11 +36,7 @@ bool EvaluatorPatterns::isValid(WorkItem& workItem)
     // Evaluator patterns should have the file extension .param
     String fileName = workItem.getString();
     String fileExt = FileManager::getFileExtension(fileName);
-    if (!fileExt.equalsIgnoreCase("param"))
-    {
-        return false;
-    }
-    return true;
+    return fileExt.equalsIgnoreCase("param");
 }
 
 void EvaluatorPatterns::addExpression(const char* exprStr, bool isInitialValue)

@@ -3,14 +3,16 @@
   <component name="ChangeListManager">
     <list default="true" id="a6546d1b-6b84-477e-8b73-cfca16147a37" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotConfigurations.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotConfigurations.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WebAutogenResources.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WebAutogenResources.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionActuator.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionActuator.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionActuator.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionActuator.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionBlock.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionBlock.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotGeistBot.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotGeistBot.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorPatterns.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorPatterns.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorThetaRhoLine.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorThetaRhoLine.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorThetaRhoLine.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorThetaRhoLine.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/WorkManager.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/WorkManager.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/main.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/EmulateSandTable.py" beforeDir="false" afterPath="$PROJECT_DIR$/EmulateSandTable.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/testfiles/pattern.param" beforeDir="false" afterPath="$PROJECT_DIR$/testfiles/sd/pattern.param" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/testfiles/robot.json" beforeDir="false" afterPath="$PROJECT_DIR$/testfiles/sd/robot.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/testfiles/test1.gcode" beforeDir="false" afterPath="$PROJECT_DIR$/testfiles/sd/test1.gcode" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../WebUI/ComboUI/sandUI.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../WebUI/ComboUI/sandUI.html" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -28,10 +30,10 @@
         <counts>
           <entry key="project.closed" value="6" />
           <entry key="project.open.time.0" value="6" />
-          <entry key="project.open.time.1" value="1" />
+          <entry key="project.open.time.1" value="2" />
           <entry key="project.open.time.2" value="1" />
           <entry key="project.open.time.5" value="1" />
-          <entry key="project.opened" value="9" />
+          <entry key="project.opened" value="10" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
@@ -86,7 +88,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/klein/app.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="187">
+            <state relative-caret-position="2057">
               <caret line="127" column="31" selection-start-line="127" selection-start-column="31" selection-end-line="127" selection-end-column="31" />
             </state>
           </provider>
@@ -95,7 +97,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/internet/defer.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="448">
+            <state relative-caret-position="2295">
               <caret line="150" selection-start-line="150" selection-end-line="150" />
             </state>
           </provider>
@@ -104,7 +106,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/klein/resource.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="187">
+            <state relative-caret-position="3332">
               <caret line="209" selection-start-line="209" selection-end-line="209" />
             </state>
           </provider>
@@ -113,7 +115,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/web/server.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="187">
+            <state relative-caret-position="3298">
               <caret line="198" selection-start-line="198" selection-end-line="198" />
             </state>
           </provider>
@@ -122,7 +124,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/web/http.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="187">
+            <state relative-caret-position="37213">
               <caret line="2189" selection-start-line="2189" selection-end-line="2189" />
             </state>
           </provider>
@@ -149,7 +151,7 @@
     <detection-done>true</detection-done>
     <sorting>DEFINITION_ORDER</sorting>
   </component>
-  <component name="ProjectFrameBounds">
+  <component name="ProjectFrameBounds" extendedState="1">
     <option name="x" value="1220" />
     <option name="y" value="283" />
     <option name="width" value="1754" />
@@ -280,9 +282,10 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="1220" y="283" width="1754" height="1152" extended-state="0" />
+    <frame x="1220" y="283" width="1754" height="1152" extended-state="1" />
+    <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.28689492" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.29043683" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -392,46 +395,9 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/internet/defer.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="448">
-          <caret line="150" selection-start-line="150" selection-end-line="150" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/klein/resource.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="187">
-          <caret line="209" selection-start-line="209" selection-end-line="209" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/web/server.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="187">
-          <caret line="198" selection-start-line="198" selection-end-line="198" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/web/http.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="187">
-          <caret line="2189" selection-start-line="2189" selection-end-line="2189" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/testfiles/sd/asdasd.param">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
+    <entry file="file://$PROJECT_DIR$/testfiles/sd/asdasd.param" />
     <entry file="file://$PROJECT_DIR$/testfiles/sd/Hosta.thr">
       <provider selected="true" editor-type-id="text-editor" />
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/klein/app.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="187">
-          <caret line="127" column="31" selection-start-line="127" selection-start-column="31" selection-end-line="127" selection-end-column="31" />
-        </state>
-      </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/EmulateSandTable.py">
       <provider selected="true" editor-type-id="text-editor">
@@ -441,6 +407,41 @@
             <element signature="e#0#35#0" expanded="true" />
             <marker date="1546682014072" expanded="true" signature="1860:1897" ph="..." />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/klein/app.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2057">
+          <caret line="127" column="31" selection-start-line="127" selection-start-column="31" selection-end-line="127" selection-end-column="31" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/internet/defer.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2295">
+          <caret line="150" selection-start-line="150" selection-end-line="150" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/klein/resource.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3332">
+          <caret line="209" selection-start-line="209" selection-end-line="209" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/web/server.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3298">
+          <caret line="198" selection-start-line="198" selection-end-line="198" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/web/http.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="37213">
+          <caret line="2189" selection-start-line="2189" selection-end-line="2189" />
         </state>
       </provider>
     </entry>
