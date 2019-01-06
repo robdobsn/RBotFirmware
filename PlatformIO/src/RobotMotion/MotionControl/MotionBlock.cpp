@@ -80,14 +80,14 @@ bool MotionBlock::prepareForStepping(AxesParams &axesParams)
     uint32_t absMaxStepsForAnyAxis = abs(_stepsTotalMaybeNeg[_axisIdxWithMaxSteps]);
 
     // Get the initial step rate, final step rate and max acceleration for the axis with max steps
-    double stepDistMM = _moveDistPrimaryAxesMM * _unitVecAxisWithMaxDist / abs(_stepsTotalMaybeNeg[_axisIdxWithMaxSteps]);
-    float initialStepRatePerSec = _entrySpeedMMps * _unitVecAxisWithMaxDist / stepDistMM;
+    float stepDistMM = fabsf(_moveDistPrimaryAxesMM * _unitVecAxisWithMaxDist / _stepsTotalMaybeNeg[_axisIdxWithMaxSteps]);
+    float initialStepRatePerSec = fabsf(_entrySpeedMMps * _unitVecAxisWithMaxDist / stepDistMM);
     if (initialStepRatePerSec > axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps))
         initialStepRatePerSec = axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps);
-    float finalStepRatePerSec = _exitSpeedMMps * _unitVecAxisWithMaxDist / stepDistMM;
+    float finalStepRatePerSec = fabsf(_exitSpeedMMps * _unitVecAxisWithMaxDist / stepDistMM);
     if (finalStepRatePerSec > axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps))
         finalStepRatePerSec = axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps);
-    float maxAccStepsPerSec2 = axesParams.getMaxAccel(_axisIdxWithMaxSteps) * _unitVecAxisWithMaxDist / stepDistMM;
+    float maxAccStepsPerSec2 = fabsf(axesParams.getMaxAccel(_axisIdxWithMaxSteps) * _unitVecAxisWithMaxDist / stepDistMM);
 
     // Calculate the distance decelerating and ensure within bounds
     // Using the facts for the block ... (assuming max accleration followed by max deceleration):
@@ -111,7 +111,7 @@ bool MotionBlock::prepareForStepping(AxesParams &axesParams)
     uint32_t stepsDecelerating = 0;
 
     // Find max possible rate for axis with max steps
-    float axisMaxStepRatePerSec = _feedrateMMps * _unitVecAxisWithMaxDist / stepDistMM;
+    float axisMaxStepRatePerSec = fabsf(_feedrateMMps * _unitVecAxisWithMaxDist / stepDistMM);
     if (axisMaxStepRatePerSec > axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps))
         axisMaxStepRatePerSec = axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps);
 

@@ -10,6 +10,8 @@
 // Instrumentation of motion actuator
 INSTRUMENT_MOTION_ACTUATOR_INSTANCE
 
+//#define DEBUG_MONITOR_ISR_OPERATION 1
+
 #ifdef USE_ESP32_TIMER_ISR
 // Static interval timer
 hw_timer_t *MotionActuator::_isrMotionTimer;
@@ -143,7 +145,7 @@ void IRAM_ATTR MotionActuator::updateMSAccumulator(MotionBlock *pBlock)
                                                  pBlock->_finalStepRatePerTTicks + pBlock->_accStepsPerTTicksPerMS))
                 _curStepRatePerTTicks -= pBlock->_accStepsPerTTicksPerMS;
         }
-        else if (_curStepRatePerTTicks < pBlock->_maxStepRatePerTTicks)
+        else if ((_curStepRatePerTTicks < MIN_STEP_RATE_PER_TTICKS) || (_curStepRatePerTTicks < pBlock->_maxStepRatePerTTicks))
         {
             if (_curStepRatePerTTicks + pBlock->_accStepsPerTTicksPerMS < MotionBlock::TTICKS_VALUE)
                 _curStepRatePerTTicks += pBlock->_accStepsPerTTicksPerMS;
@@ -223,6 +225,17 @@ void IRAM_ATTR MotionActuator::endMotion(MotionBlock *pBlock)
         _lastDoneNumberedCmdIdx = pBlock->getNumberedCommandIndex();
 }
 
+#ifdef DEBUG_MONITOR_ISR_OPERATION
+volatile uint32_t accumStep = 0;
+volatile uint32_t stepRate = 0;
+volatile uint32_t accelacc = 0;
+volatile int maxstepax = -1;
+volatile uint32_t accrate = 0;
+volatile int curSteps = -1;
+volatile int befDec = -1;
+volatile int maxStepRt = -1;
+#endif
+
 // Function that handles ISR calls based on a timer
 // When ISR is enabled this is called every MotionBlock::TICK_INTERVAL_NS nanoseconds
 void IRAM_ATTR MotionActuator::_isrStepperMotion(void)
@@ -285,7 +298,18 @@ void IRAM_ATTR MotionActuator::_isrStepperMotion(void)
     updateMSAccumulator(pBlock);
 
     // Bump the step accumulator
-    _curAccumulatorStep += _curStepRatePerTTicks;
+    _curAccumulatorStep += std::max(_curStepRatePerTTicks, MIN_STEP_RATE_PER_TTICKS);
+
+#ifdef DEBUG_MONITOR_ISR_OPERATION
+    accumStep = _curAccumulatorStep;
+    stepRate = _curStepRatePerTTicks;
+    accelacc = _curAccumulatorNS;
+    maxstepax = pBlock->_axisIdxWithMaxSteps;
+    accrate = pBlock->_accStepsPerTTicksPerMS;
+    curSteps = _curStepCount[pBlock->_axisIdxWithMaxSteps];
+    befDec =pBlock->_stepsBeforeDecel;
+    maxStepRt = pBlock->_maxStepRatePerTTicks;
+#endif
 
     // Check for step accumulator overflow
     if (_curAccumulatorStep >= MotionBlock::TTICKS_VALUE)
@@ -326,9 +350,15 @@ String MotionActuator::getDebugStr()
     if (_pMotionInstrumentation)
         return _pMotionInstrumentation->getDebugStr();
     return "";
-#else
-    return "";
 #endif
+#ifdef DEBUG_MONITOR_ISR_OPERATION
+    char dbg[200];
+    sprintf(dbg, "accum %d rate %d accacc %d maxstepidx %d accrate %d cursteps %d befDec %d maxRt %d",
+            accumStep, stepRate, accelacc, maxstepax, accrate, curSteps, befDec, maxStepRt);
+    anymov = 6;
+    return dbg;
+#endif
+    return "";
 }
 
 void MotionActuator::showDebug()

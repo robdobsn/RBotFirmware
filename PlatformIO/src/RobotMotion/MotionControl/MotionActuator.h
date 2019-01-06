@@ -28,7 +28,7 @@ private:
 
     // This is to ensure that the robot never goes to 0 tick rate - which would leave it
     // immobile forever
-    static constexpr uint32_t MIN_STEP_RATE_PER_SEC = 1;
+    static constexpr uint32_t MIN_STEP_RATE_PER_SEC = 10;
     static constexpr uint32_t MIN_STEP_RATE_PER_TTICKS = uint32_t((MIN_STEP_RATE_PER_SEC * 1.0 * MotionBlock::TTICKS_VALUE) / MotionBlock::TICKS_PER_SEC);
 
 #ifdef INSTRUMENT_MOTION_ACTUATOR_ENABLE
