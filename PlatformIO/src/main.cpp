@@ -33,7 +33,7 @@
 const char* systemType = "RBotFirmware";
 
 // System version
-const char* systemVersion = "2.023.003";
+const char* systemVersion = "2.023.004";
 
 // Build date
 const char* buildDate = __DATE__;
