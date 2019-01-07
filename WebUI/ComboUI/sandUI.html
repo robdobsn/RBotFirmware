@@ -165,10 +165,10 @@
 				// Get values from form
 				let fileNameNoExtensionElem = document.getElementById('fileNameNoExtension');
 				let fileNameNoExtension = "";
-				if (fileNameNoExtensionElem.hasOwnProperty("value"))
-					fileNameNoExtension = fileNameNoExtensionElem.value.trim();
-				else
+				if (window.stState.curPage.trim() === 'patEdit')
 					fileNameNoExtension = fileNameNoExtensionElem.innerHTML.trim();
+				else
+					fileNameNoExtension = fileNameNoExtensionElem.value.trim();
 				fileNameNoExtension = fileNameNoExtension.replace('"','');
 				fileNameNoExtension = fileNameNoExtension.replace('\\','');
 				fileNameNoExtension = fileNameNoExtension.replace('?','');
