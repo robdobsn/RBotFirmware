@@ -11,7 +11,7 @@ class WorkItem;
 class EvaluatorFiles
 {
 public:
-    EvaluatorFiles(FileManager& fileManager);
+    EvaluatorFiles(FileManager& fileManager, WorkManager& workManager);
 
     // Config
     void setConfig(const char* configStr);
@@ -27,7 +27,7 @@ public:
     bool execWorkItem(WorkItem& workItem);
 
     // Call frequently
-    void service(WorkManager* pWorkManager);
+    void service();
 
     // Control
     void stop();
@@ -43,14 +43,18 @@ private:
     // Filename in progress
     bool _inProgress;
 
-    // File manager
+    // File manager & work manager
     FileManager& _fileManager;
+    WorkManager& _workManager;
 
     // File type
     int _fileType;
 
     // Start of file handling
     bool _firstValidLineProcessed;
+
+    // Settings
+    bool _interpolate;
 
 private:
     int getFileTypeFromExtension(String& fileName);

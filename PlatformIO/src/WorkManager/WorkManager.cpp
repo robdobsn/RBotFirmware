@@ -24,9 +24,10 @@ WorkManager::WorkManager(ConfigBase& mainConfig,
             _restAPISystem(restAPISystem),
             _fileManager(fileManager),
             _commandScheduler(commandScheduler),
-            _evaluatorSequences(fileManager),
-            _evaluatorFiles(fileManager),
-            _evaluatorThetaRhoLine()
+            _evaluatorPatterns(fileManager, *this),
+            _evaluatorSequences(fileManager, *this),
+            _evaluatorFiles(fileManager, *this),
+            _evaluatorThetaRhoLine(*this)
 {
     _statusReportLastCheck = 0;
     _statusLastHashVal = 0;
@@ -267,7 +268,7 @@ bool WorkManager::execWorkItem(WorkItem& workItem)
     // See if it is a pattern evaluator
     if (_evaluatorPatterns.isValid(workItem))
     {
-        handledOk = _evaluatorPatterns.execWorkItem(workItem, _fileManager);
+        handledOk = _evaluatorPatterns.execWorkItem(workItem);
 #ifdef DEBUG_WORK_ITEM_SERVICE
         Log.trace("%sexecWorkIterm %s isPattern handledOk = %s\n", MODULE_PREFIX, 
                 workItem.getCString(), handledOk ? "YES" : "NO");
@@ -451,12 +452,12 @@ void WorkManager::evaluatorsStop()
 
 void WorkManager::evaluatorsService()
 {
-    _evaluatorThetaRhoLine.service(this);
-    _evaluatorPatterns.service(this);
+    _evaluatorThetaRhoLine.service();
+    _evaluatorPatterns.service();
     if (!evaluatorsBusy(false))
-        _evaluatorFiles.service(this);
+        _evaluatorFiles.service();
     if (!evaluatorsBusy(true))
-        _evaluatorSequences.service(this);
+        _evaluatorSequences.service();
 }
 
 bool WorkManager::evaluatorsBusy(bool includeFileEvaluator)

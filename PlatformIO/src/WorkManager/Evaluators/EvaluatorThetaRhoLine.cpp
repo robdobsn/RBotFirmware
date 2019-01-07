@@ -8,11 +8,12 @@
 #include "Utils.h"
 #include "../WorkManager.h"
 
-// #define THETA_RHO_DEBUG 1
+#define THETA_RHO_DEBUG 1
 
 static const char *MODULE_PREFIX = "EvaluatorThetaRhoLine: ";
 
-EvaluatorThetaRhoLine::EvaluatorThetaRhoLine()
+EvaluatorThetaRhoLine::EvaluatorThetaRhoLine(WorkManager& workManager) :
+                            _workManager(workManager)
 {
     _inProgress = false;
     _curStep = 0;
@@ -31,8 +32,8 @@ void EvaluatorThetaRhoLine::setConfig(const char *configStr)
     _stepAngle = AxisUtils::d2r(RdJson::getDouble("thrStepDegs", AxisUtils::r2d(DEFAULT_STEP_ANGLE), configStr));
     _stepAdaptation = RdJson::getLong("thrStepAdaptation", 1, configStr) != 0;
     _continueFromPrevious = RdJson::getLong("thrContinue", 1, configStr) != 0;
-    Log.trace("%ssetConfig StepAngleDegrees %F continueFromPrevious %s\n", MODULE_PREFIX,
-              _stepAngle, _continueFromPrevious ? "Y" : "N");
+    Log.trace("%ssetConfig StepAngleDegrees %F StepAdaptation %s continueFromPrevious %s\n", MODULE_PREFIX,
+              _stepAngle, _stepAdaptation ? "Y" : "N", _continueFromPrevious ? "Y" : "N");
 }
 
 // Is Busy
@@ -52,7 +53,7 @@ bool EvaluatorThetaRhoLine::isValid(WorkItem &workItem)
     // Check if theta-rho
     String cmdStr = workItem.getString();
     cmdStr.trim();
-    return cmdStr.startsWith("_THRLINE0_") || cmdStr.startsWith("_THRLINEN_");
+    return cmdStr.startsWith("_THRLINE");
 }
 
 // Process WorkItem
@@ -67,6 +68,23 @@ bool EvaluatorThetaRhoLine::execWorkItem(WorkItem &workItem)
     Log.trace("%sexecWorkItem %s\n", MODULE_PREFIX,
               workItem.getCString());
 #endif
+
+    // Check for an uninterpolated line
+    if (workItem.getString().startsWith("_THRLINE_"))
+    {
+        // Next iteration
+        char lineBuf[100];
+        sprintf(lineBuf, "G0 U%0.6f V%0.6f", newTheta, newRho);
+        String retStr;
+        WorkItem workItem(lineBuf);
+#ifdef THETA_RHO_DEBUG
+        Log.trace("%sexecWorkItem thrNonInterp %s\n", MODULE_PREFIX, lineBuf);
+#endif
+        _workManager.addWorkItem(workItem, retStr);
+        return true;
+    }
+
+    // Check for first line of interpolated file
     if (workItem.getString().startsWith("_THRLINE0_"))
     {
         if (_continueFromPrevious)
@@ -79,7 +97,7 @@ bool EvaluatorThetaRhoLine::execWorkItem(WorkItem &workItem)
         }
         _prevTheta = newTheta;
         _prevRho = newRho;
-        return false;
+        return true;
     }
     double deltaTheta = newTheta - _thetaStartOffset - _prevTheta;
     double absDeltaTheta = abs(deltaTheta);
@@ -134,7 +152,7 @@ bool EvaluatorThetaRhoLine::execWorkItem(WorkItem &workItem)
     return true;
 }
 
-void EvaluatorThetaRhoLine::service(WorkManager *pWorkManager)
+void EvaluatorThetaRhoLine::service()
 {
     // Process multiple if possible
     for (int i = 0; i < PROCESS_STEPS_PER_SERVICE; i++)
@@ -153,7 +171,7 @@ void EvaluatorThetaRhoLine::service(WorkManager *pWorkManager)
         }
 
         // See if we can add to the queue
-        if (!pWorkManager->canAcceptWorkItem())
+        if (!_workManager.canAcceptWorkItem())
             return;
 
         // Step
@@ -165,13 +183,13 @@ void EvaluatorThetaRhoLine::service(WorkManager *pWorkManager)
 
         // Next iteration
         char lineBuf[100];
-        sprintf(lineBuf, "G0 U%0.5f V%0.5f", _curTheta, _curRho);
+        sprintf(lineBuf, "G0 U%0.6f V%0.6f", _curTheta, _curRho);
         String retStr;
         WorkItem workItem(lineBuf);
 #ifdef THETA_RHO_DEBUG
         Log.trace("%sservice %s\n", MODULE_PREFIX, lineBuf);
 #endif
-        pWorkManager->addWorkItem(workItem, retStr);
+        _workManager.addWorkItem(workItem, retStr);
     }
 }
 

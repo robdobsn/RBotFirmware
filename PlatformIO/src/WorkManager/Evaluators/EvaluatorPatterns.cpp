@@ -8,6 +8,12 @@
 
 static const char* MODULE_PREFIX = "EvaluatorPatterns: ";
 
+EvaluatorPatterns::EvaluatorPatterns(FileManager& fileManager, WorkManager& WorkManager) :
+    _fileManager(fileManager), _workManager(WorkManager)
+{
+    _isRunning = false;
+}
+
 EvaluatorPatterns::~EvaluatorPatterns()
 {
     cleanUp();
@@ -172,14 +178,14 @@ void EvaluatorPatterns::stop()
     _isRunning = false;
 }
 
-void EvaluatorPatterns::service(WorkManager* pWorkManager)
+void EvaluatorPatterns::service()
 {
     // Check running
     if (!_isRunning)
         return;
 
     // Check if the work manager can accept new stuff
-    if (!pWorkManager->canAcceptWorkItem())
+    if (!_workManager.canAcceptWorkItem())
         return;
 
     // Evaluate expressions
@@ -199,7 +205,7 @@ void EvaluatorPatterns::service(WorkManager* pWorkManager)
     // Log.verbose("%scmdInterp %s\n", MODULE_PREFIX, cmdStr);
     String retStr;
     WorkItem workItem(cmdStr);
-    pWorkManager->addWorkItem(workItem, retStr);
+    _workManager.addWorkItem(workItem, retStr);
 
     // Check if we reached a limit
     bool stopReqd = 0;
@@ -219,12 +225,12 @@ void EvaluatorPatterns::service(WorkManager* pWorkManager)
 }
 
 // Process WorkItem
-bool EvaluatorPatterns::execWorkItem(WorkItem& workItem, FileManager& fileManager)
+bool EvaluatorPatterns::execWorkItem(WorkItem& workItem)
 {
     // The command should be a valid file name
     String fileName = workItem.getString();
     String fileExt = FileManager::getFileExtension(fileName);
-    String patternJson = fileManager.getFileContents("", fileName, 0);
+    String patternJson = _fileManager.getFileContents("", fileName, 0);
     if (patternJson.length() <= 0)
     {
         Log.trace("%sfileName %s ext <%s> pat %s returning \n", MODULE_PREFIX,

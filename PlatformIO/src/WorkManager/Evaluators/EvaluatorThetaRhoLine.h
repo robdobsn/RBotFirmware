@@ -9,7 +9,7 @@ class WorkItem;
 class EvaluatorThetaRhoLine
 {
 public:
-    EvaluatorThetaRhoLine();
+    EvaluatorThetaRhoLine(WorkManager& workManager);
 
     // Config
     void setConfig(const char* configStr);
@@ -25,7 +25,7 @@ public:
     bool execWorkItem(WorkItem& workItem);
 
     // Call frequently
-    void service(WorkManager* pWorkManager);
+    void service();
 
     // Control
     void stop();
@@ -37,6 +37,9 @@ private:
     double _stepAngle;
     bool _stepAdaptation;
     bool _continueFromPrevious;
+
+    // Work manager
+    WorkManager& _workManager;
 
     // Pattern in progress
     bool _inProgress;

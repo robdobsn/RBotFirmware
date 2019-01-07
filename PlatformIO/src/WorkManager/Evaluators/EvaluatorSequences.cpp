@@ -9,8 +9,8 @@
 
 static const char* MODULE_PREFIX = "EvaluatorSequences: ";
 
-EvaluatorSequences::EvaluatorSequences(FileManager& fileManager) :
-         _fileManager(fileManager)
+EvaluatorSequences::EvaluatorSequences(FileManager& fileManager, WorkManager& workManager) :
+         _fileManager(fileManager), _workManager(workManager)
 {
     _inProgress = 0;
     _curLineIdx = 0;
@@ -66,10 +66,10 @@ bool EvaluatorSequences::execWorkItem(WorkItem& workItem)
     return false;
 }
 
-void EvaluatorSequences::service(WorkManager* pWorkManager)
+void EvaluatorSequences::service()
 {
     // Only add process commands at this level if the workitem queue is completely empty
-    if (!pWorkManager->queueIsEmpty())
+    if (!_workManager.queueIsEmpty())
         return;
 
     // Check if operative
@@ -104,7 +104,7 @@ void EvaluatorSequences::service(WorkManager* pWorkManager)
         {
             String retStr;
             WorkItem workItem(newCmd);
-            pWorkManager->addWorkItem(workItem, retStr, _curLineIdx);
+            _workManager.addWorkItem(workItem, retStr, _curLineIdx);
         }
         // Bump
         _curLineIdx++;
@@ -121,7 +121,7 @@ void EvaluatorSequences::service(WorkManager* pWorkManager)
     // {
     //     _lastMillis = millis();
     //     Log.trace("%sprocess cmdStr %s cmdIdx %d numToProc %d isEmpty %d\n", MODULE_PREFIX, _commandList.c_str(), _curCmdIdx, _numCmdsToProcess,
-    //                     pWorkManager->queueIsEmpty());
+    //                     _workManager.queueIsEmpty());
     // }
 }
 

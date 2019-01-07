@@ -15,10 +15,7 @@ class FileManager;
 class EvaluatorPatterns
 {
 public:
-    EvaluatorPatterns()
-    {
-        _isRunning = false;
-    }
+    EvaluatorPatterns(FileManager& fileManager, WorkManager& WorkManager);
     ~EvaluatorPatterns();
     void cleanUp();
 
@@ -46,14 +43,18 @@ public:
     void stop();
 
     // Call frequently
-    void service(WorkManager* pWorkManager);
+    void service();
 
     // Process WorkItem
-    bool execWorkItem(WorkItem& workItem, FileManager& fileManager);
+    bool execWorkItem(WorkItem& workItem);
 
 private:
     // Full configuration JSON
     String _jsonConfigStr;
+
+    // File manager & work manager
+    FileManager& _fileManager;
+    WorkManager& _workManager;
 
     // Robot attributes (size, etc)
     String _robotAttribStr;

@@ -163,7 +163,12 @@
 			}
 			else if (cmdStr === "save") {
 				// Get values from form
-				let fileNameNoExtension = document.getElementById('fileNameNoExtension').value.trim();
+				let fileNameNoExtensionElem = document.getElementById('fileNameNoExtension');
+				let fileNameNoExtension = "";
+				if (fileNameNoExtensionElem.hasOwnProperty("value"))
+					fileNameNoExtension = fileNameNoExtensionElem.value.trim();
+				else
+					fileNameNoExtension = fileNameNoExtensionElem.innerHTML.trim();
 				fileNameNoExtension = fileNameNoExtension.replace('"','');
 				fileNameNoExtension = fileNameNoExtension.replace('\\','');
 				fileNameNoExtension = fileNameNoExtension.replace('?','');
@@ -476,9 +481,10 @@
 			listStr += "<fieldset class='body-fieldset'>";
 			listStr += "<div class='body-form-line'>";
 			listStr += "<div class='body-form-label'>Name</div>";
-			listStr += "<input type='text' id='fileNameNoExtension' class='body-form-field'";
-			listStr += (window.stState.curPage.trim() === 'patEdit') ? "disabled" : "";
-			listStr += ">" + fileNameNoExtension + "</input>";
+			if (window.stState.curPage.trim() === 'patEdit')
+				listStr += "<div id='fileNameNoExtension' class='body-form-field'>" + fileNameNoExtension + "</div>";
+			else
+				listStr += "<input type='text' id='fileNameNoExtension' class='body-form-field'>" + fileNameNoExtension + "</input>";
 			listStr += "</div>";
 			if (window.stState.curFileType === "param")
 			{
@@ -1547,6 +1553,15 @@
 		color: #c0c0c0;
 		margin: 0;
 	}
+	.noselect {
+		-webkit-touch-callout: none; /* iOS Safari */
+		-webkit-user-select: none; /* Safari */
+		-khtml-user-select: none; /* Konqueror HTML */
+		-moz-user-select: none; /* Firefox */
+			-ms-user-select: none; /* Internet Explorer/Edge */
+				user-select: none; /* Non-prefixed version, currently
+									supported by Chrome and Opera */		
+	}
 	.page-header{
 		padding-top: 20px;
 		padding-bottom: 20px;
@@ -1983,7 +1998,7 @@
 
 	</style>
 </head>
-<body onload="bodyIsLoaded()">
+<body onload="bodyIsLoaded()" class='noselect'>
 
 	<div>
 		<div id="pageHeader"></div>

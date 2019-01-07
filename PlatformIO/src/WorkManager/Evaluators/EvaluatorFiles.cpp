@@ -9,12 +9,13 @@
 
 static const char* MODULE_PREFIX = "EvaluatorFiles: ";
 
-EvaluatorFiles::EvaluatorFiles(FileManager& fileManager) :
-         _fileManager(fileManager)
+EvaluatorFiles::EvaluatorFiles(FileManager& fileManager, WorkManager& workManager) :
+         _fileManager(fileManager), _workManager(workManager)
 {
     _inProgress = false;
     _fileType = FILE_TYPE_UNKNOWN;
     _firstValidLineProcessed = false;
+    _interpolate = true;
 }
 
 void EvaluatorFiles::setConfig(const char* configStr)
@@ -78,24 +79,25 @@ bool EvaluatorFiles::execWorkItem(WorkItem& workItem)
             fileName.c_str(), (_fileType == FILE_TYPE_GCODE ? "GCODE" : "THR"));
     _inProgress = true;
     _firstValidLineProcessed = false;
+    _interpolate = true;
     return retc;
 }
 
-void EvaluatorFiles::service(WorkManager* pWorkManager)
+void EvaluatorFiles::service()
 {
     // Check in progress
     if (!_inProgress)
         return;
 
     // See if we can add to the queue
-    if (!pWorkManager->canAcceptWorkItem())
+    if (!_workManager.canAcceptWorkItem())
         return;
 
     // If the file type is not pure GCODE then
     // only add to the queue if the queue is completely empty
     if (_fileType != FILE_TYPE_GCODE)
     {
-        if (!pWorkManager->queueIsEmpty())
+        if (!_workManager.queueIsEmpty())
             return;
     }
 
@@ -129,7 +131,8 @@ void EvaluatorFiles::service(WorkManager* pWorkManager)
                 int spacePos = newLine.indexOf(" ");
                 if (spacePos > 0)
                 {
-                    newLine = (!_firstValidLineProcessed ? "_THRLINE0_/" : "_THRLINEN_/") + newLine.substring(0,spacePos) + "/" + newLine.substring(spacePos+1);
+                    newLine = (_interpolate ? (!_firstValidLineProcessed ? "_THRLINE0_/" : "_THRLINEN_/") : "_THRLINE_/") +
+                             newLine.substring(0,spacePos) + "/" + newLine.substring(spacePos+1);
                 }
                 else
                 {
@@ -142,8 +145,25 @@ void EvaluatorFiles::service(WorkManager* pWorkManager)
                 Log.verbose("%sservice new line %s\n", MODULE_PREFIX, newLine.c_str());
                 String retStr;
                 WorkItem workItem(newLine.c_str());
-                pWorkManager->addWorkItem(workItem, retStr);
+                _workManager.addWorkItem(workItem, retStr);
                 _firstValidLineProcessed = true;
+            }
+        }
+        else
+        {
+            if (_fileType == FILE_TYPE_THETA_RHO)
+            {
+                Log.notice("Testing %s\n", newLine);
+                if ((newLine.indexOf("_NO_INTERPOLATE_") >= 0) || (newLine.indexOf("Sandify") >= 0))
+                {
+                    Log.notice("%sservice THR Interpolation Off\n", MODULE_PREFIX);
+                    _interpolate = false;
+                }
+                else if (newLine.indexOf("_INTERPOLATE_") >= 0)
+                {
+                    Log.notice("%sservice THR Interpolation On\n", MODULE_PREFIX);
+                    _interpolate = true;
+                }
             }
         }
     }
