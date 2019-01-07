@@ -531,7 +531,7 @@
 							window.stState.curFileContentJson + "</textarea>";
 				listStr += "</div>";
 				listStr += "<div class='body-form-colsep'></div>";
-				listStr += "<div class='body-form-col body-form-field' id='patternsList'>HELLO FILES";
+				listStr += "<div class='body-form-col body-form-field' id='patternsList'>";
 				listStr += "</div>";
 				listStr += "</div>";
 				listStr += "</div>";
@@ -581,7 +581,7 @@
 
 			// Show file list if sequence add/editing
 			if (window.stState.curFileType === "seq")
-				fileListShow(true);
+				fileListShow(true, ["RepeatMode", "NoRepeatMode", "ShuffleMode", "NoShuffleMode"]);
 		}
 		function seqContentAllowDrop(event)
 		{
@@ -649,7 +649,38 @@
 				fileListShow(false);
 			}
 		}
-		function fileListShow(inEditor)
+		function itemListShowInEditor(textToShow)
+		{
+			let listStr = "";
+			listStr += "<div class='body-list-line body-list-small'>";
+			listStr += "<div class='body-list-draggable'>";
+			listStr += "<span draggable='true' ondragstart='fileItemDragStart(event)'>" + textToShow + "</span>"
+			listStr += "</div>";
+			listStr += "</div>";
+			return listStr;
+		}
+		function itemListShowMainFileList(fileName)
+		{
+			let fileExtension = fileName.substr((fileName.lastIndexOf('.') + 1)).toUpperCase();
+			const fileNameNoExtension = fileName.substr(0,fileName.lastIndexOf('.'));
+			let listStr = "";
+			listStr += "<div class='body-list-line'>";
+			listStr += "<span class='body-list-filetype'>" + fileExtension + "</span>";
+			listStr += "<div class='body-list-item'>";
+			if (fileExtension === "JSON")
+				listStr += "<span>" + fileName + "</span>"
+			else
+				listStr += genAjaxButton("/playFile/"+fileName, "", fileNameNoExtension, "Play file", "", 'body-group-button');
+			listStr += "</div>";
+			listStr += "<div class='body-list-actions'>";
+			listStr += genButton("userAction(\"file\",\"run\",\"~key~\")", fileName, "", "Run pattern", "Run", 'body-group-button', false, true);
+			listStr += genButton("userAction(\"file\",\"runAtStart\",\"~key~\"," + (fileName === window.pageState.startup) + ")", fileName, "", "Run at startup", "RunAtStart", 'body-group-button', (fileName === window.pageState.startup), true);
+			listStr += genButton("userAction(\"file\",\"edit\",\"~key~\")", fileName, "", "Edit pattern", "Edit", 'body-group-button', false, true);
+			listStr += "</div>";
+			listStr += "</div>";
+			return listStr;
+		}
+		function fileListShow(inEditor, additionalItems=[])
 		{
 			// Set the new patterns list
 			let divPatternsList = document.getElementById("patternsList");
@@ -660,38 +691,18 @@
 			for (let i = 0; i < fileList.length; i++)
 			{
 				let fileName = fileList[i].name;
-				let fileExtension = fileName.substr((fileName.lastIndexOf('.') + 1)).toUpperCase();
 				fileName = fileName.replace("/","");
-				const fileNameNoExtension = fileName.substr(0,fileName.lastIndexOf('.'));
 				// Check for excluded files
 				if (window.stState.fileExcludes.includes(fileName.toUpperCase()))
 					continue;
 				if (inEditor)
-				{
-					listStr += "<div class='body-list-line body-list-small'>";
-					listStr += "<div class='body-list-draggable'>";
-					listStr += "<span draggable='true' ondragstart='fileItemDragStart(event)'>" + fileName + "</span>"
-					listStr += "</div>";
-					listStr += "</div>";
-				}
+					listStr += itemListShowInEditor(fileName);
 				else
-				{
-					listStr += "<div class='body-list-line'>";
-					listStr += "<div class='body-list-item'>";
-					if (fileExtension === "JSON")
-						listStr += "<span>" + fileName + "</span>"
-					else
-						listStr += genAjaxButton("/playFile/"+fileName, "", fileNameNoExtension, "Play file", "", 'body-group-button');
-					listStr += "</div>";
-					listStr += "<div class='body-list-actions'>";
-					listStr += genButton("userAction(\"file\",\"run\",\"~key~\")", fileName, "", "Run pattern", "Run", 'body-group-button', false, true);
-					listStr += genButton("userAction(\"file\",\"runAtStart\",\"~key~\"," + (fileName === window.pageState.startup) + ")", fileName, "", "Run at startup", "RunAtStart", 'body-group-button', (fileName === window.pageState.startup), true);
-					listStr += genButton("userAction(\"file\",\"edit\",\"~key~\")", fileName, "", "Edit pattern", "Edit", 'body-group-button', false, true);
-					listStr += "</div>";
-				}
-				listStr += "</div>";
-				listStr += "</div>";
+					listStr += itemListShowMainFileList(fileName);
 			}
+			// Add additional items
+			for (let i = 0; i < additionalItems.length; i++)
+				listStr += itemListShowInEditor(additionalItems[i]);
 			divPatternsList.innerHTML = listStr;
 			// Drag and drop
 			if (inEditor)
@@ -1785,10 +1796,10 @@
 	.body-list-draggable{
 		background: #407ea6;
 		display: inline-block;
-		padding: 5px 10px;
-		font-size: 1.2em;
+		padding: 4px 8px;
+		font-size: 1.0em;
 		color: #fafcee;
-		border-radius: 10px;
+		border-radius: 6px;
 	}
 	.body-list-item{
 		display: inline-block;
@@ -1805,6 +1816,17 @@
 		margin-right: 20px;
 		float: right;
 		padding-top: 10px;
+	}
+	.body-list-filetype {
+		background: #74b5b1;
+		display: inline-block;
+		padding: 3px 6px;
+		font-size: 0.8em;
+		color: #fafcee;
+		border-radius: 6px;
+		line-height: 1.2em;
+		min-width: 5em;
+		text-align: center;
 	}
 	.body-list-item span {
 		/*text-decoration: none;*/

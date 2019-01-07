@@ -18,6 +18,13 @@ public:
     void setConfig(const char* configStr);
     const char* getConfig();
 
+    // Modes
+    bool _shuffleMode;
+    bool _repeatMode;
+    bool _defaultShuffleMode;
+    bool _defaultRepeatMode;
+    int _lineCount;
+
     // Is Busy
     bool isBusy();
     
@@ -34,6 +41,9 @@ public:
     void stop();
     
 private:
+    // Count lines
+    int countLines(String& lines);
+
     // Full configuration JSON
     String _jsonConfigStr;
 
@@ -46,5 +56,6 @@ private:
 
     // Busy and current line
     int _inProgress;
-    int _curLineIdx;
+    int _reqLineIdx;
+    int _linesDone;
 };

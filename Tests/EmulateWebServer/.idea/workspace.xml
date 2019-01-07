@@ -2,7 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="a6546d1b-6b84-477e-8b73-cfca16147a37" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WebAutogenResources.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WebAutogenResources.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorSequences.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorSequences.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorSequences.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorSequences.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../WebUI/ComboUI/sandUI.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../WebUI/ComboUI/sandUI.html" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -273,6 +277,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="1220" y="283" width="1754" height="1152" extended-state="1" />
+    <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.29752067" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
