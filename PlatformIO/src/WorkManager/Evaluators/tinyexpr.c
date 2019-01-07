@@ -118,13 +118,18 @@ static double e() { return 2.71828182845904523536; }
 static double minfn(double a, double b) { return a < b ? a : b; }
 static double maxfn(double a, double b) { return a < b ? b : a; }
 
+static double random() { return rand() / ((double)RAND_MAX); };
+
 static const te_variable functions[] = {
 	/* must be in alphabetical order */
 	{ "abs", fabs,     TE_FUNCTION1 | TE_FLAG_PURE, 0 },
 	{ "acos", acos,    TE_FUNCTION1 | TE_FLAG_PURE, 0 },
+	{ "acosh", acosh,  TE_FUNCTION1 | TE_FLAG_PURE, 0 },
 	{ "asin", asin,    TE_FUNCTION1 | TE_FLAG_PURE, 0 },
+	{ "asinh", asinh,  TE_FUNCTION1 | TE_FLAG_PURE, 0 },
 	{ "atan", atan,    TE_FUNCTION1 | TE_FLAG_PURE, 0 },
 	{ "atan2", atan2,  TE_FUNCTION2 | TE_FLAG_PURE, 0 },
+	{ "atanh", atanh,  TE_FUNCTION1 | TE_FLAG_PURE, 0 },
 	{ "ceil", ceil,    TE_FUNCTION1 | TE_FLAG_PURE, 0 },
 	{ "cos", cos,      TE_FUNCTION1 | TE_FLAG_PURE, 0 },
 	{ "cosh", cosh,    TE_FUNCTION1 | TE_FLAG_PURE, 0 },
@@ -137,16 +142,20 @@ static const te_variable functions[] = {
 #else
 	{ "log", log10,    TE_FUNCTION1 | TE_FLAG_PURE, 0 },
 #endif
+	{ "log2", log2,    TE_FUNCTION1 | TE_FLAG_PURE, 0 },
 	{ "log10", log10,  TE_FUNCTION1 | TE_FLAG_PURE, 0 },
 	{ "max", maxfn,    TE_FUNCTION2 | TE_FLAG_PURE, 0 },
 	{ "min", minfn,    TE_FUNCTION2 | TE_FLAG_PURE, 0 },
 	{ "pi", pi,        TE_FUNCTION0 | TE_FLAG_PURE, 0 },
 	{ "pow", pow,      TE_FUNCTION2 | TE_FLAG_PURE, 0 },
+	{ "random",random, TE_FUNCTION0 | TE_FLAG_PURE, 0 },
+	{ "round", round,  TE_FUNCTION1 | TE_FLAG_PURE, 0 },
 	{ "sin", sin,      TE_FUNCTION1 | TE_FLAG_PURE, 0 },
 	{ "sinh", sinh,    TE_FUNCTION1 | TE_FLAG_PURE, 0 },
 	{ "sqrt", sqrt,    TE_FUNCTION1 | TE_FLAG_PURE, 0 },
 	{ "tan", tan,      TE_FUNCTION1 | TE_FLAG_PURE, 0 },
 	{ "tanh", tanh,    TE_FUNCTION1 | TE_FLAG_PURE, 0 },
+	{ "trunc", trunc,  TE_FUNCTION1 | TE_FLAG_PURE, 0 },
 	{ 0, 0, 0, 0 }
 };
 

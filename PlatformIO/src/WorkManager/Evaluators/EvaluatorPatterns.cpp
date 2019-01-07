@@ -24,6 +24,8 @@ void EvaluatorPatterns::setConfig(const char* configStr, const char* robotAttrib
     // Store the config string
     _jsonConfigStr = configStr;
     _robotAttribStr = robotAttributes;
+    // Initalise random seed
+    srand(micros());
 }
 
 const char* EvaluatorPatterns::getConfig()
