@@ -365,7 +365,7 @@
         {
             const axisNames = window.pageState.axisNames;
             // Set relative positioning and restore to absolute afterwards
-            streamGCodeImmediate("G91\nG0 " + axisNames[axis].toUpperCase() + dist.toString() + "\nG90");
+            streamGCodeImmediate("G91\nG0 " + axisNames[axis].toUpperCase() + dist.toString() + "\nG90", false);
         }
 
         function goHomeClick(axis)
@@ -473,12 +473,13 @@
             streamGCodeReadFile().then(streamGCodeLines, streamGCodeReadFailed);
         }
 
-        function streamGCodeImmediate(dataToSend)
+        function streamGCodeImmediate(dataToSend, warnIfBusy=true)
         {
             // Check if already streaming
             if (window.pageState.streamingInProgress)
             {
-                alert("Upload in progress");
+                if (warnIfBusy)
+                    alert("Upload in progress");
                 return;
             }
             window.pageState.streamingInProgress = true;
