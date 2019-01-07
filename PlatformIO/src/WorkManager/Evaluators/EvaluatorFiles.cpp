@@ -153,7 +153,6 @@ void EvaluatorFiles::service()
         {
             if (_fileType == FILE_TYPE_THETA_RHO)
             {
-                Log.notice("Testing %s\n", newLine);
                 if ((newLine.indexOf("_NO_INTERPOLATE_") >= 0) || (newLine.indexOf("Sandify") >= 0))
                 {
                     Log.notice("%sservice THR Interpolation Off\n", MODULE_PREFIX);
