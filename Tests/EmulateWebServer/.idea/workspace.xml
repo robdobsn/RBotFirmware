@@ -2,11 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="a6546d1b-6b84-477e-8b73-cfca16147a37" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WebAutogenResources.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WebAutogenResources.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorThetaRhoLine.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorThetaRhoLine.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/main.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../WebUI/ComboUI/sandUI.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../WebUI/ComboUI/sandUI.html" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
