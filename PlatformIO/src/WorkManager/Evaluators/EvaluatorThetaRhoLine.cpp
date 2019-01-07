@@ -8,7 +8,7 @@
 #include "Utils.h"
 #include "../WorkManager.h"
 
-#define THETA_RHO_DEBUG 1
+// #define THETA_RHO_DEBUG 1
 
 static const char *MODULE_PREFIX = "EvaluatorThetaRhoLine: ";
 
