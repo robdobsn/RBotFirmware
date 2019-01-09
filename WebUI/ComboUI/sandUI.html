@@ -916,7 +916,7 @@
 			extractTableSize(fullContext);
 			parametricAddMathsToContext(fullContext);
 			if (!document.getElementById("patsetup"))
-				return;
+				return "";
 			const setupExprs = document.getElementById("patsetup").value;
 			const setupLines = setupExprs.split(/[\r\n]+/);
 			const loopExprs = document.getElementById("patloop").value;
@@ -1397,7 +1397,7 @@
 				}
 			};
 
-			xmlhttp.open("GET", url, true);
+			xmlhttp.open("GET", escape(url), true);
 			xmlhttp.send();
 		}
 		function ajaxDefaultCallback()
