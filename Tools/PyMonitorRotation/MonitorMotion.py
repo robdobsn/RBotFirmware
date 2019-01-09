@@ -20,18 +20,19 @@ serialPort1 = config["DEFAULT"]["SerialPort1"]
 serialPort2 = config["DEFAULT"]["SerialPort2"]
 baudRate = int(config["DEFAULT"]["BaudRate"])
 monitorFromLog = config["DEFAULT"]["MonitorFromLog"] == "True"
-robotGeom = config["DEFAULT"]["RobotGeom"]
+robotName = config["DEFAULT"]["RobotName"]
 
-stepsPerRot1 = float(config[robotGeom]["StepsPerRot1"])
-stepsPerRot2 = float(config[robotGeom]["StepsPerRot2"])
-unitsPerRot1 = float(config[robotGeom]["UnitsPerRot1"])
-unitsPerRot2 = float(config[robotGeom]["UnitsPerRot2"])
-Gearing1 = int(config[robotGeom]["Gearing1"])
-Gearing2 = int(config[robotGeom]["Gearing2"])
-sizeX = int(config[robotGeom]["SizeX"])
-sizeY = int(config[robotGeom]["SizeY"])
-originX = int(config[robotGeom]["OriginX"])
-originY = int(config[robotGeom]["OriginY"])
+stepsPerRot1 = float(config[robotName]["StepsPerRot1"])
+stepsPerRot2 = float(config[robotName]["StepsPerRot2"])
+unitsPerRot1 = float(config[robotName]["UnitsPerRot1"])
+unitsPerRot2 = float(config[robotName]["UnitsPerRot2"])
+Gearing1 = int(config[robotName]["Gearing1"])
+Gearing2 = int(config[robotName]["Gearing2"])
+sizeX = int(config[robotName]["SizeX"])
+sizeY = int(config[robotName]["SizeY"])
+originX = int(config[robotName]["OriginX"])
+originY = int(config[robotName]["OriginY"])
+robotGeom = config[robotName]["RobotGeom"]
 
 dataReader = None
 serial1 = serial.Serial(serialPort1, baudRate)

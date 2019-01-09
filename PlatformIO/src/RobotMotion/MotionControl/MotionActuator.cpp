@@ -18,6 +18,8 @@ hw_timer_t *MotionActuator::_isrMotionTimer;
 #endif
 
 // Static refrerence to a single MotionActuator instance
+volatile int32_t MotionActuator::_totalStepsMoved[RobotConsts::MAX_AXES];
+volatile int32_t MotionActuator::_totalStepsInc[RobotConsts::MAX_AXES];
 RobotConsts::RawMotionHwInfo_t MotionActuator::_rawMotionHwInfo;
 MotionPipeline* MotionActuator::_pMotionPipeline = NULL;
 volatile bool MotionActuator::_isPaused = false;
@@ -44,6 +46,7 @@ bool IRAM_ATTR MotionActuator::handleStepEnd()
         {
             digitalWrite(pAxisInfo->_pinStep, 0);
             anyPinReset = true;
+            _totalStepsMoved[axisIdx] += _totalStepsInc[axisIdx];
         }
         pAxisInfo->_pinStepCurLevel = 0;
     }
@@ -69,6 +72,7 @@ void IRAM_ATTR MotionActuator::setupNewBlock(MotionBlock *pBlock)
         {
             digitalWrite(pAxisInfo->_pinDirection,
                             (stepsTotal >= 0) == pAxisInfo->_pinDirectionReversed);
+            _totalStepsInc[axisIdx] = (stepsTotal >= 0) ? 1 : -1;
         }
 
         // Instrumentation

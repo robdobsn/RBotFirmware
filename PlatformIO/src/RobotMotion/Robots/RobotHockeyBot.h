@@ -45,7 +45,7 @@ public:
         return true;
     }
 
-    static void actuatorToPt(AxisFloats& targetActuator, AxisFloats& outPt, AxisPosition& curPos, AxesParams& axesParams)
+    static void actuatorToPt(AxisInt32s& targetActuator, AxisFloats& outPt, AxisPosition& curPos, AxesParams& axesParams)
     {
         // double x = (actuatorCoords.getVal(0) + actuatorCoords.getVal(1)) / 2 / axisParams[0].stepsPerUnit();
         // double y = (actuatorCoords.getVal(0) - actuatorCoords.getVal(1)) / 2 / axisParams[1].stepsPerUnit();

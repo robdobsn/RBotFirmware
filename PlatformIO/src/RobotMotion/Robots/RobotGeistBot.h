@@ -101,26 +101,26 @@ public:
         return true;
     }
 
-    static void actuatorToPolar(AxisFloats& actuatorCoords, float polarCoordsAzFirst[], AxesParams& axesParams)
+    static void actuatorToPolar(AxisInt32s& actuatorCoords, float polarCoordsAzFirst[], AxesParams& axesParams)
     {
         // Calculate azimuth
-        int alphaSteps = (abs(int(actuatorCoords._pt[0])) % (int)(axesParams.getStepsPerRot(0)));
+        int alphaSteps = (abs(int(actuatorCoords.getVal(0))) % (int)(axesParams.getStepsPerRot(0)));
         double alphaDegs = alphaSteps / axesParams.getStepsPerUnit(0);
-        if (actuatorCoords._pt[0] < 0)
+        if (actuatorCoords.getVal(0) < 0)
             alphaDegs = axesParams.getunitsPerRot(0)-alphaDegs;
         polarCoordsAzFirst[0] = AxisUtils::d2r(alphaDegs);
 
         // Calculate linear position (note that this robot has interaction between azimuth and linear motion as the rack moves
         // if the pinion gear remains still and the arm assembly moves around it) - so the required linear calculation uses the
         // difference in linear and arm rotation steps
-        long linearStepsFromHome = actuatorCoords._pt[1] - actuatorCoords._pt[0];
+        long linearStepsFromHome = actuatorCoords.getVal(1) - actuatorCoords.getVal(0);
         polarCoordsAzFirst[1] = linearStepsFromHome / axesParams.getStepsPerUnit(1);
 
         // Log.trace("actuatorToPolar c0 %F c1 %F alphaSteps %d alphaDegs %F linStpHm %d rotD %F lin %F\n", actuatorCoords[0], actuatorCoords[1],
         //     alphaSteps, alphaDegs, linearStepsFromHome, polarCoordsAzFirst[0] * 180 / M_PI, polarCoordsAzFirst[1]);
     }
 
-    static void actuatorToPt(AxisFloats& targetActuator, AxisFloats& outPt, AxisPosition& curPos, AxesParams& axesParams)
+    static void actuatorToPt(AxisInt32s& targetActuator, AxisFloats& outPt, AxisPosition& curPos, AxesParams& axesParams)
     {
         float polarCoords[NUM_ROBOT_AXES];
         actuatorToPolar(targetActuator, polarCoords, axesParams);

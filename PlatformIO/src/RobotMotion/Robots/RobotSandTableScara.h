@@ -39,7 +39,7 @@ private:
                 AxisPosition& curPos, AxesParams& axesParams, bool allowOutOfBounds);
 
     // Convert actuator values to cartesian point
-    static void actuatorToPt(AxisFloats& targetActuator, AxisFloats& outPt,
+    static void actuatorToPt(AxisInt32s& targetActuator, AxisFloats& outPt,
                 AxisPosition& curPos, AxesParams& axesParams);
 
     // Correct overflow (necessary for continuous rotation robots)

@@ -20,6 +20,10 @@ private:
     // If this is true nothing will move
     static volatile bool _isPaused;
 
+    // Steps moved in total and increment based on direction
+    static volatile int32_t _totalStepsMoved[RobotConsts::MAX_AXES];
+    static volatile int32_t _totalStepsInc[RobotConsts::MAX_AXES];
+
     // Pipeline of blocks to be processed
     static MotionPipeline* _pMotionPipeline;
 
@@ -74,6 +78,7 @@ public:
         // Init
         _pMotionPipeline = pMotionPipeline;
         clear();
+        resetTotalStepPosition();
 
         // If we are using the ISR then create the Spark Interval Timer and start it
 #ifdef USE_ESP32_TIMER_ISR
@@ -102,6 +107,12 @@ public:
     {
     }
 
+    static void stop()
+    {
+        _isPaused = true;
+        _endStopReached = false;
+    }
+
     static void clear()
     {
         _isPaused = true;
@@ -121,6 +132,26 @@ public:
         }
     }
 
+    static void resetTotalStepPosition()
+    {
+        for (int i = 0; i < RobotConsts::MAX_AXES; i++)
+        {
+            _totalStepsMoved[i] = 0;
+            _totalStepsInc[i] = 0;
+        }
+    }
+    static void getTotalStepPosition(AxisInt32s& actuatorPos)
+    {
+        for (int i = 0; i < RobotConsts::MAX_AXES; i++)
+        {
+            actuatorPos.setVal(i, _totalStepsMoved[i]);
+        }
+    }
+    static void setTotalStepPosition(int axisIdx, int32_t stepPos)
+    {
+        if ((axisIdx >= 0) && (axisIdx < RobotConsts::MAX_AXES))
+            _totalStepsMoved[axisIdx] = stepPos;
+    }
     static void clearEndstopReached()
     {
         _endStopReached = false;

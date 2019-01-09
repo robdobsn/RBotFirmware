@@ -51,7 +51,7 @@ public:
     }
 
     // Convert actuator values to cartesian point
-    static void actuatorToPt(AxisFloats& targetActuator, AxisFloats& outPt, AxisPosition& curPos, AxesParams& axesParams)
+    static void actuatorToPt(AxisInt32s& targetActuator, AxisFloats& outPt, AxisPosition& curPos, AxesParams& axesParams)
     {
         // Perform conversion
         for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)

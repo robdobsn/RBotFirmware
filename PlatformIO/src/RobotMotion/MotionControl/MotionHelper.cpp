@@ -20,7 +20,8 @@ MotionHelper::MotionHelper() : _motionActuator(_motionIO, &_motionPipeline),
     _blockDistanceMM = 0;
     _allowAllOutOfBounds = false;
     // Clear axis current location
-    _curAxisPosition.clear();
+    _lastCommandedAxisPos.clear();
+    _motionActuator.resetTotalStepPosition();
     // Coordinate conversion management
     _ptToActuatorFn = NULL;
     _actuatorToPtFn = NULL;
@@ -102,7 +103,8 @@ void MotionHelper::configure(const char *robotConfigJSON)
     _motionActuator.setRawMotionHwInfo(rawMotionHwInfo);
 
     // Clear motion info
-    _curAxisPosition.clear();
+    _lastCommandedAxisPos.clear();
+    _motionActuator.resetTotalStepPosition();
 }
 
 // Check if a command can be accepted into the motion pipeline
@@ -132,7 +134,7 @@ bool MotionHelper::isPaused()
 void MotionHelper::stop()
 {
     _motionPipeline.clear();
-    _motionActuator.clear();
+    _motionActuator.stop();
     pause(false);
 }
 
@@ -154,8 +156,14 @@ void MotionHelper::setMotionParams(RobotCommandArgs &args)
 void MotionHelper::getCurStatus(RobotCommandArgs &args)
 {
     // Get current position
-    args.setPointMM(_curAxisPosition._axisPositionMM);
-    args.setPointSteps(_curAxisPosition._stepsFromHome);
+    AxisInt32s curActuatorPos;
+    _motionActuator.getTotalStepPosition(curActuatorPos);
+    args.setPointSteps(curActuatorPos);
+    // Use reverse to get location
+    AxisFloats curMMPos;
+    if (_actuatorToPtFn)
+        _actuatorToPtFn(curActuatorPos, curMMPos, _lastCommandedAxisPos, _axesParams);
+    args.setPointMM(curMMPos);
     // Get end-stop values
     AxisMinMaxBools endstops;
     _motionIO.getEndStopVals(endstops);
@@ -188,7 +196,7 @@ bool MotionHelper::moveTo(RobotCommandArgs &args)
     // Handle stepwise motion
     if (args.isStepwise())
     {
-        return _motionPlanner.moveToStepwise(args, _curAxisPosition, _axesParams, _motionPipeline);
+        return _motionPlanner.moveToStepwise(args, _lastCommandedAxisPos, _axesParams, _motionPipeline);
     }
     // Convert coordinates if required
     // Convert coords to MM (in-place conversion)
@@ -203,7 +211,7 @@ bool MotionHelper::moveTo(RobotCommandArgs &args)
     {
         if (!args.isValid(i))
         {
-            destPos.setVal(i, _curAxisPosition._axisPositionMM.getVal(i));
+            destPos.setVal(i, _lastCommandedAxisPos._axisPositionMM.getVal(i));
         }
         else
         {
@@ -213,14 +221,14 @@ bool MotionHelper::moveTo(RobotCommandArgs &args)
             if (args.getMoveType() != RobotMoveTypeArg_None)
                 moveRelative = (args.getMoveType() == RobotMoveTypeArg_Relative);
             if (moveRelative)
-                destPos.setVal(i, _curAxisPosition._axisPositionMM.getVal(i) + args.getValMM(i));
-            // Log.notice("%smoveTo ax %d, pos %F\n", MODULE_PREFIX, i, _curAxisPosition._axisPositionMM.getVal(i));
+                destPos.setVal(i, _lastCommandedAxisPos._axisPositionMM.getVal(i) + args.getValMM(i));
+            // Log.notice("%smoveTo ax %d, pos %F\n", MODULE_PREFIX, i, _lastCommandedAxisPos._axisPositionMM.getVal(i));
         }
         includeDist[i] = _axesParams.isPrimaryAxis(i);
     }
 
     // Split up into blocks of maximum length
-    double lineLen = destPos.distanceTo(_curAxisPosition._axisPositionMM, includeDist);
+    double lineLen = destPos.distanceTo(_lastCommandedAxisPos._axisPositionMM, includeDist);
 
     // Ensure at least one block
     int numBlocks = 1;
@@ -233,8 +241,8 @@ bool MotionHelper::moveTo(RobotCommandArgs &args)
 
     // Setup for adding blocks to the pipe
     _blocksToAddCommandArgs = args;
-    _blocksToAddStartPos = _curAxisPosition._axisPositionMM;
-    _blocksToAddDelta = (destPos - _curAxisPosition._axisPositionMM) / float(numBlocks);
+    _blocksToAddStartPos = _lastCommandedAxisPos._axisPositionMM;
+    _blocksToAddDelta = (destPos - _lastCommandedAxisPos._axisPositionMM) / float(numBlocks);
     _blocksToAddEndPos = destPos;
     _blocksToAddCurBlock = 0;
     _blocksToAddTotal = numBlocks;
@@ -286,13 +294,13 @@ bool MotionHelper::addToPlanner(RobotCommandArgs &args)
     AxisFloats actuatorCoords;
     bool moveOk = false;
     if (_ptToActuatorFn)
-        moveOk = _ptToActuatorFn(args.getPointMM(), actuatorCoords, _curAxisPosition, _axesParams,
+        moveOk = _ptToActuatorFn(args.getPointMM(), actuatorCoords, _lastCommandedAxisPos, _axesParams,
                     args.getAllowOutOfBounds() || _allowAllOutOfBounds);
 
     // Plan the move
     if (moveOk)
     {
-        moveOk = _motionPlanner.moveTo(args, actuatorCoords, _curAxisPosition, _axesParams, _motionPipeline);
+        moveOk = _motionPlanner.moveTo(args, actuatorCoords, _lastCommandedAxisPos, _axesParams, _motionPipeline);
 #ifdef MOTION_LOG_DEBUG
     Log.trace("~M%d %d %d %F %F OOB %d %d\n", millis(), int(actuatorCoords.getVal(0)), 
             int(actuatorCoords.getVal(1)), 
@@ -303,14 +311,14 @@ bool MotionHelper::addToPlanner(RobotCommandArgs &args)
     if (moveOk)
     {
         // Update axisMotion
-        _curAxisPosition._axisPositionMM = args.getPointMM();
+        _lastCommandedAxisPos._axisPositionMM = args.getPointMM();
         // Correct overflows
         if (_correctStepOverflowFn)
         {
-            _correctStepOverflowFn(_curAxisPosition, _axesParams);
+            _correctStepOverflowFn(_lastCommandedAxisPos, _axesParams);
 #ifdef MOTION_LOG_DEBUG
-    Log.trace("~A%d %d\n", _curAxisPosition._stepsFromHome.getVal(0), 
-            _curAxisPosition._stepsFromHome.getVal(1));
+    Log.trace("~A%d %d\n", _lastCommandedAxisPos._stepsFromHome.getVal(0), 
+            _lastCommandedAxisPos._stepsFromHome.getVal(1));
 #endif
         }            
     }
@@ -345,8 +353,9 @@ void MotionHelper::setCurPositionAsHome(int axisIdx)
 {
     if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
         return;
-    _curAxisPosition._axisPositionMM.setVal(axisIdx, _axesParams.getHomeOffsetVal(axisIdx));
-    _curAxisPosition._stepsFromHome.setVal(axisIdx, _axesParams.gethomeOffSteps(axisIdx));
+    _lastCommandedAxisPos._axisPositionMM.setVal(axisIdx, _axesParams.getHomeOffsetVal(axisIdx));
+    _lastCommandedAxisPos._stepsFromHome.setVal(axisIdx, _axesParams.gethomeOffSteps(axisIdx));
+    _motionActuator.setTotalStepPosition(axisIdx, _axesParams.gethomeOffSteps(axisIdx));
 }
 
 // Debug helper methods

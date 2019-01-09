@@ -35,7 +35,7 @@ bool RobotXYBot::ptToActuator(AxisFloats& targetPt, AxisFloats& outActuator,
     return ptWasValid;
 }
 
-void RobotXYBot::actuatorToPt(AxisFloats& targetActuator, AxisFloats& outPt, 
+void RobotXYBot::actuatorToPt(AxisInt32s& targetActuator, AxisFloats& outPt, 
                 AxisPosition& curPos, AxesParams& axesParams)
 {
     // Perform conversion

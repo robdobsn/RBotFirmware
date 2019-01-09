@@ -2,10 +2,22 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="a6546d1b-6b84-477e-8b73-cfca16147a37" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionActuator.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionActuator.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionActuator.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionActuator.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionHelper.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionHelper.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionHelper.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionHelper.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionPlanner.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionPlanner.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotGeistBot.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotGeistBot.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotHockeyBot.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotHockeyBot.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotMugBot.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotMugBot.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotSandTableScara.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotSandTableScara.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotSandTableScara.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotSandTableScara.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotXYBot.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotXYBot.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotXYBot.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotXYBot.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WebAutogenResources.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WebAutogenResources.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorSequences.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorSequences.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorSequences.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorSequences.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Tools/PyMonitorRotation/MonitorMotion.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../Tools/PyMonitorRotation/MonitorMotion.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Tools/PyMonitorRotation/config.ini" beforeDir="false" afterPath="$PROJECT_DIR$/../../Tools/PyMonitorRotation/config.ini" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../WebUI/ComboUI/sandUI.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../WebUI/ComboUI/sandUI.html" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -16,7 +28,7 @@
   </component>
   <component name="CoverageDataManager">
     <SUITE FILE_PATH="coverage/EmulateWebServer$_win32stdio.coverage" NAME="_win32stdio Coverage Results" MODIFIED="1543233187943" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/internet" />
-    <SUITE FILE_PATH="coverage/EmulateWebServer$EmulateSandTable.coverage" NAME="EmulateSandTable Coverage Results" MODIFIED="1546854611842" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/EmulateWebServer$EmulateSandTable.coverage" NAME="EmulateSandTable Coverage Results" MODIFIED="1547062748660" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
   <component name="FUSProjectUsageTrigger">
     <session id="-1091900226">
@@ -145,7 +157,7 @@
     <detection-done>true</detection-done>
     <sorting>DEFINITION_ORDER</sorting>
   </component>
-  <component name="ProjectFrameBounds" extendedState="1">
+  <component name="ProjectFrameBounds">
     <option name="x" value="1220" />
     <option name="y" value="283" />
     <option name="width" value="1754" />
@@ -276,15 +288,14 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="1220" y="283" width="1754" height="1152" extended-state="1" />
-    <editor active="true" />
+    <frame x="1220" y="283" width="1754" height="1152" extended-state="0" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.29752067" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info anchor="bottom" id="Run" order="2" sideWeight="0.49940968" visible="true" weight="0.32907662" />
+      <window_info active="true" anchor="bottom" id="Run" order="2" sideWeight="0.49940968" visible="true" weight="0.32907662" />
       <window_info anchor="bottom" id="Debug" order="3" sideWeight="0.49645808" weight="0.40078586" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -292,7 +303,7 @@
       <window_info anchor="bottom" id="Docker" order="7" show_stripe_button="false" />
       <window_info anchor="bottom" id="Version Control" order="8" />
       <window_info anchor="bottom" id="Database Changes" order="9" show_stripe_button="false" />
-      <window_info active="true" anchor="bottom" id="Event Log" order="10" sideWeight="0.5005903" side_tool="true" visible="true" weight="0.32907662" />
+      <window_info anchor="bottom" id="Event Log" order="10" sideWeight="0.5005903" side_tool="true" visible="true" weight="0.32907662" />
       <window_info anchor="bottom" id="Terminal" order="11" sideWeight="0.49943504" weight="0.32937893" />
       <window_info anchor="bottom" id="Python Console" order="12" sideWeight="0.49940968" weight="0.32907662" />
       <window_info anchor="right" id="Commander" order="0" weight="0.4" />

@@ -40,8 +40,8 @@ private:
     bool _moveRelative;
     // Planner used to plan the pipeline of motion
     MotionPlanner _motionPlanner;
-    // Axis Current Motion
-    AxisPosition _curAxisPosition;
+    // Last position the robot was commanded to go to
+    AxisPosition _lastCommandedAxisPos;
     // Motion pipeline
     MotionPipeline _motionPipeline;
     // Motion IO (Motors and end-stops)
