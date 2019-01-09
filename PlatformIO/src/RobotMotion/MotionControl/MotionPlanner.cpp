@@ -295,7 +295,7 @@ void MotionPlanner::recalculatePipeline(MotionPipeline &motionPipeline, AxesPara
             break;
 
         // Prepare this block for stepping
-        if (pBlock->prepareForStepping(axesParams))
+        if (pBlock->prepareForStepping(axesParams, false))
         {
             // Check if the block is part of a split block and has at least one more block following it
             // in which case wait until at least two blocks are in the pipeline before locking down the
@@ -316,7 +316,7 @@ void MotionPlanner::recalculatePipeline(MotionPipeline &motionPipeline, AxesPara
 #endif
 }
 
-// Entry point for adding a motion block
+// Entry point for adding a motion block for stepwise motion
 bool MotionPlanner::moveToStepwise(RobotCommandArgs &args,
                     AxisPosition &curAxisPositions,
                     AxesParams &axesParams, MotionPipeline &motionPipeline)
@@ -356,6 +356,9 @@ bool MotionPlanner::moveToStepwise(RobotCommandArgs &args,
     if (!hasSteps)
         return false;
 
+    // Set unit vector
+    block._unitVecAxisWithMaxDist = 1.0;
+
     // set end-stop check requirements
     block.setEndStopsToCheck(args.getEndstopCheck());
 
@@ -369,7 +372,7 @@ bool MotionPlanner::moveToStepwise(RobotCommandArgs &args,
     block._feedrateMMps = minFeedrate;
 
     // Prepare for stepping
-    if (block.prepareForStepping(axesParams))
+    if (block.prepareForStepping(axesParams, true))
     {
         // No more changes
         block._canExecute = true;
@@ -382,7 +385,7 @@ bool MotionPlanner::moveToStepwise(RobotCommandArgs &args,
     // Return the change in actuator position
     for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
         curAxisPositions._stepsFromHome.setVal(axisIdx,
-                                                curAxisPositions._stepsFromHome.getVal(axisIdx) + block.getStepsToTarget(axisIdx));
+            curAxisPositions._stepsFromHome.getVal(axisIdx) + block.getStepsToTarget(axisIdx));
 
 #ifdef DEBUG_MOTIONPLANNER_INFO
     Log.notice("^^^^^^^^^^^^^^^^^^^^^^^STEPWISE^^^^^^^^^^^^^^^^^^^^^^^^\n");

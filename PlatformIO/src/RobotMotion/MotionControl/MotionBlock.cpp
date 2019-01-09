@@ -70,7 +70,7 @@ void MotionBlock::setEndStopsToCheck(AxisMinMaxBools &endStopCheck)
 // The block's entry and exit speed are now known
 // The block can accelerate and decelerate as required as long as these criteria are met
 // We now compute the stepping parameters to make motion happen
-bool MotionBlock::prepareForStepping(AxesParams &axesParams)
+bool MotionBlock::prepareForStepping(AxesParams &axesParams, bool isStepwise)
 {
     // If block is currently being executed don't change it
     if (_isExecuting)
@@ -79,64 +79,84 @@ bool MotionBlock::prepareForStepping(AxesParams &axesParams)
     // Find the max number of steps for any axis
     uint32_t absMaxStepsForAnyAxis = abs(_stepsTotalMaybeNeg[_axisIdxWithMaxSteps]);
 
-    // Get the initial step rate, final step rate and max acceleration for the axis with max steps
-    float stepDistMM = fabsf(_moveDistPrimaryAxesMM * _unitVecAxisWithMaxDist / _stepsTotalMaybeNeg[_axisIdxWithMaxSteps]);
-    float initialStepRatePerSec = fabsf(_entrySpeedMMps * _unitVecAxisWithMaxDist / stepDistMM);
-    if (initialStepRatePerSec > axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps))
-        initialStepRatePerSec = axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps);
-    float finalStepRatePerSec = fabsf(_exitSpeedMMps * _unitVecAxisWithMaxDist / stepDistMM);
-    if (finalStepRatePerSec > axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps))
-        finalStepRatePerSec = axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps);
-    float maxAccStepsPerSec2 = fabsf(axesParams.getMaxAccel(_axisIdxWithMaxSteps) * _unitVecAxisWithMaxDist / stepDistMM);
-
-    // Calculate the distance decelerating and ensure within bounds
-    // Using the facts for the block ... (assuming max accleration followed by max deceleration):
-    //		Vmax * Vmax = Ventry * Ventry + 2 * Amax * Saccelerating
-    //		Vexit * Vexit = Vmax * Vmax - 2 * Amax * Sdecelerating
-    //      Stotal = Saccelerating + Sdecelerating
-    // And solving for Saccelerating (distance accelerating)
-    uint32_t stepsAccelerating = 0;
-    float stepsAcceleratingFloat =
-        ceilf((powf(finalStepRatePerSec, 2) - powf(initialStepRatePerSec, 2)) / 4 /
-                    maxAccStepsPerSec2 +
-                absMaxStepsForAnyAxis / 2);
-    if (stepsAcceleratingFloat > 0)
+    // Check if stepwise movement
+    float initialStepRatePerSec = 0;
+    float finalStepRatePerSec = 0;
+    float maxAccStepsPerSec2 = 0;
+    float axisMaxStepRatePerSec = 0;
+    uint32_t stepsDecelerating = 0; 
+    float stepDistMM = 0;
+    if (isStepwise)
     {
-        stepsAccelerating = uint32_t(stepsAcceleratingFloat);
-        if (stepsAccelerating > absMaxStepsForAnyAxis)
-            stepsAccelerating = absMaxStepsForAnyAxis;
-    }
-
-    // Decelerating steps
-    uint32_t stepsDecelerating = 0;
-
-    // Find max possible rate for axis with max steps
-    float axisMaxStepRatePerSec = fabsf(_feedrateMMps * _unitVecAxisWithMaxDist / stepDistMM);
-    if (axisMaxStepRatePerSec > axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps))
-        axisMaxStepRatePerSec = axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps);
-
-    // See if max speed will be reached
-    uint32_t stepsToMaxSpeed =
-        uint32_t((powf(axisMaxStepRatePerSec, 2) - powf(initialStepRatePerSec, 2)) /
-                    2 / maxAccStepsPerSec2);
-    if (stepsAccelerating > stepsToMaxSpeed)
-    {
-        // Max speed will be reached
-        stepsAccelerating = stepsToMaxSpeed;
-
-        // Decelerating steps
-        stepsDecelerating =
-            uint32_t((powf(axisMaxStepRatePerSec, 2) - powf(finalStepRatePerSec, 2)) /
-                        2 / maxAccStepsPerSec2);
+        // Conversion from feedrate to steps per second while moving stepwise is based on this step size
+        stepDistMM = 0.01;
+        initialStepRatePerSec = _feedrateMMps / stepDistMM;
+        finalStepRatePerSec = _feedrateMMps / stepDistMM;
+        maxAccStepsPerSec2 = _feedrateMMps / stepDistMM;
+        axisMaxStepRatePerSec = _feedrateMMps / stepDistMM;
+        stepsDecelerating = 0;
     }
     else
     {
-        // Calculate max speed that will be reached
-        axisMaxStepRatePerSec =
-            sqrtf(powf(initialStepRatePerSec, 2) + 2.0F * maxAccStepsPerSec2 * stepsAccelerating);
+        // Get the initial step rate, final step rate and max acceleration for the axis with max steps
+        float stepDistMM = fabsf(_moveDistPrimaryAxesMM * _unitVecAxisWithMaxDist / _stepsTotalMaybeNeg[_axisIdxWithMaxSteps]);
+        initialStepRatePerSec = fabsf(_entrySpeedMMps * _unitVecAxisWithMaxDist / stepDistMM);
+        if (initialStepRatePerSec > axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps))
+            initialStepRatePerSec = axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps);
+        finalStepRatePerSec = fabsf(_exitSpeedMMps * _unitVecAxisWithMaxDist / stepDistMM);
+        if (finalStepRatePerSec > axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps))
+            finalStepRatePerSec = axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps);
+        maxAccStepsPerSec2 = fabsf(axesParams.getMaxAccel(_axisIdxWithMaxSteps) * _unitVecAxisWithMaxDist / stepDistMM);
+
+        // Calculate the distance decelerating and ensure within bounds
+        // Using the facts for the block ... (assuming max accleration followed by max deceleration):
+        //		Vmax * Vmax = Ventry * Ventry + 2 * Amax * Saccelerating
+        //		Vexit * Vexit = Vmax * Vmax - 2 * Amax * Sdecelerating
+        //      Stotal = Saccelerating + Sdecelerating
+        // And solving for Saccelerating (distance accelerating)
+        uint32_t stepsAccelerating = 0;
+        float stepsAcceleratingFloat =
+            ceilf((powf(finalStepRatePerSec, 2) - powf(initialStepRatePerSec, 2)) / 4 /
+                        maxAccStepsPerSec2 +
+                    absMaxStepsForAnyAxis / 2);
+        if (stepsAcceleratingFloat > 0)
+        {
+            stepsAccelerating = uint32_t(stepsAcceleratingFloat);
+            if (stepsAccelerating > absMaxStepsForAnyAxis)
+                stepsAccelerating = absMaxStepsForAnyAxis;
+        }
 
         // Decelerating steps
-        stepsDecelerating = absMaxStepsForAnyAxis - stepsAccelerating;
+        stepsDecelerating = 0;
+
+        // Find max possible rate for axis with max steps
+        axisMaxStepRatePerSec = fabsf(_feedrateMMps * _unitVecAxisWithMaxDist / stepDistMM);
+        if (axisMaxStepRatePerSec > axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps))
+            axisMaxStepRatePerSec = axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps);
+
+        // See if max speed will be reached
+        uint32_t stepsToMaxSpeed =
+            uint32_t((powf(axisMaxStepRatePerSec, 2) - powf(initialStepRatePerSec, 2)) /
+                        2 / maxAccStepsPerSec2);
+        if (stepsAccelerating > stepsToMaxSpeed)
+        {
+            // Max speed will be reached
+            stepsAccelerating = stepsToMaxSpeed;
+
+            // Decelerating steps
+            stepsDecelerating =
+                uint32_t((powf(axisMaxStepRatePerSec, 2) - powf(finalStepRatePerSec, 2)) /
+                            2 / maxAccStepsPerSec2);
+        }
+        else
+        {
+            // Calculate max speed that will be reached
+            axisMaxStepRatePerSec =
+                sqrtf(powf(initialStepRatePerSec, 2) + 2.0F * maxAccStepsPerSec2 * stepsAccelerating);
+
+            // Decelerating steps
+            stepsDecelerating = absMaxStepsForAnyAxis - stepsAccelerating;
+        }
     }
 
     // Fill in the step values for this axis
@@ -145,14 +165,14 @@ bool MotionBlock::prepareForStepping(AxesParams &axesParams)
     _finalStepRatePerTTicks = uint32_t((finalStepRatePerSec * TTICKS_VALUE) / TICKS_PER_SEC);
     _accStepsPerTTicksPerMS = uint32_t((maxAccStepsPerSec2 * TTICKS_VALUE) / TICKS_PER_SEC / 1000);
     _stepsBeforeDecel = absMaxStepsForAnyAxis - stepsDecelerating;
-    _stepDistMM = stepDistMM;
+    _debugStepDistMM = stepDistMM;
 
     return true;
 }
 
 void MotionBlock::debugShowBlkHead()
 {
-    Log.notice("#i EntMMps ExtMMps StTotX StTotY StTotZ St>Dec    Init     (perTT)      Pk     (perTT)     Fin     (perTT)     Acc     (perTT) UnitVecMaxIx FeedRtMMps StepDistMM  MaxStepRate\n");
+    Log.notice("#i EntMMps ExtMMps StTot0 StTot1 StTot2 St>Dec    Init     (perTT)      Pk     (perTT)     Fin     (perTT)     Acc     (perTT) UnitVecMax   FeedRtMMps StepDistMM  MaxStepRate\n");
 }
 
 void MotionBlock::debugShowBlock(int elemIdx, AxesParams &axesParams)
@@ -171,7 +191,7 @@ void MotionBlock::debugShowBlock(int elemIdx, AxesParams &axesParams)
                 debugStepRateToMMps2(_accStepsPerTTicksPerMS),_accStepsPerTTicksPerMS,
                 _unitVecAxisWithMaxDist,
                 _feedrateMMps,
-                _stepDistMM,
+                _debugStepDistMM,
                 axesParams.getMaxStepRatePerSec(0));
     Log.notice("%s\n", tmpBuf);
 }

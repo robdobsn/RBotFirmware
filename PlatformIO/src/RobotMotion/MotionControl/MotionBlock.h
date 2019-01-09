@@ -39,7 +39,7 @@ public:
     // Computed exit speed for this block
     float _exitSpeedMMps;
     // Step distance in MM
-    float _stepDistMM;
+    float _debugStepDistMM;
     // End-stops to test
     AxisMinMaxBools _endStopsToCheck;
     // Numbered command index - to help keep track of block execution from other processes
@@ -82,7 +82,7 @@ public:
         _maxEntrySpeedMMps = 0;
         _entrySpeedMMps = 0;
         _exitSpeedMMps = 0;
-        _stepDistMM = 0;
+        _debugStepDistMM = 0;
         _isExecuting = false;
         _canExecute = false;
         _blockIsFollowed = false;
@@ -112,17 +112,17 @@ public:
     // The block's entry and exit speed are now known
     // The block can accelerate and decelerate as required as long as these criteria are met
     // We now compute the stepping parameters to make motion happen
-    bool prepareForStepping(AxesParams &axesParams);
+    bool prepareForStepping(AxesParams &axesParams, bool isStepwise);
 
     // Debug
     void debugShowBlkHead();
     void debugShowBlock(int elemIdx, AxesParams &axesParams);
     float debugStepRateToMMps(float val)
     {
-        return (((val * 1.0) * MotionBlock::TICKS_PER_SEC) / MotionBlock::TTICKS_VALUE) * _stepDistMM;
+        return (((val * 1.0) * MotionBlock::TICKS_PER_SEC) / MotionBlock::TTICKS_VALUE) * _debugStepDistMM;
     }
     float debugStepRateToMMps2(float val)
     {
-        return (((val * 1.0) * 1000 * MotionBlock::TICKS_PER_SEC) / MotionBlock::TTICKS_VALUE) * _stepDistMM;
+        return (((val * 1.0) * 1000 * MotionBlock::TICKS_PER_SEC) / MotionBlock::TTICKS_VALUE) * _debugStepDistMM;
     }
 };
