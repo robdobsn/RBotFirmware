@@ -29,6 +29,11 @@ stFileInfo = {
 
         }
 
+stStatus = {}
+
+stEvents = {}
+
+stRobotTypes = ["SandTableScaraPiHat2","SandTableScaraPiHat3.6","SandTableScaraPiHat4","SandTableScaraMatt","XYBot"]
 
 # stFile1 = {
 #         "setup": "angle=0;diam=10",
@@ -38,13 +43,6 @@ stFileInfo = {
 # stFile2 = "This is test text\nand another line of it\nand more ..."
 #
 # stFile3 = {"robotConfig":{"robotType":"SandTableScara","cmdsAtStart":"","homingSeq":"A-10000n;B10000;#;A+10000N;B-10000;#;A+500;B-500;#;B+10000n;#;B-10000N;#;B-1050;#;A=h;B=h;$","maxHomingSecs":120,"stepEnablePin":"4","stepEnLev":1,"stepDisableSecs":10,"blockDistanceMM":1,"allowOutOfBounds":1,"axis0":{"stepPin":"14","dirnPin":"13","maxSpeed":75,"maxAcc":50,"stepsPerRot":9600,"unitsPerRot":628.318,"maxVal":185,"endStop0":{"sensePin":"36","actLvl":0,"inputType":"INPUT_PULLUP"}},"axis1":{"stepPin":"15","dirnPin":"21","maxSpeed":75,"maxAcc":50,"stepsPerRot":9600,"unitsPerRot":628.318,"maxVal":185,"endStop0":{"sensePin":"39","actLvl":0,"inputType":"INPUT_PULLUP"}}},"patterns":{},"sequences":{},"name":""}
-
-@route('/', branch=False)
-def static(request):
-    fileName = os.path.abspath(os.getcwd() + "../../../WebUI/ComboUI/sandUI.html")
-    print(fileName, os.path.exists(fileName))
-    with open(fileName, "r") as f:
-        return f.read()
 
 @route('/files/sd', branch=True)
 def staticSd(request):
@@ -57,6 +55,18 @@ def staticSd(request):
 @route('/getsettings', branch=False)
 def getsettings(request):
     return json.dumps(stSettings)
+
+@route('/getRobotTypes', branch=False)
+def getRobotTypes(request):
+    return json.dumps(stRobotTypes)
+
+@route('/status', branch=False)
+def getstatus(request):
+    return json.dumps(stStatus)
+
+@route('/events', branch=False)
+def getevents(request):
+    return json.dumps(stEvents)
 
 @route('/filelist/', branch=False)
 def filelist(request):
@@ -122,5 +132,12 @@ def execute(request, argToExec):
 def deleteFile(request, argToExec):
     print("deleteFile ", argToExec)
     return succeed(None)
+
+@route('/<string:pathfile>', branch=False)
+def static(request, pathfile):
+    fileName = os.path.abspath(os.getcwd() + "../../../WebUI/ComboUI/" + pathfile)
+    print(fileName, os.path.exists(fileName))
+    with open(fileName, "r") as f:
+        return f.read()
 
 run("localhost", 9027)
