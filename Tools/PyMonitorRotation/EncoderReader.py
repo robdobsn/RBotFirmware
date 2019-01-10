@@ -14,6 +14,7 @@ class EncoderReader:
         while (True):
             if not self.getOneVal(self.chan2, maxChars):
                 break
+        # print(self.chan1["ms"],self.chan2["ms"],self.chan1["meas"],self.chan1["zeroPoint"],self.chan2["meas"],self.chan2["zeroPoint"])
         return min(self.chan1["ms"],self.chan2["ms"]), \
                self.chan1["meas"] - self.chan1["zeroPoint"], \
                self.chan2["meas"] - self.chan2["zeroPoint"]
@@ -33,11 +34,12 @@ class EncoderReader:
                 lin = chan["curLine"]
                 chan["curLine"] = ""
                 # if chan["idx"] == 0:
-                #     print("LINE ", lin)
+                # print("LINE ", lin)
                 ms, a = self._parseLine(lin)
                 if (ms >= 0):
                     chan["meas"] = a
                     chan["ms"] = ms
+                    # print(ms, a)
                     return True
                 return False
             chan["curLine"] += ch

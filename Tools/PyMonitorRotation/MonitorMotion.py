@@ -58,15 +58,15 @@ def calcSingleArmScara(degs1, degs2):
 
 def calcXYBot(ang1, ang2):
     x = ang1 * unitsPerRot1 / 360
-    if x > sizeX:
-        x = sizeX
-    elif x < 0:
-        x = 0
+    if x > sizeX - originX:
+        x = sizeX - originX
+    elif x < -originX:
+        x = -originX
     y = ang2 * unitsPerRot2 / 360
-    if y > sizeY:
-        y = sizeY
-    elif y < 0:
-        y = 0
+    if y > sizeY - originY:
+        y = sizeY - originY
+    elif y < -originY:
+        y = -originY
     # print(ang1, ang2, x, y)
     return x, y
 
@@ -103,6 +103,7 @@ def drawNext():
     global canvas, firstPoint, lastSpeedMs, speedMMps
     global firstPointMs, waitingForMotionEnd
     ms, ang1, ang2 = dataReader.getNewValue(1000)
+    # print(ms, ang1, ang2)
     if ms > 0 and ms != curMs:
         ang1 = ang1 / Gearing1
         ang2 = ang2 / Gearing2

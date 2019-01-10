@@ -7,7 +7,7 @@
 #include "Utils.h"
 #include "math.h"
 
-#define DEBUG_XYBOT_MOTION 1
+// #define DEBUG_XYBOT_MOTION 1
 
 RobotXYBot::RobotXYBot(const char* pRobotTypeName, MotionHelper& motionHelper) :
     RobotBase(pRobotTypeName, motionHelper)
@@ -42,7 +42,6 @@ bool RobotXYBot::ptToActuator(AxisFloats& targetPt, AxisFloats& outActuator,
 void RobotXYBot::actuatorToPt(AxisInt32s& targetActuator, AxisFloats& outPt, 
                 AxisPosition& curPos, AxesParams& axesParams)
 {
-    Log.trace("%F\n", axesParams.getStepsPerRot(0));
     // Perform conversion
     for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
     {
