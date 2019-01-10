@@ -7,7 +7,7 @@
 #include "Utils.h"
 #include "math.h"
 
-#define DEBUG_SANDTABLESCARA_MOTION 1
+// #define DEBUG_SANDTABLESCARA_MOTION 1
 
 static const char* MODULE_PREFIX = "SandTableScara: ";
 
