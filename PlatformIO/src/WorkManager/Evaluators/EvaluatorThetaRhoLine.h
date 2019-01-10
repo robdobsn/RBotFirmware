@@ -12,7 +12,7 @@ public:
     EvaluatorThetaRhoLine(WorkManager& workManager);
 
     // Config
-    void setConfig(const char* configStr);
+    void setConfig(const char* configStr, const char* robotAttributes);
     const char* getConfig();
 
     // Is Busy
@@ -37,6 +37,9 @@ private:
     double _stepAngle;
     bool _stepAdaptation;
     bool _continueFromPrevious;
+    double _bedRadiusMM;
+    double _centreOffsetX;
+    double _centreOffsetY;
 
     // Work manager
     WorkManager& _workManager;
@@ -57,5 +60,7 @@ private:
 
     // Process steps per service
     static const int PROCESS_STEPS_PER_SERVICE = 20;
+
+    void calcXYPos(double theta, double rho, double& x, double& y);
 
 };

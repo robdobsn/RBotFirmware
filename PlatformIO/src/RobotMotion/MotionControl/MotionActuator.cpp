@@ -35,6 +35,100 @@ uint32_t MotionActuator::_curAccumulatorRelative[RobotConsts::MAX_AXES];
 int MotionActuator::_endStopCheckNum;
 MotionActuator::EndStopChecks MotionActuator::_endStopChecks[RobotConsts::MAX_AXES];
 
+MotionActuator::MotionActuator(MotionIO &motionIO, MotionPipeline* pMotionPipeline)
+{
+    // Init
+    _pMotionPipeline = pMotionPipeline;
+    clear();
+    resetTotalStepPosition();
+
+    // If we are using the ISR then create the Spark Interval Timer and start it
+#ifdef USE_ESP32_TIMER_ISR
+    _isrMotionTimer = timerBegin(0, CLOCK_RATE_MHZ, true);
+    timerAttachInterrupt(_isrMotionTimer, _isrStepperMotion, true);
+    timerAlarmWrite(_isrMotionTimer, ISR_TIMER_PERIOD_US, true);
+    timerAlarmEnable(_isrMotionTimer);
+    Log.notice("MotionActuator: Starting ISR timer\n");
+#endif
+}
+
+void MotionActuator::setRawMotionHwInfo(RobotConsts::RawMotionHwInfo_t &rawMotionHwInfo)
+{
+    _rawMotionHwInfo = rawMotionHwInfo;
+}
+
+void MotionActuator::setInstrumentationMode(const char *testModeStr)
+{
+#ifdef INSTRUMENT_MOTION_ACTUATOR_ENABLE
+    _pMotionInstrumentation = new MotionInstrumentation();
+    _pMotionInstrumentation->setInstrumentationMode(testModeStr);
+#endif
+}
+
+void MotionActuator::config()
+{
+}
+
+void MotionActuator::clear()
+{
+    _isPaused = true;
+    _endStopReached = false;
+    _lastDoneNumberedCmdIdx = RobotConsts::NUMBERED_COMMAND_NONE;
+#ifdef TEST_MOTION_ACTUATOR_ENABLE
+    _pMotionInstrumentation = NULL;
+#endif
+}
+
+void MotionActuator::stop()
+{
+    _isPaused = true;
+    _endStopReached = false;
+}
+
+void MotionActuator::pause(bool pauseIt)
+{
+    _isPaused = pauseIt;
+    if (!_isPaused)
+    {
+        _endStopReached = false;
+    }
+}
+
+void MotionActuator::resetTotalStepPosition()
+{
+    for (int i = 0; i < RobotConsts::MAX_AXES; i++)
+    {
+        _totalStepsMoved[i] = 0;
+        _totalStepsInc[i] = 0;
+    }
+}
+void MotionActuator::getTotalStepPosition(AxisInt32s& actuatorPos)
+{
+    for (int i = 0; i < RobotConsts::MAX_AXES; i++)
+    {
+        actuatorPos.setVal(i, _totalStepsMoved[i]);
+    }
+}
+void MotionActuator::setTotalStepPosition(int axisIdx, int32_t stepPos)
+{
+    if ((axisIdx >= 0) && (axisIdx < RobotConsts::MAX_AXES))
+        _totalStepsMoved[axisIdx] = stepPos;
+}
+void MotionActuator::clearEndstopReached()
+{
+    _endStopReached = false;
+}
+
+bool MotionActuator::isEndStopReached()
+{
+    return _endStopReached;
+}
+
+int MotionActuator::getLastCompletedNumberedCmdIdx()
+{
+    return _lastDoneNumberedCmdIdx;
+}
+
 // Handle the end of a step for any axis
 bool IRAM_ATTR MotionActuator::handleStepEnd()
 {

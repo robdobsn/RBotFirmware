@@ -24,16 +24,28 @@ EvaluatorThetaRhoLine::EvaluatorThetaRhoLine(WorkManager& workManager) :
     _continueFromPrevious = true;
     _prevTheta = 0;
     _prevRho = 0;
+    _bedRadiusMM = 0;
+    _centreOffsetX = 0;
+    _centreOffsetY = 0;
 }
 
-void EvaluatorThetaRhoLine::setConfig(const char *configStr)
+void EvaluatorThetaRhoLine::setConfig(const char *configStr, const char* robotAttributes)
 {
     // Set the theta-rho angle step
     _stepAngle = AxisUtils::d2r(RdJson::getDouble("thrStepDegs", AxisUtils::r2d(DEFAULT_STEP_ANGLE), configStr));
     _stepAdaptation = RdJson::getLong("thrStepAdaptation", 1, configStr) != 0;
     _continueFromPrevious = RdJson::getLong("thrContinue", 1, configStr) != 0;
-    Log.trace("%ssetConfig StepAngleDegrees %F StepAdaptation %s continueFromPrevious %s\n", MODULE_PREFIX,
-              _stepAngle, _stepAdaptation ? "Y" : "N", _continueFromPrevious ? "Y" : "N");
+    // Set the size of the max radius
+    double sizeX = RdJson::getDouble("sizeX", 0, robotAttributes);
+    double sizeY = RdJson::getDouble("sizeY", 0, robotAttributes);
+    double originX = RdJson::getDouble("originX", 0, robotAttributes);
+    double originY = RdJson::getDouble("originY", 0, robotAttributes);
+    _bedRadiusMM = std::min(sizeX, sizeY) / 2;
+    _centreOffsetX = sizeX / 2 - originX;
+    _centreOffsetY = sizeY / 2 - originY;
+    Log.trace("%ssetConfig StepAngleDegrees %F StepAdaptation %s continueFromPrevious %s radiusMM %Fmm offsetX %F offsetY %F\n", MODULE_PREFIX,
+              _stepAngle, _stepAdaptation ? "Y" : "N", _continueFromPrevious ? "Y" : "N",
+              _bedRadiusMM, _centreOffsetX, _centreOffsetY);
 }
 
 // Is Busy
@@ -74,7 +86,10 @@ bool EvaluatorThetaRhoLine::execWorkItem(WorkItem &workItem)
     {
         // Next iteration
         char lineBuf[100];
-        sprintf(lineBuf, "G0 U%0.6f V%0.6f", newTheta, newRho);
+        // Calculate coords
+        double x,y;
+        calcXYPos(newTheta, newRho, x, y);
+        sprintf(lineBuf, "G0 X%0.3f Y%0.3f", x, y);
         String retStr;
         WorkItem workItem(lineBuf);
 #ifdef THETA_RHO_DEBUG
@@ -183,7 +198,10 @@ void EvaluatorThetaRhoLine::service()
 
         // Next iteration
         char lineBuf[100];
-        sprintf(lineBuf, "G0 U%0.6f V%0.6f", _curTheta, _curRho);
+        // Calculate coords
+        double x,y;
+        calcXYPos(_curTheta, _curRho, x, y);
+        sprintf(lineBuf, "G0 X%0.3f Y%0.3f", x, y);
         String retStr;
         WorkItem workItem(lineBuf);
 #ifdef THETA_RHO_DEBUG
@@ -196,4 +214,10 @@ void EvaluatorThetaRhoLine::service()
 void EvaluatorThetaRhoLine::stop()
 {
     _inProgress = false;
+}
+
+void EvaluatorThetaRhoLine::calcXYPos(double theta, double rho, double& x, double& y)
+{
+    x = sin(theta) * rho * _bedRadiusMM + _centreOffsetX;
+    y = cos(theta) * rho * _bedRadiusMM + _centreOffsetY;
 }

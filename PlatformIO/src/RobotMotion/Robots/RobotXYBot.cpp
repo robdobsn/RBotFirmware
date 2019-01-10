@@ -7,7 +7,9 @@
 #include "Utils.h"
 #include "math.h"
 
-// #define DEBUG_XYBOT_MOTION 1
+#define DEBUG_XYBOT_MOTION 1
+
+static const char* MODULE_PREFIX = "XYBot: ";
 
 RobotXYBot::RobotXYBot(const char* pRobotTypeName, MotionHelper& motionHelper) :
     RobotBase(pRobotTypeName, motionHelper)
@@ -31,7 +33,7 @@ bool RobotXYBot::ptToActuator(AxisFloats& targetPt, AxisFloats& outActuator,
                         + axesParams.gethomeOffSteps(axisIdx));
 
 #ifdef DEBUG_XYBOT_MOTION
-        Log.trace("ptToActuator %F -> %F (homeOffVal %F, homeOffSteps %d)\n",
+        Log.trace("%sptToActuator %F -> %F (homeOffVal %F, homeOffSteps %d)\n", MODULE_PREFIX,
                 targetPt.getVal(axisIdx), outActuator._pt[axisIdx],
                 axesParams.getHomeOffsetVal(axisIdx), axesParams.gethomeOffSteps(axisIdx));
 #endif
@@ -49,7 +51,7 @@ void RobotXYBot::actuatorToPt(AxisInt32s& targetActuator, AxisFloats& outPt,
         ptVal = ptVal / axesParams.getStepsPerUnit(axisIdx) + axesParams.getHomeOffsetVal(axisIdx);
         outPt.setVal(axisIdx, ptVal);
 #ifdef DEBUG_XYBOT_MOTION
-        Log.trace("actuatorToPt %d %d -> %F (perunit %F, homeOffSteps %d, homeOffVal %F)\n", 
+        Log.trace("%sactuatorToPt %d %d -> %F (perunit %F, homeOffSteps %d, homeOffVal %F)\n", MODULE_PREFIX,
                         axisIdx, targetActuator.getVal(axisIdx),
                         ptVal, axesParams.getStepsPerUnit(axisIdx), axesParams.gethomeOffSteps(axisIdx),
                         axesParams.getHomeOffsetVal(axisIdx));
@@ -71,9 +73,9 @@ void RobotXYBot::setRobotAttributes(AxesParams& axesParams, String& robotAttribu
 {
     // Calculate max and min cartesian size of robot
     float xMin = 0, xMax = 0, yMin = 0, yMax = 0;
-	axesParams.getMaxVal(0, xMin);
+	axesParams.getMinVal(0, xMin);
 	bool axis0MaxValid = axesParams.getMaxVal(0, xMax);
-	axesParams.getMaxVal(1, yMin);
+	axesParams.getMinVal(1, yMin);
 	bool axis1MaxValid = axesParams.getMaxVal(1, yMax);
     // If not valid set to some values to avoid arithmetic errors
 	if (!axis0MaxValid)
@@ -88,4 +90,8 @@ void RobotXYBot::setRobotAttributes(AxesParams& axesParams, String& robotAttribu
             fabsf(xMax-xMin), fabsf(yMax-yMin), 0.0,
             0.0, 0.0, 0.0);
     robotAttributes = attrStr;
+#ifdef DEBUG_XYBOT_MOTION
+        Log.trace("%ssetRobotAttributes %s xMin %F xMax %F yMin %F, yMax %F\n", MODULE_PREFIX,
+                attrStr, xMin, xMax, yMin, yMax);
+#endif
 }

@@ -8,6 +8,7 @@
 #include "AxisValues.h"
 
 // #define MOTION_LOG_DEBUG 1
+// #define DEBUG_MOTION_HELPER 1
 
 static const char* MODULE_PREFIX = "MotionHelper: ";
 
@@ -133,15 +134,43 @@ bool MotionHelper::isPaused()
 // Stop
 void MotionHelper::stop()
 {
-    _motionPipeline.clear();
+    _blocksToAddTotal = 0;
+    _stopRequested = true;
+    _stopRequestTimeMs = millis();
     _motionActuator.stop();
+    _motionPipeline.clear();
     pause(false);
-}
+    setCurPosActualPosition();
+ }
 
 // Check if idle
 bool MotionHelper::isIdle()
 {
     return !_motionPipeline.canGet();
+}
+
+void MotionHelper::setCurPosActualPosition()
+{
+    // Get final position of actuator after a short delay to attempt to
+    // ensure any final step is completed
+    delayMicroseconds(100);
+    AxisInt32s actuatorPos;
+    _motionActuator.getTotalStepPosition(actuatorPos);
+    AxisFloats curPosMM;
+    if (_actuatorToPtFn)
+        _actuatorToPtFn(actuatorPos, curPosMM, _lastCommandedAxisPos, _axesParams);
+    _lastCommandedAxisPos._axisPositionMM = curPosMM;
+    _lastCommandedAxisPos._stepsFromHome = actuatorPos;
+#ifdef DEBUG_MOTION_HELPER
+    Log.trace("%sstop absAxes X%F Y%F Z%F steps %d,%d,%d addr %d\n", MODULE_PREFIX,
+                _lastCommandedAxisPos._axisPositionMM.getVal(0),
+                _lastCommandedAxisPos._axisPositionMM.getVal(1),
+                _lastCommandedAxisPos._axisPositionMM.getVal(2),
+                _lastCommandedAxisPos._stepsFromHome.getVal(0),
+                _lastCommandedAxisPos._stepsFromHome.getVal(1),
+                _lastCommandedAxisPos._stepsFromHome.getVal(2),
+                &_lastCommandedAxisPos._axisPositionMM);
+#endif
 }
 
 // Set parameters such as relative vs absolute motion
@@ -159,7 +188,7 @@ void MotionHelper::getCurStatus(RobotCommandArgs &args)
     AxisInt32s curActuatorPos;
     _motionActuator.getTotalStepPosition(curActuatorPos);
     args.setPointSteps(curActuatorPos);
-    // Use reverse to get location
+    // Use reverse kinematics to get location
     AxisFloats curMMPos;
     if (_actuatorToPtFn)
         _actuatorToPtFn(curActuatorPos, curMMPos, _lastCommandedAxisPos, _axesParams);
@@ -222,7 +251,10 @@ bool MotionHelper::moveTo(RobotCommandArgs &args)
                 moveRelative = (args.getMoveType() == RobotMoveTypeArg_Relative);
             if (moveRelative)
                 destPos.setVal(i, _lastCommandedAxisPos._axisPositionMM.getVal(i) + args.getValMM(i));
-            // Log.notice("%smoveTo ax %d, pos %F\n", MODULE_PREFIX, i, _lastCommandedAxisPos._axisPositionMM.getVal(i));
+#ifdef DEBUG_MOTION_HELPER
+            Log.notice("%smoveTo ax %d, pos %F relative %s\n", MODULE_PREFIX, 
+                    i, _lastCommandedAxisPos._axisPositionMM.getVal(i), moveRelative ? "Y" : "N");
+#endif
         }
         includeDist[i] = _axesParams.isPrimaryAxis(i);
     }
@@ -236,8 +268,10 @@ bool MotionHelper::moveTo(RobotCommandArgs &args)
         numBlocks = int(lineLen / _blockDistanceMM);
     if (numBlocks == 0)
         numBlocks = 1;
-    // Log.verbose("%snumBlocks %d (lineLen %F / blockDistMM %F)\n", MODULE_PREFIX,
-    //                 numBlocks, lineLen, _blockDistanceMM);
+#ifdef DEBUG_MOTION_HELPER
+    Log.trace("%smoveTo numBlocks %d (lineLen %F / blockDistMM %F)\n", MODULE_PREFIX,
+                    numBlocks, lineLen, _blockDistanceMM);
+#endif
 
     // Setup for adding blocks to the pipe
     _blocksToAddCommandArgs = args;
@@ -277,9 +311,12 @@ void MotionHelper::blocksToAddProcess()
         if (_blocksToAddCurBlock >= _blocksToAddTotal)
             _blocksToAddTotal = 0;
 
-        // Add to planner
+        // Prepare add to planner
         _blocksToAddCommandArgs.setPointMM(nextBlockDest);
         _blocksToAddCommandArgs.setMoreMovesComing(_blocksToAddTotal != 0);
+
+
+        // Add to planner
         addToPlanner(_blocksToAddCommandArgs);
 
         // Enable motors
@@ -290,6 +327,10 @@ void MotionHelper::blocksToAddProcess()
 // Add a movement to the pipeline using the planner which computes suitable motion
 bool MotionHelper::addToPlanner(RobotCommandArgs &args)
 {
+    // Check we are not stopping
+    if (_stopRequested)
+        return false;
+            
     // Convert the move to actuator coordinates
     AxisFloats actuatorCoords;
     bool moveOk = false;
@@ -312,6 +353,13 @@ bool MotionHelper::addToPlanner(RobotCommandArgs &args)
     {
         // Update axisMotion
         _lastCommandedAxisPos._axisPositionMM = args.getPointMM();
+#ifdef DEBUG_MOTION_HELPER
+        Log.trace("%saddToPlanner updatedAxisPos X%F Y%F Z%F\n", MODULE_PREFIX,
+                        _lastCommandedAxisPos._axisPositionMM.getVal(0),
+                        _lastCommandedAxisPos._axisPositionMM.getVal(1),
+                        _lastCommandedAxisPos._axisPositionMM.getVal(2)
+                    );
+#endif
         // Correct overflows
         if (_correctStepOverflowFn)
         {
@@ -330,6 +378,20 @@ bool MotionHelper::addToPlanner(RobotCommandArgs &args)
 // disabled after a period of no motion
 void MotionHelper::service()
 {
+    // Check if stop requested
+    if (_stopRequested)
+    {
+        if (Utils::isTimeout(millis(), _stopRequestTimeMs, MAX_TIME_BEFORE_STOP_COMPLETE_MS))
+        {
+            _blocksToAddTotal = 0;
+            _motionActuator.stop();
+            _motionPipeline.clear();
+            pause(false);
+            setCurPosActualPosition();
+            _stopRequested = false;
+        }
+    }
+
     // Call process on motion actuator - only really used for testing as
     // motion is handled by ISR
     _motionActuator.process();
@@ -356,6 +418,15 @@ void MotionHelper::setCurPositionAsHome(int axisIdx)
     _lastCommandedAxisPos._axisPositionMM.setVal(axisIdx, _axesParams.getHomeOffsetVal(axisIdx));
     _lastCommandedAxisPos._stepsFromHome.setVal(axisIdx, _axesParams.gethomeOffSteps(axisIdx));
     _motionActuator.setTotalStepPosition(axisIdx, _axesParams.gethomeOffSteps(axisIdx));
+#ifdef DEBUG_MOTION_HELPER
+    Log.trace("%ssetCurPosAsHome curMM X%F Y%F Z%F steps %d,%d,%d\n", MODULE_PREFIX,
+                _lastCommandedAxisPos._axisPositionMM.getVal(0),
+                _lastCommandedAxisPos._axisPositionMM.getVal(1),
+                _lastCommandedAxisPos._axisPositionMM.getVal(2),
+                _lastCommandedAxisPos._stepsFromHome.getVal(0),
+                _lastCommandedAxisPos._stepsFromHome.getVal(1),
+                _lastCommandedAxisPos._stepsFromHome.getVal(2));
+#endif
 }
 
 // Debug helper methods

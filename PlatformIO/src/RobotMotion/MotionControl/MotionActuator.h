@@ -73,101 +73,20 @@ private:
     static EndStopChecks _endStopChecks[RobotConsts::MAX_AXES];
 
 public:
-    MotionActuator(MotionIO &motionIO, MotionPipeline* pMotionPipeline)
-    {
-        // Init
-        _pMotionPipeline = pMotionPipeline;
-        clear();
-        resetTotalStepPosition();
-
-        // If we are using the ISR then create the Spark Interval Timer and start it
-#ifdef USE_ESP32_TIMER_ISR
-        _isrMotionTimer = timerBegin(0, CLOCK_RATE_MHZ, true);
-        timerAttachInterrupt(_isrMotionTimer, _isrStepperMotion, true);
-        timerAlarmWrite(_isrMotionTimer, ISR_TIMER_PERIOD_US, true);
-        timerAlarmEnable(_isrMotionTimer);
-        Log.notice("MotionActuator: Starting ISR timer\n");
-#endif
-    }
-
-    static void setRawMotionHwInfo(RobotConsts::RawMotionHwInfo_t &rawMotionHwInfo)
-    {
-        _rawMotionHwInfo = rawMotionHwInfo;
-    }
-
-    static void setInstrumentationMode(const char *testModeStr)
-    {
-#ifdef INSTRUMENT_MOTION_ACTUATOR_ENABLE
-        _pMotionInstrumentation = new MotionInstrumentation();
-        _pMotionInstrumentation->setInstrumentationMode(testModeStr);
-#endif
-    }
-
-    static void config()
-    {
-    }
-
-    static void stop()
-    {
-        _isPaused = true;
-        _endStopReached = false;
-    }
-
-    static void clear()
-    {
-        _isPaused = true;
-        _endStopReached = false;
-        _lastDoneNumberedCmdIdx = RobotConsts::NUMBERED_COMMAND_NONE;
-#ifdef TEST_MOTION_ACTUATOR_ENABLE
-        _pMotionInstrumentation = NULL;
-#endif
-    }
-
-    static void pause(bool pauseIt)
-    {
-        _isPaused = pauseIt;
-        if (!_isPaused)
-        {
-            _endStopReached = false;
-        }
-    }
-
-    static void resetTotalStepPosition()
-    {
-        for (int i = 0; i < RobotConsts::MAX_AXES; i++)
-        {
-            _totalStepsMoved[i] = 0;
-            _totalStepsInc[i] = 0;
-        }
-    }
-    static void getTotalStepPosition(AxisInt32s& actuatorPos)
-    {
-        for (int i = 0; i < RobotConsts::MAX_AXES; i++)
-        {
-            actuatorPos.setVal(i, _totalStepsMoved[i]);
-        }
-    }
-    static void setTotalStepPosition(int axisIdx, int32_t stepPos)
-    {
-        if ((axisIdx >= 0) && (axisIdx < RobotConsts::MAX_AXES))
-            _totalStepsMoved[axisIdx] = stepPos;
-    }
-    static void clearEndstopReached()
-    {
-        _endStopReached = false;
-    }
-
-    static bool isEndStopReached()
-    {
-        return _endStopReached;
-    }
-
-    static int getLastCompletedNumberedCmdIdx()
-    {
-        return _lastDoneNumberedCmdIdx;
-    }
+    MotionActuator(MotionIO &motionIO, MotionPipeline* pMotionPipeline);
+    static void setRawMotionHwInfo(RobotConsts::RawMotionHwInfo_t &rawMotionHwInfo);
+    static void setInstrumentationMode(const char *testModeStr);
+    static void config();
+    static void stop();
+    static void clear();
+    static void pause(bool pauseIt);
+    static void resetTotalStepPosition();
+    static void getTotalStepPosition(AxisInt32s& actuatorPos);
+    static void setTotalStepPosition(int axisIdx, int32_t stepPos);
+    static void clearEndstopReached();
+    static bool isEndStopReached();
+    static int getLastCompletedNumberedCmdIdx();
     static void process();
-
     static String getDebugStr();
     static void showDebug();
 

@@ -401,8 +401,15 @@
 
         function goHomeClick(axis)
         {
-            const axisNames = window.pageState.axisNames;
-            callAjax("/exec/G28 " + axisNames[axis].toUpperCase());
+            if (axis == -1)
+            {
+                callAjax("/exec/G28");
+            }
+            else
+            {
+                const axisNames = window.pageState.axisNames;
+                callAjax("/exec/G28 " + axisNames[axis].toUpperCase());
+            }
         }
 
         function setHomeClick(axis)
@@ -1317,6 +1324,9 @@
                     <tr>
                         <td class="home-buttons visible-lg">
                             <div class="btn-group extra-space-above" role="group">
+                                <button class="btn btn-primary" title="Home All (G28)" onclick="goHomeClick(-1)">
+                                    <span>Home All</span>
+                                </button>
                                 <button class="btn btn-primary" title="Home X axis (G28 X)" onclick="goHomeClick(0)">
                                     <span>Go Home X</span>
                                 </button>

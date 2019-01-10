@@ -18,6 +18,7 @@ public:
     static constexpr float junctionDeviation_default = 0.05f;
     static constexpr float distToTravelMM_ignoreBelow = 0.01f;
     static constexpr int pipelineLen_default = 100;
+    static constexpr uint32_t MAX_TIME_BEFORE_STOP_COMPLETE_MS = 500;
 
 private:
     // Pause
@@ -64,6 +65,10 @@ private:
     AxisFloats _blocksToAddDelta;
     // Command args for block generation
     RobotCommandArgs _blocksToAddCommandArgs;
+
+    // Handling of stop
+    bool _stopRequested;
+    bool _stopRequestTimeMs;
 
     // Debug
     unsigned long _debugLastPosDispMs;
@@ -149,7 +154,7 @@ private:
     {
         return (v > fmin(b1, b2) && v < fmax(b1, b2));
     }
-
+    void setCurPosActualPosition();
     bool addToPlanner(RobotCommandArgs &args);
     void blocksToAddProcess();
 };

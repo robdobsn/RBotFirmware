@@ -485,7 +485,7 @@ void WorkManager::evaluatorsSetConfig(const char* configJson, const char* jsonPa
     _evaluatorPatterns.setConfig(evaluatorConfig.c_str(), robotAttributes);
     _evaluatorSequences.setConfig(evaluatorConfig.c_str());
     _evaluatorFiles.setConfig(evaluatorConfig.c_str());
-    _evaluatorThetaRhoLine.setConfig(evaluatorConfig.c_str());
+    _evaluatorThetaRhoLine.setConfig(evaluatorConfig.c_str(), robotAttributes);
 }
 
 bool WorkManager::checkStatusChanged()

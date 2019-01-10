@@ -665,7 +665,8 @@
 			const fileNameNoExtension = fileName.substr(0,fileName.lastIndexOf('.'));
 			let listStr = "";
 			listStr += "<div class='body-list-line'>";
-			listStr += "<span class='body-list-filetype'>" + fileExtension + "</span>";
+			listStr += genAjaxButton("/playFile/"+fileName, "", fileExtension, "Play file", "", 'body-list-filetype');
+			// listStr += "<span class='body-list-filetype'>" + fileExtension + "</span>";
 			listStr += "<div class='body-list-item'>";
 			if (fileExtension === "JSON")
 				listStr += "<span>" + fileName + "</span>"
@@ -954,8 +955,10 @@
 		}
 		function parametricEvalSetup(context)
 		{
-			const setupExprs = document.getElementById("patsetup").value;
-			const setupLines = setupExprs.split(/[\r\n]+/);
+			const setupExprs = document.getElementById("patsetup");
+			if (!setupExprs)
+				return;
+			const setupLines = setupExprs.value.split(/[\r\n]+/);
 			let curLine = 0;
 			let parseResult = "";
 			try 

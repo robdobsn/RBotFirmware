@@ -7,7 +7,7 @@
 #include "Utils.h"
 #include "math.h"
 
-// #define DEBUG_SANDTABLESCARA_MOTION 1
+#define DEBUG_SANDTABLESCARA_MOTION 1
 
 static const char* MODULE_PREFIX = "SandTableScara: ";
 
@@ -121,8 +121,8 @@ void RobotSandTableScara::actuatorToPt(AxisInt32s& actuatorPos, AxisFloats& outP
 		elbowHandMM = 100;
 
     // Compute axis positions from polar values
-    float elbowX = shoulderElbowMM * sin(curPolar.getVal(0));
-    float elbowY = shoulderElbowMM * cos(curPolar.getVal(0));
+    float elbowX = shoulderElbowMM * sin(AxisUtils::d2r(curPolar.getVal(0)));
+    float elbowY = shoulderElbowMM * cos(AxisUtils::d2r(curPolar.getVal(0)));
     float handXDiff = elbowHandMM * sin(AxisUtils::d2r(curPolar.getVal(1)));
     float handYDiff = elbowHandMM * cos(AxisUtils::d2r(curPolar.getVal(1)));
     outPt.setVal(0, elbowX + handXDiff);
@@ -309,6 +309,6 @@ void RobotSandTableScara::setRobotAttributes(AxesParams& axesParams, String& rob
     char attrStr[MAX_ATTR_STR_LEN];
     sprintf(attrStr, "{\"sizeX\":%0.2f,\"sizeY\":%0.2f,\"sizeZ\":%0.2f,\"originX\":%0.2f,\"originY\":%0.2f,\"originZ\":%0.2f}",
             (shoulderElbowMM+elbowHandMM)*2, (shoulderElbowMM+elbowHandMM)*2, 0.0,
-            0.0, 0.0, 0.0);
+            (shoulderElbowMM+elbowHandMM), (shoulderElbowMM+elbowHandMM), 0.0);
     robotAttributes = attrStr;
 }

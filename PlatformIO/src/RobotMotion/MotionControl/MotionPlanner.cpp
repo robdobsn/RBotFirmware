@@ -166,7 +166,7 @@ bool MotionPlanner::moveTo(RobotCommandArgs &args,
     // Return the change in actuator position
     for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
         curAxisPositions._stepsFromHome.setVal(axisIdx,
-                                                curAxisPositions._stepsFromHome.getVal(axisIdx) + block.getStepsToTarget(axisIdx));
+                    curAxisPositions._stepsFromHome.getVal(axisIdx) + block.getStepsToTarget(axisIdx));
 
     return true;
 }
