@@ -48,7 +48,10 @@
                 fileDialogType: "filesystem",
                 uploadProgress: [],
                 latestfileListInfo: {},
-                fileSystemBasePath: ""
+                fileSystemBasePath: "",
+                lastStatusRxTime: new Date(),
+                statusUpdateCheckMs: 2000,
+				statusUpdateTooLateMs: 15000
             };
             // Handle the file send box listener
             const inputFileUpload = document.getElementById("input_file_upload");
@@ -59,33 +62,46 @@
             // Get settings
             callAjax("/getsettings", settingsCallback);
             callAjax("/getRobotTypes", robotTypesCallback);
-            // Status update timer
-            window.pageState.statusUpdateTimer = setTimeout(statusUpdate, 1000);
             // Request file list to display
             fileListUpdate();
+            // Connect events
+            connectEvents();
+            // Status update check
+            setInterval(statusUpdateTimerHandler, window.pageState.statusUpdateCheckMs);
+            // Get status
+            setTimeout(getStatus, 100);
         }
-
-        function statusUpdate()
+        function getStatus()
         {
-            callAjax("/status", statusCallback, statusUpdateFail)
+            callAjax("/status", statusCallback);
         }
-
-        function statusUpdateFail()
-        {
-            window.pageState.isConnected = false;
-            let connButton = document.getElementById("button-connect");
-            connButton.disabled = false;
-        }
-
+		function statusUpdateTimerHandler()
+		{
+			let nowTime = new Date();
+			if (nowTime - window.pageState.lastStatusRxTime > window.pageState.statusUpdateTooLateMs)
+			{
+                let connButton = document.getElementById("button-connect");
+                connButton.disabled = false;
+                connButton.classList.remove("disabled");
+			}
+		}
         function statusCallback(resp)
         {
             // Now connected
             window.pageState.isConnected = true;
             const connButton = document.getElementById("button-connect");
             connButton.disabled = true;
-
+            connButton.classList.add("disabled");
+            window.pageState.lastStatusRxTime = new Date();
             // Parse status received
-            const machineStatus = JSON.parse(resp);
+            let machineStatus = {};
+            try {
+                machineStatus = JSON.parse(resp);
+            }
+            catch(e)
+            {
+                console.error("Failed to parse status JSON");
+            }
             const axisNames = window.pageState.axisNames;
             const endstopNames = window.pageState.endstopNames;
             if (machineStatus.hasOwnProperty("XYZ"))
@@ -126,7 +142,6 @@
             {
                 document.getElementById("td_robotQueueLen").innerHTML = machineStatus.Qd;
             }
-            window.pageState.statusUpdateTimer = setTimeout(statusUpdate, 500);
         }
 
         function robotTypesCallback(resp)
@@ -335,13 +350,29 @@
             }
         }
 
+        function connectEvents()
+        {
+            // Setup async events (text-only messages pushed to browser)
+            if (!!window.EventSource) {
+                let source = new EventSource('/events');
+                // Events on async event source
+                source.addEventListener('open', function(e) {
+                    console.log("Async events connected");
+                }, false);
+                source.addEventListener('error', function(e) {
+                    if (e.target.readyState != EventSource.OPEN) {
+                        console.log("Events Disconnected");
+                    }
+                }, false);
+                source.addEventListener('status', function(e) {
+                    console.log("status", e.data);
+                    statusCallback(e.data);
+                }, false);
+            }
+        }
         function reconnect(event)
         {
-            if (typeof window.pageState.statusUpdateTimer !== 'undefined')
-            {
-                clearTimeout(window.pageState.statusUpdateTimer);
-                window.pageState.statusUpdateTimer = setTimeout(statusUpdate, 100);
-            }
+            connectEvents();
         }
 
         function pauseRobot(event)
@@ -440,9 +471,15 @@
                 btnStreamGCode.classList.remove("disabled");
             const btnStreamGCodeCancel = document.getElementById("btnStreamGCodeCancel");
             if (!streamingInProgress)
+            {
                 btnStreamGCodeCancel.classList.add("disabled");
+                btnStreamGCodeCancel.disabled = true;
+            }
             else
-                btnStreamGCodeCancel.classList.remove("disabled");
+            {
+                btnStreamGCodeCancel.classList.remove("disabled"); 
+                btnStreamGCodeCancel.disabled = false;
+            }
         }
 
         function startGCodeStream(fileToStream)
@@ -1189,7 +1226,7 @@
                     <span>Stream</span>
                 </button>
                 <span id="txtUploadStatus" class="txt-status"></span>
-                <button id="btnStreamGCodeCancel" class="btn btn-default disabled" title="Cancel upload" onclick="btnStreamGCodeCancel(event)" >
+                <button id="btnStreamGCodeCancel" class="btn btn-default disabled" title="Cancel upload" onclick="btnStreamGCodeCancel(event)" disabled >
                     <svg class="icon-action">
                         <use xlink:href="#ico-cncl"></use>
                     </svg>
@@ -1206,20 +1243,12 @@
                     </svg>
                     <span>Pause</span>
                 </button>
-            </div>
-        </div>
-        <div class="uiBlock">
-            <div class="uiForm">
                 <button type="button" class="btn btn-action" onclick="resumeRobot(event)">
                     <svg class="icon-connect">
                         <use xlink:href = "#ico-play"></use>
                     </svg>
                     <span>Resume</span>
                 </button>
-            </div>
-        </div>
-        <div class="uiBlock">
-            <div class="uiForm">
                 <button type="button" class="btn btn-action" onclick="stopRobot(event)">
                     <svg class="icon-connect">
                         <use xlink:href = "#ico-stop"></use>

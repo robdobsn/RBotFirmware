@@ -2,23 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="a6546d1b-6b84-477e-8b73-cfca16147a37" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionActuator.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionActuator.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionActuator.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionActuator.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionHelper.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionHelper.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionHelper.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionHelper.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionPlanner.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionPlanner.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotGeistBot.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotGeistBot.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotHockeyBot.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotHockeyBot.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotMugBot.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotMugBot.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotSandTableScara.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotSandTableScara.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotSandTableScara.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotSandTableScara.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotXYBot.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotXYBot.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotXYBot.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotXYBot.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WebAutogenResources.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WebAutogenResources.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../Tools/PyMonitorRotation/MonitorMotion.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../Tools/PyMonitorRotation/MonitorMotion.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../Tools/PyMonitorRotation/config.ini" beforeDir="false" afterPath="$PROJECT_DIR$/../../Tools/PyMonitorRotation/config.ini" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../WebUI/ComboUI/sandUI.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../WebUI/ComboUI/sandUI.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../WebUI/ComboUI/cncUI.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../WebUI/ComboUI/cncUI.html" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -289,6 +277,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="1220" y="283" width="1754" height="1152" extended-state="0" />
+    <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.29752067" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />

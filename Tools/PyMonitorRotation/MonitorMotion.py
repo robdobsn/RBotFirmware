@@ -110,6 +110,8 @@ def drawNext():
             x,y = calcXYBot(ang1, ang2)
         elif robotGeom == "SingleArmScara":
             x,y = calcSingleArmScara(ang1, ang2)
+        else:
+            print("Unknown RobotGeom", robotGeom)
         # print(x,y)
         plotX,plotY = scaleXY(x,y)
         # Calc speed
