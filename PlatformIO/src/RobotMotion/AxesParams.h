@@ -92,6 +92,16 @@ class AxesParams
         return true;
     }
 
+    bool getMinVal(int axisIdx, float &minVal)
+    {
+        if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
+            return false;
+        if (!_axisParams[axisIdx]._minValValid)
+            return false;
+        minVal = _axisParams[axisIdx]._minVal;
+        return true;
+    }
+
     float getMaxSpeed(int axisIdx)
     {
         if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
