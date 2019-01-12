@@ -8,7 +8,7 @@
 #include "AxisValues.h"
 
 // #define MOTION_LOG_DEBUG 1
-// #define DEBUG_MOTION_HELPER 1
+#define DEBUG_MOTION_HELPER 1
 
 static const char* MODULE_PREFIX = "MotionHelper: ";
 
@@ -162,14 +162,13 @@ void MotionHelper::setCurPosActualPosition()
     _lastCommandedAxisPos._axisPositionMM = curPosMM;
     _lastCommandedAxisPos._stepsFromHome = actuatorPos;
 #ifdef DEBUG_MOTION_HELPER
-    Log.trace("%sstop absAxes X%F Y%F Z%F steps %d,%d,%d addr %d\n", MODULE_PREFIX,
+    Log.trace("%sstop absAxes X%F Y%F Z%F steps %d,%d,%d\n", MODULE_PREFIX,
                 _lastCommandedAxisPos._axisPositionMM.getVal(0),
                 _lastCommandedAxisPos._axisPositionMM.getVal(1),
                 _lastCommandedAxisPos._axisPositionMM.getVal(2),
                 _lastCommandedAxisPos._stepsFromHome.getVal(0),
                 _lastCommandedAxisPos._stepsFromHome.getVal(1),
-                _lastCommandedAxisPos._stepsFromHome.getVal(2),
-                &_lastCommandedAxisPos._axisPositionMM);
+                _lastCommandedAxisPos._stepsFromHome.getVal(2));
 #endif
 }
 
@@ -241,6 +240,11 @@ bool MotionHelper::moveTo(RobotCommandArgs &args)
         if (!args.isValid(i))
         {
             destPos.setVal(i, _lastCommandedAxisPos._axisPositionMM.getVal(i));
+#ifdef DEBUG_MOTION_HELPER
+            Log.notice("%smoveTo ax %d, pos %F NoMovementOnThisAxis\n", MODULE_PREFIX, 
+                    i, 
+                    destPos.getVal(i));
+#endif
         }
         else
         {
@@ -253,7 +257,9 @@ bool MotionHelper::moveTo(RobotCommandArgs &args)
                 destPos.setVal(i, _lastCommandedAxisPos._axisPositionMM.getVal(i) + args.getValMM(i));
 #ifdef DEBUG_MOTION_HELPER
             Log.notice("%smoveTo ax %d, pos %F relative %s\n", MODULE_PREFIX, 
-                    i, _lastCommandedAxisPos._axisPositionMM.getVal(i), moveRelative ? "Y" : "N");
+                    i, 
+                    destPos.getVal(i), 
+                    moveRelative ? "Y" : "N");
 #endif
         }
         includeDist[i] = _axesParams.isPrimaryAxis(i);
@@ -265,12 +271,23 @@ bool MotionHelper::moveTo(RobotCommandArgs &args)
     // Ensure at least one block
     int numBlocks = 1;
     if (_blockDistanceMM > 0.01f && !args.getDontSplitMove())
-        numBlocks = int(lineLen / _blockDistanceMM);
+        numBlocks = int(ceil(lineLen / _blockDistanceMM));
     if (numBlocks == 0)
         numBlocks = 1;
 #ifdef DEBUG_MOTION_HELPER
-    Log.trace("%smoveTo numBlocks %d (lineLen %F / blockDistMM %F)\n", MODULE_PREFIX,
-                    numBlocks, lineLen, _blockDistanceMM);
+    Log.trace("%smoveTo curX %F(%d) curY %F(%d) curZ %F(%d) newX %F newY %F newZ %F numBlocks %d (lineLen %F / blockDistMM %F)\n", MODULE_PREFIX,
+                _lastCommandedAxisPos._axisPositionMM.getVal(0),
+                _lastCommandedAxisPos._stepsFromHome.getVal(0),
+                _lastCommandedAxisPos._axisPositionMM.getVal(1),
+                _lastCommandedAxisPos._stepsFromHome.getVal(1),
+                _lastCommandedAxisPos._axisPositionMM.getVal(2),
+                _lastCommandedAxisPos._stepsFromHome.getVal(2),
+                destPos.getVal(0),
+                destPos.getVal(1),
+                destPos.getVal(2),
+                numBlocks, 
+                lineLen, 
+                _blockDistanceMM);
 #endif
 
     // Setup for adding blocks to the pipe
