@@ -117,11 +117,30 @@ void EvaluatorFiles::service()
         newLine.replace("\n", "");
         newLine.replace("\r", "");
         newLine.trim();
+
+        // Check for flags (can be in comments or not)
+        if (_fileType == FILE_TYPE_THETA_RHO)
+        {
+            if (newLine.indexOf("_NO_INTERPOLATE_") >= 0)
+            {
+                Log.notice("%sservice THR Interpolation Off\n", MODULE_PREFIX);
+                _interpolate = false;
+            }
+            else if (newLine.indexOf("_INTERPOLATE_") >= 0)
+            {
+                Log.notice("%sservice THR Interpolation On\n", MODULE_PREFIX);
+                _interpolate = true;
+            }
+        }
+
+        // Check for comments
         bool isComment = false;
         if (_fileType == FILE_TYPE_THETA_RHO)
             isComment = newLine.startsWith("#");
         else if (_fileType == FILE_TYPE_GCODE)
             isComment = newLine.startsWith(";");
+
+        // Handle non-comments
         if (!isComment)
         {
             bool isValid = true;
@@ -153,15 +172,10 @@ void EvaluatorFiles::service()
         {
             if (_fileType == FILE_TYPE_THETA_RHO)
             {
-                if ((newLine.indexOf("_NO_INTERPOLATE_") >= 0) || (newLine.indexOf("Sandify") >= 0))
+                if (newLine.indexOf("Sandify") >= 0)
                 {
                     Log.notice("%sservice THR Interpolation Off\n", MODULE_PREFIX);
                     _interpolate = false;
-                }
-                else if (newLine.indexOf("_INTERPOLATE_") >= 0)
-                {
-                    Log.notice("%sservice THR Interpolation On\n", MODULE_PREFIX);
-                    _interpolate = true;
                 }
             }
         }

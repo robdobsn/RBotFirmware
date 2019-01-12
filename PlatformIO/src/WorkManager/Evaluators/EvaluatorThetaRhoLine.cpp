@@ -8,7 +8,7 @@
 #include "Utils.h"
 #include "../WorkManager.h"
 
-// #define THETA_RHO_DEBUG 1
+#define THETA_RHO_DEBUG 1
 
 static const char *MODULE_PREFIX = "EvaluatorThetaRhoLine: ";
 
@@ -27,6 +27,7 @@ EvaluatorThetaRhoLine::EvaluatorThetaRhoLine(WorkManager& workManager) :
     _bedRadiusMM = 0;
     _centreOffsetX = 0;
     _centreOffsetY = 0;
+    _isInterpolating = false;
 }
 
 void EvaluatorThetaRhoLine::setConfig(const char *configStr, const char* robotAttributes)
@@ -84,6 +85,7 @@ bool EvaluatorThetaRhoLine::execWorkItem(WorkItem &workItem)
     // Check for an uninterpolated line
     if (workItem.getString().startsWith("_THRLINE_"))
     {
+        _isInterpolating = false;
         // Next iteration
         char lineBuf[100];
         // Calculate coords
@@ -112,8 +114,11 @@ bool EvaluatorThetaRhoLine::execWorkItem(WorkItem &workItem)
         }
         _prevTheta = newTheta;
         _prevRho = newRho;
+        _isInterpolating = false;
         return true;
     }
+
+    // Must be a _THRLINEN_ then
     double deltaTheta = newTheta - _thetaStartOffset - _prevTheta;
     double absDeltaTheta = abs(deltaTheta);
     double adaptedStepAngle = _stepAngle;
@@ -158,6 +163,7 @@ bool EvaluatorThetaRhoLine::execWorkItem(WorkItem &workItem)
     _prevRho = newRho;
     _curStep = 0;
     _inProgress = true;
+    _isInterpolating = true;
 #ifdef THETA_RHO_DEBUG
     char debugStr[200];
     sprintf(debugStr, "Theta %8.6f Rho %8.6f CurTheta %8.6f CurRho %8.6f TotalSteps %d ThetaInc %8.6f RhoInc %8.6f AbsDeltaTheta %8.6f StepAng %8.6f AdaptedStepAng %8.6f",
@@ -169,13 +175,17 @@ bool EvaluatorThetaRhoLine::execWorkItem(WorkItem &workItem)
 
 void EvaluatorThetaRhoLine::service()
 {
+    // Check in progress
+    if (!_inProgress)
+        return;
+
+    // Check if interpolating
+    if (!_isInterpolating)
+        return;
+
     // Process multiple if possible
     for (int i = 0; i < PROCESS_STEPS_PER_SERVICE; i++)
     {
-        // Check in progress
-        if (!_inProgress)
-            return;
-
         if (_curStep >= _interpolateSteps)
         {
 #ifdef THETA_RHO_DEBUG

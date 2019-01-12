@@ -48,6 +48,7 @@ private:
     bool _inProgress;
 
     // Pattern vars
+    bool _isInterpolating;
     double _curTheta;
     double _curRho;
     int _interpolateSteps;
