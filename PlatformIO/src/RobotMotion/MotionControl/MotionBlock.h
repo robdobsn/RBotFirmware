@@ -39,7 +39,7 @@ public:
     // Computed exit speed for this block
     float _exitSpeedMMps;
     // Step distance in MM
-    float _debugStepDistMM;
+    double _debugStepDistMM;
     // End-stops to test
     AxisMinMaxBools _endStopsToCheck;
     // Numbered command index - to help keep track of block execution from other processes

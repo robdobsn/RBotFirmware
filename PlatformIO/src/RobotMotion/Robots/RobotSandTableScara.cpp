@@ -8,6 +8,7 @@
 #include "math.h"
 
 // #define DEBUG_SANDTABLESCARA_MOTION 1
+// #define DEBUG_SANDTABLE_CARTESIAN_TO_POLAR 1
 
 static const char* MODULE_PREFIX = "SandTableScara: ";
 
@@ -83,20 +84,21 @@ bool RobotSandTableScara::ptToActuator(AxisFloats& targetPt, AxisFloats& outActu
         }
     }
 
-    // Debug
-#ifdef DEBUG_SANDTABLESCARA_MOTION
-	Log.trace("%srelativePolarSolution minRot1 %F, minRot2 %F\n", MODULE_PREFIX,
-    		relativePolarSolution.getVal(0), relativePolarSolution.getVal(1));
-#endif
-
     // Apply this to calculate required steps
     relativePolarToSteps(relativePolarSolution, curAxisPositions, outActuator, axesParams);
 
     // Debug
 #ifdef DEBUG_SANDTABLESCARA_MOTION
-    Log.trace("%sTo x %F y %F dist %F abs steps %F, %F\n", MODULE_PREFIX, 
-                targetPt._pt[0], targetPt._pt[1], sqrt(targetPt._pt[0]*targetPt._pt[0]+targetPt._pt[1]*targetPt._pt[1]),
-                outActuator.getVal(0), outActuator.getVal(1));
+    Log.trace("%sptToAct newX %F newY %F prevX %F prevY %F dist %F abs steps %F, %F minRot1 %F, minRot2 %F\n", MODULE_PREFIX, 
+                targetPt._pt[0], 
+                targetPt._pt[1], 
+                curAxisPositions._axisPositionMM.getVal(0), 
+                curAxisPositions._axisPositionMM.getVal(1), 
+                sqrt(targetPt._pt[0]*targetPt._pt[0]+targetPt._pt[1]*targetPt._pt[1]),
+                outActuator.getVal(0), 
+                outActuator.getVal(1), 
+                relativePolarSolution.getVal(0), 
+                relativePolarSolution.getVal(1));
 #endif
 
     return true;
@@ -130,7 +132,7 @@ void RobotSandTableScara::actuatorToPt(AxisInt32s& actuatorPos, AxisFloats& outP
 
     // Debug
 #ifdef DEBUG_SANDTABLESCARA_MOTION
-    Log.trace("%sacToPt s1 %d s2 %d alpha %F beta %F x %F y %F shel %F elha %F elx %F ely %F haX %F hay %F\n", MODULE_PREFIX, 
+    Log.verbose("%sacToPt s1 %d s2 %d alpha %F beta %F x %F y %F shel %F elha %F elx %F ely %F haX %F hay %F\n", MODULE_PREFIX, 
                 actuatorPos.getVal(0), actuatorPos.getVal(1),
                 curPolar.getVal(0), curPolar.getVal(1),
                 elbowX + handXDiff, elbowY + handYDiff,
@@ -197,7 +199,7 @@ bool RobotSandTableScara::cartesianToPolar(AxisFloats& targetPt, AxisFloats& tar
 	targetSoln2.setVal(0, AxisUtils::r2d(AxisUtils::wrapRadians(alpha2rads + 2 * M_PI)));
 	targetSoln2.setVal(1, AxisUtils::r2d(AxisUtils::wrapRadians(beta2rads + 2 * M_PI)));
 
-#ifdef DEBUG_SANDTABLESCARA_MOTION
+#ifdef DEBUG_SANDTABLE_CARTESIAN_TO_POLAR
     Log.trace("%scartesianToPolar target X%F Y%F l1 %F, l2 %F\n", MODULE_PREFIX,
             targetPt.getVal(0), targetPt.getVal(1),
             shoulderElbowMM, elbowHandMM);	
@@ -219,7 +221,7 @@ void RobotSandTableScara::stepsToPolar(AxisInt32s& actuatorCoords, AxisFloats& r
     double axis0Degrees = AxisUtils::wrapDegrees(actuatorCoords.getVal(0) * 360 / axesParams.getStepsPerRot(0));
     double axis1Degrees = AxisUtils::wrapDegrees(540 - (actuatorCoords.getVal(1) * 360 / axesParams.getStepsPerRot(1)));
     rotationDegrees.set(axis0Degrees, axis1Degrees);
-#ifdef DEBUG_SANDTABLESCARA_MOTION
+#ifdef DEBUG_SANDTABLE_CARTESIAN_TO_POLAR
     Log.trace("%sstepsToPolar: ax0Steps %d ax1Steps %d a %Fd b %Fd\n", MODULE_PREFIX,
             actuatorCoords.getVal(0), actuatorCoords.getVal(1), rotationDegrees._pt[0], rotationDegrees._pt[1]);
 #endif
@@ -236,7 +238,7 @@ float RobotSandTableScara::calcRelativePolar(float targetRotation, float curRota
         bestRotation = 360 + diffAngle;
     else if (diffAngle > 180)
         bestRotation = diffAngle - 360;
-#ifdef DEBUG_SANDTABLESCARA_MOTION
+#ifdef DEBUG_SANDTABLE_CARTESIAN_TO_POLAR
     Log.trace("%scalcRelativePolar: target %F cur %F diff %F best %F\n", MODULE_PREFIX,
             targetRotation, curRotation, diffAngle, bestRotation);
 #endif
@@ -253,7 +255,7 @@ void RobotSandTableScara::relativePolarToSteps(AxisFloats& relativePolar, AxisPo
     // Add to existing
     outActuator.setVal(0, curAxisPositions._stepsFromHome.getVal(0) + stepsRel0);
     outActuator.setVal(1, curAxisPositions._stepsFromHome.getVal(1) + stepsRel1);
-#ifdef DEBUG_SANDTABLESCARA_MOTION
+#ifdef DEBUG_SANDTABLE_CARTESIAN_TO_POLAR
     Log.trace("%srelativePolarToSteps: stepsRel0 %d stepsRel1 %d curSteps0 %d curSteps1 %d destSteps0 %F destSteps1 %F\n",
             MODULE_PREFIX,
             stepsRel0, stepsRel1, curAxisPositions._stepsFromHome.getVal(0), curAxisPositions._stepsFromHome.getVal(1),
@@ -280,7 +282,7 @@ void RobotSandTableScara::convertCoords(RobotCommandArgs& cmdArgs, AxesParams& a
             float yVal = cos(theta) * rho * radius;
             cmdArgs.setAxisValMM(0, xVal, true);
             cmdArgs.setAxisValMM(1, yVal, true);
-#ifdef DEBUG_SANDTABLESCARA_MOTION
+#ifdef DEBUG_SANDTABLE_CARTESIAN_TO_POLAR
             Log.trace("%sconvertCoords theta %F rho %F -> x %F y %F\n", MODULE_PREFIX,
                         theta, rho, xVal, yVal);
 #endif

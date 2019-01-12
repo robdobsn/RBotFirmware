@@ -14,6 +14,14 @@ bool MotionPlanner::moveTo(RobotCommandArgs &args,
             AxisPosition &curAxisPositions,
             AxesParams &axesParams, MotionPipeline &motionPipeline)
 {
+    // Find first primary axis
+    int firstPrimaryAxis = -1;
+    for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+        if (axesParams.isPrimaryAxis(axisIdx))
+            firstPrimaryAxis = axisIdx;
+    if (firstPrimaryAxis == -1)
+        firstPrimaryAxis = 0;
+
     // Find axis deltas and sum of squares of motion on primary axes
     float deltas[RobotConsts::MAX_AXES];
     bool isAMove = false;
@@ -60,6 +68,10 @@ bool MotionPlanner::moveTo(RobotCommandArgs &args,
     if (args.isFeedrateValid())
         validFeedrateMMps = args.getFeedrate();
 
+    // Check the feedrate against the first primary axis
+    if (validFeedrateMMps > axesParams.getMaxSpeed(firstPrimaryAxis))
+        validFeedrateMMps = axesParams.getMaxSpeed(firstPrimaryAxis);
+
     // Find the unit vectors for the primary axes and check the feedrate
     AxisFloats unitVectors;
     for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
@@ -68,12 +80,6 @@ bool MotionPlanner::moveTo(RobotCommandArgs &args,
         {
             // Unit vector calculation
             unitVectors._pt[axisIdx] = deltas[axisIdx] / moveDist;
-
-            // Check the feedrate
-            float axisSpeedAtRequestedFeedrateMMps = fabsf(unitVectors._pt[axisIdx] * validFeedrateMMps);
-            float axisMaxSpeedMMps = axesParams.getMaxSpeed(axisIdx);
-            if (axisSpeedAtRequestedFeedrateMMps > axisMaxSpeedMMps)
-                validFeedrateMMps = fabsf(axisMaxSpeedMMps / unitVectors._pt[axisIdx]);
         }
     }
 
