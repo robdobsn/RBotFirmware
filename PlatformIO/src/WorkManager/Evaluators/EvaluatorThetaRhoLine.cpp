@@ -124,7 +124,7 @@ bool EvaluatorThetaRhoLine::execWorkItem(WorkItem &workItem)
     double adaptedStepAngle = _stepAngle;
     if (_stepAdaptation)
     {
-        double avgRho = (fabs(newRho) + fabs(_prevRho)) / 2;
+        double avgRho = std::max(fabs(newRho), fabs(_prevRho));
         if (avgRho > 1)
             avgRho = 1;
         double maxStepAngle = _stepAngle * 16;
