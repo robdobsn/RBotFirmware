@@ -265,29 +265,7 @@ void RobotSandTableScara::relativePolarToSteps(AxisFloats& relativePolar, AxisPo
 
 void RobotSandTableScara::convertCoords(RobotCommandArgs& cmdArgs, AxesParams& axesParams)
 {
-    // If coords are Theta-Rho
-    if (cmdArgs.isThetaRho())
-    {
-        // Convert based on robot size
-        float shoulderElbowMM = 0, elbowHandMM = 0;
-        bool axis0MaxValid = axesParams.getMaxVal(0, shoulderElbowMM);
-        bool axis1MaxValid = axesParams.getMaxVal(1, elbowHandMM);
-        if (axis0MaxValid && axis1MaxValid)
-        {
-            float radius = shoulderElbowMM + elbowHandMM;
-            float theta = cmdArgs.getValCoordUnits(0);
-            float rho = cmdArgs.getValCoordUnits(1);
-            // Calculate coords
-            float xVal = sin(theta) * rho * radius;
-            float yVal = cos(theta) * rho * radius;
-            cmdArgs.setAxisValMM(0, xVal, true);
-            cmdArgs.setAxisValMM(1, yVal, true);
-#ifdef DEBUG_SANDTABLE_CARTESIAN_TO_POLAR
-            Log.trace("%sconvertCoords theta %F rho %F -> x %F y %F\n", MODULE_PREFIX,
-                        theta, rho, xVal, yVal);
-#endif
-        }
-    }
+    // Coordinates can be converted here if required
 }
 
 // Set robot attributes

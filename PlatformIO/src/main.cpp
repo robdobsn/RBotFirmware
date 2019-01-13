@@ -28,6 +28,9 @@
 //                                          - gmt = GMT offset in seconds, dst = Daylight Savings Offset in seconds
 //                                          - s1, s2, s3 = NTP servers, e.g. pool.ntp.org
 
+// Don't include this code if unit testing
+#ifndef UNIT_TEST
+
 // System type - this is duplicated here to make it easier for automated updater which parses the systemName = "aaaa" line
 #define SYSTEM_TYPE_NAME "RBotFirmware"
 const char* systemType = "RBotFirmware";
@@ -374,3 +377,5 @@ void loop()
     ntpClient.service();
     debugLoopTimer.blockEnd(14);
 }
+
+#endif // UNIT_TEST

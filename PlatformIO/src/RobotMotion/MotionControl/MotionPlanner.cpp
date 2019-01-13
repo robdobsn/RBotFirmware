@@ -84,7 +84,7 @@ bool MotionPlanner::moveTo(RobotCommandArgs &args,
     }
 
     // Store values in the block
-    block._feedrateMMps = validFeedrateMMps;
+    block._feedrate = validFeedrateMMps;
     block._moveDistPrimaryAxesMM = moveDist;
 
     // Find if there are any steps
@@ -137,7 +137,7 @@ bool MotionPlanner::moveTo(RobotCommandArgs &args,
             // Skip and use default max junction speed for 0 degree acute junction.
             if (cosTheta < 0.95F)
             {
-                vmaxJunction = fminf(prevParamSpeed, block._feedrateMMps);
+                vmaxJunction = fminf(prevParamSpeed, block._feedrate);
                 // Skip and avoid divide by zero for straight junctions at 180 degrees. Limit to min() of nominal speeds.
                 if (cosTheta > -0.95F)
                 {
@@ -161,7 +161,7 @@ bool MotionPlanner::moveTo(RobotCommandArgs &args,
     // Add the element to the pipeline and remember previous element
     motionPipeline.add(block);
     MotionBlockSequentialData prevBlockInfo;
-    prevBlockInfo._maxParamSpeedMMps = block._feedrateMMps;
+    prevBlockInfo._maxParamSpeedMMps = block._feedrate;
     prevBlockInfo._unitVectors = unitVectors;
     _prevMotionBlock = prevBlockInfo;
     _prevMotionBlockValid = true;
@@ -187,7 +187,7 @@ void MotionPlanner::debugDumpQueue(const char *comStr, MotionPipeline &motionPip
     {
         Log.notice("%s #%d En %F Ex %F (maxEntry %F, maxParam %F)\n", comStr, curIdx,
                     pCurBlock->_entrySpeedMMps, pCurBlock->_exitSpeedMMps,
-                    pCurBlock->_maxEntrySpeedMMps, pCurBlock->_feedrateMMps);
+                    pCurBlock->_maxEntrySpeedMMps, pCurBlock->_feedrate);
         // Next
         curIdx++;
     }
@@ -334,7 +334,7 @@ bool MotionPlanner::moveToStepwise(RobotCommandArgs &args,
 
     // Find if there are any steps
     bool hasSteps = false;
-    float minFeedrate = 1e8;
+    float minFeedrateStepsPerSec = 1e8;
     for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
     {
         // Check if any steps to perform
@@ -351,8 +351,8 @@ bool MotionPlanner::moveToStepwise(RobotCommandArgs &args,
         if (steps != 0)
         {
             hasSteps = true;
-            if (minFeedrate > axesParams.getMaxSpeed(axisIdx))
-                minFeedrate = axesParams.getMaxSpeed(axisIdx);
+            if (minFeedrateStepsPerSec > axesParams.getMaxStepRatePerSec(axisIdx))
+                minFeedrateStepsPerSec = axesParams.getMaxStepRatePerSec(axisIdx);
         }
         // Value (and direction)
         block.setStepsToTarget(axisIdx, steps);
@@ -373,9 +373,8 @@ bool MotionPlanner::moveToStepwise(RobotCommandArgs &args,
 
     // feedrate override?
     if (args.isFeedrateValid())
-        minFeedrate = args.getFeedrate();
-
-    block._feedrateMMps = minFeedrate;
+        minFeedrateStepsPerSec = args.getFeedrate();
+    block._feedrate = minFeedrateStepsPerSec;
 
     // Prepare for stepping
     if (block.prepareForStepping(axesParams, true))

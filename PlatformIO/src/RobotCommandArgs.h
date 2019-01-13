@@ -17,7 +17,6 @@ class RobotCommandArgs
 private:
     // Flags
     bool _ptUnitsSteps : 1;
-    bool _ptCoordUnitsThetaRho : 1;
     bool _dontSplitMove : 1;
     bool _extrudeValid : 1;
     bool _feedrateValid : 1;
@@ -49,7 +48,6 @@ public:
     {
         // Flags
         _ptUnitsSteps = false;
-        _ptCoordUnitsThetaRho = false;
         _dontSplitMove = false;
         _extrudeValid = false;
         _feedrateValid = false;
@@ -58,6 +56,8 @@ public:
         _allowOutOfBounds = false;
         _pause = false;
         _moreMovesComing = false;
+        _isHoming = false;
+        _hasHomed = false;
         // Command control
         _queuedCommands = 0;
         _numberedCommandIndex = RobotConsts::NUMBERED_COMMAND_NONE;
@@ -82,7 +82,6 @@ public:
         bool isEqual =
             // Flags
             (_ptUnitsSteps == other._ptUnitsSteps) &&
-            (_ptCoordUnitsThetaRho == other._ptCoordUnitsThetaRho) &&
             (_dontSplitMove == other._dontSplitMove) &&
             (_extrudeValid == other._extrudeValid) &&
             (_feedrateValid == other._feedrateValid) &&
@@ -126,7 +125,6 @@ private:
         clear();
         // Flags
         _ptUnitsSteps = copyFrom._ptUnitsSteps;
-        _ptCoordUnitsThetaRho = copyFrom._ptCoordUnitsThetaRho;
         _dontSplitMove = copyFrom._dontSplitMove;
         _extrudeValid = copyFrom._extrudeValid;
         _feedrateValid = copyFrom._feedrateValid;
@@ -162,16 +160,6 @@ public:
             _ptUnitsSteps = false;
         }
     }
-    void setAxisValThetaRho(int axisIdx, float value, bool isValid)
-    {
-        if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
-        {
-            _ptInCoordUnits.setVal(axisIdx, value);
-            _ptInCoordUnits.setValid(axisIdx, isValid);
-            _ptUnitsSteps = false;
-            _ptCoordUnitsThetaRho = true;
-        }
-    }
     void setAxisSteps(int axisIdx, int32_t value, bool isValid)
     {
         if (axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES)
@@ -193,10 +181,6 @@ public:
     bool isStepwise()
     {
         return _ptUnitsSteps;
-    }
-    bool isThetaRho()
-    {
-        return _ptCoordUnitsThetaRho;
     }
     // Indicate that all axes need to be homed
     void setAllAxesNeedHoming()
@@ -353,19 +337,19 @@ public:
         String jsonStr;
         if (includeBraces)
             jsonStr = "{";
-        jsonStr = "\"XYZ\":" + _ptInMM.toJSON();
+        jsonStr += "\"XYZ\":" + _ptInMM.toJSON();
         jsonStr += ",\"ABC\":" + _ptInSteps.toJSON();
         if (_feedrateValid)
         {
             String feedrateStr = String(_feedrateValue, 2);
-            jsonStr += ", \"F\":" + feedrateStr;
+            jsonStr += ",\"F\":" + feedrateStr;
         }
         if (_extrudeValid)
         {
             String extrudeStr = String(_extrudeValue, 2);
-            jsonStr += ", \"E\":" + extrudeStr;
+            jsonStr += ",\"E\":" + extrudeStr;
         }
-        jsonStr += ", \"mv\":";
+        jsonStr += ",\"mv\":";
         if (_moveType == RobotMoveTypeArg_Relative)
             jsonStr += "\"rel\"";
         else
@@ -373,13 +357,13 @@ public:
         jsonStr += ",\"end\":" + _endstops.toJSON();
         jsonStr += ",\"OoB\":" + String(_allowOutOfBounds ? "\"Y\"" : "\"N\"");
         String numberedCmdStr = String(_numberedCommandIndex);
-        jsonStr += ", \"num\":" + numberedCmdStr;
+        jsonStr += ",\"num\":" + numberedCmdStr;
         String queuedCommandsStr = String(_queuedCommands);
-        jsonStr += ", \"Qd\":" + queuedCommandsStr;
-        jsonStr += String(", \"Hmd\":") + (_hasHomed ? "1" : "0");
+        jsonStr += ",\"Qd\":" + queuedCommandsStr;
+        jsonStr += String(",\"Hmd\":") + (_hasHomed ? "1" : "0");
         if (_isHoming)
-            jsonStr += ", \"Homing\":1";
-        jsonStr += String(", \"pause\":") + (_pause ? "1" : "0");
+            jsonStr += ",\"Homing\":1";
+        jsonStr += String(",\"pause\":") + (_pause ? "1" : "0");
         if (includeBraces)
             jsonStr += "}";
         return jsonStr;

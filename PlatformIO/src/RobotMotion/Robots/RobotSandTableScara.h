@@ -45,7 +45,7 @@ private:
     // Correct overflow (necessary for continuous rotation robots)
     static void correctStepOverflow(AxisPosition& curPos, AxesParams& axesParams);
 
-    // Convert coordinates in place (used for coordinate system theta-rho)
+    // Convert coordinates in place
     static void convertCoords(RobotCommandArgs& cmdArgs, AxesParams& axesParams);
 
     // Set robot attributes

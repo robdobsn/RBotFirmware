@@ -2,23 +2,26 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="a6546d1b-6b84-477e-8b73-cfca16147a37" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionActuator.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionActuator.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionActuator.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionActuator.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/lib/RdCommandSerial/CommandSerial.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/lib/RdCommandSerial/CommandSerial.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/lib/RdDebounceButton/DebounceButton.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/lib/RdDebounceButton/DebounceButton.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/platformio.ini" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/platformio.ini" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotCommandArgs.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotCommandArgs.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/AxesParams.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/AxesParams.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionBlock.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionBlock.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionBlock.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionBlock.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionHelper.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionHelper.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionHelper.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionHelper.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionHoming.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionHoming.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionHoming.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionHoming.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionPlanner.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionPlanner.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionPlanner.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/MotionControl/MotionPlanner.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotSandTableScara.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotSandTableScara.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotXYBot.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotXYBot.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotSandTableScara.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/RobotMotion/Robots/RobotSandTableScara.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WebAutogenResources.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WebAutogenResources.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorGCode.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorGCode.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorPattern_Vars.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorPattern_Vars.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorThetaRhoLine.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorThetaRhoLine.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorThetaRhoLine.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorThetaRhoLine.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/WorkManager.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/WorkManager.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorGCode.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/WorkManager/Evaluators/EvaluatorGCode.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/src/main.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../PlatformIO/test/test_main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../PlatformIO/test/test_main.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../Tools/PyMonitorRotation/config.ini" beforeDir="false" afterPath="$PROJECT_DIR$/../../Tools/PyMonitorRotation/config.ini" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../WebUI/ComboUI/cncUI.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../WebUI/ComboUI/cncUI.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EmulateSandTable.py" beforeDir="false" afterPath="$PROJECT_DIR$/EmulateSandTable.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../WebUI/ComboUI/sandUI.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../WebUI/ComboUI/sandUI.html" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -29,7 +32,7 @@
   </component>
   <component name="CoverageDataManager">
     <SUITE FILE_PATH="coverage/EmulateWebServer$_win32stdio.coverage" NAME="_win32stdio Coverage Results" MODIFIED="1543233187943" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/../../../../../Tests/Web/TestFlaskFileUpload/venv/Lib/site-packages/twisted/internet" />
-    <SUITE FILE_PATH="coverage/EmulateWebServer$EmulateSandTable.coverage" NAME="EmulateSandTable Coverage Results" MODIFIED="1547139397994" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/EmulateWebServer$EmulateSandTable.coverage" NAME="EmulateSandTable Coverage Results" MODIFIED="1547316513834" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
   <component name="FUSProjectUsageTrigger">
     <session id="-1091900226">
@@ -65,14 +68,14 @@
           <entry key="gcode" value="3" />
           <entry key="json" value="1" />
           <entry key="param" value="1" />
-          <entry key="py" value="1513" />
+          <entry key="py" value="1594" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
           <entry key="JSON" value="2" />
           <entry key="PLAIN_TEXT" value="3" />
-          <entry key="Python" value="1528" />
+          <entry key="Python" value="1609" />
         </counts>
       </usages-collector>
     </session>
@@ -82,11 +85,11 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/EmulateSandTable.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-664">
-              <caret line="75" column="13" selection-start-line="75" selection-start-column="13" selection-end-line="75" selection-end-column="13" />
+            <state relative-caret-position="441">
+              <caret line="137" column="73" selection-start-line="137" selection-start-column="73" selection-end-line="137" selection-end-column="73" />
               <folding>
                 <element signature="e#0#35#0" expanded="true" />
-                <marker date="1547139407994" expanded="true" signature="1771:1808" ph="..." />
+                <marker date="1547316526788" expanded="true" signature="1771:1808" ph="..." />
               </folding>
             </state>
           </provider>
@@ -163,7 +166,7 @@
     <detection-done>true</detection-done>
     <sorting>DEFINITION_ORDER</sorting>
   </component>
-  <component name="ProjectFrameBounds" extendedState="1">
+  <component name="ProjectFrameBounds">
     <option name="x" value="1220" />
     <option name="y" value="283" />
     <option name="width" value="1754" />
@@ -294,7 +297,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="1220" y="283" width="1754" height="1152" extended-state="1" />
+    <frame x="1220" y="283" width="1754" height="1152" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.29752067" />
@@ -413,11 +416,11 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/EmulateSandTable.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-664">
-          <caret line="75" column="13" selection-start-line="75" selection-start-column="13" selection-end-line="75" selection-end-column="13" />
+        <state relative-caret-position="441">
+          <caret line="137" column="73" selection-start-line="137" selection-start-column="73" selection-end-line="137" selection-end-column="73" />
           <folding>
             <element signature="e#0#35#0" expanded="true" />
-            <marker date="1547139407994" expanded="true" signature="1771:1808" ph="..." />
+            <marker date="1547316526788" expanded="true" signature="1771:1808" ph="..." />
           </folding>
         </state>
       </provider>

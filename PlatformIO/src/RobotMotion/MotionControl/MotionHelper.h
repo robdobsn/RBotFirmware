@@ -149,6 +149,13 @@ public:
         _motionActuator.setInstrumentationMode(testModeStr);
     }
 
+#ifdef UNIT_TEST
+    MotionHoming* testGetMotionHoming()
+    {
+        return &_motionHoming;
+    }
+#endif
+
 private:
     bool isInBounds(double v, double b1, double b2)
     {
