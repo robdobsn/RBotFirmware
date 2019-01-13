@@ -28,7 +28,13 @@ MotionHelper::MotionHelper() : _motionActuator(_motionIO, &_motionPipeline),
     _actuatorToPtFn = NULL;
     _correctStepOverflowFn = NULL;
     // Handling of splitting-up of motion into smaller blocks
-    _blocksToAddTotal = 0;
+    _blocksToAddTotal = 0;    
+    // Init callbacks
+    _ptToActuatorFn = nullptr;
+    _actuatorToPtFn = nullptr;
+    _correctStepOverflowFn = nullptr;
+    _convertCoordsFn = nullptr;
+    _setRobotAttributes = nullptr;
 }
 
 // Destructor
@@ -92,7 +98,7 @@ void MotionHelper::configure(const char *robotConfigJSON)
         _setRobotAttributes(_axesParams, _robotAttributes);
 
     // Homing
-    _motionHoming.configure(robotGeom.c_str());
+    _motionHoming.configure(robotGeom.c_str());    
 
     // MotionIO
     _motionIO.configureMotors(robotGeom.c_str());
