@@ -7,6 +7,36 @@
 
 static const char* MODULE_PREFIX = "MotionBlock: ";
 
+MotionBlock::MotionBlock()
+{
+    clear();
+}
+
+void MotionBlock::clear()
+{
+    // Clear values
+    _feedrate = 0;
+    _moveDistPrimaryAxesMM = 0;
+    _maxEntrySpeedMMps = 0;
+    _entrySpeedMMps = 0;
+    _exitSpeedMMps = 0;
+    _debugStepDistMM = 0;
+    _isExecuting = false;
+    _canExecute = false;
+    _blockIsFollowed = false;
+    _axisIdxWithMaxSteps = 0;
+    _unitVecAxisWithMaxDist = 0;
+    _accStepsPerTTicksPerMS = 0;
+    _finalStepRatePerTTicks = 0;
+    _initialStepRatePerTTicks = 0;
+    _maxStepRatePerTTicks = 0;
+    _stepsBeforeDecel = 0;
+    _numberedCommandIndex = 0;
+    _endStopsToCheck.none();
+    for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+        _stepsTotalMaybeNeg[axisIdx] = 0;
+}
+
 void MotionBlock::setNumberedCommandIndex(int cmdIdx)
 {
     _numberedCommandIndex = cmdIdx;
@@ -88,12 +118,11 @@ bool MotionBlock::prepareForStepping(AxesParams &axesParams, bool isStepwise)
     double stepDistMM = 0;
     if (isStepwise)
     {
-        // Conversion from feedrate to steps per second while moving stepwise is based on this step size
-        stepDistMM = 0.01;
-        initialStepRatePerSec = _feedrateMMps / stepDistMM;
-        finalStepRatePerSec = _feedrateMMps / stepDistMM;
-        maxAccStepsPerSec2 = _feedrateMMps / stepDistMM;
-        axisMaxStepRatePerSec = _feedrateMMps / stepDistMM;
+        // Feedrate is in steps per second in this case
+        initialStepRatePerSec = _feedrate;
+        finalStepRatePerSec = _feedrate;
+        maxAccStepsPerSec2 = _feedrate;
+        axisMaxStepRatePerSec = _feedrate;
         stepsDecelerating = 0;
     }
     else
@@ -130,7 +159,7 @@ bool MotionBlock::prepareForStepping(AxesParams &axesParams, bool isStepwise)
         stepsDecelerating = 0;
 
         // Find max possible rate for axis with max steps
-        axisMaxStepRatePerSec = fabsf(_feedrateMMps / stepDistMM);
+        axisMaxStepRatePerSec = fabsf(_feedrate / stepDistMM);
         if (axisMaxStepRatePerSec > axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps))
             axisMaxStepRatePerSec = axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps);
 
@@ -190,7 +219,7 @@ void MotionBlock::debugShowBlock(int elemIdx, AxesParams &axesParams)
                 debugStepRateToMMps(_finalStepRatePerTTicks), _finalStepRatePerTTicks,
                 debugStepRateToMMps2(_accStepsPerTTicksPerMS),_accStepsPerTTicksPerMS,
                 _unitVecAxisWithMaxDist,
-                _feedrateMMps,
+                _feedrate,
                 _debugStepDistMM,
                 axesParams.getMaxStepRatePerSec(0));
     Log.notice("%s\n", tmpBuf);

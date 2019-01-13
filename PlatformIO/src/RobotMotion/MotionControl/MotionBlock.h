@@ -26,8 +26,8 @@ public:
     static constexpr uint32_t NS_IN_A_MS = 1000000;
 
 public:
-    // Max speed for move (maybe reduced by feedrate in a GCode command)
-    float _feedrateMMps;
+    // Max speed for move - either MMps or stepsPerSec depending if move is stepwise
+    float _feedrate;
     // Distance (pythagorean) to move considering primary axes only
     float _moveDistPrimaryAxesMM;
     // Unit vector on axis with max movement
@@ -69,36 +69,8 @@ public:
     uint32_t _accStepsPerTTicksPerMS;
 
 public:
-    MotionBlock()
-    {
-        clear();
-    }
-
-    void clear()
-    {
-        // Clear values
-        _feedrateMMps = 0;
-        _moveDistPrimaryAxesMM = 0;
-        _maxEntrySpeedMMps = 0;
-        _entrySpeedMMps = 0;
-        _exitSpeedMMps = 0;
-        _debugStepDistMM = 0;
-        _isExecuting = false;
-        _canExecute = false;
-        _blockIsFollowed = false;
-        _axisIdxWithMaxSteps = 0;
-        _unitVecAxisWithMaxDist = 0;
-        _accStepsPerTTicksPerMS = 0;
-        _finalStepRatePerTTicks = 0;
-        _initialStepRatePerTTicks = 0;
-        _maxStepRatePerTTicks = 0;
-        _stepsBeforeDecel = 0;
-        _numberedCommandIndex = 0;
-        _endStopsToCheck.none();
-        for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
-            _stepsTotalMaybeNeg[axisIdx] = 0;
-    }
-
+    MotionBlock();
+    void clear();
     void setNumberedCommandIndex(int cmdIdx);
     int IRAM_ATTR getNumberedCommandIndex();
     int32_t getStepsToTarget(int axisIdx);
