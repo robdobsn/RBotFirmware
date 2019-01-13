@@ -133,6 +133,13 @@ def deleteFile(request, argToExec):
     print("deleteFile ", argToExec)
     return succeed(None)
 
+@route('/', branch=False)
+def staticRoot(request):
+    fileName = os.path.abspath(os.getcwd() + "../../../WebUI/ComboUI/sandUI.html")
+    print(fileName, os.path.exists(fileName))
+    with open(fileName, "r") as f:
+        return f.read()
+
 @route('/<string:pathfile>', branch=False)
 def static(request, pathfile):
     fileName = os.path.abspath(os.getcwd() + "../../../WebUI/ComboUI/" + pathfile)
