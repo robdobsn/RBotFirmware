@@ -116,11 +116,13 @@ class AxesParams
         return _axisParams[axisIdx]._minSpeedMMps;
     }
 
-    float getMaxStepRatePerSec(int axisIdx)
+    float getMaxStepRatePerSec(int axisIdx, bool forceRecalc = false)
     {
         if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
             return AxisParams::maxRPM_default * AxisParams::stepsPerRot_default / 60;
-        return _axisParams[axisIdx]._maxRPM * _axisParams[axisIdx]._stepsPerRot / 60;
+        if (forceRecalc)
+            return _axisParams[axisIdx]._maxRPM * _axisParams[axisIdx]._stepsPerRot / 60;
+        return _maxStepRatesPerSec.getVal(axisIdx);
     }
 
     float getMaxAccel(int axisIdx)
@@ -163,10 +165,10 @@ class AxesParams
         // Find the master axis (dominant one, or first primary - or just first)
         setMasterAxis(axisIdx);
 
-        // Cache axis max and min step rates
+        // Cache axis max step rate
         for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
         {
-            _maxStepRatesPerSec.setVal(axisIdx, getMaxStepRatePerSec(axisIdx));
+            _maxStepRatesPerSec.setVal(axisIdx, getMaxStepRatePerSec(axisIdx, true));
         }
         return true;
     }
