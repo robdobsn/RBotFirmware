@@ -119,10 +119,13 @@ bool MotionBlock::prepareForStepping(AxesParams &axesParams, bool isStepwise)
     if (isStepwise)
     {
         // Feedrate is in steps per second in this case
-        initialStepRatePerSec = _feedrate;
-        finalStepRatePerSec = _feedrate;
-        maxAccStepsPerSec2 = _feedrate;
-        axisMaxStepRatePerSec = _feedrate;
+        float stepRatePerSec = _feedrate;
+        if (stepRatePerSec > axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps))
+            stepRatePerSec = axesParams.getMaxStepRatePerSec(_axisIdxWithMaxSteps);
+        initialStepRatePerSec = stepRatePerSec;
+        finalStepRatePerSec = stepRatePerSec;
+        maxAccStepsPerSec2 = stepRatePerSec;
+        axisMaxStepRatePerSec = stepRatePerSec;
         stepsDecelerating = 0;
     }
     else
