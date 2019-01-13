@@ -30,6 +30,7 @@ public:
         _buttonActiveLevel = 0;
         _debounceLastMs = 0;
         _debounceVal = 0;
+        _callback = nullptr;
     }
 
     // Setup

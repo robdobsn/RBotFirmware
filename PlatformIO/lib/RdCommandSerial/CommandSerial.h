@@ -58,6 +58,7 @@ public:
         _uploadLastBlockMs = 0;
         _blockCount = 0;
         _baudRate = 115200;
+        _frameRxCallback = nullptr;
     }
 
     void setup(ConfigBase& config);
