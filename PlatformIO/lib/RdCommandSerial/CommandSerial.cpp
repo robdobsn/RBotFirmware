@@ -216,8 +216,8 @@ void CommandSerial::sendTargetData(const String& cmdName, const uint8_t* pData, 
 void CommandSerial::uploadCommonBlockHandler(const char* fileType, const String& req, 
             const String& filename, int fileLength, size_t index, uint8_t *data, size_t len, bool finalBlock)
 {
-    Log.verbose("%s%s, total %d, idx %d, len %d, final %d, fs %s api %s\n", MODULE_PREFIX, 
-                filename.c_str(), fileLength, index, len, finalBlock, 
+    Log.verbose("%sblk filetype %s name %s, total %d, idx %d, len %d, final %d, fs %s api %s\n", MODULE_PREFIX, 
+                fileType, filename.c_str(), fileLength, index, len, finalBlock, 
                 (_uploadFromFSInProgress ? "yes" : "no"), (_uploadFromAPIInProgress ? "yes" : "no"));
 
     // Check if first block in an upload
@@ -298,6 +298,7 @@ bool CommandSerial::startUploadFromFileSystem(const String& fileSystemName,
 
     // Upload now in progress
     _uploadFromFSInProgress = true;
+    _uploadFileType = "target";
     _uploadFromFSRequest = uploadRequest;
     _blockCount = 0;
     _uploadStartMs = millis();

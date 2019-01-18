@@ -6,7 +6,6 @@
 
 static const char* MODULE_PREFIX = "MotionHoming: ";
 
-
 MotionHoming::MotionHoming(MotionHelper *pMotionHelper)
 {
     _pMotionHelper = pMotionHelper;

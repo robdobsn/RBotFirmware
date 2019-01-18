@@ -333,6 +333,9 @@ void WorkManager::service()
                 _robotController.canAcceptCommand(),
                 _workItemQueue.size(), rslt, prc,
                 pStr);
+    // Note that the following debug code breaks stopping the robot
+    // This is because the stop can come during the debug loop and would clear the queue
+    // but the debug loop ends up replacing the items that were removed!
     std::queue<WorkItem> newQ;
     int qSize = _workItemQueue.size();
     for (int i = 0; i < qSize; i++)

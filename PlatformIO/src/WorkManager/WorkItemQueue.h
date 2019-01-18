@@ -51,9 +51,10 @@ public:
     // Clear the queue
     void clear()
     {
-        // Using technique from here https://stackoverflow.com/questions/709146/how-do-i-clear-the-stdqueue-efficiently
-        std::queue<WorkItem> emptyQ;
-        std::swap( _workItemQueue, emptyQ );
+        // Log.notice("Clearing Command Queue size %d max %d\n", _workItemQueue.size(), _workItemQueueMaxLen);
+        while(!_workItemQueue.empty()) 
+            _workItemQueue.pop();
+        // Log.notice("Cleared Command Queue size %d max %d\n", _workItemQueue.size(), _workItemQueueMaxLen);
     }
 
     // Add to queue
@@ -62,7 +63,7 @@ public:
         // Check if queue is full
         if (_workItemQueue.size() >= _workItemQueueMaxLen)
         {
-//            Log.notice("Command Queue FULL size %d max %d\n", _workItemQueue.size(), _workItemQueueMaxLen);
+        //    Log.notice("Command Queue FULL size %d max %d\n", _workItemQueue.size(), _workItemQueueMaxLen);
             return false;
         }
 

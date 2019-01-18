@@ -36,7 +36,7 @@
 const char* systemType = "RBotFirmware";
 
 // System version
-const char* systemVersion = "2.024.001";
+const char* systemVersion = "2.024.002";
 
 // Build date
 const char* buildDate = __DATE__;
@@ -101,11 +101,11 @@ static const char *hwConfigJSON = {
     "\"mqttEnabled\":0,"
     "\"webServerEnabled\":1,"
     "\"webServerPort\":80,"
-    "\"OTAUpdate\":{\"enabled\":1,\"server\":\"domoticzoff\",\"port\":5076,\"directOk\":1},"
+    "\"OTAUpdate\":{\"enabled\":1,\"directOk\":1},"
     "\"serialConsole\":{\"portNum\":0},"
     "\"commandSerial\":{\"portNum\":-1,\"baudRate\":115200},"
-    "\"defaultRobotType\":\"SandTableScara\","
-    "\"ntpConfig\":{\"ntpServer\":\"pool.ntp.org\", \"gmtOffsetSecs\":0, \"dstOffsetSecs\":0}"
+    "\"ntpConfig\":{\"ntpServer\":\"pool.ntp.org\", \"gmtOffsetSecs\":0, \"dstOffsetSecs\":0},"
+    "\"defaultRobotType\":\"SandTableScara\""
     "}"
 };
 
@@ -130,13 +130,6 @@ ConfigNVS netLogConfig("netLog", 200);
 // Config for CommandScheduler
 ConfigNVS cmdSchedulerConfig("cmdSched", 500);
 
-// Config for LED Strip
-ConfigNVS ledStripConfig("ledStrip", 100);
-
-// LED Strip
-#include "LedStrip.h"
-LedStrip ledStrip(ledStripConfig);
-
 // CommandScheduler - time-based commands
 #include "CommandScheduler.h"
 CommandScheduler commandScheduler;
@@ -159,6 +152,13 @@ RestAPISystem restAPISystem(wifiManager, mqttManager,
                             otaUpdate, netLog, fileManager, ntpClient,
                             commandScheduler,
                             systemType, systemVersion);
+
+// Config for LED Strip
+ConfigNVS ledStripConfig("ledStrip", 100);
+
+// LED Strip
+#include "LedStrip.h"
+LedStrip ledStrip(ledStripConfig);
 
 // Robot controller
 #include "RobotMotion/RobotController.h"
@@ -224,14 +224,7 @@ void setup()
     // NetLog Config
     netLogConfig.setup();
 
-    // Led Strip Config
-    ledStripConfig.setup();
-
-    // Led Strip
-    ledStrip.setup(&robotConfig, "robotConfig/ledStrip");
-
     // Command scheduler
-    // ConfigBase cmdSchedulerConfig("{\"commandScheduler\":{\"jobs\":[{\"hour\":23,\"minute\":59,\"cmd\":\"sleep\"}]}}");
     commandScheduler.setup(&robotConfig, "cmdSched", &cmdSchedulerConfig, restAPIEndpoints);
 
     // Serial console
@@ -264,22 +257,28 @@ void setup()
     // Network logging
     netLog.setup(&netLogConfig, wifiManager.getHostname().c_str());
 
+    // Led Strip Config
+    ledStripConfig.setup();
+
+    // Led Strip
+    ledStrip.setup(&robotConfig, "robotConfig/ledStrip");
+
     // Add debug blocks
     debugLoopTimer.blockAdd(0, "LoopTimer");
     debugLoopTimer.blockAdd(1, "WiFi");
     debugLoopTimer.blockAdd(2, "Web");
-    debugLoopTimer.blockAdd(3, "WifiLed");
-    debugLoopTimer.blockAdd(4, "LedStrip");
-    debugLoopTimer.blockAdd(5, "SysAPI");
-    debugLoopTimer.blockAdd(6, "Console");
-    debugLoopTimer.blockAdd(7, "MQTT");
-    debugLoopTimer.blockAdd(8, "OTA");
-    debugLoopTimer.blockAdd(9, "NetLog");
-    debugLoopTimer.blockAdd(10, "Robot");
-    debugLoopTimer.blockAdd(11, "CMD");
-    debugLoopTimer.blockAdd(12, "Status");
-    debugLoopTimer.blockAdd(13, "Sched");
-    debugLoopTimer.blockAdd(14, "NTP");
+    debugLoopTimer.blockAdd(3, "SysAPI");
+    debugLoopTimer.blockAdd(4, "Console");
+    debugLoopTimer.blockAdd(5, "MQTT");
+    debugLoopTimer.blockAdd(6, "OTA");
+    debugLoopTimer.blockAdd(7, "NetLog");
+    debugLoopTimer.blockAdd(8, "NTP");
+    debugLoopTimer.blockAdd(9, "Sched");
+    debugLoopTimer.blockAdd(10, "WifiLed");
+    debugLoopTimer.blockAdd(11, "Status");
+    debugLoopTimer.blockAdd(12, "Flow");
+    debugLoopTimer.blockAdd(13, "Robot");
+    debugLoopTimer.blockAdd(14, "LedStrip");
 
     // Reconfigure the robot and other settings
     _workManager.reconfigure();
@@ -311,53 +310,48 @@ void loop()
         debugLoopTimer.blockEnd(2);
     }
 
-    // Service the status LED
+    // Service the system API (restart)
     debugLoopTimer.blockStart(3);
-    wifiStatusLed.service();
+    restAPISystem.service();
     debugLoopTimer.blockEnd(3);
 
-    // Service the LED Strip
+    // Serial console
     debugLoopTimer.blockStart(4);
-    ledStrip.service();
+    serialConsole.service();
     debugLoopTimer.blockEnd(4);
 
-    // Service the system API (restart)
+    // Service MQTT
     debugLoopTimer.blockStart(5);
-    restAPISystem.service();
+    mqttManager.service();
     debugLoopTimer.blockEnd(5);
 
-    // Serial console
+    // Service OTA Update
     debugLoopTimer.blockStart(6);
-    serialConsole.service();
+    otaUpdate.service();
     debugLoopTimer.blockEnd(6);
 
-    // Service MQTT
+    // Service NetLog
     debugLoopTimer.blockStart(7);
-    mqttManager.service();
-    debugLoopTimer.blockEnd(7);
+    netLog.service(serialConsole.getXonXoff());
+    debugLoopTimer.blockStart(7);
 
-    // Service OTA Update
+    // Service NTP
     debugLoopTimer.blockStart(8);
-    otaUpdate.service();
+    ntpClient.service();
     debugLoopTimer.blockEnd(8);
 
-    // Service NetLog
+    // Service command scheduler
     debugLoopTimer.blockStart(9);
-    netLog.service(serialConsole.getXonXoff());
-    debugLoopTimer.blockStart(9);
+    commandScheduler.service();
+    debugLoopTimer.blockEnd(9);
 
-    // Service the robot controller
+    // Service the status LED
     debugLoopTimer.blockStart(10);
-    _robotController.service();
+    wifiStatusLed.service();
     debugLoopTimer.blockEnd(10);
 
-    // Service the command interface (which pumps the workflow queue)
-    debugLoopTimer.blockStart(11);
-    _workManager.service();
-    debugLoopTimer.blockEnd(11);
-
     // Check for changes to status
-    debugLoopTimer.blockStart(12);
+    debugLoopTimer.blockStart(11);
     if (_workManager.checkStatusChanged())
     {
         // Send changed status
@@ -365,17 +359,23 @@ void loop()
         _workManager.queryStatus(newStatus);
         webServer.sendAsyncEvent(newStatus.c_str(), "status");
     }
+    debugLoopTimer.blockEnd(11);
+
+    // Service the command interface (which pumps the workflow queue)
+    debugLoopTimer.blockStart(12);
+    _workManager.service();
     debugLoopTimer.blockEnd(12);
 
-    // Service command scheduler
+    // Service the robot controller
     debugLoopTimer.blockStart(13);
-    commandScheduler.service();
+    _robotController.service();
     debugLoopTimer.blockEnd(13);
 
-    // Service NTP
+    // Service the LED Strip
     debugLoopTimer.blockStart(14);
-    ntpClient.service();
+    ledStrip.service();
     debugLoopTimer.blockEnd(14);
+
 }
 
 #endif // UNIT_TEST
