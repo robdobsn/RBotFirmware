@@ -148,10 +148,13 @@ void FileManager::reformat(const String& fileSystemStr, String& respStr)
         return;
     }
     
-    // Reformat
+    // Reformat - need to disable Watchdog timer while formatting
+    // Watchdog is not enabled on core 1 in Arduino according to this
+    // https://www.bountysource.com/issues/44690700-watchdog-with-system-reset
     _cachedFileListValid = false;
+    disableCore0WDT();
     esp_err_t ret = esp_spiffs_format(NULL);
-    // bool rslt = SPIFFS.format();
+    enableCore0WDT();
     Utils::setJsonBoolResult(respStr, ret == ESP_OK);
     Log.warning("%sReformat SPIFFS result %s\n", MODULE_PREFIX, (ret == ESP_OK ? "OK" : "FAIL"));
 }
