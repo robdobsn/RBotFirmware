@@ -116,10 +116,10 @@ public:
         homingCommand.setAxisValMM(1,0,true);
 
         /////////////////////////////////////////////////////////////////////////////////////
-        //// TEST 1
+        //// Test Set 1
         /////////////////////////////////////////////////////////////////////////////////////
 
-        Serial.println("TEST1");
+        Serial.println("UnitTestHomingSeq Test Set 1");
 
         // Set config
         pMotionHelper->configure(UnitTestHomingSeq_Test1_Config);
@@ -142,10 +142,10 @@ public:
         }
 
         /////////////////////////////////////////////////////////////////////////////////////
-        //// TEST 2
+        //// Test Set 2
         /////////////////////////////////////////////////////////////////////////////////////
 
-        Serial.println("TEST2");
+        Serial.println("UnitTestHomingSeq Test Set 2");
 
         // Set config
         pMotionHelper->configure(UnitTestHomingSeq_Test2_Config);

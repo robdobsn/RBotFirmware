@@ -9,7 +9,9 @@
 
 // #define DEBUG_XYBOT_MOTION 1
 
+#ifdef DEBUG_XYBOT_MOTION
 static const char* MODULE_PREFIX = "XYBot: ";
+#endif
 
 RobotXYBot::RobotXYBot(const char* pRobotTypeName, MotionHelper& motionHelper) :
     RobotBase(pRobotTypeName, motionHelper)

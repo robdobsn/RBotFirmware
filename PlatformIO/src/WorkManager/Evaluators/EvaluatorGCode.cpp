@@ -8,7 +8,9 @@
 
 // #define DEBUG_GCODE_EVALUATOR 1
 
+#ifdef DEBUG_GCODE_EVALUATOR
 static const char *MODULE_PREFIX = "EvaluatorGCode: ";
+#endif
 
 bool EvaluatorGCode::getCmdNumber(const char* pCmdStr, int& cmdNum)
 {
