@@ -397,10 +397,28 @@ class AxisMinMaxBools
         int valIdx = (axisIdx * ENDSTOPS_PER_AXIS + endStopIdx) * BITS_PER_VAL;
         return (AxisMinMaxEnum)((_uint >> valIdx) & BITS_PER_VAL_MASK);
     }
+    // Reverse endstop direction for endstops that are set
+    void reverse()
+    {
+        for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+        {
+            for (int i = 0; i < ENDSTOPS_PER_AXIS; i++)
+            {
+                AxisMinMaxEnum esEnum = get(axisIdx, i);
+                if (esEnum == END_STOP_HIT)
+                    esEnum = END_STOP_NOT_HIT;
+                else if (esEnum == END_STOP_NOT_HIT)
+                    esEnum = END_STOP_HIT;
+                set(axisIdx, i, esEnum);
+            }
+        }
+    }
+    // Clear endstops on all axes
     void none()
     {
         _uint = 0;
     }
+    // Set endstop on all axes when moving towards
     void all()
     {
         uint32_t newUint = 0;

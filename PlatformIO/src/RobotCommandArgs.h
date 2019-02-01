@@ -170,6 +170,14 @@ public:
             _ptUnitsSteps = true;
         }
     }
+    void reverseStepDirection()
+    {
+        for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+        {
+            if (isValid(axisIdx))
+                _ptInSteps.setVal(axisIdx, -_ptInSteps.getVal(axisIdx));
+        }
+    }
     bool isValid(int axisIdx)
     {
         return _ptInMM.isValid(axisIdx);
@@ -292,6 +300,10 @@ public:
         return _endstops;
     }
 
+    void reverseEndstopChecks()
+    {
+        _endstops.reverse();
+    }
     void setAllowOutOfBounds(bool allowOutOfBounds = true)
     {
         _allowOutOfBounds = allowOutOfBounds;

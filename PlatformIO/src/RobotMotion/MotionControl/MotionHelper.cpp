@@ -207,7 +207,7 @@ void MotionHelper::getCurStatus(RobotCommandArgs &args)
     // flags
     args.setPause(_isPaused);
     args.setIsHoming(_motionHoming.isHomingInProgress());
-    args.setHasHomed(_motionHoming._isHomedOk);
+    args.setHasHomed(_motionHoming.isHomedOk());
     // Queue length
     args.setNumQueued(_motionPipeline.count());
 }
