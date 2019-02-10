@@ -1,0 +1,2631 @@
+<!DOCTYPE html>
+<html>
+	<head>
+	<meta charset="utf-8"/>
+	<title>Sand Table</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script type="text/javascript">
+		function bodyIsLoaded()
+		{
+			window.stState = {
+				defaultTableSizeMM: 370,
+				curPage: '',
+				curFileContentJson: '',
+				nonServerHostWarn: (location.hostname === ""),
+				fileExcludes: ["ROBOT.JSON"],
+				latestFileListInfo: {},
+				curFileType: "param",
+				newFileType: "param",
+				fileSystemBasePath: "",
+				lastStatusRxTime: new Date(),
+				statusUpdateCheckMs: 2000,
+				statusUpdateTooLateMs: 15000,
+				maxIterationsInEval: 500,
+				maxIterationsInTotal: 100000,
+				patternEvalIntervalMs: 100,
+				tableCanvasPtIsValid: false,
+				fileTypes: [["param", "Parametric"],["gcode", "G-Code"],["thr", "Theta-Rho"],["seq", "Sequence"]],
+				fileTypeLookup: {},
+				paramNewJson: { setup:"t=0\nR=sizeX/2\n", loop:"x=R*sin(t)\ny=R*cos(t)\nR=R-0.3\nt=t+0.1\nstop=R<20\n" },
+				thrNewContent: "0 0\n62.8 1",
+				canvasBorder: 10,
+				canvasSize: 200,
+				thrMaxThetaInc: Math.PI/64,
+				simulateSand: true
+			};
+			window.pageState = {
+				"maxCfgLen": 2000,
+				"name": "Sand Table",
+				"startup": ""
+			};
+			// Filetypes lookup
+			let fileTypes = window.stState.fileTypes;
+			for (let j = 0; j < fileTypes.length; j++)
+				window.stState.fileTypeLookup[fileTypes[j][0]] = fileTypes[j][1];
+			// Handle running directly in browser
+			if (window.stState.nonServerHostWarn) {
+				window.pageState.name = "Sand Table - I must run on a server!"
+				sandTableSettingsCallbackOk(
+					JSON.stringify(window.pageState));
+			} else {
+				// Setup async events (text-only messages pushed to browser)
+				if (!!window.EventSource) {
+					let source = new EventSource('/events');
+					// Events on async event source
+					source.addEventListener('open', function(e) {
+						console.log("Async events connected");
+					}, false);
+					source.addEventListener('error', function(e) {
+					    if (e.target.readyState != EventSource.OPEN) {
+							console.log("Events Disconnected");
+					    }
+					}, false);
+					source.addEventListener('status', function(e) {
+						console.log("status", e.data);
+						try {
+							const statusInfo = JSON.parse(e.data);
+							const statusConn = document.getElementById("status-connected");
+							statusConn.classList.add("nodisplay");
+							window.stState.lastStatusRxTime = new Date();
+							const statusPaused = document.getElementById("status-paused");
+							if (statusInfo.pause == 0)
+								statusPaused.classList.add("nodisplay");
+							else
+								statusPaused.classList.remove("nodisplay");
+						}
+						catch(e)
+						{
+							console.error("Failed to parse status JSON");
+						}
+					}, false);
+				}				
+				reqFileListAndUpdate();
+				setInterval(statusUpdateTimerHandler, window.stState.statusUpdateCheckMs);
+				window.addEventListener('resize', resizeEventHandler);
+			}
+		}
+		function statusUpdateTimerHandler()
+		{
+			let nowTime = new Date();
+			if (nowTime - window.stState.lastStatusRxTime > window.stState.statusUpdateTooLateMs)
+			{
+				const statusConn = document.getElementById("status-connected");
+				statusConn.classList.remove("nodisplay");
+			}
+		}
+		function resizeEventHandler()
+		{
+			setCanvasShapeAndSize();
+		}
+		function reqFileListAndUpdate()
+		{
+			callAjax("/filelist/", fileListUpdateOk, fileListUpdateFail)
+		}
+		function fileListUpdateFail()
+		{
+			reqSettingsAndUpdate();
+		}
+		function fileListUpdateOk(resp)
+		{
+			// Parse status received
+			try
+			{
+				window.stState.latestFileListInfo = JSON.parse(resp);
+                window.stState.fileSystemBasePath = window.stState.latestFileListInfo.fsBase;
+			}
+			catch (excp)
+			{
+				console.error("Failed to parse received JSON file list")
+				console.error(excp)
+			}
+			reqSettingsAndUpdate();
+		}
+		function reqSettingsAndUpdate()
+		{
+			callAjax("/getsettings", sandTableSettingsCallbackOk);
+		}
+		function sandTableSettingsCallbackOk(jsonResp)
+		{
+			// Check for empty status info
+			if (jsonResp !== "" && jsonResp !== "{}")
+			{
+				let jsonData = {}
+				try
+				{
+					jsonData = JSON.parse(jsonResp);
+					window.pageState = jsonData;
+				}
+				catch(excp)
+				{
+					console.error("Failed to parse JSON settings " + json);
+					console.error(excp);
+				}
+			}
+			updateDisplay();
+		}
+		function updateDisplay()
+		{
+			genPageHeader();
+			genPageBody();
+			iconGen("logoCanvas");
+		}
+		function userAction(itemTypeStr, cmdStr, argStr, curState)
+		{
+			// Handle action
+			if (cmdStr === "delete")
+			{
+				if (confirm('Are you sure you want to delete?'))
+				{
+					// Remove the file
+					callAjax("/deleteFile" + window.stState.fileSystemBasePath + "/" + argStr, fileDeleteOk, fileDeleteFail);
+					window.stState.curPage = "";
+					reqFileListAndUpdate();
+				}
+			}
+			else if (cmdStr === "save") {
+				// Get values from form
+				let fileNameNoExtensionElem = document.getElementById('fileNameNoExtension');
+				let fileNameNoExtension = "";
+				if (window.stState.curPage.trim() === 'patEdit')
+					fileNameNoExtension = fileNameNoExtensionElem.innerHTML.trim();
+				else
+					fileNameNoExtension = fileNameNoExtensionElem.value.trim();
+				fileNameNoExtension = fileNameNoExtension.replace('"','');
+				fileNameNoExtension = fileNameNoExtension.replace('\\','');
+				fileNameNoExtension = fileNameNoExtension.replace('?','');
+				// Check filename is valid
+				if (fileNameNoExtension.trim().length === 0)
+					return;
+				// Get contents
+				let fileText = "";
+				if (window.stState.curFileType === "param")
+				{
+					const patsetup = document.getElementById('patsetup').value;
+					const patloop = document.getElementById('patloop').value;
+					let fileContent = {setup: patsetup, loop: patloop};
+					fileText = JSON.stringify(fileContent);
+				}
+				else
+				{
+					fileText = document.getElementById('textcontents').value;
+				}
+				// Upload file
+				let formData = new FormData();
+				let contentBlob = new Blob([fileText], {type: 'plain/text'});
+				formData.append("file", contentBlob, fileNameNoExtension + "." + window.stState.curFileType);
+				let xmlhttp = new XMLHttpRequest();
+				let failCallback = fileSaveFail;
+				xmlhttp.onreadystatechange = function()
+				{
+					if (xmlhttp.readyState === 4) {
+						if (xmlhttp.status === 200) {
+							console.log("Save response " + xmlhttp.responseText);
+							window.stState.curPage = "";
+							userActionSaveFileOk();
+						}
+						else {
+							if ((failCallback !== undefined) && (typeof failCallback !== 'undefined'))
+							{
+								console.log("Save failed " + xmlhttp.responseText);
+								window.stState.curPage = "";
+								userActionSaveFileFail();
+							}
+						}
+					}
+				};
+				xmlhttp.open('POST', "/uploadtofileman");
+				xmlhttp.send(formData);
+			}
+			else if (cmdStr === "cancel")
+			{
+				window.stState.curPage = "";
+				updateDisplay();
+			}
+			else if (cmdStr === "add")
+			{
+				if (itemTypeStr === "file")
+					window.stState.curPage = "patAdd";
+				window.stState.curItem = "";
+				window.stState.curFileContentJson = "";
+				window.stState.curFileType = window.stState.newFileType;
+				updateDisplay();
+			}
+			else if (cmdStr === "edit")
+			{
+				window.stState.curItem = argStr;
+				callAjax("/files" + window.stState.fileSystemBasePath + "/" + argStr, fileReadToEdit);
+			}
+			else if (cmdStr === "run")
+			{
+				callAjax("/playFile" + window.stState.fileSystemBasePath + "/" + argStr, ajaxDefaultCallback);
+			}
+			else if (cmdStr === "runAtStart")
+			{
+				// Set run at start to this value
+				if (curState)
+					window.pageState.startup = "";
+				else
+					window.pageState.startup = argStr;
+				postSettings();
+			}
+		}
+		function fileDeleteOk()
+		{
+			console.log("Deleted file ok");
+			reqFileListAndUpdate();
+		}
+		function fileDeleteFail()
+		{
+			console.log("Delete file failed");
+			reqFileListAndUpdate();
+		}
+		function fileSaveFail()
+		{
+			console.log("Save file failed");
+			reqFileListAndUpdate();
+		}
+		function postSettings()
+		{
+			let jsonStr = JSON.stringify(window.pageState);
+			jsonStr = jsonStr.replace("\n", "\\n")
+			console.log("POSTING " + jsonStr);
+			postJson("/postsettings", jsonStr, postSettingsOkCallback, postSettingsFailCallback);
+		}
+		function postSettingsOkCallback()
+		{
+			console.log("Posted settings ok");
+			updateDisplay();
+		}
+		function postSettingsFailCallback()
+		{
+			console.log("Post settings FAILED");
+			updateDisplay();
+		}
+		function userActionSaveFileOk()
+		{
+			reqFileListAndUpdate();
+		}
+		function userActionSaveFileFail()
+		{
+			reqFileListAndUpdate();
+		}
+		function genButton(clickFn, keyVal, label, tooltip, iconType, cssClass, curState, isEnabled)
+		{
+//		    console.log("Gen BUTTON url " + url + " clickFn " + clickFn + " label " + label);
+			let oStr = "";
+			clickFn = clickFn.replace("~key~", keyVal);
+			oStr += "<span class='" + cssClass + " btn" + "' onclick='" + clickFn + "' " + (isEnabled?"":"disabled") + ">";
+			if (iconType === "Edit")
+			{
+				oStr += '<svg class="icon-action"><use xlink:href="#ico-edit"></use></svg>';
+			}
+			else if (iconType === "Run")
+			{
+				oStr += '<svg class="icon-action"><use xlink:href="#ico-play"></use></svg>';
+			}
+			else if (iconType === "Add")
+			{
+				oStr += '<svg class="icon-action"><use xlink:href="#ico-add"></use></svg>';
+			}
+//			else if (iconType === "Delete")
+//			{
+//				oStr += '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="30px" height="30px" viewBox="0 0 414 414">';
+//				oStr += '<g><path d="m 107.34348,113.4774 200.6666,201.54286 M 107.34348,315.4584 308.88635,110.84858" style="fill:none;fill-rule:evenodd;stroke:#dcded0;stroke-width:59.9;stroke-linecap:round;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none"/></g>';
+//				oStr += '</svg>';
+//			}
+			else if (iconType === "RunAtStart")
+			{
+				oStr += '<svg class="icon-action"><use xlink:href="#ico-run-at-start" style="fill:' + (curState ? '#407ea6' : '#fafcee') + '"></use></svg>';
+			}
+			else if (iconType === "Play-Pause")
+			{
+				oStr += '<svg class="icon-toolbar"><use xlink:href="#ico-playpause"></use></svg>';
+			}
+			else if (iconType === "Pause")
+			{
+				oStr += '<svg class="icon-toolbar"><use xlink:href="#ico-pause"></use></svg>';
+			}
+			else if (iconType === "Stop")
+			{
+				oStr += '<svg class="icon-toolbar"><use xlink:href="#ico-stop"></use></svg>';
+			}
+			else if (iconType === "Home")
+			{
+				oStr += '<svg class="icon-toolbar"><use xlink:href="#ico-centre"></use></svg>';
+			}
+			else if (iconType === "Simulate")
+			{
+				oStr += '<svg class="icon-inline"><use xlink:href="#ico-spiral-out"></use></svg>';
+			}
+			if (label.length > 0)
+			{
+				oStr += label;
+			}
+			oStr += "</span>";
+
+//		    console.log("genButton -> " + rtnStr);
+			return oStr;
+		}
+		function genAjaxButton(url, key, label, tooltip, iconType, cssClass)
+		{
+			return genButton("callAjax(\"" + url + "\",ajaxDefaultCallback)", key, label, tooltip, iconType, cssClass, false, true);
+		}
+		function genPageHeader()
+		{
+			const pageState = window.pageState;
+			const headerDiv = document.getElementById("pageHeader");
+			let headStr = "<div class='page-header backHead'>";
+			headStr += "<div class='page-header-logo'>";
+			headStr += '<canvas id="logoCanvas" class="page-logo backHead" width="' + logoCanvasWidth + '" height="' + logoCanvasHeight + '">Oops</canvas>';
+			headStr += '</div>';
+			headStr += "<div class='page-header-text'>";
+			headStr += pageState.name;
+			headStr += '</div>';
+			headStr += '</div>';
+			headerDiv.innerHTML = headStr;
+		}
+		function genBodyHeadingSection()
+		{
+			// Control section
+			let oStr = "<div class='body-controls'>"
+			oStr += "<div class='body-part-buttons backGrad1'>";
+			oStr += "<div class='body-commands'>";
+			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/g28", "", "", "Home the robot", "Home", 'body-commands-button') + "</div>";
+			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/playpause", "", "", "Toggle play/pause", "Play-Pause", 'body-commands-button') + "</div>";
+			oStr += "<div class='body-commands-item'>" + genAjaxButton("/exec/stop", "", "", "Stop", "Stop", 'body-commands-button') + "</div>";
+			oStr += "</div>";
+			oStr += "</div>";
+			oStr += "<div class='body-sep'>";
+			oStr += "</div>";
+			oStr += "<div class='body-part-status backGrad1'>";
+			oStr += "<div class='body-commands'>";
+			oStr += "<div class='body-status-box'>"
+			oStr += "<div id='status-connected' class='nodisplay'><svg class='icon-toolbar'><use xlink:href='#ico-broken'></use></svg></div>"
+			oStr += "</div>";
+			oStr += "<div class='body-status-box'>"
+			oStr += "<div id='status-paused' class='nodisplay'><svg class='icon-toolbar icon-red'><use xlink:href='#ico-pause'></use></svg></div>"
+			oStr += "</div>";
+			oStr += "</div>";
+			oStr += "</div>";
+			oStr += "</div>";
+			return oStr;
+		}
+		function genPatternsBody()
+		{
+			// Patterns section
+			let listStr = "<div class='body-group backGrad2'>";
+			listStr += "<div class='body-group-header'><span>Patterns</span>";
+			listStr += "<div class='body-group-actions'>";
+			listStr += "<progress id=\"progress-bar-file-manager\" class=\"body-group-button hidden\" max=100 value=0></progress>";
+			listStr += genButton("userAction(\"file\",\"add\",\"\")", "", "", "New pattern", "Add", 'body-group-button', false, true);
+			listStr += "</div>";
+			listStr += "</div>";
+			listStr += "<div class='body-list drop-zone' id='patternsList'>";
+			listStr += "</div>";
+			listStr += "</div>";
+			return listStr;
+		}
+		function genHomePageBody()
+		{
+			// Body heading
+			const pageBodyHeadDiv = document.getElementById("pageBodyHead");
+			let listStr = genBodyHeadingSection();
+			pageBodyHeadDiv.innerHTML = listStr;
+			
+			// Body form
+			const pageBodyFormDiv = document.getElementById("pageBodyForm");
+			listStr = genPatternsBody();
+			pageBodyFormDiv.innerHTML = listStr;
+
+		}
+
+		function genOptionStr(optName, optText, selectedItemName)
+		{
+			return "<option value=\"" + optName + "\" " + (selectedItemName === optName ? "selected=\"selected\"" : "") + ">" + optText + "</option>";
+		}
+		function genEditPageActions(itemTypeStr, argStr, addMode)
+		{
+			let listStr = "<div class='body-group'>";
+			listStr += "<div class='body-group-header'>";
+			if (!addMode)
+			{
+				listStr += "<div class='body-group-info'>";
+				if (window.stState.fileTypeLookup.hasOwnProperty(window.stState.curFileType))
+					listStr += window.stState.fileTypeLookup[window.stState.curFileType];
+				else
+					listStr += window.stState.curFileType;
+				listStr += "</div>";
+				listStr += "<div class='body-group-actions'>";
+				listStr += genButton("userAction(\"" + itemTypeStr + "\",\"delete\",\"~key~\")", argStr, "Delete", "Delete pattern", "Delete", 'body-group-button', false, !addMode);
+				listStr += "</div>";
+			}
+			else
+			{
+				listStr += "<div class='body-group-select select-style'>";
+				listStr += "<select id=\"fileTypeSelect\">";
+				let fileTypes = window.stState.fileTypes;
+				for (let j = 0; j < fileTypes.length; j++)
+					listStr += genOptionStr(fileTypes[j][0], fileTypes[j][1], window.stState.curFileType);
+				listStr += "</select>";
+				listStr += "</div>";
+			}
+			listStr += "<div class='body-group-actions'>";
+			listStr += genButton("userAction(\"" + itemTypeStr + "\",\"save\",\"~key~\")", argStr, "Save", "Save pattern", "Save", 'body-group-button', false, true);
+			listStr += "</div>";
+			listStr += "<div class='body-group-actions'>";
+			listStr += genButton("userAction(\"" + itemTypeStr + "\",\"cancel\",\"~key~\")", argStr, "Cancel", "Cancel", "Cancel", 'body-group-button', false, true);
+			listStr += "</div>";
+			listStr += "</div>";
+			return listStr;
+		}
+		function setFileType()
+		{
+			// Set file type
+			const fileTypeSelect = document.getElementById("fileTypeSelect");
+			window.stState.curFileType = fileTypeSelect.value;
+			window.stState.newFileType = fileTypeSelect.value;
+			console.log(window.stState.curFileType);
+			genFileEditForm();
+		}
+		function genFileEditForm()
+		{
+			// File being edited
+			const fileName = window.stState.curItem;
+			const fileNameNoExtension = fileName.substr(0,fileName.lastIndexOf('.'))
+
+			// Body heading
+			const pageBodyFormDiv = document.getElementById("pageBodyForm");
+
+			// Handle edit        
+			let listStr = "";
+			listStr += "<form class='body-form'>";
+			listStr += "<fieldset class='body-fieldset'>";
+			listStr += "<div class='body-form-line'>";
+			listStr += "<div class='body-form-label'>Name</div>";
+			if (window.stState.curPage.trim() === 'patEdit')
+				listStr += "<div id='fileNameNoExtension' class='body-form-field'>" + fileNameNoExtension + "</div>";
+			else
+				listStr += "<input type='text' id='fileNameNoExtension' class='body-form-field'>" + fileNameNoExtension + "</input>";
+			listStr += "</div>";
+			if (window.stState.curFileType === "param")
+			{
+				let patternInfo = { setup:"", loop:""};
+				if (window.stState.curFileContentJson.length > 0)
+				{
+					try
+					{
+						patternInfo = JSON.parse(window.stState.curFileContentJson);
+						patternInfo.setup = patternInfo.setup.replace(/;/g,"\n");
+						patternInfo.loop = patternInfo.loop.replace(/;/g,"\n");
+					}
+					catch(excp)
+					{
+						console.error("Failed to parse JSON settings " + window.stState.curFileContentJson);
+						console.error(excp);
+					}
+				}
+				else
+				{
+					patternInfo = window.stState.paramNewJson;
+				}
+				// Fields
+				listStr += "<div class='body-form-line'>";
+				listStr += "<div class='body-form-label'>Setup expressions</div>";
+				listStr += "<textarea id='patsetup' oninput='patSetupChange();' class='body-form-field' cols='50' rows='3'>" + 
+							patternInfo.setup + "</textarea>";
+				listStr += "</div>";
+				listStr += "<div class='body-form-line'>";
+				listStr += "<div class='body-form-label'>Loop expressions</div>";
+				listStr += "<textarea id='patloop' oninput='patLoopChange();' class='body-form-field' cols='50' rows='10'>" + 
+							patternInfo.loop + "</textarea>";
+				listStr += "</div>";
+			}
+			else if (window.stState.curFileType === "seq")
+			{
+				// 
+				listStr += "<div class='body-form-line'>";
+				listStr += "<div class='body-form-label'>Contents</div>";
+				listStr += "<div class='body-form-2-col'>";
+				listStr += "<div class='body-form-col'>";
+				listStr += "<textarea id='textcontents' oninput='fileContentChange()' ondrop='seqContentDrop(event)'" +
+							" ondragover='seqContentAllowDrop(event)' class='body-form-field body-form-textarea' cols='50' rows='10'>" + 
+							window.stState.curFileContentJson + "</textarea>";
+				listStr += "</div>";
+				listStr += "<div class='body-form-colsep'></div>";
+				listStr += "<div class='body-form-col body-form-field' id='patternsList'>";
+				listStr += "</div>";
+				listStr += "</div>";
+				listStr += "</div>";
+			}
+			else
+			{
+				// Fields
+				listStr += "<div class='body-form-line'>";
+				listStr += "<div class='body-form-label'>Contents</div>";
+				let fileContent = window.stState.curFileContentJson;
+				if ((window.stState.curFileContentJson.length == 0) && (window.stState.curPage.trim() === 'patAdd') && (window.stState.curFileType === 'thr'))
+					fileContent = window.stState.thrNewContent;
+				listStr += "<textarea id='textcontents' oninput='fileContentChange()' class='body-form-field' cols='50' rows='10'>" + 
+					fileContent + "</textarea>";
+				listStr += "</div>";
+			}
+
+			// Common code
+			if (window.stState.curFileType !== "seq")
+			{
+				listStr += "<div class='body-form-line'>";
+				listStr += "<div class='body-form-label'>";
+				listStr += "<div class='body-form-label-container'>Validity check";
+				listStr += "</div>";			
+				listStr += "<div class='body-form-label-container'>";
+				listStr += genButton("patternSimulate()", "", "Evaluate Now", "Evaluate", "Simulate", 'body-form-button', false, true);
+				listStr += "</div>";
+				listStr += "<label class='body-form-label-checkbox'>Auto Evaluate"
+				listStr += "<input class='body-form-checkbox' type='checkbox' id='auto-evaluate' onclick='autoEvalClicked()' checked></input>";
+				listStr += "<span class='body-form-checkmark'></span>";
+				listStr += "</label>";
+				listStr += "</div>";
+				listStr += "<textarea readonly id='validity-check' class='body-form-field' cols='50' rows='1'></textarea>";
+				listStr += "</div>";
+				listStr += "<div class='body-form-line'>";
+				listStr += "<div class='body-form-label'>View</div>";
+				listStr += "<div class='body-view' id='table-view'><canvas id='table-canvas' class='body-canvas'></canvas></div>";
+				listStr += "</div>";
+			}
+			listStr += "</fieldset>";
+			listStr += "</form>";
+			listStr += "</div>";
+			pageBodyFormDiv.innerHTML = listStr;
+
+			// Set canvas
+			setCanvasShapeAndSize();
+
+			// Show file list if sequence add/editing
+			if (window.stState.curFileType === "seq")
+				fileListShow(true, ["RepeatMode", "NoRepeatMode", "ShuffleMode", "NoShuffleMode"]);
+		}
+		function seqContentAllowDrop(event)
+		{
+			event.preventDefault();
+		}
+		function seqContentDrop(event)
+		{
+			let srcFileName = event.dataTransfer.getData("fileName");
+			const destTextArea = document.getElementById("textcontents");
+			addToTextarea(destTextArea, srcFileName + "\n");
+		}
+		function addToTextarea(el, newText) 
+		{
+			var start = el.selectionStart
+			var end = el.selectionEnd
+			var text = el.value
+			var before = text.substring(0, start)
+			var after  = text.substring(end, text.length)
+			el.value = (before + newText + after)
+			el.selectionStart = el.selectionEnd = start + newText.length
+			el.focus()
+		}
+		function setCanvasShapeAndSize()
+		{
+			const tableView = document.getElementById("table-view");
+			const tableCanvas = document.getElementById("table-canvas");
+			if (tableView && tableCanvas)
+			{
+				tableCanvas.width = 10;
+				canvasMargin = tableView.clientWidth * 0.03;
+				canvasSize = tableView.clientWidth - canvasMargin * 2;
+				tableCanvas.width = canvasSize;
+				tableCanvas.height = canvasSize;
+				tableCanvas.style.marginTop = canvasMargin;
+				tableCanvas.style.marginBottom = canvasMargin;
+				window.stState.canvasBorder = canvasSize * 0.02;
+				window.stState.canvasSize = canvasSize - 2 * window.stState.canvasBorder;
+			}
+			patternValidate();
+		}
+		function genFileEditHeading()
+		{
+			// Body heading
+			const pageBodyHeadDiv = document.getElementById("pageBodyHead");
+			let listStr = genBodyHeadingSection();
+
+			// Action buttons
+			const fileName = window.stState.curItem;
+			listStr += genEditPageActions("file", fileName, window.stState.curPage.trim() === 'patAdd');
+			pageBodyHeadDiv.innerHTML = listStr;  
+		}
+
+		function genPageBody()
+		{
+			if ((window.stState.curPage.trim() === 'patEdit') || (window.stState.curPage.trim() === 'patAdd'))
+			{
+				genFileEditHeading();
+				genFileEditForm();
+				// Select
+				this.setupSelect(this.setFileType);
+			}
+			else
+			{
+				genHomePageBody();
+				fileListShow(false);
+			}
+		}
+		function itemListShowInEditor(textToShow)
+		{
+			let listStr = "";
+			listStr += "<div class='body-list-line body-list-small'>";
+			listStr += "<div class='body-list-draggable'>";
+			listStr += "<span draggable='true' ondragstart='fileItemDragStart(event)'>" + textToShow + "</span>"
+			listStr += "</div>";
+			listStr += "</div>";
+			return listStr;
+		}
+		function itemListShowMainFileList(fileName)
+		{
+			let fileExtension = fileName.substr((fileName.lastIndexOf('.') + 1)).toUpperCase();
+			const fileNameNoExtension = fileName.substr(0,fileName.lastIndexOf('.'));
+			let listStr = "";
+			listStr += "<div class='body-list-line'>";
+			listStr += genAjaxButton("/playFile/"+fileName, "", fileExtension, "Play file", "", 'body-list-filetype');
+			// listStr += "<span class='body-list-filetype'>" + fileExtension + "</span>";
+			listStr += "<div class='body-list-item'>";
+			if (fileExtension === "JSON")
+				listStr += "<span>" + fileName + "</span>"
+			else
+				listStr += genAjaxButton("/playFile/"+fileName, "", fileNameNoExtension, "Play file", "", 'body-group-button');
+			listStr += "</div>";
+			listStr += "<div class='body-list-actions'>";
+			listStr += genButton("userAction(\"file\",\"run\",\"~key~\")", fileName, "", "Run pattern", "Run", 'body-group-button', false, true);
+			listStr += genButton("userAction(\"file\",\"runAtStart\",\"~key~\"," + (fileName === window.pageState.startup) + ")", fileName, "", "Run at startup", "RunAtStart", 'body-group-button', (fileName === window.pageState.startup), true);
+			listStr += genButton("userAction(\"file\",\"edit\",\"~key~\")", fileName, "", "Edit pattern", "Edit", 'body-group-button', false, true);
+			listStr += "</div>";
+			listStr += "</div>";
+			return listStr;
+		}
+		function fileListShow(inEditor, additionalItems=[])
+		{
+			// Set the new patterns list
+			let divPatternsList = document.getElementById("patternsList");
+			let fileList = window.stState.latestFileListInfo.files;
+			if (!fileList)
+				fileList = []
+			listStr = "";
+			for (let i = 0; i < fileList.length; i++)
+			{
+				let fileName = fileList[i].name;
+				fileName = fileName.replace("/","");
+				// Check for excluded files
+				if (window.stState.fileExcludes.includes(fileName.toUpperCase()))
+					continue;
+				if (inEditor)
+					listStr += itemListShowInEditor(fileName);
+				else
+					listStr += itemListShowMainFileList(fileName);
+			}
+			// Add additional items
+			for (let i = 0; i < additionalItems.length; i++)
+				listStr += itemListShowInEditor(additionalItems[i]);
+			divPatternsList.innerHTML = listStr;
+			// Drag and drop
+			if (inEditor)
+			{
+				// 
+			}
+			else
+			{
+				let dropZones = document.getElementsByClassName("drop-zone");
+				Array.from(dropZones).forEach(function(dropZone) {
+
+					// Prevent default drag behaviors
+					['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+						dropZone.addEventListener(eventName, preventDefaults, false)
+						document.body.addEventListener(eventName, preventDefaults, false)
+					});
+
+					// Highlight drop area when item is dragged over it
+					['dragenter', 'dragover'].forEach(eventName => {
+						dropZone.addEventListener(eventName, highlight, false)
+					});
+
+					['dragleave', 'drop'].forEach(eventName => {
+						dropZone.addEventListener(eventName, unhighlight, false)
+					});
+
+					// Handle dropped files
+					dropZone.addEventListener('drop', handleDrop, false);
+				}); 
+			}
+		}
+		function fileItemDragStart(event)
+		{
+			event.dataTransfer.setData("fileName", event.target.innerHTML);
+		}
+		function fileReadToEdit(fileContent)
+		{
+			window.stState.curPage = "patEdit";
+			window.stState.curFileContentJson = fileContent;
+
+			// File being edited
+			const fileName = window.stState.curItem;
+			const fileExtension = fileName.substr((fileName.lastIndexOf('.') + 1)).toLowerCase();
+			window.stState.curFileType = fileExtension;
+			updateDisplay();
+		}
+		function preventDefaults(e) {
+			e.preventDefault();
+			e.stopPropagation();
+		}
+
+		function highlight(e) {
+			let regionId = e.currentTarget.id;
+			let dropArea = document.getElementById(regionId);
+			dropArea.classList.add('highlight');
+		}
+
+		function unhighlight(e) {
+			let regionId = e.currentTarget.id;
+			let dropArea = document.getElementById(regionId);
+			dropArea.classList.remove('highlight');
+		}
+
+		function handleDrop(e) {
+			var dt = e.dataTransfer;
+			var files = dt.files;
+			uploadToFileManager(files);
+		}
+
+		function uploadToFileManager(files) {
+			files = [...files];
+			initializeProgress(files.length, 'progress-bar-file-manager');
+			files.forEach(uploadOnlyFile);
+		}
+		
+		function initializeProgress(numFiles, progressBarName) {
+			let progressBar = document.getElementById(progressBarName);
+			progressBar.classList.remove("hidden");
+			progressBar.value = 0;
+		}
+
+        function updateProgress(fileNumber, percent, progressBarName) {
+            let progressBar = document.getElementById(progressBarName);
+            // console.debug('update', fileNumber, percent, total);
+            progressBar.value = percent;
+        }
+
+		function uploadOnlyFile(file, i)
+		{
+			uploadFileSpecUrl("/uploadtofileman", 'progress-bar-file-manager', file, i)
+		}
+
+		function uploadFileSpecUrl(url, progressBarName, file, i) {
+			var xhr = new XMLHttpRequest();
+			var formData = new FormData();
+			xhr.open('POST', url, true);
+			xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+			// Update progress (can be used to show progress indicator)
+			xhr.upload.addEventListener("progress", function(e) {
+				updateProgress(i, (e.loaded * 100.0 / e.total) || 100, progressBarName)
+			});
+
+			xhr.addEventListener('readystatechange', function(e) {
+				if (xhr.readyState === 4 && xhr.status === 200) {
+					updateProgress(i, 100, progressBarName)
+					reqFileListAndUpdate();
+				} else if (xhr.readyState === 4 && xhr.status !== 200) {
+					// Error
+				}
+			});
+
+			formData.append('file', file);
+			xhr.send(formData);
+		}
+		function evalInContext(scr, context)
+		{
+			const fn = new Function("self", "window", "top", "with(this) { return (" + scr + ")}");
+			return (fn).call(context);
+		}
+		function objClone(obj) 
+		{
+			if (null == obj || "object" != typeof obj) return obj;
+			let copy = obj.constructor();
+			for (let attr in obj) 
+			{
+				if (obj.hasOwnProperty(attr)) 
+					copy[attr] = obj[attr];
+			}
+			return copy;
+		}
+		function extractTableSize(context)
+		{
+			// Check if valid
+			if (!(window.pageState.robotGeom && window.pageState.robotGeom.axis0 && window.pageState.robotGeom.axis0.maxVal && 
+				window.pageState.robotGeom.axis1 && window.pageState.robotGeom.axis1.maxVal && window.pageState.robotGeom))
+			{
+				let defSize = window.stState.defaultTableSizeMM;
+				context["sizeX"] = defSize;
+				context["sizeY"] = defSize;
+				context["originX"] = defSize/2;
+				context["originY"] = defSize/2;	
+			}
+			else if (window.pageState.robotGeom === "SingleArmScara")
+			{
+				let tableRadius = window.pageState.robotGeom.axis0.maxVal + window.pageState.robotGeom.axis1.maxVal;
+				context["sizeX"] = 2 * tableRadius;
+				context["sizeY"] = 2 * tableRadius;
+				context["originX"] = tableRadius;
+				context["originY"] = tableRadius;	
+			}
+			else
+			{
+				context["sizeX"] = window.pageState.robotGeom.axis0.maxVal;
+				context["sizeY"] = window.pageState.robotGeom.axis1.maxVal;
+				context["originX"] = 0;
+				context["originY"] = 0;	
+			}
+		}
+		function parametricShowValidity(s, warn)
+		{
+			const validityCheck = document.getElementById("validity-check");
+			validityCheck.innerHTML = s;
+			if (warn)
+				validityCheck.classList.add("warning");
+			else
+				validityCheck.classList.remove("warning");
+		}
+		function parametricAddMathsToContext(ctx)
+		{
+			ctx["sin"] = Math.sin;
+			ctx["cos"] = Math.cos;
+			ctx["tan"] = Math.tan;
+			ctx["asin"] = Math.asin;
+			ctx["acos"] = Math.acos;
+			ctx["atan"] = Math.atan;
+			ctx["atan2"] = Math.atan2;
+			ctx["sinh"] = Math.sinh;
+			ctx["cosh"] = Math.cosh;
+			ctx["tanh"] = Math.tanh;
+			ctx["asinh"] = Math.asinh;
+			ctx["acosh"] = Math.acosh;
+			ctx["atanh"] = Math.atanh;
+			ctx["abs"] = Math.abs;
+			ctx["ceil"] = Math.ceil;
+			ctx["floor"] = Math.floor;
+			ctx["round"] = Math.round;
+			ctx["trunc"] = Math.trunc;
+			ctx["sign"] = Math.sign;
+			ctx["exp"] = Math.exp;
+			ctx["pow"] = Math.pow;
+			ctx["sqrt"] = Math.sqrt;
+			ctx["e"] = Math.E;
+			ctx["log"] = Math.log10;
+			ctx["log10"] = Math.log10;
+			ctx["log2"] = Math.log2;
+			ctx["ln"] = Math.log;
+			ctx["pi"] = Math.PI;
+			ctx["max"] = Math.max;
+			ctx["min"] = Math.min;
+			ctx["random"] = Math.random;
+		}
+		function reformatParseResult(s)
+		{
+			if (s.startsWith("Unexpected token )"))
+				return " - expression incomplete"
+			return " - " + s;
+		}
+		function parametricSetupContext(fullContext, loopContext)
+		{
+			extractTableSize(fullContext);
+			parametricAddMathsToContext(fullContext);
+			if (!document.getElementById("patsetup"))
+				return "";
+			const setupExprs = document.getElementById("patsetup").value;
+			const setupLines = setupExprs.split(/[\r\n]+/);
+			const loopExprs = document.getElementById("patloop").value;
+			const loopLines = loopExprs.split(/[\r\n]+/);
+			let regEx = /([a-zA-Z_][a-zA-Z0-9_]*)\s*=[^;=]/;
+			exprList = [setupLines, loopLines];
+			let curLine = 0;
+			let curExprType = 0;
+			let parseResult = "";
+			try 
+			{
+				for (curExprType = 0; curExprType < exprList.length; curExprType++)
+				{
+					// Find assignments
+					const inLines = exprList[curExprType];
+					for (let curLine = 0; curLine < inLines.length; curLine++)
+					{
+						let foundVals = inLines[curLine].match(regEx);
+						if (foundVals !== null && foundVals.length > 1)
+						{
+							fullContext[foundVals[1]] = 0;
+							if (curExprType === 1)
+								loopContext[foundVals[1]] = 0;
+						}
+					}
+				}
+			}
+			catch(excp)
+			{
+				parseResult = "Error in " + (curExprType === 0 ? "Setup" : "Loop") + 
+							" expression line " + (curLine+1) + reformatParseResult(excp.message);
+				console.log("Error processing setup " + excp.message);
+			}
+			return parseResult;
+		}
+		function parametricEvalSetup(context)
+		{
+			const setupExprs = document.getElementById("patsetup");
+			if (!setupExprs)
+				return "";
+			const setupLines = setupExprs.value.split(/[\r\n]+/);
+			let curLine = 0;
+			let parseResult = "";
+			try 
+			{
+				for (curLine = 0; curLine < setupLines.length; curLine++)
+				{
+					let lin = setupLines[curLine].trim();
+					if (lin.length > 0)
+						evalInContext(lin, context);
+				}
+			}
+			catch(excp)
+			{
+				parseResult = "Error in Setup expression line " + (curLine+1) + reformatParseResult(excp.message);
+				console.log("Error evaluating setup " + excp.message);
+			}
+			return parseResult;
+		}
+		function parametricEvalLoop(context)
+		{
+			let loopLines = [];
+			try
+			{
+				const loopExprs = document.getElementById("patloop").value;
+				loopLines = loopExprs.split(/[\r\n]+/);
+			}
+			catch(excp)
+			{
+				console.log("Failed to get patloop - probably exited edit mode");
+				return "No longer in edit mode";
+			}
+			if (loopLines.length === 0)
+				return;
+			let curLine = 0;
+			let parseResult = "";
+			try 
+			{
+				for (curLine = 0; curLine < loopLines.length; curLine++)
+				{
+					let lin = loopLines[curLine].trim();
+					if (lin.length > 0)
+						evalInContext(lin, context);
+				// console.log(context.x, context.y, context.stop);
+				}
+			}
+			catch(excp)
+			{
+				parseResult = "Error in Loop expression line " + (curLine+1) + reformatParseResult(excp.message);
+				console.log("Error evaluating " + excp.message);
+			}
+			return parseResult;
+		}
+		function parametricValidate()
+		{
+			// Extract variables for context
+			let localContext = { };
+			let loopCtxOnly = {};
+			let parseResult = parametricSetupContext(localContext, loopCtxOnly);
+
+			// Check valid
+			if (parseResult.length > 0)
+			{
+				parametricShowValidity(parseResult, true);
+				return;
+			}
+			
+			// Process setup expressions
+			parseResult = parametricEvalSetup(localContext);
+
+			// Check valid
+			if (parseResult.length > 0)
+			{
+				parametricShowValidity(parseResult, true);
+				return;
+			}
+
+			// Check required vars present
+			if (!loopCtxOnly.hasOwnProperty("x"))
+				parseResult += "x";
+			if (!loopCtxOnly.hasOwnProperty("y"))
+				parseResult += (parseResult.length > 0 ? ", " : "") + "y";
+			if (!loopCtxOnly.hasOwnProperty("stop"))
+				parseResult += (parseResult.length > 0 ? " and " : "") + "stop";
+			if (parseResult.length > 0)
+			{
+				parseResult = "Loop must set variable(s) " + parseResult;
+				parametricShowValidity(parseResult, true);
+				return;
+			}
+
+			// Process loop expressions
+			parseResult = parametricEvalLoop(localContext);
+
+			// Check valid
+			if (parseResult.length > 0)
+			{
+				parametricShowValidity(parseResult, true);
+				return;
+			}
+
+			// Show points
+			parametricShowValidity("Passed", false);
+		}
+		function patternValidate()
+		{
+			if (window.stState.curFileType === "seq")
+				return;
+
+			// Check in parametric mode
+			if (window.stState.curFileType === "param")
+				parametricValidate();
+
+			// Check for auto-evaluation
+			try
+			{
+				const autoEval = document.getElementById("auto-evaluate");
+				if (autoEval.checked)
+				{
+					patternSimulate();
+				}
+			}
+			catch(excp)
+			{
+				console.log(excp);
+			}
+		}
+		function fileContentChange()
+		{
+			console.log("patsetupchange");			
+			patternValidate();
+		}
+		function patSetupChange()
+		{
+			console.log("patsetupchange");			
+			patternValidate();
+		}
+		function patLoopChange()
+		{
+			console.log("patloopchange");
+			patternValidate();
+		}
+		function autoEvalClicked()
+		{
+			patternValidate();
+		}
+		function patternSimulate()
+		{
+			if (window.stState.simulateSand)
+				window.stState.sandTableSim = new SandTableSim(window.stState.canvasSize);
+			// Check mode
+			if (window.stState.curFileType === "param")
+				paramSimulate();
+			else if ((window.stState.curFileType === "gcode") || (window.stState.curFileType === "thr"))
+				textFileSimulate();
+		}
+		function paramSimulate()
+		{
+			// Point list empty
+			window.stState.parametricContext = {};
+			let ctx = window.stState.parametricContext;
+			let localCtx = {};
+			let parseResult = parametricSetupContext(ctx, localCtx);
+			if (parseResult.length > 0)
+				return;
+			if (!(ctx.hasOwnProperty("x") && ctx.hasOwnProperty("y") &&
+						ctx.hasOwnProperty("stop")))
+				return;
+			parametricEvalSetup(ctx, parseResult);
+			if (parseResult.length > 0)
+				return;
+			window.stState.interpIteration = 0;
+			tableShowStart(ctx);
+
+			// Take first steps
+			paramStep();
+		}
+		function paramStep()
+		{
+			// Process some values
+			let ctx = window.stState.parametricContext;
+			for (let k = 0; k < window.stState.maxIterationsInEval; k++)
+			{
+				// Evaluate
+				const parseResult = parametricEvalLoop(ctx)
+				if (parseResult.length > 0)
+					return;
+
+				// Display
+				tableShowNextPoint(ctx);
+
+				// Check max iterations
+				window.stState.interpIteration++;
+				if (window.stState.interpIteration >= window.stState.maxIterationsInTotal)
+					return;
+
+				// Check for stop
+				if (ctx.stop)
+					return;
+			}
+			// Request another timeslot
+			setTimeout(paramStep, window.stState.patternEvalIntervalMs);
+		}
+		function gcodeEvalService(ctx)
+		{
+			if (ctx.lines.length <= ctx.lineIdx)
+				return "done";
+			const lin = ctx.lines[ctx.lineIdx];
+			ctx.lineIdx++;
+			const linElems = lin.split(" ");
+			if (!(linElems[0].toLowerCase().includes("g0") || linElems[0].toLowerCase().includes("g1")))
+				return "ignore";
+			if (linElems.length < 3)
+				return "ignore";
+			let xValid = false, yValid = false;
+			for (let i = 1; i < linElems.length; i++)
+			{
+				if (linElems[i].trim().toLowerCase().startsWith("x"))
+				{
+					let x = parseFloat(linElems[i].trim().substr(1));
+					if (!isNaN(x))
+					{
+						xValid = true;
+						ctx.x = x;
+					}
+				}
+				if (linElems[i].trim().toLowerCase().startsWith("y"))
+				{
+					let y = parseFloat(linElems[i].trim().substr(1));
+					if (!isNaN(y))
+					{
+						yValid = true;
+						ctx.y = y;
+					}
+				}
+			}
+			if (xValid && yValid)
+				return "";
+			return "invalid";
+		}
+		function thrProcPoint(ctx, thrPoint)
+		{
+			ctx.interpolateIdx = 0;
+			if (!ctx.hasOwnProperty("nextPoint"))
+			{
+				ctx.nextPoint = thrPoint;
+				return "ignore";
+			}
+			ctx.prevPoint = ctx.nextPoint;
+			ctx.nextPoint = thrPoint;
+			ctx.deltaTheta = ctx.nextPoint[0] - ctx.prevPoint[0];
+			ctx.thetaInc = ctx.deltaTheta >= 0 ? window.stState.thrMaxThetaInc : -window.stState.thrMaxThetaInc;
+			let deltaRho = (ctx.nextPoint[1] - ctx.prevPoint[1]);
+			if (Math.abs(ctx.deltaTheta) < window.stState.thrMaxThetaInc)
+			{
+				ctx.thetaInc = ctx.deltaTheta;
+				ctx.interpolateSteps = 1;
+				ctx.rhoInc = deltaRho;
+			}
+			else
+			{	
+				ctx.interpolateSteps = Math.floor(Math.abs(ctx.deltaTheta) / window.stState.thrMaxThetaInc);
+				if (ctx.interpolateSteps < 1)
+					return "ignore";
+				ctx.rhoInc = deltaRho * window.stState.thrMaxThetaInc / Math.abs(ctx.deltaTheta);
+			}
+			ctx.curTheta = ctx.prevPoint[0];
+			ctx.curRho = ctx.prevPoint[1];
+			console.log("Theta " + formatFP(ctx.nextPoint[0], 6) + " Rho " + formatFP(ctx.nextPoint[1], 6) + " CurTheta " + formatFP(ctx.curTheta, 6) +
+						" CurRho " + formatFP(ctx.curRho, 6) + " TotalSteps " + ctx.interpolateSteps + " ThetaInc " + formatFP(ctx.thetaInc, 6) +
+						" RhoInc " + formatFP(ctx.rhoInc, 6) + " AbsDeltaTheta " + formatFP(Math.abs(ctx.deltaTheta), 6) +
+						" StepAng " + formatFP(window.stState.thrMaxThetaInc, 6));
+			if (thrProcInterp(ctx))
+				return "";
+			return "ignore";
+		}
+		function formatFP(val, dp)
+		{
+			const divis = Math.pow(10, dp)
+			return parseFloat((val * divis) / divis).toFixed(dp)
+		}
+		function thrProcInterp(ctx)
+		{
+			if (ctx.interpolateIdx >= ctx.interpolateSteps)
+				return false;
+			ctx.interpolateIdx++;
+			ctx.x = (ctx.sizeX / 2) * ctx.curRho * Math.sin(ctx.curTheta);
+			ctx.y = (ctx.sizeY / 2) * ctx.curRho * Math.cos(ctx.curTheta);
+			ctx.curRho += ctx.rhoInc;
+			ctx.curTheta += ctx.thetaInc;
+			console.log("G0 U" + formatFP(Math.round(ctx.curTheta), 6)  + " V" + formatFP(Math.round(ctx.curRho), 6))
+			return true;
+		}
+		function thrEvalService(ctx)
+		{
+			if (ctx.interpolateIdx != 0)
+				if (thrProcInterp(ctx))
+					return "";
+			if (ctx.lines.length <= ctx.lineIdx)
+				return "done";
+			const lin = ctx.lines[ctx.lineIdx];
+			ctx.lineIdx++;
+			if (lin.includes("#"))
+				return "ignore";
+			const linElems = lin.split(" ");
+			if (linElems.length < 2)
+				return "ignore";
+			const theta = parseFloat(linElems[0]);
+			const rho = parseFloat(linElems[1]);
+			if (isNaN(theta) || isNaN(rho))
+				return "ignore";
+			return thrProcPoint(ctx, [theta, rho])
+		}
+		function textFileSimulate()
+		{
+			let fileLines = [];
+			try
+			{
+				const fileText = document.getElementById("textcontents").value;
+				if (fileText.length > 0)
+					fileLines = fileText.split(/[\r\n]+/);
+			}
+			catch(excp)
+			{
+				console.log("Failed to get textcontents - probably exited edit mode");
+				return "No longer in edit mode";
+			}
+			if (fileLines.length === 0)
+				return;
+			window.stState.textFileContext = { 
+				fileType: window.stState.curFileType, lineIdx: 0, 
+				interpolateIdx: 0, lines: fileLines, 
+				stop: false, x: 0, y:0
+			};
+			extractTableSize(window.stState.textFileContext);
+			tableShowStart(window.stState.textFileContext);
+			window.stState.interpIteration = 0;
+			textFileStep();
+		}
+		function textFileStep()
+		{
+			let ctx = window.stState.textFileContext;
+			for (let k = 0; k < window.stState.maxIterationsInEval; k++)
+			{
+				// Evaluate
+				let parseResult = "";
+				if (ctx.fileType === "gcode")
+					parseResult = gcodeEvalService(ctx);
+				else
+					parseResult = thrEvalService(ctx);
+				if (parseResult.length > 0)
+				{
+					if ((parseResult === "ignore") || (parseResult === "invalid"))
+						continue;
+					console.log("Res too short")
+					return;
+				}
+
+				// Display
+				tableShowNextPoint(ctx);
+
+				// Check max iterations
+				window.stState.interpIteration++;
+				if (window.stState.interpIteration >= window.stState.maxIterationsInTotal)
+				{
+					console.log("Max Iter")
+					return;
+				}
+
+				// Check for stop
+				if (ctx.stop)
+				{
+					console.log("Stop req")
+					return;
+				}
+			}
+			// Request another timeslot
+			console.log("Req TS")
+			setTimeout(textFileStep, window.stState.patternEvalIntervalMs);
+		}
+		function tableShowStart(varContext)
+		{
+			if (window.stState.simulateSand)
+				window.stState.sandTableSim.simStart(varContext);
+			else
+				pathDrawerStart();
+		}
+		function tableShowNextPoint(varContext)
+		{
+			if (window.stState.simulateSand)
+				window.stState.sandTableSim.simNexPoint(varContext);
+			else
+				pathDrawerNextPoint();
+		}
+		function pathDrawerStart(varContext)
+		{
+			let canvas = document.getElementById('table-canvas');
+			let canvasContext = canvas.getContext('2d');
+			canvasContext.closePath();
+			canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+			window.stState.tableCanvasPtIsValid = false;
+			// Show outline of table edge
+			canvasContext.strokeStyle = "#407ea6";
+			canvasContext.lineWidth = 10;
+			if ((!window.pageState.robotGeom) || window.pageState.robotGeom === "SingleArmScara")
+			{
+				canvasContext.beginPath();
+				varContext.x = 0;
+				varContext.y = 0;
+				const pointXY = getCanvasXY(canvas, varContext);
+				canvasContext.arc(pointXY[0], pointXY[1], window.stState.canvasSize/2, 0, 2 * Math.PI);
+				canvasContext.stroke();
+				canvasContext.closePath();
+			}
+			canvasContext.strokeStyle = "#e3cda6";
+			canvasContext.lineWidth = 1;
+			canvasContext.beginPath();
+		}
+		function pathDrawerNextPoint(varContext)
+		{
+			let canvas = document.getElementById('table-canvas');
+			if (!canvas)
+				return;
+			let canvasContext = canvas.getContext('2d');
+			const pointXY = getCanvasXY(canvas, varContext);
+			if (!window.stState.tableCanvasPtIsValid)
+			{
+				canvasContext.moveTo(pointXY[0], pointXY[1]);
+			}
+			else
+			{
+				canvasContext.lineTo(pointXY[0], pointXY[1]);
+				canvasContext.stroke();
+			}
+			window.stState.tableCanvasPtIsValid = true;
+		}
+		function getCanvasXY(canvas, varContext)
+		{
+			let xPos = ((varContext.x + varContext.originX)  / varContext.sizeX) * window.stState.canvasSize + window.stState.canvasBorder;
+			let yPos = canvas.height - (((varContext.y + varContext.originY)  / varContext.sizeY) * window.stState.canvasSize + window.stState.canvasBorder);
+			return [ xPos, yPos];
+		}
+		function callAjax(url, okCallback, failCallback)
+		{
+			const xmlhttp = new XMLHttpRequest();
+			xmlhttp.onreadystatechange = function()
+			{
+				if (xmlhttp.readyState === 4) {
+					if (xmlhttp.status === 200) {
+						okCallback(xmlhttp.responseText);
+					}
+					else {
+						if ((failCallback !== undefined) && (typeof failCallback !== 'undefined'))
+							failCallback(xmlhttp);
+					}
+				}
+			};
+
+			xmlhttp.open("GET", escape(url), true);
+			xmlhttp.send();
+		}
+		function ajaxDefaultCallback()
+		{
+		}
+		function postJson(url, jsonStrToPos, okCallback, failCallback)
+		{
+			const xmlhttp = new XMLHttpRequest();
+			xmlhttp.onreadystatechange = function()
+			{
+				if (xmlhttp.readyState === 4) {
+					if (xmlhttp.status === 200) {
+						if ((okCallback !== undefined) && (typeof okCallback !== 'undefined'))
+							okCallback(xmlhttp.responseText);
+					}
+					else {
+						if ((failCallback !== undefined) && (typeof failCallback !== 'undefined'))
+							failCallback(xmlhttp);
+					}
+				}
+			};
+			xmlhttp.open("POST", url);
+			xmlhttp.setRequestHeader("Content-Type", "application/json");
+			xmlhttp.send(jsonStrToPos);
+		}
+
+		let logoCanvasWidth = 100, logoCanvasHeight = 100;
+
+		function iconGen(canvasID)
+		{
+			let logoWidth = 400, logoHeight = 400;
+			let tVal, x, y, stop;
+			let logoCentreX = logoCanvasWidth / 2, logoCentreY = logoCanvasHeight / 2;
+			let startRadius = 180;
+			let overRotationFactor=1.03;
+			let segmentsPerRev = 200;
+			let modulationFreqMult = 20;
+			let endRadius = 10;
+			let outstepPerRev = -13;
+			let modulationDampingFactor = 0.6;
+			let modulationAmp = 10;
+			function logoSetup() {
+				tVal = 0;
+				stop=false;
+			}
+			function logoLoop() {
+				const rRadians = tVal * 2 * Math.PI * overRotationFactor / segmentsPerRev;
+				const curModu = Math.sin(tVal * modulationFreqMult * 2 * Math.PI / segmentsPerRev);
+				const curRadius = startRadius + outstepPerRev * tVal / segmentsPerRev;
+				const radiusProp = (curRadius-Math.min(startRadius,endRadius))/Math.abs(startRadius-endRadius);
+				const modDampFact = (1 - radiusProp) * modulationDampingFactor;
+				const modAmpl = curRadius + curModu * modulationAmp * (1 - modDampFact);
+				x = modAmpl * Math.sin(rRadians) * logoCanvasWidth / logoWidth;
+				y = modAmpl * Math.cos(rRadians) * logoCanvasHeight / logoHeight;
+				tVal += 1;
+				stop = (curRadius > Math.max(startRadius, endRadius)) || (curRadius < Math.min(startRadius, endRadius));
+			}
+
+			const c = document.getElementById(canvasID);
+			const ctx = c.getContext("2d");
+			ctx.beginPath();
+			ctx.lineWidth = 2;
+			logoSetup();
+			let ctr = 0;
+			while(!stop)
+			{
+				logoLoop();
+				if (ctr === 0)
+					ctx.moveTo(logoCentreX+x, logoCentreY+y);
+				else
+					ctx.lineTo(logoCentreX+x, logoCentreY+y);
+				if (ctr > 10000)
+					break;
+				ctr++;
+			}
+			ctx.strokeStyle = '#e0e0e0';
+			ctx.stroke();
+
+		}
+		function setupSelect(callback) {
+			let selectS = document.getElementsByClassName("select-style");
+			for (let i = 0; i < selectS.length; i++) {
+				selEl = selectS[i].getElementsByTagName("select")[0];
+				if (selEl.options.length === 0)
+					continue;
+				// Selected item div
+				let selItemDiv = document.createElement("div");
+				selItemDiv.setAttribute("class", "select-selected");
+				selItemDiv.innerHTML = selEl.options[selEl.selectedIndex].innerHTML;
+				selectS[i].appendChild(selItemDiv);
+				// Options div
+				let optionsDiv = document.createElement("div");
+				optionsDiv.setAttribute("class", "select-items select-hide");
+				for (let j = 0; j < selEl.length; j++) {
+					// Option div (for each option)
+					let optionDiv = document.createElement("div");
+					optionDiv.innerHTML = selEl.options[j].innerHTML;
+					optionDiv.addEventListener("click", function (event) {
+						// Handle item click = select item
+						let selection = this.parentNode.parentNode.getElementsByTagName("select")[0];
+						let prevSibling = this.parentNode.previousSibling;
+						for (let k = 0; k < selection.length; k++) {
+							if (selection.options[k].innerHTML == this.innerHTML) {
+								selection.selectedIndex = k;
+								prevSibling.innerHTML = this.innerHTML;
+								let sameAsSel = this.parentNode.getElementsByClassName("same-as-selected");
+								for (n = 0; n < sameAsSel.length; n++) {
+									sameAsSel[n].removeAttribute("class");
+								}
+								this.setAttribute("class", "same-as-selected");
+								break;
+							}
+						}
+						prevSibling.click();
+					});
+					optionsDiv.appendChild(optionDiv);
+					// Last item only
+					if (j == selEl.length-1)
+						optionDiv.setAttribute("class", "select-last-option");
+				}
+				selectS[i].appendChild(optionsDiv);
+				selItemDiv.addEventListener("click", function (event) {
+					// Select box clicked = close other select boxes & open/close current
+					event.stopPropagation();
+					closeAllSelect(this);
+					this.nextSibling.classList.toggle("select-hide");
+					this.classList.toggle("select-arrow-active");
+					callback();
+				});
+			}
+
+			function closeAllSelect(elmnt) {
+				// Close all selects
+				let selArray = [];
+				let selectedItems = document.getElementsByClassName("select-items");
+				let selectsSelected = document.getElementsByClassName("select-selected");
+				for (let i = 0; i < selectsSelected.length; i++) {
+					if (elmnt == selectsSelected[i]) {
+						selArray.push(i)
+					}
+					else {
+						selectsSelected[i].classList.remove("select-arrow-active");
+					}
+				}
+				for (i = 0; i < selectedItems.length; i++) {
+					if (selArray.indexOf(i)) {
+						selectedItems[i].classList.add("select-hide");
+					}
+				}
+			}
+
+			// Click outside the document - close all selects
+			if (selectS.length > 0)
+				document.addEventListener("click", closeAllSelect);
+		}
+
+		function rgb(r,g,b,a) {
+			return [r,g,b,a];
+		}
+class SandTableSim {
+    constructor(canvasSize, options) {
+        this.options = {
+            sandLevelSize: Math.ceil(canvasSize),
+            kernelSize: 20,
+            ballPos: [300, 300],
+            ballSize: 10,
+            sandStartLevel: 5,
+            maxSandLevel: 10,
+            imgPixSqSize: 5
+        };
+
+        this.evalExpr = {
+            t: 0,
+            x: 300,
+            y: 300,
+            r: 0
+        };
+
+        this.sandColours = [
+            [rgb(166,120,84,255),rgb(164,118,82,255),rgb(156,110,74,255),rgb(151,107,68,255),rgb(170,126,87,255),rgb(161,115,79,255),rgb(165,119,83,255),rgb(179,133,97,255),rgb(156,111,73,255),rgb(171,127,88,255),rgb(149,103,67,255),rgb(158,112,76,255),rgb(158,112,76,255),rgb(169,123,86,255),rgb(170,125,86,255),rgb(162,116,80,255),rgb(154,108,72,255),rgb(154,108,72,255),rgb(165,119,83,255),rgb(162,117,78,255),rgb(151,106,67,255),rgb(148,103,64,255),rgb(160,115,76,255),rgb(162,116,79,255),rgb(158,112,76,255)],
+            [rgb(162,114,74,255),rgb(159,114,73,255),rgb(163,118,77,255),rgb(168,125,83,255),rgb(178,136,94,255),rgb(152,105,65,255),rgb(156,111,70,255),rgb(161,117,76,255),rgb(161,118,76,255),rgb(192,151,108,255),rgb(176,131,90,255),rgb(165,120,79,255),rgb(176,133,91,255),rgb(163,121,79,255),rgb(168,128,85,255),rgb(171,126,87,255),rgb(163,119,80,255),rgb(163,119,80,255),rgb(154,113,72,255),rgb(166,128,86,255),rgb(169,124,85,255),rgb(159,114,75,255),rgb(151,107,68,255),rgb(168,129,88,255),rgb(190,153,111,255)],
+            [rgb(170,128,86,255),rgb(163,121,79,255),rgb(156,114,72,255),rgb(151,109,67,255),rgb(146,104,62,255),rgb(160,117,75,255),rgb(159,116,74,255),rgb(151,108,66,255),rgb(149,106,64,255),rgb(149,106,65,255),rgb(149,104,65,255),rgb(153,108,69,255),rgb(146,102,63,255),rgb(148,104,66,255),rgb(154,112,73,255),rgb(148,103,64,255),rgb(152,106,70,255),rgb(144,100,63,255),rgb(141,98,60,255),rgb(139,97,59,255),rgb(144,99,60,255),rgb(157,113,76,255),rgb(152,108,71,255),rgb(131,89,51,255),rgb(153,111,73,255)],
+            [rgb(180,146,109,255),rgb(188,153,113,255),rgb(187,152,110,255),rgb(195,160,118,255),rgb(201,167,122,255),rgb(185,151,113,255),rgb(191,156,116,255),rgb(192,157,115,255),rgb(194,159,117,255),rgb(194,160,116,255),rgb(192,158,120,255),rgb(198,163,123,255),rgb(200,165,123,255),rgb(205,171,129,255),rgb(200,167,123,255),rgb(195,161,123,255),rgb(197,162,120,255),rgb(199,164,122,255),rgb(212,179,136,255),rgb(206,173,128,255),rgb(190,157,116,255),rgb(197,164,121,255),rgb(201,168,125,255),rgb(206,173,130,255),rgb(206,174,129,255)],
+            [rgb(201,164,122,255),rgb(195,157,116,255),rgb(180,141,100,255),rgb(178,138,97,255),rgb(165,123,83,255),rgb(194,157,115,255),rgb(186,148,106,255),rgb(178,139,98,255),rgb(165,126,85,255),rgb(155,116,75,255),rgb(188,151,109,255),rgb(181,143,102,255),rgb(166,128,86,255),rgb(169,130,89,255),rgb(158,119,78,255),rgb(196,160,117,255),rgb(184,147,104,255),rgb(156,119,76,255),rgb(145,106,64,255),rgb(139,100,58,255),rgb(188,154,109,255),rgb(170,134,89,255),rgb(154,117,73,255),rgb(146,109,65,255),rgb(133,95,52,255)],
+            [rgb(209,176,131,255),rgb(209,176,131,255),rgb(208,175,130,255),rgb(210,177,132,255),rgb(207,173,128,255),rgb(214,181,136,255),rgb(210,176,131,255),rgb(207,173,128,255),rgb(204,170,125,255),rgb(203,166,122,255),rgb(208,174,129,255),rgb(208,174,129,255),rgb(207,171,127,255),rgb(202,166,121,255),rgb(197,160,116,255),rgb(209,175,130,255),rgb(204,170,125,255),rgb(203,166,122,255),rgb(207,170,126,255),rgb(192,155,111,255),rgb(201,166,121,255),rgb(204,167,123,255),rgb(201,164,120,255),rgb(201,162,119,255),rgb(201,162,119,255)],
+            [rgb(213,180,135,255),rgb(208,176,129,255),rgb(207,175,128,255),rgb(203,170,125,255),rgb(211,178,133,255),rgb(207,176,130,255),rgb(209,178,131,255),rgb(209,178,131,255),rgb(205,172,127,255),rgb(208,175,130,255),rgb(207,176,130,255),rgb(208,177,130,255),rgb(211,180,133,255),rgb(215,182,137,255),rgb(213,180,135,255),rgb(209,178,132,255),rgb(210,179,132,255),rgb(210,179,132,255),rgb(213,180,135,255),rgb(210,177,132,255),rgb(211,180,134,255),rgb(213,182,135,255),rgb(210,179,132,255),rgb(215,182,137,255),rgb(208,175,130,255)],
+            [rgb(206,177,133,255),rgb(208,181,136,255),rgb(213,186,141,255),rgb(211,182,138,255),rgb(201,173,126,255),rgb(204,175,131,255),rgb(206,178,133,255),rgb(210,183,138,255),rgb(211,182,138,255),rgb(210,182,135,255),rgb(203,174,130,255),rgb(210,183,138,255),rgb(210,183,138,255),rgb(206,177,133,255),rgb(206,178,131,255),rgb(209,180,136,255),rgb(211,184,139,255),rgb(214,187,142,255),rgb(212,183,139,255),rgb(211,183,136,255),rgb(206,177,133,255),rgb(216,189,144,255),rgb(221,194,149,255),rgb(216,187,143,255),rgb(207,179,132,255)],
+            [rgb(215,187,147,255),rgb(217,189,149,255),rgb(216,188,148,255),rgb(219,191,151,255),rgb(219,191,151,255),rgb(215,187,147,255),rgb(219,191,151,255),rgb(219,191,151,255),rgb(220,192,152,255),rgb(220,192,152,255),rgb(214,186,147,255),rgb(217,189,149,255),rgb(220,192,152,255),rgb(221,193,153,255),rgb(219,192,149,255),rgb(216,188,149,255),rgb(216,188,148,255),rgb(217,189,149,255),rgb(218,190,150,255),rgb(218,191,148,255),rgb(219,191,152,255),rgb(219,191,151,255),rgb(218,190,150,255),rgb(215,187,147,255),rgb(217,190,147,255)],
+            [rgb(230,209,170,255),rgb(232,210,171,255),rgb(225,203,163,255),rgb(231,209,168,255),rgb(233,210,169,255),rgb(229,209,167,255),rgb(230,208,167,255),rgb(229,207,165,255),rgb(226,203,161,255),rgb(227,204,162,255),rgb(227,206,164,255),rgb(214,193,150,255),rgb(220,198,154,255),rgb(222,199,155,255),rgb(225,202,158,255),rgb(228,206,163,255),rgb(217,196,152,255),rgb(222,200,155,255),rgb(225,202,157,255),rgb(227,203,158,255),rgb(227,203,159,255),rgb(226,204,159,255),rgb(223,202,156,255),rgb(233,210,163,255),rgb(227,203,157,255)]
+        ];
+        this.options = Object.assign(this.options, options);
+
+        this.sandToPixelScaleFactor = this.sandColours.length / this.options.maxSandLevel;
+
+        this.createSandLevel();
+        this.createKernel();
+        this.showSand();
+		// this.animate();
+	}
+    createSandLevel() {
+        let sandLevelSize = this.options.sandLevelSize;
+        // Generate a 2D array of distances from the centre of the kernel
+        this.sandLevel = new Array(sandLevelSize);
+        for (let i = 0; i < sandLevelSize; i++)
+        {
+            this.sandLevel[i] = new Array(sandLevelSize);
+            for (let j = 0; j < sandLevelSize; j++)
+            {
+                this.sandLevel[i][j] = this.options.sandStartLevel;
+                // console.log(i + "," + j + "," + this.kernel[i][j]);
+            }
+        }
+    }
+
+    createKernel() {
+        let kernelSize = this.options.kernelSize;
+        // Generate a 2D array of distances from the centre of the kernel
+        let kernelDists = new Array(kernelSize);
+        for (let i = 0; i < kernelSize; i++)
+        {
+            kernelDists[i] = new Array(kernelSize);
+            for (let j = 0; j < kernelSize; j++)
+            {
+                let distFromCtr = Math.round(Math.sqrt((Math.pow(i - kernelSize/2, 2)) + (Math.pow(j - kernelSize/2, 2))));
+                kernelDists[i][j] = distFromCtr;
+                // console.log(i + "," + j + "," + this.kernel[i][j]);
+            }
+        }
+        // Create a series of lists of pixels at each distance from kernel centre
+        this.kernelLists = new Array(kernelSize/2);
+        for (let k = 0; k < kernelSize/2; k++)
+            this.kernelLists[k] = [];
+        for (let i = 0; i < kernelSize; i++)
+        {
+            for (let j = 0; j < kernelSize; j++)
+            {
+                if (kernelDists[i][j] < kernelSize/2)
+                    this.kernelLists[kernelDists[i][j]].push([i,j]);
+            }
+        }
+        for (let k = 0; k < kernelSize/2; k++)
+            console.log("Ks " + this.kernelLists[k].length);
+        // Sand amount to move at each ring of distance - this is like a threshold level (curvature of ball bearing)
+        this.kernelMoveThreshold = new Array(kernelSize/2);
+        for (let k = 0; k < kernelSize/2; k++)
+        {
+            this.kernelMoveThreshold[k] = (this.options.ballSize/2) * Math.sin(k * Math.PI / kernelSize);
+            console.log("moveThreshold " + k + " = " + this.kernelMoveThreshold[k]);
+        }    
+
+    }
+
+	getAngleToMotion(pt, kSize, moveAngle) {
+        let diffAngle = Math.atan2(kSize/2 - pt[1], pt[0] - kSize/2) - moveAngle;
+        // Correct wrapping around circle
+		if (diffAngle < -Math.PI)
+			diffAngle += 2 * Math.PI;
+		if (diffAngle > Math.PI)
+			diffAngle -= 2 * Math.PI;
+        return diffAngle;
+    }
+
+    dumpSand() {
+        console.log("Sand!");
+        let sandLevelSize = this.options.sandLevelSize;
+        for (let i = 0; i < sandLevelSize; i++)
+        {
+            let sss = "";
+            for (let j = 0; j < sandLevelSize; j++)
+            {
+                sss += ((j === 0) ? "" : ",") + this.sandLevel[i][j];
+                // console.log(i + "," + j + "," + this.kernel[i][j]);
+            }
+            console.log(sss);
+        }
+
+    }
+
+    moveSand(ballX, ballY, moveAngleACWFromEast, fullCircle) {
+		ballX = Math.floor(ballX)
+		ballY = Math.floor(ballY)
+        // Work out from the centre of the ball bearing moving "sand"
+        let kSize = this.options.kernelSize;
+        let sandAccumulator = 0;
+        for (let k = 0; k < this.kernelLists.length-1; k++) {
+            let sourceRing = this.kernelLists[k];
+            // Go around this ring moving "sand" outwards to a degree dependent on the angle of motion
+            for (let s = 0; s < sourceRing.length; s++) {
+                let sourceKernelPt = sourceRing[s];
+                let sourceSandPt = [Math.floor(sourceKernelPt[0] + ballX - this.options.kernelSize / 2), Math.floor(sourceKernelPt[1] + ballY - this.options.kernelSize / 2)];
+                if (sourceSandPt[0] < 0 || sourceSandPt[0] >= this.options.sandLevelSize)
+                    continue;
+                if (sourceSandPt[1] < 0 || sourceSandPt[1] >= this.options.sandLevelSize)
+                    continue;
+                let angleToMotion = this.getAngleToMotion(sourceKernelPt, kSize, moveAngleACWFromEast);
+                // console.log("Sourceang " + angleToMotion + " moveAngle " + moveAngleACWFromEast);
+                // Only move sand in front of ball bearing movement
+                if (fullCircle || (angleToMotion > -Math.PI / 2 && angleToMotion < Math.PI / 2)) {
+                    // Move all the sand above the threshold
+                    let sandToMove = this.sandLevel[sourceSandPt[0]][sourceSandPt[1]] - this.kernelMoveThreshold[k];
+                    if (sandToMove < 0)
+                        sandToMove = 0;
+                    // console.log("SandQty at " + sourceSandPt[0] + ", " + sourceSandPt[1] + " ring " + k + " = " + this.sandLevel[sourceSandPt[0]][sourceSandPt[1]] + " => " + this.kernelMoveThreshold[k]);
+                    // (" + this.kernelMoveThreshold[k] + ") = " + sandToMove + " total " + this.sandLevel[sourceSandPt[0]][sourceSandPt[1]]);
+                    this.sandLevel[sourceSandPt[0]][sourceSandPt[1]] -= sandToMove;
+                    // Add sand acculumated from spill-over
+                    // console.log("SandToMove = " + sandToMove + ", sandAccumulator = " + sandAccumulator);
+                    sandToMove += sandAccumulator;
+                    sandAccumulator = 0;
+                    // Make a list of the points on the next ring within similar angles to distribute sand to
+                    let destRing = this.kernelLists[k + 1];
+                    let destPtList = [];
+                    for (let t = 0; t < destRing.length; t++) {
+                        let destKernelPt = destRing[t];
+                        let destSandPt = [Math.floor(destKernelPt[0] + ballX - this.options.kernelSize / 2), Math.floor(destKernelPt[1] + ballY - this.options.kernelSize / 2)];
+                        if (destSandPt[0] < 0 || destSandPt[0] >= this.options.sandLevelSize)
+                            continue;
+                        if (destSandPt[1] < 0 || destSandPt[1] >= this.options.sandLevelSize)
+                            continue;
+                        let destAngleToMotion = this.getAngleToMotion(destKernelPt, kSize, moveAngleACWFromEast);
+						let log2RingLen = Math.log2(sourceRing.length)
+                        if ((destAngleToMotion > -Math.PI / 2 / log2RingLen) && (destAngleToMotion < Math.PI / 2 / log2RingLen)) {
+                            // console.log("Dest at k+1 " + k + " ang2 " + destAngleToMotion + " pt " + destSandPt[0] + "," + destSandPt[1]);
+                            destPtList.push(destSandPt);
+                        }
+                    }
+                    // Now actually distribute
+                    for (let i = 0; i < destPtList.length; i++) {
+                        this.sandLevel[destPtList[i][0]][destPtList[i][1]] += sandToMove / destPtList.length;
+                        // If the sand level is above max then distribute to the next ring outwards using the sandAccumulator
+                        if (this.sandLevel[destPtList[i][0]][destPtList[i][1]] >= this.options.maxSandLevel) {
+                            sandAccumulator += this.sandLevel[destPtList[i][0]][destPtList[i][1]] - this.options.maxSandLevel + 0.01;
+                            this.sandLevel[destPtList[i][0]][destPtList[i][1]] = this.options.maxSandLevel - 0.01;
+                        }
+                        // console.log("Dest at " + destPtList[i][0] + "," + destPtList[i][1] + " = " + this.sandLevel[destPtList[i][0]][destPtList[i][1]]);
+                    }
+                }
+            }
+        }
+
+        // console.log("Final sandAccumulator" + sandAccumulator);
+
+        // Spread the left-over sand
+        if (sandAccumulator > 0) {
+            let tlx = Math.floor(ballX - this.options.kernelSize / 2);
+            if (tlx < 0)
+                tlx = 0;
+            let tly = Math.floor(ballY - this.options.kernelSize / 2);
+            if (tly < 0)
+                tly = 0;
+            let spreadX = Math.floor(tlx + this.options.kernelSize);
+            if (spreadX >= this.options.sandLevelSize)
+                spreadX = this.options.sandLevelSize - 1;
+            let spreadY = Math.floor(tly + this.options.kernelSize);
+            if (spreadY >= this.options.sandLevelSize)
+                spreadY = this.options.sandLevelSize - 1;
+            let sandToAdd = sandAccumulator / ((spreadX-tlx)*(spreadY-tly));
+            for (let ix = tlx; ix < spreadX; ix++)
+                for (let iy = tly; iy < spreadY; iy++)
+                {
+                    this.sandLevel[ix][iy] += sandToAdd;
+                }
+        }
+
+        // Redraw the image around the ball position
+        this.recreateSandSquareImage([ballX,ballY], this.options.kernelSize);
+    }
+
+    randInt(min, max) {
+        return Math.floor(Math.random() * (max - min) ) + min;
+    }
+
+    colourIndex(sandLevel) {
+        if (sandLevel === undefined)
+            return [0,0,0,0];
+        let colourIdx = Math.floor(sandLevel * this.sandToPixelScaleFactor);
+        if (colourIdx < 0)
+            colourIdx = 0;
+        if (colourIdx > this.sandColours.length-1)
+            colourIdx = this.sandColours.length-1;
+        return colourIdx;
+    }
+
+    pixelLookup(sandLevel) {
+        let sandRange = this.sandColours[this.colourIndex(sandLevel)];
+        let pixColr = sandRange[this.randInt(0,sandRange.length)];
+        return pixColr;
+    }
+
+    recreateSandSquareImage(changePos, changeSize) {
+        var canvas = document.getElementById('table-canvas');
+        var ctx = canvas.getContext('2d');
+        var chgTLX = Math.floor(changePos[0]-changeSize/2);
+        if (chgTLX < 0)
+            chgTLX = 0;
+        var chgTLY = Math.floor(changePos[1]-changeSize/2);
+        if (chgTLY < 0)
+            chgTLY = 0;
+        var chgSq = ctx.getImageData(chgTLX, chgTLY,
+                        changeSize,
+                        changeSize);
+        let k = 0;
+        for (let i = 0; i < changeSize; i++)
+        {
+            if (i + chgTLY >= this.options.sandLevelSize)
+                break;
+            for (let j = 0; j < changeSize; j++)
+            {
+                if (j + chgTLX >= this.options.sandLevelSize)
+                    break;
+                // fullSqData[k] = this.sandLevel[j][i];
+                // fullSqData[k+1] = this.sandLevel[j][i];
+                // fullSqData[k+2] = this.sandLevel[j][i];
+                let pixVal = this.pixelLookup(this.sandLevel[j+chgTLX][i+chgTLY]);
+                chgSq.data[k] = pixVal[0];
+                chgSq.data[k+1] = pixVal[1];
+                chgSq.data[k+2] = pixVal[2];
+                chgSq.data[k+3] = pixVal[3];
+                // if (fullSqData[k]>200 && fullSqData[k+1]>200 && fullSqData[k+2]>200)
+                //     debugger;
+                k+=4;
+            }
+        }
+        ctx.putImageData(chgSq,chgTLX,chgTLY);
+    }
+
+    tallySand() {
+        let sandTot = 0;
+        let histBars = [];
+        let sandBars = [];
+        let maxLev = this.sandLevel[0][0];
+        for (let i = 0; i < this.sandColours.length; i++) {
+            histBars.push(0);
+        }
+        for (let i = 0; i < this.options.maxSandLevel; i++) {
+            sandBars.push(0);
+        }
+        let sandLevelSize = this.options.sandLevelSize;
+        for (let i = 0; i < sandLevelSize; i++) {
+            for (let j = 0; j < sandLevelSize; j++) {
+                // Debug
+                if (maxLev < this.sandLevel[j][i])
+                    maxLev = this.sandLevel[j][i];
+                histBars[this.colourIndex(this.sandLevel[j][i])]++;
+                sandBars[Math.floor(this.sandLevel[j][i])]++;
+                sandTot += this.sandLevel[j][i];
+            }
+        }
+        console.log("TotalSand " + sandTot + ", MaxLev " + maxLev);
+
+        let barSum = 0;
+        for (let i = 0; i < histBars.length; i++) {
+            console.log(i + " colr " + histBars[i]);
+            barSum += histBars[i];
+        }
+        console.log("ColrSum = " + barSum);
+
+        let sandSum = 0;
+        for (let i = 0; i < sandBars.length; i++) {
+            console.log(i + " sand " + sandBars[i]);
+            sandSum += sandBars[i];
+        }
+        console.log("SandSum = " + barSum);
+
+    }
+    showSand() {
+        let canvas = document.getElementById('table-canvas');
+        let ctx = canvas.getContext('2d');
+        let fullSq = ctx.getImageData(0, 0, 
+                        this.options.sandLevelSize,
+                        this.options.sandLevelSize);
+        let sandLevelSize = this.options.sandLevelSize;
+        let fullSqData = fullSq.data;
+        let k = 0;
+        for (let i = 0; i < sandLevelSize; i++)
+        {
+            for (let j = 0; j < sandLevelSize; j++)
+            {
+                // fullSqData[k] = this.sandLevel[j][i];
+                // fullSqData[k+1] = this.sandLevel[j][i];
+                // fullSqData[k+2] = this.sandLevel[j][i];
+                let pixVal = this.pixelLookup(this.sandLevel[j][i]);
+                fullSqData[k] = pixVal[0];
+                fullSqData[k+1] = pixVal[1];
+                fullSqData[k+2] = pixVal[2];
+                fullSqData[k+3] = pixVal[3];
+                // if (fullSqData[k]>200 && fullSqData[k+1]>200 && fullSqData[k+2]>200)
+                //     debugger;
+                k+=4;
+            }
+        }
+        ctx.putImageData(fullSq,0,0);
+	}
+	simStart(varContext)
+	{
+        let canvas = document.getElementById('table-canvas');
+		const pointXY = getCanvasXY(canvas, varContext);
+		this.options.ballPos[0] = pointXY[0];
+		this.options.ballPos[1] = pointXY[1];
+		// this.moveSand(pointXY[0], pointXY[1], 0, true);
+	}
+	simNexPoint(varContext)
+	{
+        let canvas = document.getElementById('table-canvas');
+		const pointXY = getCanvasXY(canvas, varContext);
+		let pixelDist = Math.sqrt(Math.pow(pointXY[0]-this.options.ballPos[0], 2) + Math.pow(pointXY[1]-this.options.ballPos[1], 2));
+		let drawSteps = Math.ceil(pixelDist+0.00001);
+		if (drawSteps >= 500)
+			drawSteps = 500;
+		let stepX = (pointXY[0]-this.options.ballPos[0])/drawSteps;
+		let stepY = (pointXY[1]-this.options.ballPos[1])/drawSteps;
+		let ballAngle = Math.atan2(-stepY, stepX);
+		for (let i = 0; i < drawSteps; i++)
+		{
+			let x = this.options.ballPos[0] + stepX * i;
+			let y = this.options.ballPos[1] + stepY * i;
+			this.moveSand(x, y, ballAngle, false);
+
+		}
+		this.options.ballPos[0] = pointXY[0];
+		this.options.ballPos[1] = pointXY[1];
+	}
+	debugIt()
+	{
+		for (let i = 620; i < 680; i++)
+		{
+			console.log (this.sandLevel[i][400]);
+		}
+	}
+    // moveStep() {
+	// 	let canvas = document.getElementById('table-canvas');
+    //     let canvasOff = canvas.getBoundingClientRect();
+
+    //     // let ballX = this.options.sandLevelSize/2 + (this.options.sandLevelSize / 2 - 20 - this.evalExpr.r) * Math.sin(this.evalExpr.t);
+    //     // let ballY = this.options.sandLevelSize/2 + (this.options.sandLevelSize / 2 - 20 - this.evalExpr.r) * Math.cos(this.evalExpr.t);
+    //     // this.evalExpr.t += 0.01;
+    //     // this.evalExpr.r += 0.01;
+    //     // if (this.evalExpr.t > 600)
+    //     //     this.evalExpr.t = 0;
+    //     let t = this.evalExpr.t;
+
+    //     let ballX = Math.sin(t/20) * (270 - t/10) * (1 + Math.sin(t*1.03)*0.05);
+    //     let ballY = Math.cos(t/20) * (270 - t/10) * (1 + Math.sin(t*1.03)*0.05);
+    //     this.evalExpr.t += 0.1;
+    //     if (this.evalExpr.t > 100000)
+    //         this.evalExpr.t = 0;
+    //     ballX = this.options.sandLevelSize/2 + ballX;
+    //     ballY = this.options.sandLevelSize/2 + ballY;
+
+    //     let ballAngle = Math.atan2(this.options.ballPos[1] - ballY, ballX - this.options.ballPos[0]);
+    //     this.options.ballPos[0] = ballX;
+    //     this.options.ballPos[1] = ballY;
+    //     this.moveSand(ballAngle);
+    // }
+
+    // animate() {
+    //     for (let i = 0; i < 100; i++)
+    //         this.moveStep();
+    //     //this.showSand();
+    //     requestAnimationFrame(() => this.animate());
+    // }
+
+    /**
+    * http://stackoverflow.com/questions/2353211/hsl-to-rgb-color-conversion
+    * SOURCE: http://axonflux.com/handy-rgb-to-hsl-and-rgb-to-hsv-color-model-c
+    * Converts an HSL color value to RGB. Conversion formula
+    * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
+    * Assumes h, s, and l are contained in the set [0, 1] and
+    * returns r, g, and b in the set [0, 255].
+    *
+    * @param   Number  h       The hue
+    * @param   Number  s       The saturation
+    * @param   Number  l       The lightness
+    * @return  Array           The RGB representation
+    */
+    hslToRgb(h, s, l){
+        var r, g, b;
+
+        if (s == 0) {
+            r = g = b = l; // achromatic
+        } else {
+          var hue2rgb = function hue2rgb(p, q, t){
+            if(t < 0) t += 1;
+            if(t > 1) t -= 1;
+            if(t < 1/6) return p + (q - p) * 6 * t;
+            if(t < 1/2) return q;
+            if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+          }
+
+          var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+          var p = 2 * l - q;
+          r = hue2rgb(p, q, h + 1/3);
+          g = hue2rgb(p, q, h);
+          b = hue2rgb(p, q, h - 1/3);
+        }
+
+        return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+      }
+      
+    /**
+    * http://stackoverflow.com/questions/2353211/hsl-to-rgb-color-conversion
+    * SOURCE: http://axonflux.com/handy-rgb-to-hsl-and-rgb-to-hsv-color-model-c  
+    * Converts an RGB color value to HSL. Conversion formula
+    * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
+    * Assumes r, g, and b are contained in the set [0, 255] and
+    * returns h, s, and l in the set [0, 1].
+    *
+    * @param   Number  r       The red color value
+    * @param   Number  g       The green color value
+    * @param   Number  b       The blue color value
+    * @return  Array           The HSL representation
+    */
+    rgbToHsl(r, g, b){
+        r /= 255, g /= 255, b /= 255;
+        var max = Math.max(r, g, b), min = Math.min(r, g, b);
+        var h, s, l = (max + min) / 2;
+
+        if (max == min) {
+            h = s = 0; // achromatic
+        } else {
+          var d = max - min;
+          s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+          switch(max){
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+          }
+          h /= 6;
+        }
+
+        return [h, s, l];
+    }
+  
+}
+
+	function pinky()
+	{
+		window.stState.sandTableSim.debugIt();
+	}
+
+	</script>
+	<style>
+	body {
+		font-family: Century Gothic, sans-serif;
+		line-height: 1.4em;
+		font-size: 14pt;
+		background-color:  #E3CDA6;
+		color: #c0c0c0;
+		margin: 0;
+	}
+	.noselect {
+		-webkit-touch-callout: none; /* iOS Safari */
+		-webkit-user-select: none; /* Safari */
+		-khtml-user-select: none; /* Konqueror HTML */
+		-moz-user-select: none; /* Firefox */
+			-ms-user-select: none; /* Internet Explorer/Edge */
+				user-select: none; /* Non-prefixed version, currently
+									supported by Chrome and Opera */		
+	}
+	.page-header{
+		padding-top: 20px;
+		padding-bottom: 20px;
+		background-color:  #E3CDA6;
+		width: 100%;
+		font-size: 1.5em;
+		color: #f0f0f0;
+		text-align: center;
+	}
+	.page-header-text {
+		margin-top:10px;
+		font-family:Copperplate, Copperplate Gothic Light, sans-serif;
+	}
+	.page-header-logo {
+
+	}
+	.page-logo{
+		border: none;
+	}
+	.body-commands{
+		width: 80%;
+		margin-right:auto;
+		padding-top: 20px;
+		padding-bottom:20px;
+		display: flex;
+		justify-content:space-evenly;
+		list-style-type: none;
+	}
+	.body-commands-item{
+	}
+	.body-commands-button{
+		font-size: 1.2em;
+		color: #fafcee;
+		cursor: pointer;
+	}
+	.body-part-buttons{
+		flex-grow: 1;
+	}
+	.body-part-status{
+		flex-grow: .2;
+	}
+	.body-sep{
+		flex-grow: 0.01;
+	    background-color: #407ea6;
+	}
+	.body-controls{
+		display: flex;
+	}
+	.body-group{
+		background: -webkit-linear-gradient(top, #b9a888 0%, #c9b693 10px, #E3CDA6 100%);
+	}
+	.body-group-header{
+		font-family: Copperplate, Copperplate Gothic Light, sans-serif;
+		margin-left: 20px;
+		padding-top: 20px;
+		color: #64523c;
+		font-size: 1.2em;
+	}
+	.body-group-button {
+	  /*color: #fafcee;*/
+	  color: #64523c;
+	  text-decoration: none;
+		cursor:pointer;
+	}
+	.body-group-button-icon {
+		/*position: relative;*/
+		/*left:-40px;*/
+		/*top:5px;*/
+		cursor:pointer;
+	}
+	.body-group-actions{
+		margin-right: 20px;
+		float: right;
+		color: #64523c;
+		font-weight: bold;
+	}
+	.body-group-action{
+	}
+	.body-group-select{
+		float: left;
+	}
+	.body-group-info{
+		display: inline;
+		font-size: 1.2em;
+	}
+	.body-name{
+	  padding: 10px;
+	  background-color: #303030;
+	  width: 100%;
+	  font-size: 1.5em;
+	  color: #ffffff;
+	}
+	.body-form {
+		display: block;
+		clear: both;
+	}
+	.body-form-2-col {
+		display: flex;
+	}
+	.body-form-col {
+		flex: 50%;
+	}
+	.body-form-colsep {
+		width: 15px;
+	}
+	.body-form-line{
+		padding:5px;
+	}
+	.body-form-label{
+		color:#64523c;
+		font-weight: bold;
+		display: flex;
+		justify-content: space-between;
+	}
+	.body-form-field{
+		width: 100%;
+		background: #A89062;
+		color: white;
+		border:none;
+		font-size: 14pt;
+	}
+	textarea.body-form-field{
+		box-sizing: border-box;
+		height: 100%;
+	}
+	.body-form-label-container {
+		margin-bottom: 12px;
+		-webkit-user-select: none;
+		-moz-user-select: none;
+		-ms-user-select: none;
+		user-select: none;
+	}
+
+	.body-form-label-checkbox {
+		display: block;
+		position: relative;
+		padding-left: 35px;
+		margin-bottom: 12px;
+		cursor: pointer;
+		-webkit-user-select: none;
+		-moz-user-select: none;
+		-ms-user-select: none;
+		user-select: none;
+	}
+
+	/* Hide the browser's default checkbox */
+	.body-form-label-checkbox input {
+		position: absolute;
+		opacity: 0;
+		cursor: pointer;
+		height: 0;
+		width: 0;
+	}
+
+	/* Create a custom checkbox */
+	.body-form-checkmark {
+		position: absolute;
+		top: 0;
+		left: 0;
+		height: 25px;
+		width: 25px;
+		background-color: #eee;
+	}
+
+	/* On mouse-over, add a background color */
+	.body-form-label-checkbox:hover input ~ .body-form-checkmark {
+		background-color: #74b5b1;
+	}
+	/* When the checkbox is checked, add a blue background */
+	.body-form-label-checkbox input:checked ~ .body-form-checkmark {
+		background-color: #407ea6;
+	}
+
+	/* Create the checkmark/indicator (hidden when not checked) */
+		.body-form-checkmark:after {
+		content: "";
+		position: absolute;
+		display: none;
+	}
+
+	/* Show the checkmark when checked */
+	.body-form-label-checkbox input:checked ~ .body-form-checkmark:after {
+		display: block;
+	}
+
+	/* Style the checkmark/indicator */
+	.body-form-label-checkbox .body-form-checkmark:after {
+		left: 9px;
+		top: 5px;
+		width: 5px;
+		height: 10px;
+		border: solid white;
+		border-width: 0 3px 3px 0;
+		-webkit-transform: rotate(45deg);
+		-ms-transform: rotate(45deg);
+		transform: rotate(45deg);
+	}
+	.body-view{
+		width: 100%;
+		background-color: #A89062;
+		display: flex;
+	}
+	.body-canvas{
+		margin: 20px auto;
+	}
+	.body-fieldset{
+		border: none;
+	}
+	.body-list{
+		padding: 5px;
+		margin-left: auto;
+		margin-right: auto;
+		width: 100%;
+		min-height: 40px;
+	}
+	.body-list-line{
+		display:block;
+		padding: 10px;
+		clear: both;
+	}
+	.body-list-draggable{
+		background: #407ea6;
+		display: inline-block;
+		padding: 4px 8px;
+		font-size: 1.0em;
+		color: #fafcee;
+		border-radius: 6px;
+	}
+	.body-list-item{
+		display: inline-block;
+		padding: 10px;
+		padding-left: 20px;
+		/*width: 25%;*/
+		font-size: 1.2em;
+		color: #fafcee;
+	}
+	.body-list-small {
+		padding: 5px;
+	}
+	.body-list-actions{
+		margin-right: 20px;
+		float: right;
+		padding-top: 10px;
+	}
+	.body-list-filetype {
+		background: #74b5b1;
+		display: inline-block;
+		padding: 3px 6px;
+		font-size: 0.8em;
+		color: #fafcee;
+		border-radius: 6px;
+		line-height: 1.2em;
+		min-width: 5em;
+		text-align: center;
+	}
+	.body-list-item span {
+		/*text-decoration: none;*/
+		color: #fafcee;
+		/*cursor:pointer;*/
+	}
+	.body-list-edit span {
+		color: #fafcee;
+	}
+	.body-list-button {
+		color: #94f3ff;
+		cursor:pointer;
+	}
+	.body-status-box {
+		color: #D5354E;
+	}
+	.body-config {
+		padding: 20px;
+		margin-top: 30px;
+		width: 100%;
+	  font-size: 1.5em;
+	  color: #f0f0f0;
+	}
+	.body-advanced {
+		padding-top: 10px;
+		padding-bottom: 10px;
+		margin-top: 30px;
+		background-color: #202020;
+		width: 100%;
+		font-size: 1.2em;
+		color: #000000;
+		text-align: center;
+	}
+	.body-advanced a {
+	  text-decoration: none;
+	  color: #808080;
+	}
+	.body-name-edit {
+		font-size: 1em;
+	}
+	.body-num-edit {
+		font-size: 1em;
+	}
+	.body-name-edit {
+		font-size: 1em;
+	}
+	.button-spacing {
+		padding-right: 15px;
+	}
+	.backHead {
+
+		background: #407ea6;
+	}
+	.backGrad1 {
+		background: -webkit-linear-gradient(top, #4e9a8c 0%, #70ab9f 10px, #78BFC1 100%);
+
+	}
+	.backGrad2 {
+		background: -webkit-linear-gradient(top, #b49e73 0%, #C0A87A 10px, #C0A87A 100%);
+	}
+	.backGrad3 {
+		background: -webkit-linear-gradient(top, #b9a888 0%, #c9b693 10px, #E3CDA6 100%);
+	}
+	.drop-zone.highlight {
+		background: #947e53;
+	}
+	.hidden{
+		visibility: hidden;
+	}
+	.nodisplay {
+		visibility: hidden;
+	}
+	progress {
+		background-color: #fafcee;
+		border-color: #fafcee;
+		border-radius: 5px;
+		color: #407ea6;
+	}
+	progress::-webkit-progress-bar {
+		background-color: #407ea6;
+		border-color: #fafcee;
+		border-radius: 5px;
+	}
+	/* Firefox */
+	progress::-moz-progress-bar {
+		background-color: #407ea6;
+		border-radius: 5px;
+		border-color: #fafcee;
+	}
+	/* Chrome */
+	progress::-webkit-progress-value {
+		background-color: #407ea6;
+		border-radius: 5px;
+		border-color: #fafcee;
+	}	
+	.btn {
+	}
+	.icon-toolbar {
+		color: #fafcee;
+		fill: #fafcee;
+		width: 48px;
+		height: 48px;
+		vertical-align: middle;
+	}
+	.icon-action {
+		color: #fafcee;
+		fill: #fafcee;
+		width: 32px;
+		height: 32px;
+		vertical-align: middle;
+		padding-left: 15px;
+	}
+	.icon-inline {
+		color: #fafcee;
+		fill: #fafcee;
+		width: 32px;
+		height: 32px;
+		vertical-align: middle;
+	}
+	.right {
+		float: right;
+	}
+	.icon-red {
+		fill:#D5354E;
+		color:#D5354E;
+	}
+	.warning {
+		color:#D5354E;
+	}
+	.select-style {
+		position: relative;
+		width: 15rem;
+	}
+	.select-style select {
+		display: none;
+	}
+	.select-selected {
+		background-color: #A89062;
+	}
+	/* Style arrow in select element */
+	.select-selected:after {
+		position: absolute;
+		content: "";
+		top: 14px;
+		right: 10px;
+		width: 0;
+		height: 0;
+		border: 6px solid transparent;
+		border-color: #64523c transparent transparent transparent;
+	}
+	/* Point arrow upwards when the select open*/
+	.select-selected.select-arrow-active:after {
+		border-color: transparent transparent #64523c transparent;
+		top: 7px;
+	}
+	/* Style items including the selected */
+	.select-items div,.select-selected {
+		padding: 8px;
+		border: 1px solid transparent;
+		border-color: transparent transparent rgba(0, 0, 0, 0.1) transparent;
+		cursor: pointer;
+		user-select: none;
+		/*border-radius: 5px;*/
+	}
+	.select-selected.select-arrow-active {
+		border-bottom-left-radius: 0;
+		border-bottom-right-radius: 0;
+	}
+	.select-last-option {
+		border-bottom-left-radius: 5px;
+		border-bottom-right-radius: 5px;
+	}
+	/* Style items */
+	.select-items {
+		position: absolute;
+		background-color: #aa8649;
+		top: 100%;
+		left: 0;
+		right: 0;
+		z-index: 99;
+		border-bottom-left-radius: 5px;
+		border-bottom-right-radius: 5px;
+	}
+	/* Hide items when the select closed */
+	.select-hide {
+		display: none;
+	}
+	.select-items div:hover, .same-as-selected {
+		background-color: rgba(0, 0, 0, 0.1);
+	}
+
+	</style>
+</head>
+<body onload="bodyIsLoaded()" class='noselect'>
+
+	<div>
+		<div id="pageHeader"></div>
+		<div id="pageBodyHead"></div>
+		<div id="pageBodyForm"></div>
+		<button onclick="pinky()">PRESS ME</button>
+	</div>
+	<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+		 xml:space="preserve">
+
+	<symbol id="ico-stop" viewBox="0 0 191 191">
+		<g>
+			<path d="M158.912,0H31.782C14.239,0,0,14.239,0,31.782v127.13c0,17.544,14.239,31.782,31.782,31.782
+			h127.13c17.544,0,31.782-14.239,31.782-31.782V31.782C190.695,14.239,176.456,0,158.912,0z" ></path>
+		</g>
+	</symbol>
+	<symbol id="ico-pause" viewBox="0 0 46 46">
+		<g>
+			<path d="M13.987,0c-2.762,0-5,2.239-5,5v35.975c0,2.763,2.238,5,5,5s5-2.238,5-5V5C18.987,2.238,16.75,0,13.987,0z"/>
+			<path d="M31.987,0c-2.762,0-5,2.239-5,5v35.975c0,2.762,2.238,5,5,5s5-2.238,5-5V5C36.987,2.239,34.749,0,31.987,0z" stroke-width="0"/>
+		</g>
+	</symbol>
+	<symbol id="ico-play" viewBox="0 0 233 233">
+		<g>
+			<path d="M203.791,99.628L49.307,2.294c-4.567-2.719-10.238-2.266-14.521-2.266
+			c-17.132,0-17.056,13.227-17.056,16.578v198.94c0,2.833-0.075,16.579,17.056,16.579c4.283,0,9.955,0.451,14.521-2.267
+			l154.483-97.333c12.68-7.545,10.489-16.449,10.489-16.449S216.471,107.172,203.791,99.628z" stroke-width="0"/>
+		</g>
+	</symbol>
+	<symbol id="ico-playpause" viewBox="0 0 46 46">
+		<g>
+			<path d="M9.629,44.68 c -1.154,1.16 -2.895,1.51 -4.407,0.885 -1.513,-0.623 -2.5,-2.1 -2.5,-3.735 V 4.043 
+			c 0,-1.637 0.987,-3.112 2.5,-3.736 1.513,-0.625 3.253,-0.275 4.407,0.885 l 17.862,17.951 c 2.088,2.098 2.088,5.488 0,7.585 z"/>
+			<path d="M38.252,45.975 c -2.763,0 -5,-2.238 -5,-5 V 5 c 0,-2.762 2.237,-5 5,-5 2.762,0 5,2.238 5,5 v 35.975 
+			c 0,2.761 -2.239,5 -5,5 z"/>
+		</g>
+	</symbol>
+	<symbol id="ico-delete" viewBox="0 0 26 26">
+		<g>
+			<path d="M 11 -0.03125 C 10.164063 -0.03125 9.34375 0.132813 8.75 0.71875 C 8.15625 1.304688 7.96875 2.136719 7.96875 3 L 4 3 C 3.449219 3 3 3.449219 3 4 L 2 4 L 2 6 L 24 6 L 24 4 L 23 4 C 23 3.449219 22.550781 3 22 3 L 18.03125 3 C 18.03125 2.136719 17.84375 1.304688 17.25 0.71875 C 16.65625 0.132813 15.835938 -0.03125 15 -0.03125 Z M 11 2.03125 L 15 2.03125 C 15.546875 2.03125 15.71875 2.160156 15.78125 2.21875 C 15.84375 2.277344 15.96875 2.441406 15.96875 3 L 10.03125 3 C 10.03125 2.441406 10.15625 2.277344 10.21875 2.21875 C 10.28125 2.160156 10.453125 2.03125 11 2.03125 Z M 4 7 L 4 23 C 4 24.652344 5.347656 26 7 26 L 19 26 C 20.652344 26 22 24.652344 22 23 L 22 7 Z M 8 10 L 10 10 L 10 22 L 8 22 Z M 12 10 L 14 10 L 14 22 L 12 22 Z M 16 10 L 18 10 L 18 22 L 16 22 Z " stroke-width="0"/>
+		</g>
+	</symbol>
+	<symbol id="ico-centre" viewBox="0 0 50 50">
+		<g>
+			<path d="M 46.774547,24.573656 A 21.166666,21.166666 0 0 1 25.607885,45.740326 21.166666,21.166666 0 0 1 4.4412196,24.573656 21.166666,21.166666 0 0 1 25.607885,3.4069957 21.166666,21.166666 0 0 1 46.774547,24.573656 Z" fill="none" stroke-width="6" stroke="#fafcee"/>
+			<path d="m 22.013375,20.560576 7.843099,8.12036" fill="none" stroke-width="4" stroke="#fafcee"/>
+			<path d="m 22.177493,28.743986 7.616455,-8.3333" fill="none" stroke-width="4" stroke="#fafcee"/>
+	   </g>
+	</symbol>
+	<symbol id="ico-run-at-start" viewBox="100 50 120 150">
+		<g>
+			<path d="m 200,200 c -4.35878,-1.14794 -5.49015,-3.7954 -8.2485,-19.30195 -2.19682,-12.34983 -2.66103,-13.64007 -9.28184,-25.7981 -3.83316,-7.03896 -7.18705,-12.58042 -7.45311,-12.31436 -0.26606,0.26605 -2.15305,7.1502 -4.19333,15.2981 l -3.70958,14.81436 -20.7132,0.27036 -20.7132,0.27037 -2.47491,-2.47491 c -4.35871,-4.35871 -2.78064,-9.77311 3.35866,-11.52363 1.83347,-0.52278 8.80395,-0.87661 15.48997,-0.78629 12.1092,0.16358 12.15924,0.15467 12.89213,-2.29584 0.40466,-1.35303 1.67163,-10.88581 2.81549,-21.18394 l 2.07975,-18.72388 8.11439,-13.11213 c 6.12254,-9.89348 7.79116,-13.3119 6.79762,-13.92595 -1.06027,-0.65528 -17.26314,-4.01416 -19.36388,-4.01416 -0.30487,0 -2.64213,3.83018 -5.19393,8.51152 -2.5518,4.68133 -5.51736,8.98126 -6.59014,9.5554 -2.82117,1.50984 -5.76682,0.2119 -6.5442,-2.88357 -0.53306,-2.12261 0.66803,-5.26676 5.74768,-15.04598 3.53185,-6.79944 6.9994,-12.59097 7.70565,-12.87007 2.27529,-0.89915 31.55607,4.80241 35.55298,6.92288 5.16148,2.7383 6.30561,1.46922 4.21825,-4.67895 -2.03972,-6.00785 -1.21221,-10.69349 2.66925,-15.11423 5.82929,-6.6392 15.76006,-6.59533 21.63475,0.0956 7.32702,8.34502 3.71469,20.54186 -6.99172,23.60714 -7.83845,2.24417 -8.53147,3.69756 -3.41948,7.17125 1.89647,1.28869 7.06225,6.86646 11.47951,12.39506 8.0213,10.03937 8.03902,10.05362 14.10508,11.34092 9.99138,2.12032 13.92644,7.00804 8.50304,10.56158 -2.27585,1.4912 -3.09767,1.47917 -10.75,-0.15729 l -8.28576,-1.77192 -9.08037,-9.49703 -9.08038,-9.49702 -6.12185,11.12076 -6.12184,11.12076 7.4305,17.24009 c 6.86365,15.92488 7.67298,18.5563 10.60883,34.49313 2.95722,16.05285 3.06756,17.42208 1.58612,19.68305 -1.93692,2.95611 -4.19231,3.62242 -8.45843,2.4989 z"/>
+		</g>
+	</symbol>
+	<symbol id="ico-edit" viewBox="0 0 530 530">
+		<g>
+			<path d="M328.883,89.125l107.59,107.589l-272.34,272.34L56.604,361.465L328.883,89.125z M518.113,63.177l-47.981-47.981   c-18.543-18.543-48.653-18.543-67.259,0l-45.961,45.961l107.59,107.59l53.611-53.611   C532.495,100.753,532.495,77.559,518.113,63.177z M0.3,512.69c-1.958,8.812,5.998,16.708,14.811,14.565l119.891-29.069 L27.473,390.597L0.3,512.69z"/>
+		</g>
+	</symbol>
+	<symbol id="ico-add" viewBox="170 60 200 150">
+		<g>
+			<path d="m 250,50 0,150 m 75,-75 -150,0" 
+				style="fill:none;stroke:#fafcee;stroke-width:22;stroke-linecap:round;"/>
+		</g>
+	</symbol>
+	<symbol id="ico-spiral-out" viewBox="0 0 60 60">
+		<g>
+			<path d="M 16.626269 37.930484 C 11.069585 32.169257 10.915446 22.769927 16.059324 16.546608 C 22.25908 9.045835 33.691208 8.4231682 41.048731 14.576272 C 49.216975 21.407384 49.873432 33.92053 43.093219 41.949154"
+				style="fill:none;stroke:#fafcee;stroke-width:4;stroke-linecap:round;"/>
+			<path d="M 22.672616 34.307554 C 22.639635 34.284406 22.606813 34.260983 22.574152 34.237287 C 18.40035 31.209074 17.947519 25.158834 20.974577 21.165253 C 24.640751 16.328491 31.761797 15.841432 36.430086 19.491526 C 41.026781 23.085641 42.14651 29.39851 39.896968 34.493598"
+				style="fill:none;stroke:#fafcee;stroke-width:4;stroke-linecap:round;"/>
+			<path d="M 25.611669 27.084562 C 25.609686 26.626495 25.705996 26.168258 25.889831 25.783897 C 26.947985 23.571521 29.863752 23.225486 31.811441 24.40678 C 34.669754 26.140375 35.052573 30.075688 33.262712 32.711864 C 33.068275 32.998237 32.856564 33.264048 32.629889 33.509443"
+				style="fill:none;stroke:#fafcee;stroke-width:4;stroke-linecap:round;"/>
+			<path d="M 29.555087,29.286207 V 39.725063"
+				style="fill:none;stroke:#fafcee;stroke-width:4;stroke-linecap:round;"/>
+			<path d="m 20.142972,38.256665 18.734462,0.08233 -9.209931,9.755171 z"
+				style="fill:#fafcee;fill-opacity:1;stroke:#fafcee;stroke-width:2.5;stroke-linecap:round;"/>
+		</g>
+	</symbol>
+	<symbol id="ico-broken" viewBox="-1 -1 55 55">
+		<g>
+			<path d="M24.008,13.401L33.2,4.208 c4.278-4.278,11.278-4.278,15.556,0l0,0c4.278,4.278,4.278,11.278,0,15.556L36.735,31.786c-4.278,4.278-11.278,4.278-15.556,0l0,0"
+				style="fill:none;stroke:#D5354E;stroke-width:4;stroke-linecap:round;stroke-miterlimit:10;"/>
+			<path d="M27.543,40.978l-7.778,7.778 c-4.278,4.278-11.278,4.278-15.556,0l0,0c-4.278-4.278-4.278-11.278,0-15.556l11.314-11.314c4.278-4.278,11.278-4.278,15.556,0l0,0" 
+				style="fill:none;stroke:#D5354E;stroke-width:4;stroke-linecap:round;stroke-miterlimit:10;"/>
+			<path d="m 33.965,45 v 6"
+				style="fill:none;stroke:#D5354E;stroke-width:4;stroke-linecap:round;stroke-miterlimit:10;"/>
+			<path d="m 37.722,43 4.243,4.243"
+				style="fill:none;stroke:#D5354E;stroke-width:4;stroke-linecap:round;stroke-miterlimit:10;"/>
+			<path d="m 38.965,39 h 6"
+				style="fill:none;stroke:#D5354E;stroke-width:4;stroke-linecap:round;stroke-miterlimit:10;"/>
+			<path d="M 15.965,10 V 4"
+				style="fill:none;stroke:#D5354E;stroke-width:4;stroke-linecap:round;stroke-miterlimit:10;"/>
+			<path d="M 12.207,12 7.9650002,7.757"
+				style="fill:none;stroke:#D5354E;stroke-width:4;stroke-linecap:round;stroke-miterlimit:10;"/>
+			<path d="M 10.965,16 H 4.9650002"
+				style="fill:none;stroke:#D5354E;stroke-width:4;stroke-linecap:round;stroke-miterlimit:10;"/>
+		</g>
+	</symbol>
+
+</svg>
+</body>
+</html>

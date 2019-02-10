@@ -1,0 +1,410 @@
+<html>
+<head>
+
+<style>
+body {
+  margin: 0;
+  padding: 0;
+  font-family: monospace;
+  align-items: center;
+  justify-content: center;
+}
+
+p {
+    margin-top: 20px;
+    text-align: center;
+}
+
+canvas {
+  display: block;
+  margin: 20px auto;
+  background-color: white;
+}
+</style>
+</head>
+<body>
+<p>natural forces particles</p>
+<canvas id="canvas"></canvas>
+<script>
+class Vector {
+	constructor(x, y) {
+		this.x = x;
+		this.y = y;
+	}
+
+	setX(value) {
+		this.x = value; 
+	}
+
+	setY(value) {
+		this.y = value;
+	}
+
+	getX() {
+		return this.x;
+	}
+
+	getY() {
+		return this.y;
+	}
+
+	copy() {
+		return new Vector(this.x, this.y);
+	}
+
+	add(v) {
+		return new Vector(this.x + v.getX(), this.y + v.getY());
+	}
+
+	sub(v) {
+		return new Vector(this.x - v.getX(), this.y - v.getY());
+	}
+
+	mult(val) {
+		return new Vector(this.x * val, this.y * val);
+	}
+
+	div(val) {
+		return new Vector(this.x / val, this.y / val);
+	}
+
+	addTo(v) {
+		this.x += v.getX();
+		this.y += v.getY();
+	}
+
+	multBy(val) {
+		this.x *= val;
+		this.y *= val;
+	}
+
+	divBy(val) {
+	    this.x /= val;
+	    this.y /= val;
+  	}
+
+	setAngle(angle) {
+		let length = this.getLength();
+
+		this.x = Math.cos(angle) * length;
+		this.y = Math.sin(angle) * length;
+	}
+
+	setLength(length) {
+		let angle = this.getAngle();
+
+		this.x = Math.cos(angle) * length;
+		this.y = Math.sin(angle) * length;
+	}
+
+	getAngle() {
+		return Math.atan2(this.y, this.x);
+	}
+
+	getLength() {
+		return Math.sqrt(this.x * this.x + this.y * this.y);
+	}
+
+	limit(max) {
+		let magnitude = (this.x * this.x + this.y * this.y);
+
+		if (magnitude > max * max) {
+			this.divBy(Math.sqrt(magnitude));
+      		this.multBy(max);
+		}
+	}
+}
+
+class Particle {
+    constructor(x, y) {
+        this.position = new Vector(x, y);
+        this.velocity = new Vector(0,0);  //Math.random() * 2, Math.random() * 2);
+        this.acceleration = new Vector(0,0);
+        this.size = 0.5;
+        this.maxSpeed = 2.5;
+
+        this.prevPosition = this.position.copy();
+    }
+
+    update(){
+        this.position.addTo(this.velocity); 
+        this.velocity.addTo(this.acceleration);
+        this.velocity.limit(this.maxSpeed);
+        // if (this.velocity.getLength() < 2) {
+        //     // length between particles
+        //     this.velocity.setLength(3);
+        // }
+        this.acceleration.multBy(0); 
+    }
+
+    follow(vectors, scl, cols){
+        let x = Math.floor(this.position.x / scl);
+        let y = Math.floor(this.position.y / scl);
+        let index = x + y * cols;
+
+        let force = vectors[index][index];
+        this.applyForce(force);
+    }
+
+    applyForce(force){
+        this.acceleration.addTo(force); 
+    }
+
+    stop(){
+        this.velocity.setLength(0);
+    }
+
+    draw(ctx){
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(this.position.x, this.position.y, this.size, 0, Math.PI * 2, true);
+        ctx.fillStyle = 'black';
+        ctx.fill();
+        ctx.restore();
+        ctx.closePath();
+
+        this.updatePrev();
+    }
+
+    updatePrev() {
+        this.prevPosition.x = this.position.x;
+        this.prevPosition.y = this.position.y;
+    }
+
+    wrap(width, height){
+        if(this.position.x > width) {
+            this.position.x = 0;
+            this.updatePrev();
+        }
+        if(this.position.x < 0) {
+            this.position.x = width;
+            this.updatePrev();
+        }
+        if(this.position.y > height) {
+            this.position.y = 0;
+            this.updatePrev();
+        }
+        if(this.position.y < 0) {
+            this.position.y = height;
+            this.updatePrev();
+        }
+    }
+}
+
+class FlowFieldParticles {
+    constructor(options) {
+        this.options = {
+            cols: 0,
+            rows: 0,
+            scl: 18,
+            zoff: 0, //time
+            inc: 0.003,
+            ballPos: new Vector(300,300),
+            ballSize: 10
+        };
+
+        this.flowField;
+
+        this.options = Object.assign(this.options, options);
+
+        this.initCanvas();
+        this.onResize();
+        // this.animate();
+        this.addEventListener();
+    }
+
+    initCanvas() {
+        this.canvas = document.querySelector('canvas');
+        this.ctx = this.canvas.getContext('2d');
+        //this.setSize();
+    }
+
+    setSize() {
+        this.canvas.width = 600;
+        this.canvas.height = 600;
+    }
+
+    onResize() {
+        this.setSize();
+
+        // noise.seed(Math.random());
+
+        this.options.cols = Math.floor(this.canvas.width / this.options.scl) + 1;
+        this.options.rows = Math.floor(this.canvas.height / this.options.scl) + 1;
+     
+        this.initField();
+        this.initParticles();
+    }
+
+    initField() {
+        this.flowField = new Array(this.options.cols);
+        for (let x = 0; x < this.options.cols; x++){
+            this.flowField[x] = new Array(this.options.cols);
+            for (let y = 0; y < this.options.rows; y++) {
+            	let v = new Vector(0,0);
+                this.flowField[x][y] = v;
+            }
+        }
+    }
+
+    initParticles() {
+    	let numberParticles = this.canvas.width * this.canvas.height / 10;
+    	this.particles = new Array(numberParticles)
+    	.fill(undefined)
+    	.map(() => {
+    		return new Particle( Math.random() * this.canvas.width, Math.random() * this.canvas.height)
+    	});
+
+    	console.log(this.particles);
+    }
+
+    calculateField() {
+    	for (let x = 0; x < this.options.cols; x++) {
+	        for (let y = 0; y < this.options.rows; y++) {
+	            // let angle = noise.simplex3(x/20, y/20, this.options.zoff) * Math.PI * 2;
+             //    let length = noise.simplex3(x/10 + 4000, y/10 + 4000, this.options.zoff) * 0.5;
+
+                if (Math.abs(x * this.options.scl - this.options.ballPos.getX()) > this.options.ballSize)
+                    continue;
+                if (Math.abs(y * this.options.scl - this.options.ballPos.getY()) > this.options.ballSize)
+                    continue;
+
+	            // // calculate flowfield
+                let ballDist = Math.sqrt(Math.pow(x * this.options.scl - this.options.ballPos.getX(), 2) + Math.pow(y * this.options.scl - this.options.ballPos.getY(), 2));
+                if (ballDist < this.options.ballSize)
+                {
+                    if (ballDist < 1)
+                        ballDist = 1;
+    	            this.flowField[x][y].setLength(this.options.ballSize*10/ballDist);
+    	            this.flowField[x][y].setAngle(Math.atan2(y * this.options.scl - this.options.ballPos.getY(), x * this.options.scl - this.options.ballPos.getX()));
+                }
+                else
+                {
+                    this.flowField[x][y].setLength(0);
+                }
+	        }
+	    }
+    }
+
+    drawField() {
+    	for (let x = 0; x < this.options.cols; x++) {
+	        for (let y = 0; y < this.options.rows; y++) {
+	            // let angle = noise.simplex3(x/20, y/20, this.options.zoff) * Math.PI * 2;
+             //    let length = noise.simplex3(x/10 + 4000, y/10 + 4000, this.options.zoff) * 0.5;
+
+	            /*
+	            this.ctx.save();
+	            this.ctx.beginPath();
+	            this.ctx.translate(x *  scl, y * scl);
+	            this.ctx.rotate(angle);
+	            this.ctx.beginPath();
+	            this.ctx.moveTo(0,0);
+	            this.ctx.lineTo(0, scl * length);
+	            this.ctx.strokeStyle = `hsl(${x/10 + 20},55%, 95%)`;
+	            this.ctx.lineWidth = 1;
+	            this.ctx.stroke();
+	            this.ctx.restore();
+	            */
+
+	            // this.ctx.beginPath();
+	            // let x1 = x * this.options.scl;
+	            // let y1 = y * this.options.scl;
+	            // this.ctx.moveTo(x1, y1);
+	            // this.ctx.lineTo(x1 + this.flowField[x][y].x * this.options.scl * 2, y1 + this.flowField[x][y].y * this.options.scl * 2);
+	            // this.ctx.strokeStyle = `hsl(${x/10 + 20},55%, 95%)`;
+	            // this.ctx.lineWidth = 1;
+	            // this.ctx.stroke();
+	        }
+	    }
+    }
+
+    drawParticles() {
+    	this.particles.forEach((p) => {
+	        p.draw(this.ctx);
+	        // let pos = p.position.div(this.options.scl);
+	        // let v;
+	        // if (pos.x >= 0 && pos.x < this.options.cols && pos.y >= 0 && pos.y < this.options.rows) {
+	        //     // v = this.flowField[Math.floor(pos.x)][Math.floor(pos.y)];
+    	    //     //p.follow(flowfield, scl, cols);
+         //        if (v.getLength() > 0.01)
+        	//         p.applyForce(v);
+         //        else
+         //            p.stop();
+         //    }
+         //    else
+         //    {
+         //        console.log("Pos prob");
+         //    }
+            let pos = p.position;
+            if ((pos.x >= this.options.ballPos.x - this.options.ballSize && pos.x <= this.options.ballPos.x + this.options.ballSize) &&
+                (pos.y >= this.options.ballPos.y - this.options.ballSize && pos.y <= this.options.ballPos.y + this.options.ballSize))
+            {
+                let ballDist = Math.sqrt(Math.pow(pos.x - this.options.ballPos.x, 2) + Math.pow(pos.y - this.options.ballPos.y, 2));
+                if (ballDist < this.options.ballSize)
+                {
+                    if (ballDist < 1)
+                        ballDist = 1;
+                    let moveVec = new Vector(0,0);
+                    moveVec.setLength(this.options.ballSize*10/ballDist);
+                    moveVec.setAngle(Math.atan2(pos.y - this.options.ballPos.y, pos.x - this.options.ballPos.x));
+                    p.position.addTo(moveVec);
+                }
+            }
+	        // p.update();
+	        p.wrap(this.canvas.width, this.canvas.height);
+	    })
+    }
+
+    addEventListener() {
+        window.addEventListener('resize', () => this.onResize());
+        this.canvas.addEventListener('mousemove', (e) => this.mousemove(e));
+    }
+
+    animate() {
+        this.ctx.fillStyle = 'rgba(240,240,240,0.9)';
+        this.ctx.fillRect(0,0,this.canvas.width, this.canvas.height);
+        //ctx.clearRect(0,0,canvas.width, canvas.height);
+
+        // requestAnimationFrame(() => this.animate());
+        // this.calculateField();
+
+        this.options.zoff += this.options.inc;
+
+        //this.drawField();
+        this.drawParticles();
+    }
+
+    mousemove(event) {
+        let canvasOff = canvas.getBoundingClientRect();
+        this.options.ballPos.setX(event.clientX - canvasOff.left);
+        this.options.ballPos.setY(event.clientY - canvasOff.top);
+
+        // console.log(x + " " + y);
+        //         this.ctx.fillStyle = 'rgba(240,240,240,0.9)';
+        // this.ctx.fillRect(0,0,this.canvas.width, this.canvas.height);
+
+        // this.options.zoff += this.options.inc;
+        // drawParticles();
+        requestAnimationFrame(() => this.animate());
+
+
+    }
+}
+
+function handleMouseMove(event) {
+    var dot, eventDoc, doc, body, pageX, pageY;
+
+    event = event || window.event; // IE-ism
+
+    let x = event.pageX;
+    let y = event.pageY;
+
+    console.log(x + " " + y);
+}
+
+let flowFieldParticles = new FlowFieldParticles();
+// document.onmousemove = handleMouseMove;
+
+</script>
+</body>
+</html>

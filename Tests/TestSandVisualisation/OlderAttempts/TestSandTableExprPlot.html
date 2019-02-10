@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>JS Bin</title>
+  <style>
+  .frame {
+  fill: none;
+  stroke: #000;
+}
+
+.axis text {
+  font: 10px sans-serif;
+}
+
+.axis line,
+.axis circle {
+  fill: none;
+  stroke: #777;
+  stroke-dasharray: 1,4;
+}
+
+.axis :last-of-type circle {
+  stroke: #333;
+  stroke-dasharray: none;
+}
+
+.line {
+  fill: none;
+  stroke: red;
+  stroke-width: 1.5px;
+}
+</style>
+</head>
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/4.0.1/math.min.js"></script>
+
+<script>
+	var setup = "t=0\nu=0\nr=185\nstop=0";
+var loop2 = "y = r * sin(t)\nx = r * cos(t)\nt = t + 0.1\nr = r - 0.01\nstop = r < 5";
+var loop = "s = r + (r/20) * sin(u)\ny = s * sin(t)\nx = s * cos(t)\nt = t + 0.02\nu=u+0.27\nr = r - 0.05\nstop = r < 5"
+
+var outvals = [];
+var tvals = [];
+
+var parser = math.parser();
+
+parser.eval(setup);
+
+for (var ii = 0; ii < 10000; ii++)
+{
+  parser.eval(loop);
+  var x = parser.get("x")
+  var y = parser.get("y")
+  var stop = parser.get("stop")
+  outvals.push([x,y]);
+  var tval = parser.get("t");
+  tvals.push(tval);
+  if(stop)
+    {
+      console.log("stop = true");
+     break;
+    }
+}
+
+console.log("here" + outvals.length + " " + tvals[100]);
+
+var data2 = d3.range(0, 2 * Math.PI, .01).map(function(t) {
+  return [t, Math.sin(2 * t) * Math.cos(2 * t)];
+});
+
+var data = []
+for (var jj = 0; jj < outvals.length; jj++)
+{
+    data.push([Math.atan2(outvals[jj][1], outvals[jj][0]), 
+        Math.sqrt(outvals[jj][1]*outvals[jj][1]+
+                  outvals[jj][0]*outvals[jj][0])/380])
+}
+
+console.log(outvals[100][1], outvals[100][0],
+           data[100])
+
+
+var width = 960,
+    height = 500,
+    radius = Math.min(width, height) / 2 - 30;
+
+var r = d3.scale.linear()
+    .domain([0, .5])
+    .range([0, radius]);
+
+var line = d3.svg.line.radial()
+    .radius(function(d) { return r(d[1]); })
+    .angle(function(d) { return -d[0] + Math.PI / 2; });
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height)
+  .append("g")
+    .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+
+var gr = svg.append("g")
+    .attr("class", "r axis")
+  .selectAll("g")
+    .data(r.ticks(5).slice(1))
+  .enter().append("g");
+
+gr.append("circle")
+    .attr("r", r);
+
+gr.append("text")
+    .attr("y", function(d) { return -r(d) - 4; })
+    .attr("transform", "rotate(15)")
+    .style("text-anchor", "middle")
+    .text(function(d) { return d; });
+
+var ga = svg.append("g")
+    .attr("class", "a axis")
+  .selectAll("g")
+    .data(d3.range(0, 360, 30))
+  .enter().append("g")
+    .attr("transform", function(d) { return "rotate(" + -d + ")"; });
+
+ga.append("line")
+    .attr("x2", radius);
+
+ga.append("text")
+    .attr("x", radius + 6)
+    .attr("dy", ".35em")
+    .style("text-anchor", function(d) { return d < 270 && d > 90 ? "end" : null; })
+    .attr("transform", function(d) { return d < 270 && d > 90 ? "rotate(180 " + (radius + 6) + ",0)" : null; })
+    .text(function(d) { return d + "°"; });
+
+svg.append("path")
+    .datum(data)
+    .attr("class", "line")
+    .attr("d", line);
+</script>
+</body>
+</html>
