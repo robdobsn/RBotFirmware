@@ -80,6 +80,7 @@ public:
     void apiNetLogSerial(String &reqStr, String &respStr);
     void apiNetLogCmdSerial(String &reqStr, String &respStr);
     void apiNetLogHTTP(String &reqStr, String &respStr);
+    void apiNetLogPT(String &reqStr, String &respStr);
 
     // Command scheduler
     void apiCmdSchedGetConfig(String &reqStr, String &respStr);

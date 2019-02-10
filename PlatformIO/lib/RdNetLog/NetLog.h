@@ -6,6 +6,7 @@
 
 #include <ArduinoLog.h>
 #include <WiFiClient.h>
+#include <WiFiUdp.h>
 #include "MQTTManager.h"
 #include "CommandSerial.h"
 #include "RingBufferPosn.h"
@@ -40,6 +41,9 @@ private:
     int _serialPort;
     int _logToCommandSerial;
     CommandSerial& _commandSerial;
+    bool _logToPapertrail;
+    String _papertrailHost;
+    int _papertrailPort;
     
     // Logging control
     int _loggingThreshold;
@@ -51,6 +55,9 @@ private:
     // TCP client
     WiFiClient _wifiClient;
     const int MAX_RX_BUFFER_SIZE = 100;
+
+    // UDP
+    WiFiUDP Udp;
 
     // System name
     String _systemName;
@@ -93,6 +100,7 @@ public:
     void setSerial(bool onOffFlag, const char* serialPortStr);
     void setCmdSerial(bool onOffFlag);
     void setHTTP(bool httpFlag, const char* ipAddr, const char* portStr, const char* httpLogUrl);
+    void setPapertrail(bool papertrailFlag, const char* hostStr, const char* portStr);
     void setup(ConfigBase *pConfig, const char* systemName);
     String formConfigStr();
     void pause();

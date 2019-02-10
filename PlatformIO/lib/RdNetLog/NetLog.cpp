@@ -122,6 +122,35 @@ void NetLog::setHTTP(bool httpFlag, const char* ipAddr, const char* portStr, con
     }
 }
 
+void NetLog::setPapertrail(bool papertrailFlag, const char* hostStr, const char* portStr)
+{
+    // Set values
+    String hostValidated = hostStr;
+    if (hostValidated.length() == 0)
+        hostValidated = _papertrailHost;
+    int portValidated = String(portStr).toInt();
+    if (strlen(portStr) == 0)
+        portValidated = _papertrailPort;
+    bool dataChanged = ((_logToPapertrail != papertrailFlag) || (_papertrailHost != hostValidated) || (_papertrailPort != portValidated));
+    _logToPapertrail = papertrailFlag;
+    _papertrailHost = hostValidated;
+    _papertrailPort = portValidated;
+    // Persist if changed
+    if (dataChanged)
+    {
+        if (_pConfigBase)
+        {
+            _pConfigBase->setConfigData(formConfigStr().c_str());
+            _pConfigBase->writeConfig();
+        }
+    }
+    else
+    {
+        if (_logToSerial && _serialPort == 0)
+            Serial.printf("NetLog: Config data unchanged\n");
+    }
+}
+
 void NetLog::setup(ConfigBase *pConfig, const char* systemName)
 {
     _systemName = systemName;
@@ -145,13 +174,18 @@ void NetLog::setup(ConfigBase *pConfig, const char* systemName)
     _serialPort = pConfig->getLong("SerialPort", 0);
     // Get CommandSerial settings
     _logToCommandSerial = pConfig->getLong("CmdSerial", 0) != 0;
-    
+    // Get Papertrail settings
+    _logToPapertrail = pConfig->getLong("PapertrailFlag", 1) != 0;
+    _papertrailHost = pConfig->getString("PapertrailHost", "");
+    _papertrailPort = pConfig->getLong("PapertrailPort", 5076);
+
     // Debug
     if (_logToSerial && _serialPort == 0)
-        Serial.printf("NetLog: logLevel %d, mqttFlag %d topic %s, httpFlag %d, ip %s, port %d, url %s, serialFlag %d, serialPort %d, cmdSerial %d\n",
+        Serial.printf("NetLog: logLevel %d, mqttFlag %d topic %s, httpFlag %d, ip %s, port %d, url %s, serialFlag %d, serialPort %d, cmdSerial %d, papertrailFlag %d, host %s, port %d\n",
                 _loggingThreshold, _logToMQTT, _mqttLogTopic.c_str(),
                 _logToHTTP, _httpIpAddr.c_str(), _httpPort, _httpLogUrl.c_str(),
-                _logToSerial, _serialPort, _logToCommandSerial);
+                _logToSerial, _serialPort, _logToCommandSerial,
+                _logToPapertrail, _papertrailHost, _papertrailPort);
 }
 
 String NetLog::formConfigStr()
@@ -167,6 +201,9 @@ String NetLog::formConfigStr()
                     "\",\"SerialFlag\":\"" + _logToSerial + 
                     "\",\"SerialPort\":\"" + String(_serialPort) + 
                     "\",\"CmdSerial\":\"" + String(_logToCommandSerial) + 
+                    "\",\"PapertrailFlag\":\"" + String(_logToPapertrail) + 
+                    "\",\"PapertrailHost\":\"" + _papertrailHost + 
+                    "\",\"PapertrailPort\":\"" + String(_papertrailPort) + 
                     "\"}";
 }
 
@@ -209,7 +246,7 @@ size_t NetLog::write(uint8_t ch)
     }
 
     // Check for log to MQTT or HTTP
-    if (!(_logToMQTT || _logToHTTP || _logToCommandSerial))
+    if (!(_logToMQTT || _logToHTTP || _logToCommandSerial || _logToPapertrail))
         return retVal;
     
     // Check for first char on line
@@ -251,6 +288,12 @@ size_t NetLog::write(uint8_t ch)
                 // Remove linefeeds
                 _msgToLog.replace("\n","");
                 _msgToLog.replace("\r","");
+                if (_logToPapertrail) {
+                    String logStr = "<22>" + _systemName + ": " + String(_msgToLog.c_str());
+                    Udp.beginPacket(_papertrailHost.c_str(), _papertrailPort);
+                    Udp.write((const uint8_t *) logStr.c_str(), logStr.length());
+                    Udp.endPacket();
+                }
                 if (_logToMQTT || _logToCommandSerial)
                 {
                     String logStr = "{\"logLevel\":" + String(_curMsgLogLevel) + ",\"logMsg\":\"" + String(_msgToLog.c_str()) + "\"}";
