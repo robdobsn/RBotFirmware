@@ -26,18 +26,17 @@ void DebugLoopTimer::service()
     if (millis() > _lastDebugLoopTime + _reportingPeriodMs)
     {
         // Find average loop time
-        char _avgStr[30];
-        strcpy(_avgStr, "N/A");
+        char averageStr[30];
+        strcpy(averageStr, "N/A");
         if (_loopTimeAvgCount > 0)
         {
             double avg = 0;
             avg = (1.0 * _loopTimeAvgSum) / _loopTimeAvgCount;
-            dtostrf(avg, 4, 2, _avgStr);
+            dtostrf(avg, 4, 2, averageStr);
         }
 
         // Find slowest loop activity
-        char _slowest1Str[200];
-        strcpy(_slowest1Str, "");
+        String slowestStr;
         int curSlowestIdx = 0;
         for (int i = 1; i < _maxTimingBlocks; i++)
         {
@@ -45,9 +44,7 @@ void DebugLoopTimer::service()
                 curSlowestIdx = i;
         }
         if (_blockMaxTime[curSlowestIdx] != 0)
-        {
-            sprintf(_slowest1Str, "Slowest %s %ld", _blockName[curSlowestIdx].c_str(), _blockMaxTime[curSlowestIdx]);
-        }
+            slowestStr = "Slowest " + _blockName[curSlowestIdx] + String(_blockMaxTime[curSlowestIdx]);
 
         // Second slowest
         int cur2ndSlowestIdx = 0;
@@ -57,19 +54,20 @@ void DebugLoopTimer::service()
                 cur2ndSlowestIdx = i;
         }
         if (cur2ndSlowestIdx != curSlowestIdx && _blockMaxTime[cur2ndSlowestIdx] != 0)
-        {
-            sprintf(_slowest1Str + strlen(_slowest1Str), ", %s %ld", _blockName[cur2ndSlowestIdx].c_str(), _blockMaxTime[cur2ndSlowestIdx]);
-        }
+            slowestStr += ", " + _blockName[cur2ndSlowestIdx] + String(_blockMaxTime[cur2ndSlowestIdx]);
 
         String programInfoStr;
         _infoStrCallback(programInfoStr);
 
-        char _millisStr[20];
-        sprintf(_millisStr, "%05ld", millis());
-        char _maxMinStr[30];
-        sprintf(_maxMinStr, "Max %luuS Min %luuS", _loopTimeMax, _loopTimeMin);
+        char millisStr[20];
+        sprintf(millisStr, "%05ld", millis());
+        char maxMinStr[50];
+        sprintf(maxMinStr, "Max %luuS Min %luuS", _loopTimeMax, _loopTimeMin);
 
-        String totalStr = _millisStr + String(" ") + programInfoStr + String(" Avg ") + _avgStr + String("uS ") + _maxMinStr + String(" ") + _slowest1Str + String("\n");
+        String totalStr = millisStr + String(" ") + programInfoStr + 
+                    String(" Avg ") + averageStr + String("uS ") + \
+                    maxMinStr + String(" ") + slowestStr + "\n";
+
         Log.notice(totalStr.c_str());
         _lastDebugLoopTime = millis();
 

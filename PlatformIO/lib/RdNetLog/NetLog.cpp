@@ -175,7 +175,7 @@ void NetLog::setup(ConfigBase *pConfig, const char* systemName)
     // Get CommandSerial settings
     _logToCommandSerial = pConfig->getLong("CmdSerial", 0) != 0;
     // Get Papertrail settings
-    _logToPapertrail = pConfig->getLong("PapertrailFlag", 1) != 0;
+    _logToPapertrail = pConfig->getLong("PapertrailFlag", 0) != 0;
     _papertrailHost = pConfig->getString("PapertrailHost", "");
     _papertrailPort = pConfig->getLong("PapertrailPort", 5076);
 
@@ -185,7 +185,7 @@ void NetLog::setup(ConfigBase *pConfig, const char* systemName)
                 _loggingThreshold, _logToMQTT, _mqttLogTopic.c_str(),
                 _logToHTTP, _httpIpAddr.c_str(), _httpPort, _httpLogUrl.c_str(),
                 _logToSerial, _serialPort, _logToCommandSerial,
-                _logToPapertrail, _papertrailHost, _papertrailPort);
+                _logToPapertrail, _papertrailHost.c_str(), _papertrailPort);
 }
 
 String NetLog::formConfigStr()
@@ -289,10 +289,15 @@ size_t NetLog::write(uint8_t ch)
                 _msgToLog.replace("\n","");
                 _msgToLog.replace("\r","");
                 if (_logToPapertrail) {
-                    String logStr = "<22>" + _systemName + ": " + String(_msgToLog.c_str());
-                    Udp.beginPacket(_papertrailHost.c_str(), _papertrailPort);
-                    Udp.write((const uint8_t *) logStr.c_str(), logStr.length());
-                    Udp.endPacket();
+                    String host = _papertrailHost;
+                    host.trim();
+                    if (host.length() != 0)
+                    {
+                        String logStr = "<22>" + _systemName + ": " + String(_msgToLog.c_str());
+                        Udp.beginPacket(host.c_str(), _papertrailPort);
+                        Udp.write((const uint8_t *) logStr.c_str(), logStr.length());
+                        Udp.endPacket();
+                    }
                 }
                 if (_logToMQTT || _logToCommandSerial)
                 {
