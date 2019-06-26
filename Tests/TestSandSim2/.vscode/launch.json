@@ -1,0 +1,27 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "type": "node",
+        "request": "launch",
+        "name": "Debug TypeScript in Node.js",
+        "preLaunchTask": "BuildTS",
+        "program": "${workspaceFolder}/src/SandSim.ts",
+        "cwd": "${workspaceFolder}",
+        "protocol": "inspector",
+        "outFiles": [
+          "${workspaceFolder}/out/**/*.js"
+        ]
+      },
+      {
+        "type": "node",
+        "request": "launch",
+        "name": "Tape Current File",
+        "program": "tape",
+        "args": [
+            "${file}"
+        ],
+        "console": "InternalConsole"
+      }    
+    ]
+  }

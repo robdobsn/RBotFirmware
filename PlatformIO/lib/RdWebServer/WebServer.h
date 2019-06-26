@@ -8,6 +8,7 @@
 #include "RestAPIEndpoints.h"
 
 class AsyncWebServer;
+class AsyncWebSocket;
 class AsyncWebServerResponse;
 class AsyncWebServerRequest;
 class WebServerResource;
@@ -20,6 +21,7 @@ public:
     bool _begun;
     bool _webServerEnabled;
     AsyncEventSource* _pAsyncEvents;
+    AsyncWebSocket* _pWebSocket;
 
     WebServer();
     ~WebServer();
@@ -35,6 +37,9 @@ public:
     // Async event handler (one-way text to browser)
     void enableAsyncEvents(const String& eventsURL);
     void sendAsyncEvent(const char* eventContent, const char* eventGroup);
+    // Web sockets
+    void webSocketOpen(const String& websocketURL);
+    void webSocketSend(const uint8_t* pBuf, uint32_t len);
 
 private:
     void addStaticResource(const WebServerResource *pResource, const char *pAliasPath = NULL);

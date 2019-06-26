@@ -4,7 +4,7 @@
 #pragma once
 
 #include <Arduino.h>
-#include "AsyncTcp.h"
+#include "AsyncTCP.h"
 #include <vector>
 
 typedef std::function<void(void* cbArg, const char *pData, size_t numChars)> AsyncTelnetDataHandler;

@@ -363,7 +363,7 @@ String FileManager::getFileContents(const String& fileSystemStr, const String& f
     if (st.st_size >= maxLen-1)
     {
         xSemaphoreGive(_fileSysMutex);
-        Log.trace("%sgetContents %s free heap %d size %d failed to read\n", MODULE_PREFIX, rootFilename.c_str(), maxLen, st.st_size);
+        Log.trace("%sgetContents %s free heap %d size %d too big to read\n", MODULE_PREFIX, rootFilename.c_str(), maxLen, st.st_size);
         return "";
     }
     int fileSize = st.st_size;

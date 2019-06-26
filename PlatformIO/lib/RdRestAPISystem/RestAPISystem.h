@@ -33,26 +33,14 @@ private:
     NTPClient& _ntpClient;
     CommandScheduler& _commandScheduler;
     String _systemType;
-    String _systemVersion;
+    static String _systemVersion;
     
 public:
     RestAPISystem(WiFiManager& wifiManager, MQTTManager& mqttManager,
                 RdOTAUpdate& otaUpdate, NetLog& netLog,
                 FileManager& fileManager, NTPClient& ntpClient,
                 CommandScheduler& commandScheduler,
-                const char* systemType, const char* systemVersion) :
-                _wifiManager(wifiManager), _mqttManager(mqttManager), 
-                _otaUpdate(otaUpdate), _netLog(netLog),
-                _fileManager(fileManager), _ntpClient(ntpClient),
-                _commandScheduler(commandScheduler)
-    {
-        _deviceRestartPending = false;
-        _deviceRestartMs = 0;
-        _updateCheckPending = false;
-        _updateCheckMs = 0;
-        _systemType = systemType;
-        _systemVersion = systemVersion;
-    }
+                const char* systemType, const char* systemVersion);
 
     // Setup and status
     void setup(RestAPIEndpoints &endpoints);
@@ -81,6 +69,7 @@ public:
     void apiNetLogCmdSerial(String &reqStr, String &respStr);
     void apiNetLogHTTP(String &reqStr, String &respStr);
     void apiNetLogPT(String &reqStr, String &respStr);
+    void apiNetLogGetConfig(String &reqStr, String &respStr);
 
     // Command scheduler
     void apiCmdSchedGetConfig(String &reqStr, String &respStr);

@@ -6,6 +6,26 @@
 
 static const char* MODULE_PREFIX = "RestAPISystem: ";
 
+String RestAPISystem::_systemVersion;
+
+RestAPISystem::RestAPISystem(WiFiManager& wifiManager, MQTTManager& mqttManager,
+            RdOTAUpdate& otaUpdate, NetLog& netLog,
+            FileManager& fileManager, NTPClient& ntpClient,
+            CommandScheduler& commandScheduler,
+            const char* systemType, const char* systemVersion) :
+            _wifiManager(wifiManager), _mqttManager(mqttManager), 
+            _otaUpdate(otaUpdate), _netLog(netLog),
+            _fileManager(fileManager), _ntpClient(ntpClient),
+            _commandScheduler(commandScheduler)
+{
+    _deviceRestartPending = false;
+    _deviceRestartMs = 0;
+    _updateCheckPending = false;
+    _updateCheckMs = 0;
+    _systemType = systemType;
+    _systemVersion = systemVersion;
+}
+
 void RestAPISystem::setup(RestAPIEndpoints &endpoints)
 {
     endpoints.addEndpoint("w", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
@@ -50,6 +70,9 @@ void RestAPISystem::setup(RestAPIEndpoints &endpoints)
     endpoints.addEndpoint("logcmd", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
                     std::bind(&RestAPISystem::apiNetLogCmdSerial, this, std::placeholders::_1, std::placeholders::_2), 
                     "Set log to cmdSerial /enable/port");
+    endpoints.addEndpoint("logconfig", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
+                    std::bind(&RestAPISystem::apiNetLogGetConfig, this, std::placeholders::_1, std::placeholders::_2), 
+                    "Get log configuration");
     endpoints.addEndpoint("ntp", RestAPIEndpointDef::ENDPOINT_CALLBACK, RestAPIEndpointDef::ENDPOINT_GET, 
                     std::bind(&RestAPISystem::apiNTPSetConfig, this, std::placeholders::_1, std::placeholders::_2), 
                     "Set NTP to gmt/dst/server1/s2/s3");
@@ -148,9 +171,9 @@ int RestAPISystem::reportHealth(int bitPosStart, unsigned long *pOutHash, String
         WiFi.macAddress(mac);
         String macStr = String(mac[0], HEX) + ":" + String(mac[1], HEX) + ":" + String(mac[2], HEX) + ":" +
                         String(mac[3], HEX) + ":" + String(mac[4], HEX) + ":" + String(mac[5], HEX);
-        String sOut = "\"wifiIP\":\"" + WiFi.localIP().toString() + "\",\"wifiConn\":\"" + getWifiStatusStr() + "\","
-                                                                                                                "\"ssid\":\"" +
-                      WiFi.SSID() + "\",\"MAC\":\"" + macStr + "\",\"RSSI\":" + String(WiFi.RSSI());
+        String sOut = "\"wifiIP\":\"" + WiFi.localIP().toString() + "\",\"wifiConn\":\"" + getWifiStatusStr() + "\"";
+        sOut += ",\"ssid\":\"" + WiFi.SSID() + "\",\"MAC\":\"" + macStr + "\",\"RSSI\":" + String(WiFi.RSSI());
+        sOut += ",\"espV\":\"" + _systemVersion + "\"";
         *pOutStr = sOut;
     }
     // Return number of bits in hash
@@ -317,6 +340,13 @@ void RestAPISystem::apiNetLogPT(String &reqStr, String &respStr)
                         onOffFlag.c_str(), hostName.c_str(), portStr.c_str());
     _netLog.setPapertrail(onOffFlag != "0", hostName.c_str(), portStr.c_str());
     Utils::setJsonBoolResult(respStr, true);
+}
+
+void RestAPISystem::apiNetLogGetConfig(String &reqStr, String &respStr)
+{
+    String configStr;
+    _netLog.getConfig(configStr);
+    Utils::setJsonBoolResult(respStr, true, configStr.c_str());    
 }
 
 void RestAPISystem::apiCmdSchedGetConfig(String &reqStr, String &respStr)

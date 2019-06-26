@@ -151,6 +151,11 @@ void NetLog::setPapertrail(bool papertrailFlag, const char* hostStr, const char*
     }
 }
 
+void NetLog::getConfig(String& configStr)
+{
+    configStr = formConfigStr();
+}
+
 void NetLog::setup(ConfigBase *pConfig, const char* systemName)
 {
     _systemName = systemName;
@@ -177,7 +182,7 @@ void NetLog::setup(ConfigBase *pConfig, const char* systemName)
     // Get Papertrail settings
     _logToPapertrail = pConfig->getLong("PapertrailFlag", 0) != 0;
     _papertrailHost = pConfig->getString("PapertrailHost", "");
-    _papertrailPort = pConfig->getLong("PapertrailPort", 5076);
+    _papertrailPort = pConfig->getLong("PapertrailPort", 38092);
 
     // Debug
     if (_logToSerial && _serialPort == 0)
@@ -294,9 +299,16 @@ size_t NetLog::write(uint8_t ch)
                     if (host.length() != 0)
                     {
                         String logStr = "<22>" + _systemName + ": " + String(_msgToLog.c_str());
-                        Udp.beginPacket(host.c_str(), _papertrailPort);
+                        if (WiFi.isConnected())
+                        {
+                            int udpBeginPacketRslt = Udp.beginPacket(host.c_str(), _papertrailPort);
                         Udp.write((const uint8_t *) logStr.c_str(), logStr.length());
-                        Udp.endPacket();
+                            int udpRslt = Udp.endPacket();
+                            Serial.printf("PAPERTRAIL %s %s %s %d %s\n",
+                                        udpBeginPacketRslt ? "BEGINOK" : "BEGINFAIL",
+                                        udpRslt ? "ENDOK" : "ENDFAIL", 
+                                        host.c_str(), _papertrailPort, logStr.c_str());
+                        }
                     }
                 }
                 if (_logToMQTT || _logToCommandSerial)

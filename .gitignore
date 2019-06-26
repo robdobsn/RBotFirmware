@@ -10,6 +10,7 @@ TestArstParser.sdf
 Browse.VC.*
 *.pch
 *.idb
+node_modules
 
 # User-specific stuff:
 .idea/**/workspace.xml

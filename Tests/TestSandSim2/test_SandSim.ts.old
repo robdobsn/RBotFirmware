@@ -1,0 +1,14 @@
+
+const test = require('tape')
+
+const SandSim = require('./SandSim.ts')
+
+console.log("Starting test")
+
+test('SandSim Rings', function (t) {
+  const result = 
+  const expected = 
+  t.ok(result)
+  t.deepEqual(result, expected)
+  t.end()
+});

@@ -1,0 +1,71 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: monospace;
+  align-items: center;
+  justify-content: center;
+}
+
+p {
+    margin-top: 20px;
+    text-align: center;
+}
+
+canvas {
+  display: block;
+  float: left;
+  margin: 20px auto;
+  background-color: white;
+}
+
+#tooltip {
+  position: absolute;
+  text-align: center;
+  width: 100px;
+  height: 12px;
+  padding: 8px;
+  margin-top: -20px;
+  font: 10px sans-serif;
+  background: #ddd;
+  pointer-events: none;
+}
+#table-canvas {
+    width: auto;
+    height: auto;
+    object-fit: contain;
+}
+#sand {
+  display: block;
+  float: left;
+  margin: 20px auto;
+  background-color: white;
+  width: 600px;
+  height: 600px;
+}
+.colourTableDiv {
+    margin: 20px auto;
+    padding: 10px;
+    float:left;
+}
+.colourTableWhole {
+    background: antiquewhite;
+    padding: 10px;
+}
+.colourTable {
+    
+}
+.colourStr {
+    margin: 5px;
+    width: 300px;
+}
+.selected {
+    border: solid 2px red;
+}
+    .colourPatch {
+
+    }
+    .colourPatchDiv {
+        width:10px;
+        height:10px;
+        background-color: #000000;
+    }

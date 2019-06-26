@@ -2,8 +2,26 @@
 // Rob Dobson 2018
 
 #include "CommandSerial.h"
+#include "RdJson.h"
 
 static const char* MODULE_PREFIX = "CommandSerial: ";
+
+CommandSerial::CommandSerial(FileManager& fileManager) : 
+        _miniHDLC(std::bind(&CommandSerial::sendCharToCmdPort, this, std::placeholders::_1), 
+            std::bind(&CommandSerial::frameHandler, this, std::placeholders::_1, std::placeholders::_2),
+            true, false),
+        _fileManager(fileManager)
+{
+    _pSerial = NULL;
+    _serialPortNum = -1;
+    _uploadFromFSInProgress = false;
+    _uploadFromAPIInProgress = false;
+    _uploadStartMs = 0;
+    _uploadLastBlockMs = 0;
+    _blockCount = 0;
+    _baudRate = 115200;
+    _frameRxCallback = nullptr;
+}
 
 void CommandSerial::setup(ConfigBase& config)
 {
@@ -41,6 +59,13 @@ void CommandSerial::setup(ConfigBase& config)
             Log.notice("%sportNum %d, baudRate %d, rxPin %d, txPin %d\n", MODULE_PREFIX,
                             _serialPortNum, _baudRate, 3, 1);
         }
+
+        // Set rx buffer size or leave as default
+        int rxBufSize = csConfig.getLong("rxBufSize", -1);
+        if (rxBufSize > 0)
+        {
+            _pSerial->setRxBufferSize(rxBufSize);
+        }
     }
     else
     {
@@ -76,18 +101,17 @@ void CommandSerial::eventMessage(String& msgJson)
 }
 
 // Event message
-void CommandSerial::responseMessage(String& msgJson)
+void CommandSerial::responseMessage(String& reqStr, String& msgJson)
 {
-    // Serial.printf("CommandSerial: response Msg %s\n", msgJson.c_str());
-
+    // Serial.printf("CommandSerial: req %s ... response Msg %s\n", reqStr.c_str(), msgJson.c_str());
     String frame;
     if (msgJson.startsWith("{"))
     {
-        frame = "{\"cmdName\":\"respMsg\",\"msg\":" + msgJson + "}\0";
+        frame = "{\"cmdName\":\"" + reqStr + "Resp\",\"msg\":" + msgJson + "}\0";
     }
     else
     {
-        frame = "{\"cmdName\":\"respMsg\"," + msgJson + "}\0";
+        frame = "{\"cmdName\":\"" + reqStr + "Resp\"," + msgJson + "}\0";
     }
     _miniHDLC.sendFrame((const uint8_t*)frame.c_str(), frame.length());
 }
@@ -106,7 +130,7 @@ void CommandSerial::service()
         return;
 
     // See if characters to be processed
-    for (int rxCtr = 0; rxCtr < 1000; rxCtr++)
+    for (int rxCtr = 0; rxCtr < 5000; rxCtr++)
     {
         int rxCh = _pSerial->read();
         if (rxCh < 0)
@@ -141,6 +165,8 @@ void CommandSerial::service()
                 if (!finalChunk)
                     Log.warning("%supload 0 len but not final\n", MODULE_PREFIX);
                 _uploadFromFSInProgress = false;
+                // Log.notice("File upload from FS timed out lastBlockMs %u betweenBlocksMs %u chunkLen %u finalChunk %d", 
+                //         _uploadLastBlockMs, DEFAULT_BETWEEN_BLOCKS_MS, chunkLen, finalChunk);
             }
         }
     }
@@ -149,13 +175,15 @@ void CommandSerial::service()
     if (uploadInProgress())
     {
         // Check for timeouts
-        if (Utils::isTimeout(millis(), _uploadLastBlockMs, MAX_BETWEEN_BLOCKS_MS))
+        uint32_t curMs = millis();
+        if (Utils::isTimeout(curMs+1, _uploadLastBlockMs, MAX_BETWEEN_BLOCKS_MS))
         {
             _uploadFromFSInProgress = false;
             _uploadFromAPIInProgress = false;
-            Log.notice("%sUpload block timed out\n", MODULE_PREFIX);
+            Log.notice("%sUpload block timed out millis %d lastBlockMs %d\n", MODULE_PREFIX, 
+                        curMs, _uploadLastBlockMs);
         }
-        if (Utils::isTimeout(millis(), _uploadStartMs, MAX_UPLOAD_MS))
+        if (Utils::isTimeout(curMs+1, _uploadStartMs, MAX_UPLOAD_MS))
         {
             _uploadFromFSInProgress = false;
             _uploadFromAPIInProgress = false;
@@ -193,17 +221,17 @@ void CommandSerial::sendFileEndRecord(int blockCount, const char* pAdditionalJso
     _miniHDLC.sendFrame((const uint8_t*)frame.c_str(), frame.length());
 }
 
-void CommandSerial::sendTargetCommand(const String& targetCmd)
+void CommandSerial::sendTargetCommand(const String& targetCmd, const String& reqStr)
 {
     // Serial.printf("CommandSerial: targetCommand Msg %s\n", targetCmd.c_str());
 
-    String frame = "{\"cmdName\":\"" + targetCmd + "\"}\0";
+    String frame = "{\"cmdName\":\"" + targetCmd + "\",\"reqStr\":\"" + reqStr + "\"}\0";
     _miniHDLC.sendFrame((const uint8_t*)frame.c_str(), frame.length());
 }
 
 void CommandSerial::sendTargetData(const String& cmdName, const uint8_t* pData, int len, int index)
 {
-    String header = "{\"cmdName\":\"" + cmdName + "\",\"index\":" + String(index) + ",\"len\":" + String(len) + "}";
+    String header = "{\"cmdName\":\"" + cmdName + "\",\"msgIdx\":" + String(index) + ",\"dataLen\":" + String(len) + "}";
     int headerLen = header.length();
     uint8_t* pFrameBuf = new uint8_t[headerLen + len + 1];
     memcpy(pFrameBuf, header.c_str(), headerLen);
@@ -216,36 +244,37 @@ void CommandSerial::sendTargetData(const String& cmdName, const uint8_t* pData, 
 void CommandSerial::uploadCommonBlockHandler(const char* fileType, const String& req, 
             const String& filename, int fileLength, size_t index, uint8_t *data, size_t len, bool finalBlock)
 {
-    Log.verbose("%sblk filetype %s name %s, total %d, idx %d, len %d, final %d, fs %s api %s\n", MODULE_PREFIX, 
-                fileType, filename.c_str(), fileLength, index, len, finalBlock, 
-                (_uploadFromFSInProgress ? "yes" : "no"), (_uploadFromAPIInProgress ? "yes" : "no"));
+    // Log.trace("%sblk filetype %s name %s, total %d, idx %d, len %d, final %d, fs %s api %s\n", MODULE_PREFIX, 
+    //             fileType, filename.c_str(), fileLength, index, len, finalBlock, 
+    //             (_uploadFromFSInProgress ? "yes" : "no"), (_uploadFromAPIInProgress ? "yes" : "no"));
+
+    // For timeouts        
+    _uploadLastBlockMs = millis();
 
     // Check if first block in an upload
     if (_blockCount == 0)
     {
         _uploadFileType = fileType;
         sendFileStartRecord(fileType, req, filename, fileLength);
-        Log.verbose("%snew upload started\n", MODULE_PREFIX);
+        // Log.trace("%snew upload started millis %d blockLen %d final %d\n", MODULE_PREFIX, 
+        //         _uploadLastBlockMs, len, finalBlock);
     }
 
     // Send the block
     sendFileBlock(index, data, len);
-    Log.verbose("%sblock sent\n", MODULE_PREFIX);
+    // Log.trace("%sblock sent blockIdx %d len %d final %d\n", MODULE_PREFIX, _blockCount, len, finalBlock);
     _blockCount++;
-
-    // For timeouts        
-    _uploadLastBlockMs = millis();
 
     // Check if that was the final block
     if (finalBlock)
     {
         sendFileEndRecord(_blockCount, NULL);
-        Log.verbose("%sfile end sent\n", MODULE_PREFIX);
+    //    Log.trace("%sfile end sent\n", MODULE_PREFIX);
         if (_uploadTargetCommandWhenComplete.length() != 0)
         {
-            sendTargetCommand(_uploadTargetCommandWhenComplete);
-            Log.verbose("%spost-upload target command sent %s\n", MODULE_PREFIX,
-                    _uploadTargetCommandWhenComplete.c_str());
+            sendTargetCommand(_uploadTargetCommandWhenComplete, "");
+            // Log.trace("%spost-upload target command sent %s\n", MODULE_PREFIX,
+            //         _uploadTargetCommandWhenComplete.c_str());
         }
         _uploadTargetCommandWhenComplete = "";
         _uploadFromFSInProgress = false;
@@ -270,6 +299,7 @@ void CommandSerial::uploadAPIBlockHandler(const char* fileType, const String& re
         _uploadFromAPIInProgress = true;
         _blockCount = 0;
         _uploadStartMs = millis();
+        // Log.notice("%suploadAPIBlockHandler starting new - nothing in progress\n", MODULE_PREFIX);
     }
     
     // Commmon handler
@@ -292,11 +322,12 @@ bool CommandSerial::startUploadFromFileSystem(const String& fileSystemName,
     // Start a chunked file session
     if (!_fileManager.chunkedFileStart(fileSystemName, filename, false))
     {
-        Log.trace("%sstartUploadFromFileSystem failed to start %s\n", MODULE_PREFIX, filename);
+        // Log.trace("%sstartUploadFromFileSystem failed to start %s\n", MODULE_PREFIX, filename.c_str());
         return false;
     }
 
     // Upload now in progress
+    // Log.trace("%sstartUploadFromFileSystem %s\n", MODULE_PREFIX, filename.c_str());
     _uploadFromFSInProgress = true;
     _uploadFileType = "target";
     _uploadFromFSRequest = uploadRequest;

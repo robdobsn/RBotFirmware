@@ -263,3 +263,21 @@ void WebServer::sendAsyncEvent(const char* eventContent, const char* eventGroup)
     if (_pAsyncEvents)
         _pAsyncEvents->send(eventContent, eventGroup, millis());
 }
+
+void WebServer::webSocketOpen(const String& websocketURL)
+{
+    // Check enabled
+    if (!_pServer)
+        return;
+
+    // Add
+    _pWebSocket = new AsyncWebSocket(websocketURL);
+    _pServer->addHandler(_pWebSocket);
+}
+
+void WebServer::webSocketSend(const uint8_t* pBuf, uint32_t len)
+{
+    if (_pWebSocket)
+        _pWebSocket->binaryAll(const_cast<uint8_t*>(pBuf), len);
+
+}

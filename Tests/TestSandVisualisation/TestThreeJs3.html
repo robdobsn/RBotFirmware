@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset=utf-8>
+		<title>Three JS Test</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+		</style>
+	</head>
+	<body>
+		<script src="js/three.min.js"></script>
+		<script>
+
+			let scene = new THREE.Scene();
+            let camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+
+            let renderer = new THREE.WebGLRenderer();
+			renderer.shadowMap.enabled = true;
+			renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			renderer.gammaInput = true;
+			renderer.gammaOutput = true;
+            document.body.appendChild( renderer.domElement );
+
+			var ambient = new THREE.AmbientLight( 0xffffff, 0.1 );
+			scene.add( ambient );
+
+			camera.position.set(100,100,100);
+			camera.up.set(0,0,1);
+			camera.lookAt(new THREE.Vector3(0,0,0));
+
+			let geometry = new THREE.PlaneGeometry(100,100,99,99);
+			// let texture = new THREE.TextureLoader().load( 'images/sandTex2.jpg' );
+			// texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+			// texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+			// texture.repeat.set(10,10);
+			// let material = new THREE.MeshBasicMaterial( { map: texture } );
+
+			var material = new THREE.MeshPhongMaterial( { color: 0x808080, dithering: true } );
+			// var material = new THREE.MeshPhongMaterial( { color: 0x808080, dithering: true } );
+
+			// let material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+			let plane = new THREE.Mesh( geometry, material );
+						
+			// set height of vertices
+			for ( var i = 0; i<plane.geometry.vertices.length; i++ ) {
+				let d = Math.sqrt(Math.pow(plane.geometry.vertices[i].x, 2) + Math.pow(plane.geometry.vertices[i].y, 2)) 
+				let elev = 5 * Math.sin(d)
+				plane.geometry.vertices[i].z = elev;
+			}
+
+            scene.add( plane );
+			
+			for (let lightIdx = 0; lightIdx < 24; lightIdx++)
+			{
+				let light = new THREE.SpotLight( 0xffffff, 0.1 );
+				light.angle = Math.PI / 4;
+				light.penumbra = 0.05;
+				light.decay = 2;
+				light.distance = 200;
+				light.castShadow = true;
+				light.position.set( Math.sin(lightIdx*Math.PI/12)*60, Math.cos(lightIdx*Math.PI/12)*60, 10 );
+				//Set up shadow properties for the light
+				light.shadow.mapSize.width = 1024;  // default
+				light.shadow.mapSize.height = 1024; // default
+				light.shadow.camera.near = 10;       // default
+				light.shadow.camera.far = 200      // default
+				scene.add( light );
+			}
+
+			// lightHelper = new THREE.SpotLightHelper( light );
+			// scene.add( lightHelper );
+
+			let axesHelper = new THREE.AxesHelper( 5 );
+			scene.add( axesHelper );
+
+			//Create a helper for the shadow camera (optional)
+			// var helper = new THREE.CameraHelper( light.shadow.camera );
+			// scene.add( helper );
+
+            function animate() {
+                requestAnimationFrame( animate );
+                renderer.render( scene, camera );
+                }
+            animate(); 
+
+		</script>
+	</body>
+</html>

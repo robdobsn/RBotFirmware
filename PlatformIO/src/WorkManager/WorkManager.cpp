@@ -43,20 +43,20 @@ void WorkManager::queryStatus(String &respStr)
     // System health
     String healthStrSystem;
     hashUsedBits += _restAPISystem.reportHealth(hashUsedBits, NULL, &healthStrSystem);
-    if (innerJsonStr.length() > 0)
+    if ((innerJsonStr.length() > 0) && (healthStrSystem.length() > 0))
         innerJsonStr += ",";
     innerJsonStr += healthStrSystem;
     // Robot info
     RobotCommandArgs cmdArgs;
     _robotController.getCurStatus(cmdArgs);
     String healthStrRobot = cmdArgs.toJSON(false);
-    if (innerJsonStr.length() > 0)
+    if ((innerJsonStr.length() > 0) && (healthStrRobot.length() > 0))
         innerJsonStr += ",";
     innerJsonStr += healthStrRobot;
     String ledStrip = _ledStrip.getConfigStrPtr();
-    if (innerJsonStr.length() > 0)
+    if ((innerJsonStr.length() > 0) && (ledStrip.length() > 0))
         innerJsonStr += ",";
-    innerJsonStr += ledStrip.substring(1, ledStrip.length() - 1);    
+    innerJsonStr += ledStrip.substring(1, ledStrip.length() - 1);
     // Time of Day
     String timeJsonStr;
     struct tm timeinfo;

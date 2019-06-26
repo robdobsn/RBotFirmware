@@ -44,23 +44,7 @@ private:
     FileManager& _fileManager;
 
 public:
-    CommandSerial(FileManager& fileManager) : 
-            _miniHDLC(std::bind(&CommandSerial::sendCharToCmdPort, this, std::placeholders::_1), 
-                std::bind(&CommandSerial::frameHandler, this, std::placeholders::_1, std::placeholders::_2),
-                true, false),
-            _fileManager(fileManager)
-    {
-        _pSerial = NULL;
-        _serialPortNum = -1;
-        _uploadFromFSInProgress = false;
-        _uploadFromAPIInProgress = false;
-        _uploadStartMs = 0;
-        _uploadLastBlockMs = 0;
-        _blockCount = 0;
-        _baudRate = 115200;
-        _frameRxCallback = nullptr;
-    }
-
+    CommandSerial(FileManager& fileManager);
     void setup(ConfigBase& config);
 
     // Set callback on frame received
@@ -73,10 +57,16 @@ public:
     void eventMessage(String& msgJson);
 
     // Event message
-    void responseMessage(String& msgJson);
+    void responseMessage(String& reqStr, String& msgJson);
 
     // Upload in progress
     bool uploadInProgress();
+
+    // Get HDLC stats
+    MiniHDLCStats* getHDLCStats()
+    {
+        return _miniHDLC.getStats();
+    }
 
     // Service 
     void service();
@@ -84,7 +74,7 @@ public:
     void sendFileStartRecord(const char* fileType, const String& req, const String& filename, int fileLength);
     void sendFileBlock(size_t index, uint8_t *data, size_t len);
     void sendFileEndRecord(int blockCount, const char* pAdditionalJsonNameValues);
-    void sendTargetCommand(const String& targetCmd);
+    void sendTargetCommand(const String& targetCmd, const String& reqStr);
     void sendTargetData(const String& cmdName, const uint8_t* pData, int len, int index);
     void uploadAPIBlockHandler(const char* fileType, const String& req, const String& filename, int fileLength, size_t index, uint8_t *data, size_t len, bool finalBlock);
 

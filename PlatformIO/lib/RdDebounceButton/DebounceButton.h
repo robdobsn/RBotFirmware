@@ -18,21 +18,14 @@ private:
     int _buttonActiveLevel;
     uint32_t _debounceLastMs;
     int _debounceVal;
+    bool _firstPass;
     static const int PIN_DEBOUNCE_MS = 50;
 
     // Callback
     DebounceButtonCallback _callback;
 
 public:
-    DebounceButton()
-    {
-        _buttonPin = -1;
-        _buttonActiveLevel = 0;
-        _debounceLastMs = 0;
-        _debounceVal = 0;
-        _callback = nullptr;
-    }
-
+    DebounceButton();
     // Setup
     void setup(int pin, int activeLevel, DebounceButtonCallback cb);
     // Service - must be called frequently to check button state

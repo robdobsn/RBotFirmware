@@ -1,5 +1,5 @@
 // RBotFirmware
-// Rob Dobson 2016-2018
+// Rob Dobson 2016-2019
 
 // API used for web, MQTT and BLE (future)
 //   Get version:    /v                     - returns version info
@@ -40,7 +40,7 @@
 const char* systemType = "RBotFirmware";
 
 // System version
-const char* systemVersion = "2.025.001";
+const char* systemVersion = "2.026.001";
 
 // Build date
 const char* buildDate = __DATE__;

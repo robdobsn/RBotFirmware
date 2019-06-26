@@ -36,7 +36,8 @@ void DebugLoopTimer::service()
         }
 
         // Find slowest loop activity
-        String slowestStr;
+        char slowest1Str[200];
+        strcpy(slowest1Str, "");
         int curSlowestIdx = 0;
         for (int i = 1; i < _maxTimingBlocks; i++)
         {
@@ -44,7 +45,9 @@ void DebugLoopTimer::service()
                 curSlowestIdx = i;
         }
         if (_blockMaxTime[curSlowestIdx] != 0)
-            slowestStr = "Slowest " + _blockName[curSlowestIdx] + String(_blockMaxTime[curSlowestIdx]);
+        {
+            sprintf(slowest1Str, "Slowest %s %ld", _blockName[curSlowestIdx].c_str(), _blockMaxTime[curSlowestIdx]);
+        }
 
         // Second slowest
         int cur2ndSlowestIdx = 0;
@@ -54,7 +57,9 @@ void DebugLoopTimer::service()
                 cur2ndSlowestIdx = i;
         }
         if (cur2ndSlowestIdx != curSlowestIdx && _blockMaxTime[cur2ndSlowestIdx] != 0)
-            slowestStr += ", " + _blockName[cur2ndSlowestIdx] + String(_blockMaxTime[cur2ndSlowestIdx]);
+        {
+            sprintf(slowest1Str + strlen(slowest1Str), ", %s %ld", _blockName[cur2ndSlowestIdx].c_str(), _blockMaxTime[cur2ndSlowestIdx]);
+        }
 
         String programInfoStr;
         _infoStrCallback(programInfoStr);
@@ -64,10 +69,9 @@ void DebugLoopTimer::service()
         char maxMinStr[50];
         sprintf(maxMinStr, "Max %luuS Min %luuS", _loopTimeMax, _loopTimeMin);
 
-        String totalStr = millisStr + String(" ") + programInfoStr + 
-                    String(" Avg ") + averageStr + String("uS ") + \
-                    maxMinStr + String(" ") + slowestStr + "\n";
-
+        String totalStr = millisStr + String(" ") + programInfoStr +
+                 String(" Avg ") + averageStr + String("uS ") + 
+                 maxMinStr + String(" ") + slowest1Str + String("\n");
         Log.notice(totalStr.c_str());
         _lastDebugLoopTime = millis();
 

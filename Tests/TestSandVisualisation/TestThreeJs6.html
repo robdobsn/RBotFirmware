@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset=utf-8>
+		<title>Three JS Test</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+		</style>
+	</head>
+	<body>
+		<script src="js/three.min.js"></script>
+		<script>
+
+            let tableRadius = 600;
+
+            let renderer = new THREE.WebGLRenderer();
+            renderer.setPixelRatio( window.devicePixelRatio );
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			// renderer.shadowMap.enabled = true;
+			// renderer.shadowMap.type = THREE.PCFShadowMap;
+			// renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+			// renderer.gammaInput = true;
+			// renderer.gammaOutput = true;
+            document.body.appendChild( renderer.domElement );
+
+			let scene = new THREE.Scene();
+
+            let camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 5000 );
+			camera.position.set(tableRadius,tableRadius,tableRadius*2);
+			camera.up.set(0,0,1);
+			camera.lookAt(new THREE.Vector3(0,0,0));
+
+			let geometry = new THREE.PlaneGeometry(tableRadius,tableRadius,tableRadius-1,tableRadius-1);
+
+			let texture = new THREE.TextureLoader().load( 'images/sandTex2.jpg' );
+			texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+			texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+			texture.repeat.set(5,5);
+			let material = new THREE.MeshBasicMaterial();
+
+			// var material = new THREE.MeshPhongMaterial( { color: 0x808080, dithering: true } );
+			// var material = new THREE.MeshLambertMaterial( { color: 0x808080, dithering: true } );
+            material.map = texture;
+			// var material = new THREE.MeshPhongMaterial( { color: 0x808080, dithering: true } );
+
+			// let material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+			let plane = new THREE.Mesh( geometry, material );
+						
+			// set height of vertices
+			// for ( var i = 0; i<plane.geometry.vertices.length; i++ ) {
+			// 	let d = Math.sqrt(Math.pow(plane.geometry.vertices[i].x, 2) + Math.pow(plane.geometry.vertices[i].y, 2)) 
+			// 	let elev = 10 * Math.sin(d/5)
+			// 	plane.geometry.vertices[i].z = elev;
+			// }
+
+            scene.add( plane );
+			
+			// for (let lightIdx = 0; lightIdx < 24; lightIdx++)
+			// {
+			// 	let light = new THREE.SpotLight( 0xffffff, 1 );
+			// 	light.angle = Math.PI / 4;
+			// 	light.penumbra = 0.05;
+			// 	light.decay = 2;
+			// 	light.distance = tableRadius*2;
+			// 	light.castShadow = true;
+			// 	light.position.set( Math.sin(lightIdx*Math.PI/12)*tableRadius, Math.cos(lightIdx*Math.PI/12)*tableRadius, tableRadius/20 );
+			// 	//Set up shadow properties for the light
+			// 	light.shadow.mapSize.width = 1024;  // default
+			// 	light.shadow.mapSize.height = 1024; // default
+			// 	light.shadow.camera.near = 10;       // default
+			// 	light.shadow.camera.far = 200      // default
+			// 	scene.add( light );
+			// }
+
+			// lightHelper = new THREE.SpotLightHelper( light );
+			// scene.add( lightHelper );
+
+			// var ambient = new THREE.AmbientLight( 0xffffff, 0.1 );
+			// scene.add( ambient );
+
+
+			let axesHelper = new THREE.AxesHelper( 5 );
+			scene.add( axesHelper );
+
+			//Create a helper for the shadow camera (optional)
+			// var helper = new THREE.CameraHelper( light.shadow.camera );
+			// scene.add( helper );
+
+            function animate() {
+                requestAnimationFrame( animate );
+                renderer.render( scene, camera );
+                }
+            animate(); 
+
+			function render() {
+				renderer.render( scene, camera );
+			}
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				render();
+			}
+            
+		</script>
+	</body>
+</html>

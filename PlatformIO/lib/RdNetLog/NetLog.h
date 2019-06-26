@@ -101,6 +101,7 @@ public:
     void setCmdSerial(bool onOffFlag);
     void setHTTP(bool httpFlag, const char* ipAddr, const char* portStr, const char* httpLogUrl);
     void setPapertrail(bool papertrailFlag, const char* hostStr, const char* portStr);
+    void getConfig(String& configStr);
     void setup(ConfigBase *pConfig, const char* systemName);
     String formConfigStr();
     void pause();

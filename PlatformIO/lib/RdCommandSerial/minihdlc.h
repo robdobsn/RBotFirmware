@@ -10,17 +10,63 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <functional>
 
+#define USE_STD_FUNCTION_AND_BIND 1
+
+#ifdef USE_STD_FUNCTION_AND_BIND
+#include <functional>
 // Put byte or bit callback function type
 typedef std::function<void(uint8_t ch)> MiniHDLCPutChFnType;
-
 // Received frame callback function type
 typedef std::function<void(const uint8_t *framebuffer, int framelength)> MiniHDLCFrameRxFnType;
+#else
+typedef void (*MiniHDLCPutChFnType)(uint8_t ch);
+typedef void (*MiniHDLCFrameRxFnType)(const uint8_t *framebuffer, int framelength);
+#endif
+
+class MiniHDLCStats
+{
+public:
+    MiniHDLCStats()
+    {
+        clear();
+    }
+    void clear()
+    {
+        _rxFrameCount = 0;
+        _frameCRCErrCount = 0;
+        _frameTooLongCount = 0;
+    }
+    uint32_t _rxFrameCount;
+    uint32_t _frameCRCErrCount;
+    uint32_t _frameTooLongCount;
+};
 
 // MiniHDLC
 class MiniHDLC
 {
+public:
+    // Constructor for HDLC
+    // If bitwise HDLC then the first parameter will receive bits not bytes 
+    MiniHDLC(MiniHDLCPutChFnType putChFn, MiniHDLCFrameRxFnType frameRxFn,
+				bool bigEndianCRC = true, bool bitwiseHDLC = false);
+
+    // Called by external function that has byte-wise data to process
+    void handleChar(uint8_t ch);
+    void handleBuffer(const uint8_t* pBuf, int numBytes);
+
+    // Called by external function that has bit-wise data to process
+    void handleBit(uint8_t bit);
+
+    // Called to send a frame
+    void sendFrame(const uint8_t *pData, int frameLen);
+
+    // Get stats
+    MiniHDLCStats* getStats()
+    {
+        return &_stats;
+    }
+
 private:
     // If either of the following two octets appears in the transmitted data, an escape octet is sent,
     // followed by the original data octet with bit 5 inverted
@@ -40,14 +86,19 @@ private:
     static constexpr uint16_t CRC16_CCITT_INIT_VAL = 0xFFFF;
 
     // Max FRAME length
-    static constexpr int MINIHDLC_MAX_FRAME_LENGTH = 5000;
+    static constexpr int MINIHDLC_MAX_FRAME_LENGTH = 20000;
 
     // CRC table
     static const uint16_t _CRCTable[256];
 
     // Callback functions for PutCh/PutBit and FrameRx
+#ifdef USE_STD_FUNCTION_AND_BIND
     MiniHDLCPutChFnType _putChFn;
     MiniHDLCFrameRxFnType _frameRxFn;
+#else
+    static MiniHDLCPutChFnType _putChFn;
+    static MiniHDLCFrameRxFnType _frameRxFn;
+#endif
 
     // Bitwise HDLC flag (otherwise byte-wise)
     bool _bitwiseHDLC;
@@ -69,38 +120,13 @@ private:
     // Receive buffer
     uint8_t _rxBuffer[MINIHDLC_MAX_FRAME_LENGTH + 1];
 
+    // Stats
+    MiniHDLCStats _stats;
+
 private:
     uint16_t crcUpdateCCITT(unsigned short fcs, unsigned char value);
     void sendChar(uint8_t ch);
     void sendCharWithStuffing(uint8_t ch);
     void sendEscaped(uint8_t ch);
-
-public:
-    // Constructor for HDLC
-    // If bitwise HDLC then the first parameter will receive bits not bytes 
-    MiniHDLC(MiniHDLCPutChFnType putChFn, MiniHDLCFrameRxFnType frameRxFn,
-				bool bigEndianCRC = true, bool bitwiseHDLC = false)
-    {
-        _putChFn = putChFn;
-        _frameRxFn = frameRxFn;
-        _framePos = 0;
-        _frameCRC = CRC16_CCITT_INIT_VAL;
-        _inEscapeSeq = false;
-        _bigEndianCRC = bigEndianCRC;
-        _bitwiseHDLC = bitwiseHDLC;
-        _bitwiseLast8Bits = 0;
-        _bitwiseByte = 0;
-        _bitwiseBitCount = 0;
-        _bitwiseSendOnesCount = 0;
-    }
-
-    // Called by external function that has byte-wise data to process
-    void handleChar(uint8_t ch);
-
-    // Called by external function that has bit-wise data to process
-    void handleBit(uint8_t bit);
-
-    // Called to send a frame
-    void sendFrame(const uint8_t *pData, int frameLen);
 
 };

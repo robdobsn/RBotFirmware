@@ -4,7 +4,7 @@
 #pragma once
 
 #include <HTTPClient.h>
-#include <WifiClient.h>
+#include <WiFiClient.h>
 #include <ArduinoLog.h>
 #include "Utils.h"
 #include "ConfigBase.h"
