@@ -43,4 +43,9 @@ private:
 
     // Store a number of sensor readings for smoother transitions
     uint16_t sensorValues[NUM_SENSOR_VALUES];
+
+    // LEDC library controls
+    static const int LED_STRIP_PWM_FREQ = 5000;
+    static const int LED_STRIP_LEDC_CHANNEL = 0;
+    static const int LED_STRIP_LEDC_RESOLUTION = 8;
 };

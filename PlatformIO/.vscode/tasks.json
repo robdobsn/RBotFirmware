@@ -1,0 +1,35 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build",
+            "type": "shell",
+            "command": "platformio",
+            "args": [
+                "run"
+            ],
+            "problemMatcher": [
+                "$platformio"
+            ]
+        },
+        {
+            "label": "Build + Upload",
+            "type": "shell",
+            "command": "curl",
+            "args": [
+                "-F data=@./.pioenvs/featheresp32/firmware.bin",
+                "http://192.168.86.130/espFirmwareUpdate"
+            ],
+            "dependsOn": [
+                "BuildBusRaiderESP32"
+            ],
+            "problemMatcher": [
+                "$platformio"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}

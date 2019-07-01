@@ -3,7 +3,6 @@
 
 #include "LedStrip.h"
 #include "Arduino.h"
-#include <analogWrite.h>
 #include "ConfigNVS.h"
 
 static const char* MODULE_PREFIX = "LedStrip: ";
@@ -55,7 +54,7 @@ void LedStrip::setup(ConfigBase* pConfig, const char* ledStripName)
     {
         if (ledPin != _ledPin)
         {
-            pinMode(_ledPin, INPUT);
+            ledcDetachPin(_ledPin);
         }
         else
         {
@@ -68,7 +67,8 @@ void LedStrip::setup(ConfigBase* pConfig, const char* ledStripName)
     // Setup the pins
     _ledPin = ledPin;
     _sensorPin = sensorPin;
-    pinMode(_ledPin, OUTPUT);
+    ledcSetup(LED_STRIP_LEDC_CHANNEL, LED_STRIP_PWM_FREQ, LED_STRIP_LEDC_RESOLUTION);
+    ledcAttachPin(_ledPin, LED_STRIP_LEDC_CHANNEL);
     if (_sensorPin != -1) {
         pinMode(_sensorPin, INPUT);
         for (int i = 0; i < NUM_SENSOR_VALUES; i++) {
@@ -170,7 +170,7 @@ void LedStrip::service()
     if (ledConfigChanged) {
         ledConfigChanged = false;
         Log.trace("Writing LED Value: 0x%x\n", _ledValue);
-        analogWrite(_ledPin, _ledValue);
+        ledcWrite(LED_STRIP_LEDC_CHANNEL, _ledValue);
     }
 }
 
