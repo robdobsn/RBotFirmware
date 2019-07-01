@@ -49,26 +49,20 @@ void LedStrip::setup(ConfigBase* pConfig, const char* ledStripName)
     if (ledPin == -1)
         return;
 
-    // Check if this is a change
-    if (_isSetup)
+    // Setup led pin
+    if (_isSetup && (ledPin != _ledPin))
     {
-        if (ledPin != _ledPin)
-        {
-            ledcDetachPin(_ledPin);
-        }
-        else
-        {
-            // No change so nothing to do
-            Log.notice("%sNo change\n", MODULE_PREFIX);
-            return;
-        }
+        ledcDetachPin(_ledPin);
+    }
+    else
+    {
+        _ledPin = ledPin;
+        ledcSetup(LED_STRIP_LEDC_CHANNEL, LED_STRIP_PWM_FREQ, LED_STRIP_LEDC_RESOLUTION);
+        ledcAttachPin(_ledPin, LED_STRIP_LEDC_CHANNEL);
     }
 
-    // Setup the pins
-    _ledPin = ledPin;
+    // Setup the sensor
     _sensorPin = sensorPin;
-    ledcSetup(LED_STRIP_LEDC_CHANNEL, LED_STRIP_PWM_FREQ, LED_STRIP_LEDC_RESOLUTION);
-    ledcAttachPin(_ledPin, LED_STRIP_LEDC_CHANNEL);
     if (_sensorPin != -1) {
         pinMode(_sensorPin, INPUT);
         for (int i = 0; i < NUM_SENSOR_VALUES; i++) {
@@ -89,7 +83,8 @@ void LedStrip::setup(ConfigBase* pConfig, const char* ledStripName)
         _ledOn = _ledNvValues.getLong("ledOn", 0) == 1;
         _ledValue = _ledNvValues.getLong("ledValue", 0xFF);
         _autoDim = _ledNvValues.getLong("autoDim", 0) == 1;
-        Log.trace("%sLED Setup from NVS: On: %d, Value: %d, Auto Dim: %d\n", MODULE_PREFIX, _ledOn, _ledValue, _autoDim);
+        Log.trace("%sLED Setup from JSON: %s On: %d, Value: %d, Auto Dim: %d\n", MODULE_PREFIX, 
+                    ledStripConfigStr.c_str(), _ledOn, _ledValue, _autoDim);
     }
 
     _isSetup = true;
