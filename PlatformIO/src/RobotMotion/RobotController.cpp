@@ -67,7 +67,7 @@ bool RobotController::init(const char* configStr)
             return false;
         _pRobot->init(configStr);
     }
-    else if (robotModel.equalsIgnoreCase("Cartesian"))
+    else if ((robotModel.equalsIgnoreCase("Cartesian")) || (robotModel.equalsIgnoreCase("XYBot")))
     {
         Log.notice("Constructing %s\n", robotModel.c_str());
         _pRobot = new RobotXYBot(robotModel.c_str(), _motionHelper);

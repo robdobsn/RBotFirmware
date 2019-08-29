@@ -70,9 +70,10 @@ bool MotionIO::configureAxis(const char *axisJSON, int axisIdx)
         String dirnPinName = RdJson::getString("dirnPin", "-1", axisJSON);
         int stepPin = ConfigPinMap::getPinFromName(stepPinName.c_str());
         int dirnPin = ConfigPinMap::getPinFromName(dirnPinName.c_str());
+        bool directionReversed = (RdJson::getLong("dirnRev", 0, axisJSON) != 0);
         Log.notice("%sAxis%d (step pin %d, dirn pin %d)\n", MODULE_PREFIX, axisIdx, stepPin, dirnPin);
         if ((stepPin != -1 && dirnPin != -1))
-            _stepperMotors[axisIdx] = new StepperMotor(RobotConsts::MOTOR_TYPE_DRIVER, stepPin, dirnPin);
+            _stepperMotors[axisIdx] = new StepperMotor(RobotConsts::MOTOR_TYPE_DRIVER, stepPin, dirnPin, directionReversed);
     }
     else
     {

@@ -54,7 +54,8 @@ void WorkManager::queryStatus(String &respStr)
         innerJsonStr += ",";
     innerJsonStr += healthStrRobot;
     String ledStrip = _ledStrip.getConfigStrPtr();
-    if ((innerJsonStr.length() > 0) && (ledStrip.length() > 0))
+    Log.trace("%squeryStatus innerJsonLen %d ledStripLen %d ledStrip <%s>\n", MODULE_PREFIX, innerJsonStr.length(), ledStrip.length(), ledStrip.c_str());
+    if ((innerJsonStr.length() > 0) && (ledStrip.length() > 2))
         innerJsonStr += ",";
     innerJsonStr += ledStrip.substring(1, ledStrip.length() - 1);
     // Time of Day

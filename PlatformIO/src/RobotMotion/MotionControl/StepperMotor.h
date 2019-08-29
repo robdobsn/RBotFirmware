@@ -27,14 +27,14 @@ class StepperMotor
 
   public:
     // For MOTOR_TYPE_DRIVER two pins are used step & direction
-    StepperMotor(RobotConsts::MOTOR_TYPE motorType, uint8_t pinStep, uint8_t pinDirection)
+    StepperMotor(RobotConsts::MOTOR_TYPE motorType, uint8_t pinStep, uint8_t pinDirection, bool directionReversed)
     {
         if (motorType == RobotConsts::MOTOR_TYPE_DRIVER)
         {
             if (pinStep != -1 && pinDirection != -1)
             {
                 _motorType = motorType;
-                _motorDirectionReversed = false;
+                _motorDirectionReversed = directionReversed;
                 _minPulseWidthUs = 1;
                 // Setup the pins
                 pinMode(pinStep, OUTPUT);
