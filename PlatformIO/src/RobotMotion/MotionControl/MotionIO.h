@@ -69,6 +69,10 @@ public:
     // Endstop info
     void getEndStopVals(AxisMinMaxBools& axisEndStopVals);
 
+    void setDirection(int axisIdx, bool direction);
+    void stepStart(int axisIdx);
+    bool stepEnd(int axisIdx);
+
 // private:
 
 //     // Check if a step is in progress on any motor, if all such and return true, else false

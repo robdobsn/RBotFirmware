@@ -34,14 +34,14 @@ uint32_t MotionActuator::_curAccumulatorNS = 0;
 uint32_t MotionActuator::_curAccumulatorRelative[RobotConsts::MAX_AXES];
 int MotionActuator::_endStopCheckNum;
 MotionActuator::EndStopChecks MotionActuator::_endStopChecks[RobotConsts::MAX_AXES];
-TrinamicController* MotionActuator::_pTrinamicController = NULL;
 bool MotionActuator::_isrTimerStarted = false;
+MotionIO* MotionActuator::_pMotionIO = NULL;
 
-MotionActuator::MotionActuator(TrinamicController* pTrinamicController, MotionPipeline* pMotionPipeline)
+MotionActuator::MotionActuator(MotionIO* pMotionIO, MotionPipeline* pMotionPipeline)
 {
     // Init
     _pMotionPipeline = pMotionPipeline;
-    _pTrinamicController = pTrinamicController;
+    _pMotionIO = pMotionIO;
     clear();
     resetTotalStepPosition();
 }
@@ -74,15 +74,12 @@ void MotionActuator::configure()
 {
     // If we are using the ISR then create the Spark Interval Timer and start it
 #ifdef USE_ESP32_TIMER_ISR
-    if (!((_pTrinamicController) && (_pTrinamicController->isEnabled())))
-    {    
-        _isrMotionTimer = timerBegin(0, CLOCK_RATE_MHZ, true);
-        timerAttachInterrupt(_isrMotionTimer, _isrStepperMotion, true);
-        timerAlarmWrite(_isrMotionTimer, DIRECT_STEP_ISR_TIMER_PERIOD_US, true);
-        timerAlarmEnable(_isrMotionTimer);
-        Log.notice("MotionActuator: Starting ISR timer for direct stepping\n");
-        _isrTimerStarted = true;
-    }
+    Log.notice("MotionActuator: Starting ISR timer for direct stepping\n");
+    _isrMotionTimer = timerBegin(0, CLOCK_RATE_MHZ, true);
+    timerAttachInterrupt(_isrMotionTimer, _isrStepperMotion, true);
+    timerAlarmWrite(_isrMotionTimer, DIRECT_STEP_ISR_TIMER_PERIOD_US, true);
+    timerAlarmEnable(_isrMotionTimer);
+    _isrTimerStarted = true;
 #endif
 }
 
@@ -152,14 +149,11 @@ bool IRAM_ATTR MotionActuator::handleStepEnd()
     bool anyPinReset = false;
     for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
     {
-        RobotConsts::RawMotionAxis_t *pAxisInfo = &_rawMotionHwInfo._axis[axisIdx];
-        if (pAxisInfo->_pinStepCurLevel == 1)
+        if (_pMotionIO->stepEnd(axisIdx))
         {
-            digitalWrite(pAxisInfo->_pinStep, 0);
             anyPinReset = true;
             _totalStepsMoved[axisIdx] += _totalStepsInc[axisIdx];
         }
-        pAxisInfo->_pinStepCurLevel = 0;
     }
     return anyPinReset;
 }
@@ -178,13 +172,8 @@ void IRAM_ATTR MotionActuator::setupNewBlock(MotionBlock *pBlock)
         _curStepCount[axisIdx] = 0;
         _curAccumulatorRelative[axisIdx] = 0;
         // Set direction for the axis
-        RobotConsts::RawMotionAxis_t *pAxisInfo = &_rawMotionHwInfo._axis[axisIdx];
-        if (pAxisInfo->_pinDirection != -1)
-        {
-            digitalWrite(pAxisInfo->_pinDirection,
-                            (stepsTotal >= 0) == pAxisInfo->_pinDirectionReversed);
-            _totalStepsInc[axisIdx] = (stepsTotal >= 0) ? 1 : -1;
-        }
+        _pMotionIO->setDirection(axisIdx, stepsTotal >= 0);
+        _totalStepsInc[axisIdx] = (stepsTotal >= 0) ? 1 : -1;
 
         // Instrumentation
         INSTRUMENT_MOTION_ACTUATOR_STEP_DIRN
@@ -284,12 +273,7 @@ bool IRAM_ATTR MotionActuator::handleStepMotion(MotionBlock *pBlock)
     if (_curStepCount[axisIdxMaxSteps] < _stepsTotalAbs[axisIdxMaxSteps])
     {
         // Step this axis
-        RobotConsts::RawMotionAxis_t *pAxisInfo = &_rawMotionHwInfo._axis[axisIdxMaxSteps];
-        if (pAxisInfo->_pinStep != -1)
-        {
-            digitalWrite(pAxisInfo->_pinStep, 1);
-        }
-        pAxisInfo->_pinStepCurLevel = 1;
+        _pMotionIO->stepStart(axisIdxMaxSteps);
         _curStepCount[axisIdxMaxSteps]++;
         if (_curStepCount[axisIdxMaxSteps] < _stepsTotalAbs[axisIdxMaxSteps])
             anyAxisMoving = true;
@@ -312,13 +296,8 @@ bool IRAM_ATTR MotionActuator::handleStepMotion(MotionBlock *pBlock)
             _curAccumulatorRelative[axisIdx] -= _stepsTotalAbs[axisIdxMaxSteps];
 
             // Step the axis
-            RobotConsts::RawMotionAxis_t *pAxisInfo = &_rawMotionHwInfo._axis[axisIdx];
-            if (pAxisInfo->_pinStep != -1)
-            {
-                digitalWrite(pAxisInfo->_pinStep, 1);
-            }
+            _pMotionIO->stepStart(axisIdx);
             // Log.trace("MotionActuator::procTick otherAxisStep: %d (ax %d)\n", pAxisInfo->_pinStep, axisIdx);
-            pAxisInfo->_pinStepCurLevel = 1;
             _curStepCount[axisIdx]++;
             if (_curStepCount[axisIdx] < _stepsTotalAbs[axisIdx])
                 anyAxisMoving = true;
@@ -354,7 +333,7 @@ volatile int maxStepRt = -1;
 // Function that handles ISR calls based on a timer
 // When ISR is enabled this is called every MotionBlock::TICK_INTERVAL_NS nanoseconds
 void IRAM_ATTR MotionActuator::_isrStepperMotion()
-{
+{    
     // Instrumentation code to time ISR execution (if enabled - see MotionInstrumentation.h)
     INSTRUMENT_MOTION_ACTUATOR_TIME_START
 

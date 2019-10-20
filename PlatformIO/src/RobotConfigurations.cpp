@@ -5,6 +5,8 @@
 
 const char *RobotConfigurations::_robotConfigs[] = {
 
+// Sand Table Scara Pi Hat 2
+
 "{"
 " \"robotType\": \"SandTableScaraPiHat2\","
 " \"cmdsAtStart\": \"\","
@@ -90,6 +92,9 @@ const char *RobotConfigurations::_robotConfigs[] = {
 " }"
 "}"
 ,
+
+// Sand Table Scara Pi Hat 3.6
+
 "{"
 " \"robotType\": \"SandTableScaraPiHat3.6\","
 " \"cmdsAtStart\": \"\","
@@ -175,6 +180,9 @@ const char *RobotConfigurations::_robotConfigs[] = {
 " }"
 "}"
 ,
+
+// Sand Table Scara Pi Hat 4
+
 "{"
 " \"robotType\": \"SandTableScaraPiHat4\","
 " \"cmdsAtStart\": \"\","
@@ -257,6 +265,9 @@ const char *RobotConfigurations::_robotConfigs[] = {
 " }"
 "}"
 ,
+
+// Sand Table Scara Matt
+
 "{"
 " \"robotType\": \"SandTableScaraMatt\","
 " \"cmdsAtStart\": \"\","
@@ -344,6 +355,9 @@ const char *RobotConfigurations::_robotConfigs[] = {
 " }"
 "}"
 ,
+
+// NEJE Master using Pi Hat 3.6
+
 "{"
 " \"robotType\": \"NejeMasterPiHat3.6\","
 " \"cmdsAtStart\": \"\","
@@ -426,6 +440,9 @@ const char *RobotConfigurations::_robotConfigs[] = {
 "   \"longOffMs\": 750"
 " }"
 "}",
+
+// NEJE Master using Pi Hat 3.9
+
 "{"
 " \"robotType\": \"NejeMasterPiHat3.9\","
 " \"cmdsAtStart\": \"\","
@@ -458,7 +475,7 @@ const char *RobotConfigurations::_robotConfigs[] = {
 "     \"maxRPM\": 200,"
 "     \"maxVal\": 200,"
 "     \"stepPin\": \"27\","
-"     \"dirnPin\": \"33\","
+"     \"muxPin1\": \"13\", \"muxPin2\": \"14\", \"muxPin3\": \"15\", \"muxDirnIdx\": \"5\","
 "     \"dirnRev\": 1,"
 "     \"endStop0\":"
 "     {"
@@ -477,7 +494,7 @@ const char *RobotConfigurations::_robotConfigs[] = {
 "     \"maxRPM\": 200,"
 "     \"maxVal\": 200,"
 "     \"stepPin\": \"12\","
-"     \"dirnPin\": \"16\","
+"     \"muxPin1\": \"13\", \"muxPin2\": \"14\", \"muxPin3\": \"15\", \"muxDirnIdx\": \"6\","
 "     \"dirnRev\": 1,"
 "     \"endStop0\":"
 "     {"
@@ -485,7 +502,25 @@ const char *RobotConfigurations::_robotConfigs[] = {
 "       \"actLvl\": 0,"
 "       \"inputType\": \"INPUT\""
 "     }"
-"   }"
+"   },\n"
+"   \"axis1\":"
+"   {"
+"     \"maxSpeed\": 50,"
+"     \"maxAcc\": 50,"
+"     \"stepsPerRot\": 3200,"
+"     \"unitsPerRot\": 16,"
+"     \"maxRPM\": 200,"
+"     \"maxVal\": 200,"
+"     \"stepPin\": \"22\","
+"     \"muxPin1\": \"13\", \"muxPin2\": \"14\", \"muxPin3\": \"15\", \"muxDirnIdx\": \"7\","
+"     \"dirnRev\": 1,"
+"     \"endStop0\":"
+"     {"
+"       \"sensePin\": \"35\","
+"       \"actLvl\": 0,"
+"       \"inputType\": \"INPUT\""
+"     }"
+"   }\n"
 " }"
 " ,\n"
 " \"fileManager\":"
@@ -499,22 +534,18 @@ const char *RobotConfigurations::_robotConfigs[] = {
 "   \"sdCS\": \"4\""
 " }"
 " ,\n"
-" \"spiMux\":"
-" {"
-"   \"selPin0\": \"13\","
-"   \"selPin1\": \"14\","
-"   \"selPin2\": \"15\""
-" }"
-" ,\n"
 " \"wifiLed\":"
 " {"
-"   \"hwPin\": \"14\","
+"   \"hwPin\": \"25\","
 "   \"onLevel\": 1,"
 "   \"onMs\": 200,"
 "   \"shortOffMs\": 200,"
 "   \"longOffMs\": 750"
 " }"
 "}",
+
+// XYBot
+
 "{"
 " \"robotType\": \"XYBot\","
 " \"cmdsAtStart\": \"\","

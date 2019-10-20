@@ -8,10 +8,9 @@
 #endif
 
 #include <ArduinoLog.h>
-#include "MotionIO.h"
 #include "MotionInstrumentation.h"
 #include "MotionBlock.h"
-#include "TrinamicController.h"
+#include "MotionIO.h"
 
 class MotionPipeline;
 
@@ -27,6 +26,9 @@ private:
 
     // Pipeline of blocks to be processed
     static MotionPipeline* _pMotionPipeline;
+
+    // Access to motors and endstops
+    static MotionIO* _pMotionIO;
 
     // Raw access to motors and endstops
     static RobotConsts::RawMotionHwInfo_t _rawMotionHwInfo;
@@ -73,10 +75,9 @@ private:
         bool val;
     };
     static EndStopChecks _endStopChecks[RobotConsts::MAX_AXES];
-    static TrinamicController* _pTrinamicController;
 
 public:
-    MotionActuator(TrinamicController* pTrinamicController, MotionPipeline* pMotionPipeline);
+    MotionActuator(MotionIO* pMotionIO, MotionPipeline* pMotionPipeline);
     static void setRawMotionHwInfo(RobotConsts::RawMotionHwInfo_t &rawMotionHwInfo);
     static void setInstrumentationMode(const char *testModeStr);
     static void deinit();

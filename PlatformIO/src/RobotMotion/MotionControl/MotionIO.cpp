@@ -67,13 +67,35 @@ bool MotionIO::configureAxis(const char *axisJSON, int axisIdx)
     if (isValid)
     {
         // Create the stepper motor for the axis
-        String dirnPinName = RdJson::getString("dirnPin", "-1", axisJSON);
         int stepPin = ConfigPinMap::getPinFromName(stepPinName.c_str());
+        String dirnPinName = RdJson::getString("dirnPin", "-1", axisJSON);
         int dirnPin = ConfigPinMap::getPinFromName(dirnPinName.c_str());
+        int muxPin1 = -1, muxPin2 = -1, muxPin3 = -1, muxDirnIdx = 0;
+        if (dirnPin == -1)
+        {
+            // Check for multiplexed pins
+            String muxName = RdJson::getString("muxPin1", "-1", axisJSON);
+            muxPin1 = ConfigPinMap::getPinFromName(muxName.c_str());
+            muxName = RdJson::getString("muxPin2", "-1", axisJSON);
+            muxPin2 = ConfigPinMap::getPinFromName(muxName.c_str());
+            muxName = RdJson::getString("muxPin3", "-1", axisJSON);
+            muxPin3 = ConfigPinMap::getPinFromName(muxName.c_str());
+            muxName = RdJson::getString("muxDirnIdx", "-1", axisJSON);
+            muxDirnIdx = ConfigPinMap::getPinFromName(muxName.c_str());
+        }
         bool directionReversed = (RdJson::getLong("dirnRev", 0, axisJSON) != 0);
-        Log.notice("%sAxis%d (step pin %d, dirn pin %d)\n", MODULE_PREFIX, axisIdx, stepPin, dirnPin);
-        if ((stepPin != -1 && dirnPin != -1))
-            _stepperMotors[axisIdx] = new StepperMotor(RobotConsts::MOTOR_TYPE_DRIVER, stepPin, dirnPin, directionReversed);
+
+        // Debug
+        if (dirnPin >= 0)
+            Log.notice("%sAxis%d (step pin %d, dirn pin %d)\n", MODULE_PREFIX, axisIdx, stepPin, dirnPin);
+        else
+            Log.notice("%sAxis%d (step pin %d, dirn pin %d, mux1 %d, mux2 %d, mux3 %d, muxDirnIdx %d)\n", 
+                        MODULE_PREFIX, axisIdx, stepPin, dirnPin, muxPin1, muxPin2, muxPin3, muxDirnIdx);
+
+        // Setup stepper
+        if ((stepPin >= 0) && ((dirnPin >= 0) || (muxPin1 >= 0)))
+            _stepperMotors[axisIdx] = new StepperMotor(RobotConsts::MOTOR_TYPE_DRIVER, stepPin, dirnPin, 
+                                muxPin1, muxPin2, muxPin3, muxDirnIdx, directionReversed);
     }
     else
     {
@@ -275,11 +297,7 @@ void MotionIO::getRawMotionHwInfo(RobotConsts::RawMotionHwInfo_t &raw)
     for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
     {
         // Initialise
-        raw._axis[axisIdx]._pinStepCurLevel = 0;
         raw._axis[axisIdx]._motorType = RobotConsts::MOTOR_TYPE_NONE;
-        raw._axis[axisIdx]._pinStep = -1;
-        raw._axis[axisIdx]._pinDirection = -1;
-        raw._axis[axisIdx]._pinDirectionReversed = 0;
         raw._axis[axisIdx]._pinEndStopMin = -1;
         raw._axis[axisIdx]._pinEndStopMinactLvl = 0;
         raw._axis[axisIdx]._pinEndStopMax = -1;
@@ -289,9 +307,6 @@ void MotionIO::getRawMotionHwInfo(RobotConsts::RawMotionHwInfo_t &raw)
         if (_stepperMotors[axisIdx])
         {
             raw._axis[axisIdx]._motorType = _stepperMotors[axisIdx]->getMotorType();
-            _stepperMotors[axisIdx]->getPins(raw._axis[axisIdx]._pinStep,
-                                                raw._axis[axisIdx]._pinDirection,
-                                                raw._axis[axisIdx]._pinDirectionReversed);
         }
         // Min endstop
         if (_endStops[axisIdx][0])
@@ -306,4 +321,27 @@ void MotionIO::getRawMotionHwInfo(RobotConsts::RawMotionHwInfo_t &raw)
                                             raw._axis[axisIdx]._pinEndStopMaxactLvl);
         }
     }
+}
+
+// Set axis direction
+void IRAM_ATTR MotionIO::setDirection(int axisIdx, bool direction)
+{
+    StepperMotor* pStepper = _stepperMotors[axisIdx];
+    if (pStepper)
+        pStepper->setDirection(direction);
+}
+
+void IRAM_ATTR MotionIO::stepStart(int axisIdx)
+{
+    StepperMotor* pStepper = _stepperMotors[axisIdx];
+    if (pStepper)
+        pStepper->stepStart();
+}
+
+bool IRAM_ATTR MotionIO::stepEnd(int axisIdx)
+{
+    StepperMotor* pStepper = _stepperMotors[axisIdx];
+    if (pStepper)
+        return pStepper->stepEnd();
+    return false;
 }

@@ -1,28 +1,28 @@
 // RBotFirmware
 // Rob Dobson 2016-19
 
-#include "TrinamicController.h"
+#include "TMC5072Controller.h"
 #include "RdJson.h"
 #include "ConfigPinMap.h"
 #include <functional>
 
-static const char* MODULE_PREFIX = "TrinamicController: ";
+static const char* MODULE_PREFIX = "TMC5072Controller: ";
 
-TrinamicController* TrinamicController::_pThisObj = NULL;
+TMC5072Controller* TMC5072Controller::_pThisObj = NULL;
 
-TrinamicController::TrinamicController()
+TMC5072Controller::TMC5072Controller()
 {
     _isEnabled = false;
     _trinamicsTimerStarted = false;
     _pThisObj = this;
 }
 
-TrinamicController::~TrinamicController()
+TMC5072Controller::~TMC5072Controller()
 {
     deinit();
 }
 
-void TrinamicController::configure(const char *configJSON)
+void TMC5072Controller::configure(const char *configJSON)
 {
     Log.verbose("%sconfigure %s\n", MODULE_PREFIX, configJSON);
 
@@ -64,7 +64,7 @@ void TrinamicController::configure(const char *configJSON)
             // Start timer
             // int id = 1;
             // _trinamicsTimerHandle = xTimerCreate("MyTimer", pdMS_TO_TICKS(TRINAMIC_TIMER_PERIOD_MS), pdTRUE, ( void * )id, 
-            //             std::bind(&TrinamicController::_timerCallback, this, std::placeholders::_1));
+            //             std::bind(&TMC5072Controller::_timerCallback, this, std::placeholders::_1));
             
             // esp_timer_create_args_t timer_args = {
             //         .callback = &timer_func,
@@ -72,7 +72,7 @@ void TrinamicController::configure(const char *configJSON)
             //         .name = "self_deleter"
             // };
             const esp_timer_create_args_t _timerArgs = {
-                        &TrinamicController::_staticTimerCb,
+                        &TMC5072Controller::_staticTimerCb,
                         NULL,
                         esp_timer_dispatch_t::ESP_TIMER_TASK,
                         "Trinamic"
@@ -88,7 +88,7 @@ void TrinamicController::configure(const char *configJSON)
     }
 }
 
-void TrinamicController::deinit()
+void TMC5072Controller::deinit()
 {
     if (_trinamicsTimerStarted)
     {
@@ -100,12 +100,12 @@ void TrinamicController::deinit()
     _isEnabled = false;
 }
 
-void TrinamicController::process()
+void TMC5072Controller::process()
 {
 
 }
 
-void TrinamicController::_timerCallback(void* arg)
+void TMC5072Controller::_timerCallback(void* arg)
 {
     Log.notice("tring\n");
 }

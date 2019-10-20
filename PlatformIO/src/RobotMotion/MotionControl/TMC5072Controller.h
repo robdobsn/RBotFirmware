@@ -5,11 +5,11 @@
 
 #include <ArduinoLog.h>
 
-class TrinamicController
+class TMC5072Controller
 {
 public:
-    TrinamicController();
-    ~TrinamicController();
+    TMC5072Controller();
+    ~TMC5072Controller();
 
     void configure(const char *configJSON);
     void deinit();
@@ -29,7 +29,7 @@ public:
     } 
 
 private:
-    static TrinamicController* _pThisObj;
+    static TMC5072Controller* _pThisObj;
 
     bool _isEnabled;
     // TimerHandle_t _trinamicsTimerHandle;

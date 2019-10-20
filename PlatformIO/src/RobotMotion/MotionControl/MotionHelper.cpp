@@ -12,7 +12,7 @@
 
 static const char* MODULE_PREFIX = "MotionHelper: ";
 
-MotionHelper::MotionHelper() : _motionActuator(&_trinamicController, &_motionPipeline),
+MotionHelper::MotionHelper() : _motionActuator(&_motionIO, &_motionPipeline),
                                _motionHoming(this)
 {
     // Init
@@ -85,7 +85,7 @@ void MotionHelper::configure(const char *robotConfigJSON)
     _motionIO.deinit();
 
     // Trinamic
-    _trinamicController.deinit();
+    _TMC5072Controller.deinit();
 
     // Configure Axes
     _axesParams.clearAxes();
@@ -107,7 +107,7 @@ void MotionHelper::configure(const char *robotConfigJSON)
     _motionHoming.configure(robotGeom.c_str());    
 
     // Trinamic controller
-    _trinamicController.configure(robotGeom.c_str());
+    _TMC5072Controller.configure(robotGeom.c_str());
 
     // MotionIO
     _motionIO.configureMotors(robotGeom.c_str());
@@ -432,7 +432,7 @@ void MotionHelper::service()
     _motionActuator.process();
 
     // Process for trinamic devices
-    _trinamicController.process();
+    _TMC5072Controller.process();
 
     // Process any split-up blocks to be added to the pipeline
     blocksToAddProcess();

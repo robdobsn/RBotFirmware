@@ -18,10 +18,6 @@ static constexpr int NUMBERED_COMMAND_NONE = 0;
 struct RawMotionAxis_t
 {
     RobotConsts::MOTOR_TYPE _motorType;
-    int _pinDirection;
-    bool _pinDirectionReversed;
-    int _pinStep;
-    volatile int _pinStepCurLevel;
     int _pinEndStopMin;
     bool _pinEndStopMinactLvl;
     int _pinEndStopMax;
