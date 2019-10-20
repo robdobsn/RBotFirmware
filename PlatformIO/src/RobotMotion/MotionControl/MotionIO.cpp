@@ -120,89 +120,89 @@ bool MotionIO::configureMotors(const char *robotConfigJSON)
     return true;
 }
 
-// Set step direction
-void MotionIO::stepDirn(int axisIdx, bool dirn)
-{
-#ifdef BOUNDS_CHECK_ISR_FUNCTIONS
-    _ASSERT(axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES);
-#endif
-    // Start dirn
-    if (_stepperMotors[axisIdx])
-        _stepperMotors[axisIdx]->stepDirn(dirn);
-}
+// // Set step direction
+// void MotionIO::stepDirn(int axisIdx, bool dirn)
+// {
+// #ifdef BOUNDS_CHECK_ISR_FUNCTIONS
+//     _ASSERT(axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES);
+// #endif
+//     // Start dirn
+//     if (_stepperMotors[axisIdx])
+//         _stepperMotors[axisIdx]->stepDirn(dirn);
+// }
 
-// Start a step
-void MotionIO::stepStart(int axisIdx)
-{
-#ifdef BOUNDS_CHECK_ISR_FUNCTIONS
-    _ASSERT(axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES);
-#endif
-    // Start step
-    if (_stepperMotors[axisIdx])
-        return _stepperMotors[axisIdx]->stepStart();
-}
+// // Start a step
+// void MotionIO::stepStart(int axisIdx)
+// {
+// #ifdef BOUNDS_CHECK_ISR_FUNCTIONS
+//     _ASSERT(axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES);
+// #endif
+//     // Start step
+//     if (_stepperMotors[axisIdx])
+//         return _stepperMotors[axisIdx]->stepStart();
+// }
 
-// Check if a step is in progress on any motor, if all such and return true, else false
-bool MotionIO::stepEnd()
-{
-    // Check if step in progress
-    bool aStepEnded = false;
-    for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
-    {
-        if (_stepperMotors[axisIdx])
-            aStepEnded = aStepEnded || _stepperMotors[axisIdx]->stepEnd();
-    }
-    return aStepEnded;
-}
+// // Check if a step is in progress on any motor, if all such and return true, else false
+// bool MotionIO::stepEnd()
+// {
+//     // Check if step in progress
+//     bool aStepEnded = false;
+//     for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+//     {
+//         if (_stepperMotors[axisIdx])
+//             aStepEnded = aStepEnded || _stepperMotors[axisIdx]->stepEnd();
+//     }
+//     return aStepEnded;
+// }
 
-void MotionIO::stepSynch(int axisIdx, bool direction)
-{
-    if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
-        return;
+// void MotionIO::stepSynch(int axisIdx, bool direction)
+// {
+//     if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
+//         return;
 
-    enableMotors(true, false);
-    if (_stepperMotors[axisIdx])
-    {
-        _stepperMotors[axisIdx]->stepSync(direction);
-    }
-    //_axisParams[axisIdx]._stepsFromHome += (direction ? 1 : -1);
-    //_axisParams[axisIdx]._lastStepMicros = micros();
-}
+//     enableMotors(true, false);
+//     if (_stepperMotors[axisIdx])
+//     {
+//         _stepperMotors[axisIdx]->stepSync(direction);
+//     }
+//     //_axisParams[axisIdx]._stepsFromHome += (direction ? 1 : -1);
+//     //_axisParams[axisIdx]._lastStepMicros = micros();
+// }
 
-void MotionIO::jump(int axisIdx, long targetPosition)
-{
-    if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
-        return;
+// void MotionIO::jump(int axisIdx, long targetPosition)
+// {
+//     if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
+//         return;
 
-    if (_servoMotors[axisIdx])
-        _servoMotors[axisIdx]->writeMicroseconds(targetPosition);
-}
+//     if (_servoMotors[axisIdx])
+//         _servoMotors[axisIdx]->writeMicroseconds(targetPosition);
+// }
 
-// Endstops
-bool MotionIO::isEndStopValid(int axisIdx, int endStopIdx)
-{
-    if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
-        return false;
-    if (endStopIdx < 0 || endStopIdx >= RobotConsts::MAX_ENDSTOPS_PER_AXIS)
-        return false;
-    return true;
-}
+// // Endstops
+// bool MotionIO::isEndStopValid(int axisIdx, int endStopIdx)
+// {
+//     if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
+//         return false;
+//     if (endStopIdx < 0 || endStopIdx >= RobotConsts::MAX_ENDSTOPS_PER_AXIS)
+//         return false;
+//     return true;
+// }
 
-bool MotionIO::isAtEndStop(int axisIdx, int endStopIdx)
-{
-    // For safety return true in these cases
-    if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
-        return true;
-    if (endStopIdx < 0 || endStopIdx >= RobotConsts::MAX_ENDSTOPS_PER_AXIS)
-        return true;
+// bool MotionIO::isAtEndStop(int axisIdx, int endStopIdx)
+// {
+//     // For safety return true in these cases
+//     if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
+//         return true;
+//     if (endStopIdx < 0 || endStopIdx >= RobotConsts::MAX_ENDSTOPS_PER_AXIS)
+//         return true;
 
-    // Test endstop
-    if (_endStops[axisIdx][endStopIdx])
-        return _endStops[axisIdx][endStopIdx]->isAtEndStop();
+//     // Test endstop
+//     if (_endStops[axisIdx][endStopIdx])
+//         return _endStops[axisIdx][endStopIdx]->isAtEndStop();
 
-    // All other cases return true (as this might be safer)
-    return true;
-}
+//     // All other cases return true (as this might be safer)
+//     return true;
+// }
 
 void MotionIO::getEndStopVals(AxisMinMaxBools& axisEndStopVals)
 {

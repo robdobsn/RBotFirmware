@@ -34,22 +34,16 @@ uint32_t MotionActuator::_curAccumulatorNS = 0;
 uint32_t MotionActuator::_curAccumulatorRelative[RobotConsts::MAX_AXES];
 int MotionActuator::_endStopCheckNum;
 MotionActuator::EndStopChecks MotionActuator::_endStopChecks[RobotConsts::MAX_AXES];
+TrinamicController* MotionActuator::_pTrinamicController = NULL;
+bool MotionActuator::_isrTimerStarted = false;
 
-MotionActuator::MotionActuator(MotionIO &motionIO, MotionPipeline* pMotionPipeline)
+MotionActuator::MotionActuator(TrinamicController* pTrinamicController, MotionPipeline* pMotionPipeline)
 {
     // Init
     _pMotionPipeline = pMotionPipeline;
+    _pTrinamicController = pTrinamicController;
     clear();
     resetTotalStepPosition();
-
-    // If we are using the ISR then create the Spark Interval Timer and start it
-#ifdef USE_ESP32_TIMER_ISR
-    _isrMotionTimer = timerBegin(0, CLOCK_RATE_MHZ, true);
-    timerAttachInterrupt(_isrMotionTimer, _isrStepperMotion, true);
-    timerAlarmWrite(_isrMotionTimer, ISR_TIMER_PERIOD_US, true);
-    timerAlarmEnable(_isrMotionTimer);
-    Log.notice("MotionActuator: Starting ISR timer\n");
-#endif
 }
 
 void MotionActuator::setRawMotionHwInfo(RobotConsts::RawMotionHwInfo_t &rawMotionHwInfo)
@@ -65,8 +59,31 @@ void MotionActuator::setInstrumentationMode(const char *testModeStr)
 #endif
 }
 
-void MotionActuator::config()
+void MotionActuator::deinit()
 {
+#ifdef USE_ESP32_TIMER_ISR
+    if (_isrTimerStarted)
+    {
+        timerAlarmDisable(_isrMotionTimer);
+        _isrTimerStarted = false;
+    }
+#endif
+}
+
+void MotionActuator::configure()
+{
+    // If we are using the ISR then create the Spark Interval Timer and start it
+#ifdef USE_ESP32_TIMER_ISR
+    if (!((_pTrinamicController) && (_pTrinamicController->isEnabled())))
+    {    
+        _isrMotionTimer = timerBegin(0, CLOCK_RATE_MHZ, true);
+        timerAttachInterrupt(_isrMotionTimer, _isrStepperMotion, true);
+        timerAlarmWrite(_isrMotionTimer, DIRECT_STEP_ISR_TIMER_PERIOD_US, true);
+        timerAlarmEnable(_isrMotionTimer);
+        Log.notice("MotionActuator: Starting ISR timer for direct stepping\n");
+        _isrTimerStarted = true;
+    }
+#endif
 }
 
 void MotionActuator::clear()
@@ -336,7 +353,7 @@ volatile int maxStepRt = -1;
 
 // Function that handles ISR calls based on a timer
 // When ISR is enabled this is called every MotionBlock::TICK_INTERVAL_NS nanoseconds
-void IRAM_ATTR MotionActuator::_isrStepperMotion(void)
+void IRAM_ATTR MotionActuator::_isrStepperMotion()
 {
     // Instrumentation code to time ISR execution (if enabled - see MotionInstrumentation.h)
     INSTRUMENT_MOTION_ACTUATOR_TIME_START

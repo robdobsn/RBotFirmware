@@ -46,11 +46,11 @@ public:
     // Motors
     void enableMotors(bool en, bool timeout);
 
-    // Set step direction
-    void stepDirn(int axisIdx, bool dirn);
+    // // Set step direction
+    // void stepDirn(int axisIdx, bool dirn);
 
-    // Start a step
-    void stepStart(int axisIdx);    
+    // // Start a step
+    // void stepStart(int axisIdx);    
 
     // Activity
     unsigned long getLastActiveUnixTime();
@@ -69,18 +69,18 @@ public:
     // Endstop info
     void getEndStopVals(AxisMinMaxBools& axisEndStopVals);
 
-private:
+// private:
 
-    // Check if a step is in progress on any motor, if all such and return true, else false
-    bool stepEnd();
+//     // Check if a step is in progress on any motor, if all such and return true, else false
+//     bool stepEnd();
 
-    // Step (blocking)
-    void stepSynch(int axisIdx, bool direction);
+//     // Step (blocking)
+//     void stepSynch(int axisIdx, bool direction);
 
-    // Jump (servo)
-    void jump(int axisIdx, long targetPosition);
+//     // Jump (servo)
+//     void jump(int axisIdx, long targetPosition);
 
-    // Endstops
-    bool isEndStopValid(int axisIdx, int endStopIdx);
-    bool isAtEndStop(int axisIdx, int endStopIdx);
+//     // Endstops
+//     bool isEndStopValid(int axisIdx, int endStopIdx);
+//     bool isAtEndStop(int axisIdx, int endStopIdx);
 };

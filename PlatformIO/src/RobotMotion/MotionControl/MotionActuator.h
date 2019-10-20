@@ -11,6 +11,7 @@
 #include "MotionIO.h"
 #include "MotionInstrumentation.h"
 #include "MotionBlock.h"
+#include "TrinamicController.h"
 
 class MotionPipeline;
 
@@ -44,8 +45,9 @@ private:
     // ISR based interval timer
     static hw_timer_t *_isrMotionTimer;
     static constexpr uint32_t CLOCK_RATE_MHZ = 80;
-    static constexpr uint32_t ISR_TIMER_PERIOD_US = uint32_t(MotionBlock::TICK_INTERVAL_NS / 1000l);
+    static constexpr uint32_t DIRECT_STEP_ISR_TIMER_PERIOD_US = uint32_t(MotionBlock::TICK_INTERVAL_NS / 1000l);
 #endif
+    static bool _isrTimerStarted;
 
 private:
     // Execution info for the currently executing block
@@ -71,12 +73,14 @@ private:
         bool val;
     };
     static EndStopChecks _endStopChecks[RobotConsts::MAX_AXES];
+    static TrinamicController* _pTrinamicController;
 
 public:
-    MotionActuator(MotionIO &motionIO, MotionPipeline* pMotionPipeline);
+    MotionActuator(TrinamicController* pTrinamicController, MotionPipeline* pMotionPipeline);
     static void setRawMotionHwInfo(RobotConsts::RawMotionHwInfo_t &rawMotionHwInfo);
     static void setInstrumentationMode(const char *testModeStr);
-    static void config();
+    static void deinit();
+    static void configure();
     static void stop();
     static void clear();
     static void pause(bool pauseIt);

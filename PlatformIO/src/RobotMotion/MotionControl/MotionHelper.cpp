@@ -12,7 +12,7 @@
 
 static const char* MODULE_PREFIX = "MotionHelper: ";
 
-MotionHelper::MotionHelper() : _motionActuator(_motionIO, &_motionPipeline),
+MotionHelper::MotionHelper() : _motionActuator(&_trinamicController, &_motionPipeline),
                                _motionHoming(this)
 {
     // Init
@@ -61,6 +61,9 @@ void MotionHelper::setTransforms(ptToActuatorFnType ptToActuatorFn, actuatorToPt
 // Configure the robot and pipeline parameters using a JSON input string
 void MotionHelper::configure(const char *robotConfigJSON)
 {
+    // Stop motion actuator
+    _motionActuator.stop();
+    
     // Config geometry
     String robotGeom = RdJson::getString("robotGeom", "NONE", robotConfigJSON);
 
@@ -81,6 +84,9 @@ void MotionHelper::configure(const char *robotConfigJSON)
     // MotionIO
     _motionIO.deinit();
 
+    // Trinamic
+    _trinamicController.deinit();
+
     // Configure Axes
     _axesParams.clearAxes();
     String axisJSON;
@@ -100,8 +106,14 @@ void MotionHelper::configure(const char *robotConfigJSON)
     // Homing
     _motionHoming.configure(robotGeom.c_str());    
 
+    // Trinamic controller
+    _trinamicController.configure(robotGeom.c_str());
+
     // MotionIO
     _motionIO.configureMotors(robotGeom.c_str());
+
+    // Start motion actuator
+    _motionActuator.configure();
 
     // Give the MotionActuator access to raw motionIO info
     // this enables ISR based motion to be faster
@@ -418,6 +430,9 @@ void MotionHelper::service()
     // Call process on motion actuator - only really used for testing as
     // motion is handled by ISR
     _motionActuator.process();
+
+    // Process for trinamic devices
+    _trinamicController.process();
 
     // Process any split-up blocks to be added to the pipeline
     blocksToAddProcess();

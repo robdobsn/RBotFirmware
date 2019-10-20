@@ -17,13 +17,15 @@ class RobotConfigurations
         for (int configIdx = 0; configIdx < _numRobotConfigurations; configIdx++)
         {
             String robotType = RdJson::getString("robotType", "", _robotConfigs[configIdx]);
-            Log.verbose("RobotConfigurations: Testing %s against %s ... %s\n", robotType.c_str(), robotTypeName, _robotConfigs[configIdx]);
+            Log.verbose("RobotConfigurations: Testing %s against %s\n", robotType.c_str(), robotTypeName);
             if (robotType.equals(robotTypeName))
             {
                 Log.trace("RobotConfigurations: Config for %s found\n", robotTypeName);
+                Log.trace("RobotConfigurations: config str %s\n", _robotConfigs[configIdx]);
                 return _robotConfigs[configIdx];
             }
         }
+        Log.trace("RobotConfigurations: Config for %s not found\n", robotTypeName);
         return "{}";
     }
 
