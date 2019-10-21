@@ -10,7 +10,7 @@
 #include "MotionIO.h"
 #include "MotionActuator.h"
 #include "MotionHoming.h"
-#include "TMC5072Controller.h"
+#include "TrinamicsController.h"
 
 class MotionHelper
 {
@@ -49,7 +49,7 @@ private:
     // Motion IO (Motors and end-stops)
     MotionIO _motionIO;
     // Trinamic Controller
-    TMC5072Controller _TMC5072Controller;
+    TrinamicsController _TrinamicsController;
     // Actuators (motors etc)
     MotionActuator _motionActuator;
     // Homing

@@ -85,7 +85,7 @@ void MotionHelper::configure(const char *robotConfigJSON)
     _motionIO.deinit();
 
     // Trinamic
-    _TMC5072Controller.deinit();
+    _TrinamicsController.deinit();
 
     // Configure Axes
     _axesParams.clearAxes();
@@ -107,7 +107,7 @@ void MotionHelper::configure(const char *robotConfigJSON)
     _motionHoming.configure(robotGeom.c_str());    
 
     // Trinamic controller
-    _TMC5072Controller.configure(robotGeom.c_str());
+    _TrinamicsController.configure(robotGeom.c_str());
 
     // MotionIO
     _motionIO.configureMotors(robotGeom.c_str());
@@ -432,7 +432,7 @@ void MotionHelper::service()
     _motionActuator.process();
 
     // Process for trinamic devices
-    _TMC5072Controller.process();
+    _TrinamicsController.process();
 
     // Process any split-up blocks to be added to the pipeline
     blocksToAddProcess();
