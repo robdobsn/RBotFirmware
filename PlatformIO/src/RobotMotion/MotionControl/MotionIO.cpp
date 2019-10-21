@@ -134,7 +134,7 @@ bool MotionIO::configureMotors(const char *robotConfigJSON)
     _stepEnLev = RdJson::getLong("stepEnLev", 1, robotConfigJSON);
     _stepEnablePin = ConfigPinMap::getPinFromName(stepEnablePinName.c_str());
     _stepDisableSecs = float(RdJson::getDouble("stepDisableSecs", stepDisableSecs_default, robotConfigJSON));
-    Log.notice("%s(pin %d, actLvl %d, disableAfter %Fs)\n", MODULE_PREFIX, _stepEnablePin, _stepEnLev, _stepDisableSecs);
+    Log.notice("%sMotorEnable(pin %d, actLvl %d, disableAfter %Fs)\n", MODULE_PREFIX, _stepEnablePin, _stepEnLev, _stepDisableSecs);
 
     // Enable pin - initially disable
     pinMode(_stepEnablePin, OUTPUT);

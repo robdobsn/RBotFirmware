@@ -31,10 +31,11 @@ public:
 
 private:
     int getPinAndConfigure(const char* configJSON, const char* pinSelector, int direction, int initValue);
-    uint8_t tmcWrite(int axisIdx, uint8_t cmd, uint32_t data);
-    uint8_t tmcRead(int axisIdx, uint8_t cmd, uint32_t* data);
-    void chipSel(int axisIdx, bool en);
+    uint64_t tmcWrite(int chipIdx, uint8_t cmd, uint32_t data);
+    uint8_t tmcRead(int chipIdx, uint8_t cmd, uint32_t* data);
+    void chipSel(int chipIdx, bool en);
     void performSel(int singleCS, int mux1, int mux2, int mux3, int muxCS, bool en);
+    uint64_t tmc5072Init(int chipIdx);
 
     static TrinamicsController* _pThisObj;
 

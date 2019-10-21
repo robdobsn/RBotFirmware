@@ -5,6 +5,7 @@
 #include "RdJson.h"
 #include "ConfigPinMap.h"
 #include "Utils.h"
+#include "TMC5072_registers.h"
 
 static const char* MODULE_PREFIX = "TrinamicsController: ";
 
@@ -102,6 +103,10 @@ void TrinamicsController::configure(const char *configJSON)
     // Timer for TMC5072 continuous handling
     if ((mcChip == "TMC5072") && _isEnabled)
     {
+        // Initialise chips
+        uint64_t retVal1 = tmc5072Init(0);
+        uint64_t retVal2 = tmc5072Init(1);
+
         // Start timer
         const esp_timer_create_args_t _timerArgs = {
                     &TrinamicsController::_staticTimerCb,
@@ -114,7 +119,9 @@ void TrinamicsController::configure(const char *configJSON)
 
         esp_timer_start_periodic(_trinamicsTimerHandle, 500000);
 
-        Log.trace("%sStarting timer for trinamics\n", MODULE_PREFIX);
+        Log.trace("%sTMC5072 Chip1Init %x,%x Chip2Init %x,%x Timer Started\n", MODULE_PREFIX,
+                    (uint32_t)(retVal1 >> 32), (uint32_t)retVal1,
+                    (uint32_t)(retVal2 >> 32), (uint32_t)retVal2);
         _trinamicsTimerStarted = true;
     }
 }
@@ -149,7 +156,54 @@ void TrinamicsController::deinit()
         // xTimerStop(_trinamicsTimerHandle, 0);
         _trinamicsTimerStarted = false;
     }
+
+    // Stop SPI
+    if (_pVSPI)
+    {
+        _pVSPI->end();
+    }
+
     _isEnabled = false;
+}
+
+uint64_t TrinamicsController::tmc5072Init(int chipIdx)
+{
+    Log.trace("%sTMC5072 Init %d cs1 %d\n", MODULE_PREFIX, chipIdx, _cs1);
+
+    // 2 phase motor control
+    uint64_t retVal = tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_CHOPCONF_1,0x00010135);      //CHOPCONF: TOFF=5, HSTRT=3, HEND=2, TBL=2, CHM=0 (spreadcycle)
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_IHOLD_IRUN_1,0x00070603);      //IHOLD_IRUN: IHOLD=3, IRUN=10 (max.current), IHOLDDELAY=6
+
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_CHOPCONF_2,0x00010135);      //CHOPCONF: TOFF=5, HSTRT=3, HEND=2, TBL=2, CHM=0 (spreadcycle)
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_IHOLD_IRUN_2,0x00070603);      //IHOLD_IRUN: IHOLD=3, IRUN=10 (max.current), IHOLDDELAY=6
+
+    // Reset positions
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_RAMPMODE_1,TMC5072_MODE_POSITION);
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_XTARGET_1, 0);
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_XACTUAL_1, 0);
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_RAMPMODE_2, TMC5072_MODE_POSITION);
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_XTARGET_2, 0);
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_XACTUAL_2, 0);
+
+    //Standard values for speed and acceleration
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_VSTART_1, 1);
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_A1_1, 5000);
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_V1_1, 26843);
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_AMAX_1, 5000);   
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_VMAX_1, 100000);
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_DMAX_1, 5000);
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_D1_1, 5000);
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_VSTOP_1, 10);
+
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_VSTART_2, 1);
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_A1_2, 5000);
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_V1_2, 26843);
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_AMAX_2, 5000);
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_VMAX_2, 100000);
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_DMAX_2, 5000);
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_D1_2, 5000);
+    tmcWrite(chipIdx, TMC5072_WRITE | TMC5072_VSTOP_2, 10);
+    return retVal;
 }
 
 int TrinamicsController::getPinAndConfigure(const char* configJSON, const char* pinSelector, int direction, int initValue)
@@ -181,53 +235,58 @@ void TrinamicsController::performSel(int singleCS, int mux1, int mux2, int mux3,
     }
 }
 
-void TrinamicsController::chipSel(int axisIdx, bool en)
+void TrinamicsController::chipSel(int chipIdx, bool en)
 {
-    if (axisIdx == 0)
+    if (chipIdx == 0)
         performSel(_cs1, _mux1, _mux2, _mux3, _muxCS1, en);
-    else if (axisIdx == 1)
+    else if (chipIdx == 1)
         performSel(_cs2, _mux1, _mux2, _mux3, _muxCS2, en);
-    else if (axisIdx == 2)
+    else if (chipIdx == 2)
         performSel(_cs3, _mux1, _mux2, _mux3, _muxCS3, en);
 }
 
-uint8_t TrinamicsController::tmcWrite(int axisIdx, uint8_t cmd, uint32_t data)
+uint64_t TrinamicsController::tmcWrite(int chipIdx, uint8_t cmd, uint32_t data)
 {
     if (!_pVSPI)
         return 0;
-
+        
     // Start SPI transaction
     _pVSPI->beginTransaction(SPISettings(SPI_CLOCK_HZ, MSBFIRST, SPI_MODE3));
 
     // Select chip
-    chipSel(axisIdx, true);
+    chipSel(chipIdx, true);
 
     // Transfer data
-    uint8_t retVal = _pVSPI->transfer(cmd);
-    _pVSPI->transfer((data>>24) & 0xFF) & 0xFF;
-    _pVSPI->transfer((data>>16) & 0xFF) & 0xFF;
-    _pVSPI->transfer((data>>8) & 0xFF) & 0xFF;
-    _pVSPI->transfer((data>>0) & 0xFF) & 0xFF;
+    uint64_t retVal = _pVSPI->transfer(cmd);
+    retVal <<= 8;
+    retVal |= _pVSPI->transfer((data>>24) & 0xFF) & 0xFF;
+    retVal <<= 8;
+    retVal |= _pVSPI->transfer((data>>16) & 0xFF) & 0xFF;
+    retVal <<= 8;
+    retVal |= _pVSPI->transfer((data>>8) & 0xFF) & 0xFF;
+    retVal <<= 8;
+    retVal |= _pVSPI->transfer((data>>0) & 0xFF) & 0xFF;
 
     // Deselect chip and end transaction
-    chipSel(axisIdx, false);
+    chipSel(chipIdx, false);
     _pVSPI->endTransaction();
+
     return retVal;    
 }
 
-uint8_t TrinamicsController::tmcRead(int axisIdx, uint8_t cmd, uint32_t* data)
+uint8_t TrinamicsController::tmcRead(int chipIdx, uint8_t cmd, uint32_t* data)
 {
     if (!_pVSPI)
         return 0;
 
     // Set read address
-    tmcWrite(axisIdx, cmd, 0UL); 
+    tmcWrite(chipIdx, cmd, 0UL); 
 
     // Start SPI transaction
     _pVSPI->beginTransaction(SPISettings(SPI_CLOCK_HZ, MSBFIRST, SPI_MODE3));
 
     // Select chip
-    chipSel(axisIdx, true);
+    chipSel(chipIdx, true);
 
     // Transfer data
     uint8_t retVal = _pVSPI->transfer(cmd);
@@ -240,7 +299,7 @@ uint8_t TrinamicsController::tmcRead(int axisIdx, uint8_t cmd, uint32_t* data)
     *data |= _pVSPI->transfer(0x00) & 0xFF;
 
     // Deselect chip and end transaction
-    chipSel(axisIdx, false);
+    chipSel(chipIdx, false);
     _pVSPI->endTransaction();
     return retVal;    
 }
@@ -273,4 +332,20 @@ void TrinamicsController::process()
 void TrinamicsController::_timerCallback(void* arg)
 {
     Log.notice("tring\n");
+
+
+    // TODO DEBUG ONLY
+    digitalWrite(21, 0);
+    if (_debugTimerLast)
+    {
+        tmcWrite(0, TMC5072_WRITE | TMC5072_XTARGET_1, 0x0007D000);  //XTARGET=512000 | 10 revolutions with micro step = 256
+        tmcWrite(0, TMC5072_WRITE | TMC5072_XTARGET_2, 0xFFF83000);  //XTARGET=-512000 | 10 revolutions with micro step = 256
+    }
+    else
+    {
+        tmcWrite(0, TMC5072_WRITE | TMC5072_XTARGET_1, 0x00000000); //XTARGET=0
+        tmcWrite(0, TMC5072_WRITE | TMC5072_XTARGET_2, 0x00000000); //XTARGET=0
+    }
+
+    _debugTimerLast = !_debugTimerLast;
 }
