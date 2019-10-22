@@ -49,7 +49,7 @@ private:
     // Motion IO (Motors and end-stops)
     MotionIO _motionIO;
     // Trinamic Controller
-    TrinamicsController _TrinamicsController;
+    TrinamicsController _trinamicsController;
     // Actuators (motors etc)
     MotionActuator _motionActuator;
     // Homing

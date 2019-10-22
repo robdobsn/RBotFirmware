@@ -36,13 +36,19 @@ int MotionActuator::_endStopCheckNum;
 MotionActuator::EndStopChecks MotionActuator::_endStopChecks[RobotConsts::MAX_AXES];
 bool MotionActuator::_isrTimerStarted = false;
 MotionIO* MotionActuator::_pMotionIO = NULL;
+bool MotionActuator::_rampGenEnabled = false;
 
 MotionActuator::MotionActuator(MotionIO* pMotionIO, MotionPipeline* pMotionPipeline)
 {
     // Init
     _pMotionPipeline = pMotionPipeline;
     _pMotionIO = pMotionIO;
-    clear();
+    _isPaused = true;
+    _endStopReached = false;
+    _lastDoneNumberedCmdIdx = RobotConsts::NUMBERED_COMMAND_NONE;
+#ifdef TEST_MOTION_ACTUATOR_ENABLE
+    _pMotionInstrumentation = NULL;
+#endif
     resetTotalStepPosition();
 }
 
@@ -70,26 +76,20 @@ void MotionActuator::deinit()
 #endif
 }
 
-void MotionActuator::configure()
+void MotionActuator::configure(bool rampGenEnabled)
 {
+    _rampGenEnabled = rampGenEnabled;
     // If we are using the ISR then create the Spark Interval Timer and start it
 #ifdef USE_ESP32_TIMER_ISR
-    Log.notice("MotionActuator: Starting ISR timer for direct stepping\n");
-    _isrMotionTimer = timerBegin(0, CLOCK_RATE_MHZ, true);
-    timerAttachInterrupt(_isrMotionTimer, _isrStepperMotion, true);
-    timerAlarmWrite(_isrMotionTimer, DIRECT_STEP_ISR_TIMER_PERIOD_US, true);
-    timerAlarmEnable(_isrMotionTimer);
-    _isrTimerStarted = true;
-#endif
-}
-
-void MotionActuator::clear()
-{
-    _isPaused = true;
-    _endStopReached = false;
-    _lastDoneNumberedCmdIdx = RobotConsts::NUMBERED_COMMAND_NONE;
-#ifdef TEST_MOTION_ACTUATOR_ENABLE
-    _pMotionInstrumentation = NULL;
+    if (_rampGenEnabled)
+    {
+        Log.notice("MotionActuator: Starting ISR timer for direct stepping\n");
+        _isrMotionTimer = timerBegin(0, CLOCK_RATE_MHZ, true);
+        timerAttachInterrupt(_isrMotionTimer, _isrStepperMotion, true);
+        timerAlarmWrite(_isrMotionTimer, DIRECT_STEP_ISR_TIMER_PERIOD_US, true);
+        timerAlarmEnable(_isrMotionTimer);
+        _isrTimerStarted = true;
+    }
 #endif
 }
 
@@ -429,10 +429,14 @@ void IRAM_ATTR MotionActuator::_isrStepperMotion()
 // Process method called by main program loop
 void MotionActuator::process()
 {
-    // If not using ISR call _isrStepperMotion on every process call
+    // If using a controller with a ramp generator then service the block handling
+    if (_rampGenEnabled)
+    {
+        // If not using ISR call _isrStepperMotion on every process call
 #ifndef USE_ESP32_TIMER_ISR
-    _isrStepperMotion();
+        _isrStepperMotion();
 #endif
+    }
 
     // Instrumentation - used to collect test information about operation of MotionActuator
     INSTRUMENT_MOTION_ACTUATOR_PROCESS

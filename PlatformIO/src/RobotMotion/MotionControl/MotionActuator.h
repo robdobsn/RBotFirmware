@@ -54,6 +54,8 @@ private:
 private:
     // Execution info for the currently executing block
     static bool _isEnabled;
+    // Ramp generation enabled
+    static bool _rampGenEnabled;
     // End-stop reached
     static bool _endStopReached;
     // Last completed numbered command
@@ -81,9 +83,9 @@ public:
     static void setRawMotionHwInfo(RobotConsts::RawMotionHwInfo_t &rawMotionHwInfo);
     static void setInstrumentationMode(const char *testModeStr);
     static void deinit();
-    static void configure();
+    static void configure(bool rampGenEnabled);
     static void stop();
-    static void clear();
+    // static void clear();
     static void pause(bool pauseIt);
     static void resetTotalStepPosition();
     static void getTotalStepPosition(AxisInt32s& actuatorPos);
@@ -96,7 +98,7 @@ public:
     static void showDebug();
 
 private:
-    static void _isrStepperMotion(void);
+    static void _isrStepperMotion();
     static bool handleStepEnd();
     static void setupNewBlock(MotionBlock *pBlock);
     static void updateMSAccumulator(MotionBlock *pBlock);

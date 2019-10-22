@@ -5,6 +5,7 @@
 
 #include <time.h>
 #include "RobotConsts.h"
+#include "TrinamicsController.h"
 
 #ifndef SPARK
 //#define BOUNDS_CHECK_ISR_FUNCTIONS    1
@@ -22,9 +23,9 @@ public:
 
 private:
     // Stepper motors
-    StepperMotor *_stepperMotors[RobotConsts::MAX_AXES];
+    StepperMotor* _stepperMotors[RobotConsts::MAX_AXES];
     // Servo motors
-    Servo *_servoMotors[RobotConsts::MAX_AXES];
+    Servo* _servoMotors[RobotConsts::MAX_AXES];
     // Step enable
     int _stepEnablePin;
     bool _stepEnLev = true;
@@ -34,7 +35,7 @@ private:
     unsigned long _motorEnLastMillis;
     time_t _motorEnLastUnixTime;
     // End stops
-    EndStop *_endStops[RobotConsts::MAX_AXES][RobotConsts::MAX_ENDSTOPS_PER_AXIS];
+    EndStop* _endStops[RobotConsts::MAX_AXES][RobotConsts::MAX_ENDSTOPS_PER_AXIS];
 
 public:
     MotionIO();
@@ -69,6 +70,7 @@ public:
     // Endstop info
     void getEndStopVals(AxisMinMaxBools& axisEndStopVals);
 
+    // Motor control
     void setDirection(int axisIdx, bool direction);
     void stepStart(int axisIdx);
     bool stepEnd(int axisIdx);

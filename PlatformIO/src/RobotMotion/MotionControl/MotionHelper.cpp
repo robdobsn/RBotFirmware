@@ -12,8 +12,10 @@
 
 static const char* MODULE_PREFIX = "MotionHelper: ";
 
-MotionHelper::MotionHelper() : _motionActuator(&_motionIO, &_motionPipeline),
-                               _motionHoming(this)
+MotionHelper::MotionHelper() : 
+            _trinamicsController(&_motionPipeline),
+            _motionActuator(&_motionIO, &_motionPipeline),
+            _motionHoming(this)
 {
     // Init
     _isPaused = false;
@@ -23,6 +25,7 @@ MotionHelper::MotionHelper() : _motionActuator(&_motionIO, &_motionPipeline),
     // Clear axis current location
     _lastCommandedAxisPos.clear();
     _motionActuator.resetTotalStepPosition();
+    _trinamicsController.resetTotalStepPosition();
     // Coordinate conversion management
     _ptToActuatorFn = NULL;
     _actuatorToPtFn = NULL;
@@ -63,6 +66,7 @@ void MotionHelper::configure(const char *robotConfigJSON)
 {
     // Stop motion actuator
     _motionActuator.stop();
+    _trinamicsController.stop();
     
     // Config geometry
     String robotGeom = RdJson::getString("robotGeom", "NONE", robotConfigJSON);
@@ -85,7 +89,7 @@ void MotionHelper::configure(const char *robotConfigJSON)
     _motionIO.deinit();
 
     // Trinamic
-    _TrinamicsController.deinit();
+    _trinamicsController.deinit();
 
     // Configure Axes
     _axesParams.clearAxes();
@@ -107,13 +111,13 @@ void MotionHelper::configure(const char *robotConfigJSON)
     _motionHoming.configure(robotGeom.c_str());    
 
     // Trinamic controller
-    _TrinamicsController.configure(robotGeom.c_str());
+    _trinamicsController.configure(robotGeom.c_str());
 
     // MotionIO
     _motionIO.configureMotors(robotGeom.c_str());
 
     // Start motion actuator
-    _motionActuator.configure();
+    _motionActuator.configure(!_trinamicsController.isRampGenerator());
 
     // Give the MotionActuator access to raw motionIO info
     // this enables ISR based motion to be faster
@@ -124,6 +128,7 @@ void MotionHelper::configure(const char *robotConfigJSON)
     // Clear motion info
     _lastCommandedAxisPos.clear();
     _motionActuator.resetTotalStepPosition();
+    _trinamicsController.resetTotalStepPosition();
 }
 
 // Check if a command can be accepted into the motion pipeline
@@ -140,6 +145,7 @@ bool MotionHelper::canAccept()
 void MotionHelper::pause(bool pauseIt)
 {
     _motionActuator.pause(pauseIt);
+    _trinamicsController.pause(pauseIt);
     _isPaused = pauseIt;
 }
 
@@ -156,6 +162,7 @@ void MotionHelper::stop()
     _stopRequested = true;
     _stopRequestTimeMs = millis();
     _motionActuator.stop();
+    _trinamicsController.stop();
     _motionPipeline.clear();
     pause(false);
     setCurPosActualPosition();
@@ -173,7 +180,10 @@ void MotionHelper::setCurPosActualPosition()
     // ensure any final step is completed
     delayMicroseconds(100);
     AxisInt32s actuatorPos;
-    _motionActuator.getTotalStepPosition(actuatorPos);
+    if (_trinamicsController.isRampGenerator())
+        _trinamicsController.getTotalStepPosition(actuatorPos);
+    else
+        _motionActuator.getTotalStepPosition(actuatorPos);
     AxisFloats curPosMM;
     if (_actuatorToPtFn)
         _actuatorToPtFn(actuatorPos, curPosMM, _lastCommandedAxisPos, _axesParams);
@@ -203,7 +213,10 @@ void MotionHelper::getCurStatus(RobotCommandArgs &args)
 {
     // Get current position
     AxisInt32s curActuatorPos;
-    _motionActuator.getTotalStepPosition(curActuatorPos);
+    if (_trinamicsController.isRampGenerator())
+        _trinamicsController.getTotalStepPosition(curActuatorPos);
+    else
+        _motionActuator.getTotalStepPosition(curActuatorPos);
     args.setPointSteps(curActuatorPos);
     // Use reverse kinematics to get location
     AxisFloats curMMPos;
@@ -420,6 +433,7 @@ void MotionHelper::service()
         {
             _blocksToAddTotal = 0;
             _motionActuator.stop();
+            _trinamicsController.stop();
             _motionPipeline.clear();
             pause(false);
             setCurPosActualPosition();
@@ -432,7 +446,7 @@ void MotionHelper::service()
     _motionActuator.process();
 
     // Process for trinamic devices
-    _TrinamicsController.process();
+    _trinamicsController.process();
 
     // Process any split-up blocks to be added to the pipeline
     blocksToAddProcess();
@@ -456,6 +470,7 @@ void MotionHelper::setCurPositionAsHome(int axisIdx)
     _lastCommandedAxisPos._axisPositionMM.setVal(axisIdx, _axesParams.getHomeOffsetVal(axisIdx));
     _lastCommandedAxisPos._stepsFromHome.setVal(axisIdx, _axesParams.gethomeOffSteps(axisIdx));
     _motionActuator.setTotalStepPosition(axisIdx, _axesParams.gethomeOffSteps(axisIdx));
+    _trinamicsController.setTotalStepPosition(axisIdx, _axesParams.gethomeOffSteps(axisIdx));
 #ifdef DEBUG_MOTION_HELPER
     Log.trace("%ssetCurPosAsHome curMM X%F Y%F Z%F steps %d,%d,%d\n", MODULE_PREFIX,
                 _lastCommandedAxisPos._axisPositionMM.getVal(0),
