@@ -5,12 +5,13 @@
 
 #include <ArduinoLog.h>
 #include <SPI.h>
+#include "../AxesParams.h"
 #include "MotionPipeline.h"
 
 class TrinamicsController
 {
 public:
-    TrinamicsController(MotionPipeline* pMotionPipeline);
+    TrinamicsController(AxesParams& axesParams, MotionPipeline& motionPipeline);
     ~TrinamicsController();
 
     void configure(const char *configJSON);
@@ -207,8 +208,11 @@ private:
     // Singleton pointer (for timer callback)
     static TrinamicsController* _pThisObj;
 
+    // Axes parameters
+    AxesParams& _axesParams;
+
     // Motion pipeline
-    MotionPipeline* _pMotionPipeline;
+    MotionPipeline& _motionPipeline;
 
     bool _isEnabled;
     bool _isRampGenerator;
@@ -245,6 +249,7 @@ private:
     SPIClass* _pVSPI;
 
     static constexpr uint32_t TRINAMIC_TIMER_PERIOD_US = 1000;
+    static constexpr double TRINAMIC_CLOCK_FACTOR = 75.0;
     static const int SPI_CLOCK_HZ = 2000000;
 
     static const int WRITE_FLAG = 1 << 7;

@@ -5,7 +5,6 @@
 
 #include <time.h>
 #include "RobotConsts.h"
-#include "TrinamicsController.h"
 
 #ifndef SPARK
 //#define BOUNDS_CHECK_ISR_FUNCTIONS    1

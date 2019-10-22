@@ -11,9 +11,9 @@ static const char* MODULE_PREFIX = "TrinamicsController: ";
 
 TrinamicsController* TrinamicsController::_pThisObj = NULL;
 
-TrinamicsController::TrinamicsController(MotionPipeline* pMotionPipeline)
+TrinamicsController::TrinamicsController(AxesParams& axesParams, MotionPipeline& motionPipeline) :
+        _axesParams(axesParams), _motionPipeline(motionPipeline)
 {
-    _pMotionPipeline = pMotionPipeline;
     _isEnabled = false;
     _isRampGenerator = false;
     _trinamicsTimerStarted = false;
@@ -198,16 +198,16 @@ uint64_t TrinamicsController::tmc5072Init(int chipIdx)
     //Standard values for speed and acceleration
     tmcWrite(chipIdx, TMC5072_VSTART_1, 1);
     tmcWrite(chipIdx, TMC5072_A1_1, 5000);
-    tmcWrite(chipIdx, TMC5072_V1_1, 26843);
+    tmcWrite(chipIdx, TMC5072_V1_1, 0);
     tmcWrite(chipIdx, TMC5072_AMAX_1, 5000);   
-    tmcWrite(chipIdx, TMC5072_VMAX_1, 100000);
+    tmcWrite(chipIdx, TMC5072_VMAX_1, 10000);
     tmcWrite(chipIdx, TMC5072_DMAX_1, 5000);
     tmcWrite(chipIdx, TMC5072_D1_1, 5000);
     tmcWrite(chipIdx, TMC5072_VSTOP_1, 10);
 
     tmcWrite(chipIdx, TMC5072_VSTART_2, 1);
     tmcWrite(chipIdx, TMC5072_A1_2, 5000);
-    tmcWrite(chipIdx, TMC5072_V1_2, 26843);
+    tmcWrite(chipIdx, TMC5072_V1_2, 0);
     tmcWrite(chipIdx, TMC5072_AMAX_2, 5000);
     tmcWrite(chipIdx, TMC5072_VMAX_2, 100000);
     tmcWrite(chipIdx, TMC5072_DMAX_2, 5000);
@@ -357,13 +357,20 @@ void TrinamicsController::updateStatus(int chipIdx)
     tmcReadLastAndSetCmd(chipIdx, TMC5072_XACTUAL_2, steps1);
     tmcReadLastAndSetCmd(chipIdx, TMC5072_XACTUAL_2, steps2);
     _tmc5072Status[chipIdx].set(tmcStatus, rampStat1, rampStat2, steps1, steps2);
-    // if (chipIdx == 0)
-    //     Log.trace("%sStatus chip%d Steps1 %d Steps2 %d Driver1 %s Driver2 %s%s\n", MODULE_PREFIX, 
-    //             chipIdx+1, 
-    //             steps1, steps2,
-    //             _tmc5072Status[chipIdx].getDriverStr(0).c_str(),
-    //             _tmc5072Status[chipIdx].getDriverStr(1).c_str(),
-    //             _tmc5072Status[chipIdx].getStatusStr().c_str());
+
+    if (Utils::isTimeout(millis(), _debugTimerLast, 5000))
+    {
+        if (chipIdx == 0)
+        {
+            Log.trace("%sStatus chip%d Steps1 %d Steps2 %d Driver1 %s Driver2 %s%s\n", MODULE_PREFIX, 
+                    chipIdx+1, 
+                    steps1, steps2,
+                    _tmc5072Status[chipIdx].getDriverStr(0).c_str(),
+                    _tmc5072Status[chipIdx].getDriverStr(1).c_str(),
+                    _tmc5072Status[chipIdx].getStatusStr().c_str());
+            _debugTimerLast = millis();
+        }
+    }
 
     // Update total steps moved
     _totalStepsMoved[chipIdx * 2] = steps1;
@@ -388,7 +395,7 @@ void TrinamicsController::tmc5072SendCmd(int axisIdx, uint8_t baseCmd, uint32_t 
         cmd += TMC5072_MOTOR1;
     else
         cmd += TMC5072_MOTOR0;   
-    // Log.trace("Sending command %x to chip %d data %x\n", cmd, chipIdx, data);
+    // Log.trace("C%d CMD %x %x\n", chipIdx, cmd, data);
     tmcWrite(chipIdx, cmd, data);
 }
 
@@ -426,7 +433,7 @@ void TrinamicsController::_timerCallback(void* arg)
     }
 
     // Peek a MotionPipelineElem from the queue
-    MotionBlock *pBlock = _pMotionPipeline->peekGet();
+    MotionBlock *pBlock = _motionPipeline.peekGet();
     if (!pBlock)
     {
         // Log.trace("Nothing in pipe\n");
@@ -447,9 +454,24 @@ void TrinamicsController::_timerCallback(void* arg)
     // New block
     if (blockIsNew)
     {
-        // Log.trace("+%d+", pBlock->_stepsTotalMaybeNeg[0]);
+        // Log.trace("%F %F %F\n", pBlock->_entrySpeedMMps, pBlock->_exitSpeedMMps, pBlock->_feedrate);
 
         // Handle the motion by requesting the controller to make the move
+        int32_t maxAxisSteps = pBlock->_stepsTotalMaybeNeg[pBlock->_axisIdxWithMaxSteps];
+        float entrySpeedFactor = pBlock->_entrySpeedMMps / pBlock->_feedrate;
+        float exitSpeedFactor = pBlock->_exitSpeedMMps / pBlock->_feedrate;
+        for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+        {
+            // Set VMAX based on the distance each axis will travel
+            uint32_t axisVMax = (uint32_t)(100000 * fabs(pBlock->_stepsTotalMaybeNeg[axisIdx])/(float)maxAxisSteps);
+            uint32_t axisVStart = axisVMax * entrySpeedFactor;
+            tmc5072SendCmd(axisIdx, TMC5072_VSTART, axisVStart);
+            tmc5072SendCmd(axisIdx, TMC5072_VMAX, axisVMax);
+            uint32_t axisVStop = axisVMax * exitSpeedFactor;
+            if (axisVStop < 10)
+                axisVStop = 10;
+            tmc5072SendCmd(axisIdx, TMC5072_VSTOP, axisVMax);
+        }
         for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
         {
             tmc5072SendCmd(axisIdx, TMC5072_XTARGET, 
@@ -461,7 +483,7 @@ void TrinamicsController::_timerCallback(void* arg)
         if (!isMoving)
         {
             // Log.trace("Removing\n");
-            _pMotionPipeline->remove();
+            _motionPipeline.remove();
             // Check if this is a numbered block - if so record its completion
             if (pBlock->getNumberedCommandIndex() != RobotConsts::NUMBERED_COMMAND_NONE)
                 _lastDoneNumberedCmdIdx = pBlock->getNumberedCommandIndex();            

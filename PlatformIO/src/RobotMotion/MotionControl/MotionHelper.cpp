@@ -13,7 +13,7 @@
 static const char* MODULE_PREFIX = "MotionHelper: ";
 
 MotionHelper::MotionHelper() : 
-            _trinamicsController(&_motionPipeline),
+            _trinamicsController(_axesParams, _motionPipeline),
             _motionActuator(&_motionIO, &_motionPipeline),
             _motionHoming(this)
 {
