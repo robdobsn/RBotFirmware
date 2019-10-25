@@ -24,7 +24,7 @@ private:
     volatile bool _isPaused;
 
     // Steps moved in total and increment based on direction
-    volatile int32_t _totalStepsMoved[RobotConsts::MAX_AXES];
+    volatile int32_t _axisTotalSteps[RobotConsts::MAX_AXES];
     volatile int32_t _totalStepsInc[RobotConsts::MAX_AXES];
 
     // Pipeline of blocks to be processed

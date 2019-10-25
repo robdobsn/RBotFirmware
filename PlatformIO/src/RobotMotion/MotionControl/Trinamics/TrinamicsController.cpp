@@ -28,6 +28,12 @@ TrinamicsController::TrinamicsController(AxesParams& axesParams, MotionPipeline&
         _axisIdxToChipDriverIdx[i] = i;
     for (int i = 0; i < MAX_TMC5072*MAX_TMC_DRIVERS_PER_CHIP; i++)
         _chipDriverIdxToAxisIdx[i] = i;
+    for (int i = 0; i < RobotConsts::MAX_AXES; i++)
+    {
+        _axisTargetSteps[i] = 0;
+        _axisMinDistForNextBlockStart[i] = MIN_STEP_DIST_FOR_NEXT_BLOCK_START_DEFAULT;
+    }
+    resetTotalStepPosition();
 }
 
 TrinamicsController::~TrinamicsController()
@@ -260,12 +266,16 @@ void TrinamicsController::tmc5072Init()
                     _axisSettings[axisIdx].iHoldDelay);
     }
 
-    for (int chipIdx = 0; chipIdx < MAX_TMC2130; chipIdx++)
+    for (int chipIdx = 0; chipIdx < MAX_TMC5072; chipIdx++)
     {
         // GCONF: 0x100 = driver 1 reversed, 0x200 = driver 2 reversed
-        uint32_t gConfValue = 
-                        (_axisSettings[_chipDriverIdxToAxisIdx[chipIdx]].reversed ? 0x100 : 0) ||
-                        (_axisSettings[_chipDriverIdxToAxisIdx[chipIdx+1]].reversed ? 0x200 : 0);
+        uint32_t gConfValue = 0;
+        int axisIdx = _chipDriverIdxToAxisIdx[chipIdx*MAX_TMC_DRIVERS_PER_CHIP];
+        if ((axisIdx >= 0) && (axisIdx < RobotConsts::MAX_AXES))
+            gConfValue |= (_axisSettings[axisIdx].reversed ? 0x100 : 0);
+        axisIdx = _chipDriverIdxToAxisIdx[chipIdx*MAX_TMC_DRIVERS_PER_CHIP+1];
+        if ((axisIdx >= 0) && (axisIdx < RobotConsts::MAX_AXES))
+            gConfValue |= (_axisSettings[axisIdx].reversed ? 0x200 : 0);
         uint64_t retVal = tmcWrite(chipIdx, TMC5072_GCONF, gConfValue);
 
         // Reset positions
@@ -458,8 +468,12 @@ void TrinamicsController::updateStatus(int chipIdx)
     }
 
     // Update total steps moved
-    _totalStepsMoved[chipIdx * 2] = steps1;
-    _totalStepsMoved[chipIdx * 2 + 1] = steps2;
+    int axisIdx = _chipDriverIdxToAxisIdx[chipIdx*MAX_TMC_DRIVERS_PER_CHIP];
+    if ((axisIdx >= 0) && (axisIdx < RobotConsts::MAX_AXES))
+        _axisTotalSteps[axisIdx] = steps1;
+    axisIdx = _chipDriverIdxToAxisIdx[chipIdx*MAX_TMC_DRIVERS_PER_CHIP+1];
+    if ((axisIdx >= 0) && (axisIdx < RobotConsts::MAX_AXES))
+        _axisTotalSteps[axisIdx] = steps2;
 
     // Check if we need to clear flags by reading GSTAT
     if (_tmc5072Status[chipIdx].isGstatClearNeeded())
@@ -487,6 +501,20 @@ void TrinamicsController::tmc5072SendCmd(int axisIdx, uint8_t baseCmd, uint32_t 
     // Debug
     // if (axisIdx == 0)
     //     Log.trace("C%d CMD %x %x\n", chipIdx, cmd, data);
+}
+
+bool TrinamicsController::isCloseToDestination()
+{
+    for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
+    {
+        // Log.trace("TEST AXIS %d %d %d %d\n", axisIdx, 
+        //         _axisTargetSteps[axisIdx], _axisTotalSteps[axisIdx], _axisMinDistForNextBlockStart[axisIdx]);
+        if (std::abs(_axisTargetSteps[axisIdx] - _axisTotalSteps[axisIdx]) > _axisMinDistForNextBlockStart[axisIdx])
+        {
+                return false;
+        }
+    }
+    return true;
 }
 
 void TrinamicsController::_timerCallback(void* arg)
@@ -541,6 +569,48 @@ void TrinamicsController::_timerCallback(void* arg)
     bool blockIsNew = !pBlock->_isExecuting;
     pBlock->_isExecuting = true;
 
+    // Existing block
+    bool debugBlockCompleteCode = 0;
+    if (!blockIsNew)
+    {
+        bool blockFinished = false;
+        if (!isMoving)
+        {
+            // Log.trace("Removing\n");
+            _motionPipeline.remove();
+            blockFinished = true;
+            debugBlockCompleteCode = 1;
+            // Check if this is a numbered block - if so record its completion
+            if (pBlock->getNumberedCommandIndex() != RobotConsts::NUMBERED_COMMAND_NONE)
+                _lastDoneNumberedCmdIdx = pBlock->getNumberedCommandIndex();
+        }
+        else if (pBlock->getNumberedCommandIndex() == RobotConsts::NUMBERED_COMMAND_NONE)
+        {
+            // Check if close to destination
+            if (isCloseToDestination())
+            {
+                // Remove block and 
+                _motionPipeline.remove();
+                blockFinished = true;
+                debugBlockCompleteCode = 2;
+            }
+        }
+
+        // Check if we finished a block and, if so, see if there's a new one waiting
+        if (blockFinished)
+        {
+            // Peek a MotionPipelineElem from the queue
+            // Check if the element can be executed
+            MotionBlock *pBlock = _motionPipeline.peekGet();
+            if (pBlock && pBlock->_canExecute)
+            {
+                // Should be new!
+                blockIsNew = !pBlock->_isExecuting;
+                pBlock->_isExecuting = true;
+            }
+        }
+    }
+
     // New block
     if (blockIsNew)
     {
@@ -565,26 +635,23 @@ void TrinamicsController::_timerCallback(void* arg)
             //         axisVMax, axisVStart, axisVStop);
             tmc5072SendCmd(axisIdx, TMC5072_VSTOP, axisVMax);
         }
+        
+        // Send commnands for each axis movement
         for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
         {
-            tmc5072SendCmd(axisIdx, TMC5072_XTARGET, 
-                        _totalStepsMoved[axisIdx] + pBlock->_stepsTotalMaybeNeg[axisIdx]);
-        }
-    }
-    else
-    {
-        if (!isMoving)
-        {
-            // Log.trace("Removing\n");
-            _motionPipeline.remove();
-            // Check if this is a numbered block - if so record its completion
-            if (pBlock->getNumberedCommandIndex() != RobotConsts::NUMBERED_COMMAND_NONE)
-                _lastDoneNumberedCmdIdx = pBlock->getNumberedCommandIndex();            
-        }
-        else
-        {
-            // Log.trace("Is Moving\n");
+            _axisTargetSteps[axisIdx] = _axisTotalSteps[axisIdx] + pBlock->_stepsTotalMaybeNeg[axisIdx];
+            tmc5072SendCmd(axisIdx, TMC5072_XTARGET, _axisTargetSteps[axisIdx]);
+
+            // Log.trace("TARGET %d, %d, %d Total %d %d %d\n", 
+            //     _axisTargetSteps[0], _axisTargetSteps[1], _axisTargetSteps[2], 
+            //     _axisTotalSteps[0], _axisTotalSteps[1], _axisTotalSteps[2]);
         }
     }
 
+    // Debug
+    if (debugBlockCompleteCode != 0)
+        Log.trace("BLOCK COMPLETE CODE %d Target %d, %d, %d Total %d %d %d\n", 
+                debugBlockCompleteCode,
+                _axisTargetSteps[0], _axisTargetSteps[1], _axisTargetSteps[2], 
+                _axisTotalSteps[0], _axisTotalSteps[1], _axisTotalSteps[2]);
 }

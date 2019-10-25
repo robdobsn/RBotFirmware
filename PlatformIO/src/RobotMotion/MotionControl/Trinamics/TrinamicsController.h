@@ -172,20 +172,20 @@ public:
     {
         for (int i = 0; i < RobotConsts::MAX_AXES; i++)
         {
-            _totalStepsMoved[i] = 0;
+            _axisTotalSteps[i] = 0;
         }
     }
     void getTotalStepPosition(AxisInt32s& actuatorPos)
     {
         for (int i = 0; i < RobotConsts::MAX_AXES; i++)
         {
-            actuatorPos.setVal(i, _totalStepsMoved[i]);
+            actuatorPos.setVal(i, _axisTotalSteps[i]);
         }
     }
     void setTotalStepPosition(int axisIdx, int32_t stepPos)
     {
         if ((axisIdx >= 0) && (axisIdx < RobotConsts::MAX_AXES))
-            _totalStepsMoved[axisIdx] = stepPos;
+            _axisTotalSteps[axisIdx] = stepPos;
     }
     int getLastCompletedNumberedCmdIdx()
     {
@@ -193,6 +193,9 @@ public:
     }
 
 private:
+    // Min number of steps left in a block move before the next block is started
+    static const int MIN_STEP_DIST_FOR_NEXT_BLOCK_START_DEFAULT = 500;
+
     // TMC chips
     static const int MAX_TMC2130 = 3;
     static constexpr int MAX_TMC5072 = 2;
@@ -223,6 +226,7 @@ private:
     void tmc5072SendCmd(int axisIdx, uint8_t baseCmd, uint32_t data);
     uint32_t getUint32WithBaseFromConfig(const char* dataPath, uint32_t defaultValue,
                             const char* pSourceStr);
+    bool isCloseToDestination();
 
     // TMC5072 status
     tmc5072Status_t _tmc5072Status[MAX_TMC5072];
@@ -272,7 +276,13 @@ private:
     int _lastDoneNumberedCmdIdx;
 
     // Steps moved in total
-    int32_t _totalStepsMoved[RobotConsts::MAX_AXES];
+    int32_t _axisTotalSteps[RobotConsts::MAX_AXES];
+
+    // Target step position
+    int32_t _axisTargetSteps[RobotConsts::MAX_AXES];
+
+    // Min step distance for next block start
+    int32_t _axisMinDistForNextBlockStart[RobotConsts::MAX_AXES];
 
     // SPI
     int _miso;

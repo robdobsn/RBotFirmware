@@ -18,7 +18,7 @@ INSTRUMENT_MOTION_ACTUATOR_INSTANCE
 // #endif
 
 // Static refrerence to a single RampGenerator instance
-// volatile int32_t RampGenerator::_totalStepsMoved[RobotConsts::MAX_AXES];
+// volatile int32_t RampGenerator::_axisTotalSteps[RobotConsts::MAX_AXES];
 // volatile int32_t RampGenerator::_totalStepsInc[RobotConsts::MAX_AXES];
 // RobotConsts::RawMotionHwInfo_t RampGenerator::_rawMotionHwInfo;
 // MotionPipeline* RampGenerator::_pMotionPipeline = NULL;
@@ -137,7 +137,7 @@ void RampGenerator::resetTotalStepPosition()
 {
     for (int i = 0; i < RobotConsts::MAX_AXES; i++)
     {
-        _totalStepsMoved[i] = 0;
+        _axisTotalSteps[i] = 0;
         _totalStepsInc[i] = 0;
     }
 }
@@ -145,13 +145,13 @@ void RampGenerator::getTotalStepPosition(AxisInt32s& actuatorPos)
 {
     for (int i = 0; i < RobotConsts::MAX_AXES; i++)
     {
-        actuatorPos.setVal(i, _totalStepsMoved[i]);
+        actuatorPos.setVal(i, _axisTotalSteps[i]);
     }
 }
 void RampGenerator::setTotalStepPosition(int axisIdx, int32_t stepPos)
 {
     if ((axisIdx >= 0) && (axisIdx < RobotConsts::MAX_AXES))
-        _totalStepsMoved[axisIdx] = stepPos;
+        _axisTotalSteps[axisIdx] = stepPos;
 }
 void RampGenerator::clearEndstopReached()
 {
@@ -177,7 +177,7 @@ bool IRAM_ATTR RampGenerator::handleStepEnd()
         if (_rampGenIO.stepEnd(axisIdx))
         {
             anyPinReset = true;
-            _totalStepsMoved[axisIdx] += _totalStepsInc[axisIdx];
+            _axisTotalSteps[axisIdx] += _totalStepsInc[axisIdx];
         }
     }
     return anyPinReset;
