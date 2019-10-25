@@ -2,4 +2,4 @@
 from RdGenResources import RdGenResources
 
 RdGenResources.generateResourceFile({"DEFAULT_TITLE": "RBot", 
-            "DEFAULT_UI": "ComboUI", "MINIFY":True})
+            "DEFAULT_UI": "ui", "MINIFY":True})

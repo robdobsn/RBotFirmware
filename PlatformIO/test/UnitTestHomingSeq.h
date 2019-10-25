@@ -7,7 +7,7 @@
 #include <ArduinoLog.h>
 
 static const char* UnitTestHomingSeq_Test1_Config = R"strDelim( 
-    {"robotType":"SandTableScaraPiHat3.6","cmdsAtStart":"","webui":"SandUI","evaluators":{"thrContinue":0},
+    {"robotType":"SandTableScaraPiHat3.6","cmdsAtStart":"","webui":"sand","evaluators":{"thrContinue":0},
     "robotGeom":{"model":"SingleArmScara",
     "homing":{"homingSeq":"A-10000n;B10000;#;A+10000N;B-10000;#;A+500;B-500;#;B+10000n;#;B-10000N;#;B-1050;#;A=h;B=h;$","maxHomingSecs":120},
     "blockDistanceMM":1,"allowOutOfBounds":0,"stepEnablePin":"21","stepEnLev":0,"stepDisableSecs":10,
@@ -52,7 +52,7 @@ static char const* UnitTestHomingSeq_Test1_JsonRslts[] = {
 
 
 static const char* UnitTestHomingSeq_Test2_Config = R"strDelim( 
-    {"robotType":"SandTableScaraMatt","cmdsAtStart":"g28","webui":"SandUI","evaluators":{"thrContinue":0},
+    {"robotType":"SandTableScaraMatt","cmdsAtStart":"g28","webui":"sand","evaluators":{"thrContinue":0},
     "robotGeom":{"model":"SingleArmScara","homing":{"homingSeq":"FS1000;A-10000N;B+10000#;A-10000n;B+10000S2000;#;FR60;A+470;B-470;#;B-10000S2200N;#;B10000R120n;#;B+850R240;#;A=h;B=h;$","maxHomingSecs":120},
     "blockDistanceMM":1,"allowOutOfBounds":0,"stepEnablePin":"12","stepEnLev":0,"stepDisableSecs":10,
     "axis0":{"maxSpeed":50,"maxAcc":50,"maxRPM":20,"stepsPerRot":9600,"unitsPerRot":628.318,"maxVal":190,"stepPin":"14","dirnPin":"32","endStop0":{"sensePin":"36","actLvl":0,"inputType":"INPUT_PULLUP"}},

@@ -1,5 +1,5 @@
 <!-- RBotFirmware CNC Control
-        by Rob Dobson (c) 2017
+        by Rob Dobson (c) 2017..2019
         MIT license
 -->
 <!DOCTYPE html>
@@ -949,10 +949,12 @@
         }
         #container {
             display: flex;
-            flex-wrap: wrap;
-
+            flex-direction: column;
         }
 
+        .uiLineBlock {
+            display: flex;
+        }
         .uiBlock {
             margin: 5px;
             align-items: baseline;
@@ -1087,6 +1089,9 @@
             border-top-right-radius: 3px;
         }
         
+        .uiPanelMovement {
+
+        }
         .uiTable {
             border: 0;
             width: 100%;
@@ -1122,6 +1127,7 @@
         }
         .uiTableFiles {
             margin-bottom: 15px;
+            min-width: 700px;
         }
 
         .uiTableLeftAligned {
@@ -1131,6 +1137,16 @@
             border: 1px solid #ddd;
             min-width: 60px;
             padding:5px;
+        }
+        .uiTableSettings {
+            min-width: 700px;
+        }
+        .uiTableStatus {
+            min-width: 335px;
+            min-height: 394px;
+        }
+        .uiTableStatus td {
+            font-size:1.1rem;
         }
         .th-statusGrid {
             width: 100px;
@@ -1161,6 +1177,7 @@
             width: 350px;
             table-layout: fixed;
             border-collapse: separate;
+            margin: 0 2px;
         }
         .btn-group > .btn:first-child:not(:last-child):not(.dropdown-toggle) {
             border-top-right-radius: 0;
@@ -1204,405 +1221,409 @@
 <body onload="bodyIsLoaded(event)">
     <!-- Master layout -->
     <div id="container">
-        <div class="uiBlock">
-            <button type="button" id="button-connect" class="btn btn-action" onclick="reconnect(event)">
-                <svg class="icon-connect">
-                    <use xlink:href = "#icon-log-in"></use>
-                </svg>
-                <span>Connect</span>
-            </button>
-        </div>
-        <div class="uiBlock">
-            <div class="uiForm">
-                <input type="text" name="gcode" class="form-control" onkeypress="gcodeInputKeyPress" placeholder="G-Code ..." id="gcodeSendBox">
-                <button type="submit" id="gcodeSendButton" class="btn btn-default" title="Send G-Code" onclick="sendGcodeFromInput(event)">
-                    <svg class="icon-action">
-                        <use xlink:href="#icon-send"></use>
-                    </svg>
-                    <span>Send</span>
-                </button>
-            </div>
-        </div>
-
-        <div class="uiBlock">
-            <div class="uiForm">
-                <button id="btnStreamGCode" class="btn btn-default" title="Stream a G-Code file" onclick="btnStreamGcode(event)" >
-                    <svg class="icon-action">
-                        <use xlink:href="#icon-upload"></use>
-                    </svg>
-                    <span>Stream</span>
-                </button>
-                <span id="txtUploadStatus" class="txt-status"></span>
-                <button id="btnStreamGCodeCancel" class="btn btn-default disabled" title="Cancel upload" onclick="btnStreamGCodeCancel(event)" disabled >
-                    <svg class="icon-action">
-                        <use xlink:href="#ico-cncl"></use>
-                    </svg>
-                    <span>Cancel</span>
-                </button>
-            </div>
-        </div>
-
-        <div class="uiBlock">
-            <div class="uiForm">
-                <button type="button" class="btn btn-action" onclick="pauseRobot(event)">
+        <div class="uiLineBlock">
+            <div class="uiBlock">
+                <button type="button" id="button-connect" class="btn btn-action" onclick="reconnect(event)">
                     <svg class="icon-connect">
-                        <use xlink:href = "#ico-pause"></use>
+                        <use xlink:href = "#icon-log-in"></use>
                     </svg>
-                    <span>Pause</span>
-                </button>
-                <button type="button" class="btn btn-action" onclick="resumeRobot(event)">
-                    <svg class="icon-connect">
-                        <use xlink:href = "#ico-play"></use>
-                    </svg>
-                    <span>Resume</span>
-                </button>
-                <button type="button" class="btn btn-action" onclick="stopRobot(event)">
-                    <svg class="icon-connect">
-                        <use xlink:href = "#ico-stop"></use>
-                    </svg>
-                    <span>Stop</span>
+                    <span>Connect</span>
                 </button>
             </div>
-        </div>
-
-        <div class="uiBlock">
-            <div class="uiPanel">
-                <div class="uiPanelHead">
-                    <span>Status</span>
-                </div>
-                <table class="uiTable uiTableGrid">
-                    <tbody>
-                    <tr>
-                        <th class="th-status"></th>
-                        <th id="th_X">X</th>
-                        <th id="th_Y">Y</th>
-                        <th id="th_Z" style="border-right: 1px;">Z</th>
-                    </tr>
-                    <tr>
-                        <th class="th-status">Position</th>
-                        <td id="td_X">n/a</td>
-                        <td id="td_Y">n/a</td>
-                        <td id="td_Z" style="border-right: 1px;">n/a</td>
-                    </tr>
-                    <tr>
-                        <th class="th-status">Steps</th>
-                        <td id="td_stepX">n/a</td>
-                        <td id="td_stepY">n/a</td>
-                        <td id="td_stepZ" style="border-right: 1px;">n/a</td>
-                    </tr>
-                    <tr>
-                        <th class="th-status">Min-stop</th>
-                        <td id="td_minX">n/a</td>
-                        <td id="td_minY">n/a</td>
-                        <td id="td_minZ" style="border-right: 1px;">n/a</td>
-                    </tr>
-                    <tr>
-                        <th class="th-status">Max-stop</th>
-                        <td id="td_maxX">n/a</td>
-                        <td id="td_maxY">n/a</td>
-                        <td id="td_maxZ" style="border-right: 1px;">n/a</td>
-                    </tr>
-                    <tr>
-                        <th class="th-status">State</th>
-                        <td id="td_robotState" colspan="3" style="border-right: 1px;"></td>
-                    </tr>
-                    <tr>
-                        <th class="th-status">QueueLen</th>
-                        <td id="td_robotQueueLen" colspan="3" style="border-right: 1px;"></td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="uiBlock">
-            <div class="uiPanel">
-                <div class="uiPanelHead">
-                    <span>Movement</span>
-                </div>
-                <div class="uiTable uiTblBtns tableMovement">
-                    <tr>
-                        <td class="home-buttons visible-lg">
-                            <div class="btn-group extra-space-above" role="group">
-                                <button class="btn btn-primary" title="Home All (G28)" onclick="goHomeClick(-1)">
-                                    <span>Home All</span>
-                                </button>
-                                <button class="btn btn-primary" title="Home X axis (G28 X)" onclick="goHomeClick(0)">
-                                    <span>Go Home X</span>
-                                </button>
-                                <button class="btn btn-primary" title="Home X axis (G92 X)" onclick="setHomeClick(0)">
-                                    <span>Set Home X</span>
-                                </button>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="btn-group btn-group-justified" role="group">
-                                <a class="btn btn-default" onclick="moveClick(0,-100)">
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-lc"></use>
-                                    </svg>
-                                    <span>X-100</span>
-                                </a>
-                                <a class="btn btn-default" onclick="moveClick(0,-10)">
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-lc"></use>
-                                    </svg>
-                                    <span>X-10</span>
-                                </a>
-                                <a class="btn btn-default" onclick="moveClick(0,-1)">
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-lc"></use>
-                                    </svg>
-                                    <span>X-1</span>
-                                </a>
-                                <a class="btn btn-default" onclick="moveClick(0,-0.1)">
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-lc"></use>
-                                    </svg>
-                                    <span>X-0.1</span>
-                                </a>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="btn-group btn-group-justified" role="group">
-                                <a class="btn btn-default" onclick="moveClick(0,0.1)">
-                                    <span>X+0.1</span>
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-rc"></use>
-                                    </svg>
-                                </a>
-                                <a class="btn btn-default" onclick="moveClick(0,1)">
-                                    <span>X+1</span>
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-rc"></use>
-                                    </svg>
-                                </a>
-                                <a class="btn btn-default" onclick="moveClick(0,10)">
-                                    <span>X+10</span>
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-rc"></use>
-                                    </svg>
-                                </a>
-                                <a class="btn btn-default" onclick="moveClick(0,100)">
-                                    <span>X+100</span>
-
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-rc"></use>
-                                    </svg>
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="home-buttons visible-lg">
-                            <div class="btn-group" role="group">
-                                <button class="btn btn-primary" title="Home Y axis (G28 Y)" onclick="goHomeClick(1)">
-                                    <span>Go Home Y</span>
-                                </button>
-                                <button class="btn btn-primary" title="Home Y axis (G92 Y)" onclick="setHomeClick(1)">
-                                    <span>Set Home Y</span>
-                                </button>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="btn-group btn-group-justified" role="group">
-                                <a class="btn btn-default" onclick="moveClick(1,-100)">
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-lc"></use>
-                                    </svg>
-                                    <span>Y-100</span>
-                                </a>
-                                <a class="btn btn-default" onclick="moveClick(1,-10)">
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-lc"></use>
-                                    </svg>
-                                    <span>Y-10</span>
-                                </a>
-                                <a class="btn btn-default" onclick="moveClick(1,-1)">
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-lc"></use>
-                                    </svg>
-                                    <span>Y-1</span>
-                                </a>
-                                <a class="btn btn-default" onclick="moveClick(1,-0.1)">
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-lc"></use>
-                                    </svg>
-                                    <span>Y-0.1</span>
-                                </a>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="btn-group btn-group-justified" role="group">
-                                <a class="btn btn-default" onclick="moveClick(1,0.1)">
-                                    <span>Y+0.1</span>
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-rc"></use>
-                                    </svg>
-                                </a>
-                                <a class="btn btn-default" onclick="moveClick(1,1)">
-                                    <span>Y+1</span>
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-rc"></use>
-                                    </svg>
-                                </a>
-                                <a class="btn btn-default" onclick="moveClick(1,10)">
-                                    <span>Y+10</span>
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-rc"></use>
-                                    </svg>
-                                </a>
-                                <a class="btn btn-default" onclick="moveClick(1,100)">
-                                    <span>Y+100</span>
-
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-rc"></use>
-                                    </svg>
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="home-buttons visible-lg">
-                            <div class="btn-group" role="group">
-                                <button class="btn btn-primary" title="Home Z axis (G28 Z)" onclick="goHomeClick(2)">
-                                    <span>Go Home Z</span>
-                                </button>
-                                <button class="btn btn-primary" title="Home Z axis (G92 Z)" onclick="setHomeClick(2)">
-                                    <span>Set Home Z</span>
-                                </button>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="btn-group btn-group-justified" role="group">
-                                <a class="btn btn-default" onclick="moveClick(2,-100)">
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-lc"></use>
-                                    </svg>
-                                    <span>Z-100</span>
-                                </a>
-                                <a class="btn btn-default" onclick="moveClick(2,-10)">
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-lc"></use>
-                                    </svg>
-                                    <span>Z-10</span>
-                                </a>
-                                <a class="btn btn-default" onclick="moveClick(2,-1)">
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-lc"></use>
-                                    </svg>
-                                    <span>Z-1</span>
-                                </a>
-                                <a class="btn btn-default" onclick="moveClick(2,-0.1)">
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-lc"></use>
-                                    </svg>
-                                    <span>Z-0.1</span>
-                                </a>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="btn-group btn-group-justified" role="group">
-                                <a class="btn btn-default" onclick="moveClick(2,0.1)">
-                                    <span>Z+0.1</span>
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-rc"></use>
-                                    </svg>
-                                </a>
-                                <a class="btn btn-default" onclick="moveClick(2,1)">
-                                    <span>Z+1</span>
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-rc"></use>
-                                    </svg>
-                                </a>
-                                <a class="btn btn-default" onclick="moveClick(2,10)">
-                                    <span>Z+10</span>
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-rc"></use>
-                                    </svg>
-                                </a>
-                                <a class="btn btn-default" onclick="moveClick(2,100)">
-                                    <span>Z+100</span>
-
-                                    <svg class="icon-action">
-                                        <use xlink:href="#ico-rc"></use>
-                                    </svg>
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                </div>
-            </div>
-        </div>
-
-        <div class="uiBlock">
-            <div class="uiPanel">
-                <div class="uiPanelHead">
-                    <span>Settings</span>
-                    <button id="btnSaveConfig" class="btn btn-heading" title="Save" onclick="saveConfig()">
-                        <span>Save</span>
+            <div class="uiBlock">
+                <div class="uiForm">
+                    <input type="text" name="gcode" class="form-control" onkeypress="gcodeInputKeyPress" placeholder="G-Code ..." id="gcodeSendBox">
+                    <button type="submit" id="gcodeSendButton" class="btn btn-default" title="Send G-Code" onclick="sendGcodeFromInput(event)">
+                        <svg class="icon-action">
+                            <use xlink:href="#icon-send"></use>
+                        </svg>
+                        <span>Send</span>
                     </button>
-                    <div class="btn-clear"></div>
                 </div>
-                <table class="uiTable uiTableGrid uiTableLeftAligned">
-                    <tbody>
-                    <tr>
-                        <th class="th-status">RobotName</th>
-                        <td id="td_RobotName" style="border-right: 1px;">
-                            <textarea class="textAreaOneLine" id="td_RobotName_input"></textarea>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th class="th-status">RobotConfig</th>
-                        <td id="td_RobotConfig" style="border-right: 1px;">
-                            <textarea class="textAreaInput" id="td_RobotConfig_input"></textarea>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th class="th-status">Schedule</th>
-                        <td id="td_CmdSchedule" style="border-right: 1px;">
-                            <textarea class="textAreaInput" id="td_CmdSchedule_input"></textarea>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th class="th-status">Change RobotType</th>
-                        <td id="td_RobotType" style="border-right: 1px;">
-                            <select id="td_RobotTypeSelect">
-                            </select>
-                            <button id="td_RobotTypeClick" onclick="robotTypeClick()">Set</button>
-                            <div>Click Save to confirm changes</div>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
+            </div>
+
+            <div class="uiBlock">
+                <div class="uiForm">
+                    <button id="btnStreamGCode" class="btn btn-default" title="Stream a G-Code file" onclick="btnStreamGcode(event)" >
+                        <svg class="icon-action">
+                            <use xlink:href="#icon-upload"></use>
+                        </svg>
+                        <span>Stream</span>
+                    </button>
+                    <span id="txtUploadStatus" class="txt-status"></span>
+                    <button id="btnStreamGCodeCancel" class="btn btn-default disabled" title="Cancel upload" onclick="btnStreamGCodeCancel(event)" disabled >
+                        <svg class="icon-action">
+                            <use xlink:href="#ico-cncl"></use>
+                        </svg>
+                        <span>Cancel</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="uiBlock">
+                <div class="uiForm">
+                    <button type="button" class="btn btn-action" onclick="pauseRobot(event)">
+                        <svg class="icon-connect">
+                            <use xlink:href = "#ico-pause"></use>
+                        </svg>
+                        <span>Pause</span>
+                    </button>
+                    <button type="button" class="btn btn-action" onclick="resumeRobot(event)">
+                        <svg class="icon-connect">
+                            <use xlink:href = "#ico-play"></use>
+                        </svg>
+                        <span>Resume</span>
+                    </button>
+                    <button type="button" class="btn btn-action" onclick="stopRobot(event)">
+                        <svg class="icon-connect">
+                            <use xlink:href = "#ico-stop"></use>
+                        </svg>
+                        <span>Stop</span>
+                    </button>
+                </div>
             </div>
         </div>
-
-        <div class="uiBlock">
-            <div class="uiPanel file-upload-form">
-                <div class="uiPanelHead">
-                    <span>Files</span>
-                    <button id="btnUploadFileList" class="btn btn-heading" title="Upload" onclick="btnUploadToFileSystem(event)">
-                        <span>Upload</span>
-                    </button>
-                    <div class="btn-clear"></div>
-                </div>
-                <div id="file-system-info" class="uiPanelSub"><span></span></div>
-                <progress class="progress-file" id="progress-bar-file" max=100 value=20 style="display: none;"></progress>
-                <table class="uiTable uiTableBordered uiTableFiles uiTableStripe" id="table_files">
-                    <thead>
+        <div class="uiLineBlock">
+            <div class="uiBlock">
+                <div class="uiPanel uiPanelMovement">
+                    <div class="uiPanelHead">
+                        <span>Movement</span>
+                    </div>
+                    <div class="uiTable uiTblBtns tableMovement">
                         <tr>
-                            <th><a href="#" data-attribute="action">Actions</a>
-                            </th>
-                            <th><a href="#" data-attribute="filename">File Name</a>
-                            </th>
-                            <th><a href="#" data-attribute="size">Size</a>
-                            </th>
+                            <td class="home-buttons visible-lg">
+                                <div class="btn-group extra-space-above" role="group">
+                                    <button class="btn btn-primary" title="Home All (G28)" onclick="goHomeClick(-1)">
+                                        <span>Home All</span>
+                                    </button>
+                                    <button class="btn btn-primary" title="Home X axis (G28 X)" onclick="goHomeClick(0)">
+                                        <span>Go Home X</span>
+                                    </button>
+                                    <button class="btn btn-primary" title="Home X axis (G92 X)" onclick="setHomeClick(0)">
+                                        <span>Set Home X</span>
+                                    </button>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-justified" role="group">
+                                    <a class="btn btn-default" onclick="moveClick(0,-100)">
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-lc"></use>
+                                        </svg>
+                                        <span>X-100</span>
+                                    </a>
+                                    <a class="btn btn-default" onclick="moveClick(0,-10)">
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-lc"></use>
+                                        </svg>
+                                        <span>X-10</span>
+                                    </a>
+                                    <a class="btn btn-default" onclick="moveClick(0,-1)">
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-lc"></use>
+                                        </svg>
+                                        <span>X-1</span>
+                                    </a>
+                                    <a class="btn btn-default" onclick="moveClick(0,-0.1)">
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-lc"></use>
+                                        </svg>
+                                        <span>X-0.1</span>
+                                    </a>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-justified" role="group">
+                                    <a class="btn btn-default" onclick="moveClick(0,0.1)">
+                                        <span>X+0.1</span>
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-rc"></use>
+                                        </svg>
+                                    </a>
+                                    <a class="btn btn-default" onclick="moveClick(0,1)">
+                                        <span>X+1</span>
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-rc"></use>
+                                        </svg>
+                                    </a>
+                                    <a class="btn btn-default" onclick="moveClick(0,10)">
+                                        <span>X+10</span>
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-rc"></use>
+                                        </svg>
+                                    </a>
+                                    <a class="btn btn-default" onclick="moveClick(0,100)">
+                                        <span>X+100</span>
+
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-rc"></use>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                    </tbody>
-                </table>
+                        <tr>
+                            <td class="home-buttons visible-lg">
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-primary" title="Home Y axis (G28 Y)" onclick="goHomeClick(1)">
+                                        <span>Go Home Y</span>
+                                    </button>
+                                    <button class="btn btn-primary" title="Home Y axis (G92 Y)" onclick="setHomeClick(1)">
+                                        <span>Set Home Y</span>
+                                    </button>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-justified" role="group">
+                                    <a class="btn btn-default" onclick="moveClick(1,-100)">
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-lc"></use>
+                                        </svg>
+                                        <span>Y-100</span>
+                                    </a>
+                                    <a class="btn btn-default" onclick="moveClick(1,-10)">
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-lc"></use>
+                                        </svg>
+                                        <span>Y-10</span>
+                                    </a>
+                                    <a class="btn btn-default" onclick="moveClick(1,-1)">
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-lc"></use>
+                                        </svg>
+                                        <span>Y-1</span>
+                                    </a>
+                                    <a class="btn btn-default" onclick="moveClick(1,-0.1)">
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-lc"></use>
+                                        </svg>
+                                        <span>Y-0.1</span>
+                                    </a>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-justified" role="group">
+                                    <a class="btn btn-default" onclick="moveClick(1,0.1)">
+                                        <span>Y+0.1</span>
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-rc"></use>
+                                        </svg>
+                                    </a>
+                                    <a class="btn btn-default" onclick="moveClick(1,1)">
+                                        <span>Y+1</span>
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-rc"></use>
+                                        </svg>
+                                    </a>
+                                    <a class="btn btn-default" onclick="moveClick(1,10)">
+                                        <span>Y+10</span>
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-rc"></use>
+                                        </svg>
+                                    </a>
+                                    <a class="btn btn-default" onclick="moveClick(1,100)">
+                                        <span>Y+100</span>
+
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-rc"></use>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="home-buttons visible-lg">
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-primary" title="Home Z axis (G28 Z)" onclick="goHomeClick(2)">
+                                        <span>Go Home Z</span>
+                                    </button>
+                                    <button class="btn btn-primary" title="Home Z axis (G92 Z)" onclick="setHomeClick(2)">
+                                        <span>Set Home Z</span>
+                                    </button>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-justified" role="group">
+                                    <a class="btn btn-default" onclick="moveClick(2,-100)">
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-lc"></use>
+                                        </svg>
+                                        <span>Z-100</span>
+                                    </a>
+                                    <a class="btn btn-default" onclick="moveClick(2,-10)">
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-lc"></use>
+                                        </svg>
+                                        <span>Z-10</span>
+                                    </a>
+                                    <a class="btn btn-default" onclick="moveClick(2,-1)">
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-lc"></use>
+                                        </svg>
+                                        <span>Z-1</span>
+                                    </a>
+                                    <a class="btn btn-default" onclick="moveClick(2,-0.1)">
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-lc"></use>
+                                        </svg>
+                                        <span>Z-0.1</span>
+                                    </a>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-justified" role="group">
+                                    <a class="btn btn-default" onclick="moveClick(2,0.1)">
+                                        <span>Z+0.1</span>
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-rc"></use>
+                                        </svg>
+                                    </a>
+                                    <a class="btn btn-default" onclick="moveClick(2,1)">
+                                        <span>Z+1</span>
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-rc"></use>
+                                        </svg>
+                                    </a>
+                                    <a class="btn btn-default" onclick="moveClick(2,10)">
+                                        <span>Z+10</span>
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-rc"></use>
+                                        </svg>
+                                    </a>
+                                    <a class="btn btn-default" onclick="moveClick(2,100)">
+                                        <span>Z+100</span>
+
+                                        <svg class="icon-action">
+                                            <use xlink:href="#ico-rc"></use>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    </div>
+                </div>
+            </div>
+            <div class="uiBlock">
+                <div class="uiPanel">
+                    <div class="uiPanelHead">
+                        <span>Status</span>
+                    </div>
+                    <table class="uiTable uiTableGrid uiTableStatus">
+                        <tbody>
+                        <tr>
+                            <th class="th-status"></th>
+                            <th id="th_X">X</th>
+                            <th id="th_Y">Y</th>
+                            <th id="th_Z" style="border-right: 1px;">Z</th>
+                        </tr>
+                        <tr>
+                            <th class="th-status">Position</th>
+                            <td id="td_X">n/a</td>
+                            <td id="td_Y">n/a</td>
+                            <td id="td_Z" style="border-right: 1px;">n/a</td>
+                        </tr>
+                        <tr>
+                            <th class="th-status">Steps</th>
+                            <td id="td_stepX">n/a</td>
+                            <td id="td_stepY">n/a</td>
+                            <td id="td_stepZ" style="border-right: 1px;">n/a</td>
+                        </tr>
+                        <tr>
+                            <th class="th-status">Min-stop</th>
+                            <td id="td_minX">n/a</td>
+                            <td id="td_minY">n/a</td>
+                            <td id="td_minZ" style="border-right: 1px;">n/a</td>
+                        </tr>
+                        <tr>
+                            <th class="th-status">Max-stop</th>
+                            <td id="td_maxX">n/a</td>
+                            <td id="td_maxY">n/a</td>
+                            <td id="td_maxZ" style="border-right: 1px;">n/a</td>
+                        </tr>
+                        <tr>
+                            <th class="th-status">State</th>
+                            <td id="td_robotState" colspan="3" style="border-right: 1px;"></td>
+                        </tr>
+                        <tr>
+                            <th class="th-status">QueueLen</th>
+                            <td id="td_robotQueueLen" colspan="3" style="border-right: 1px;"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="uiLineBlock">
+            <div class="uiBlock">
+                <div class="uiPanel file-upload-form">
+                    <div class="uiPanelHead">
+                        <span>Files</span>
+                        <button id="btnUploadFileList" class="btn btn-heading" title="Upload" onclick="btnUploadToFileSystem(event)">
+                            <span>Upload</span>
+                        </button>
+                        <div class="btn-clear"></div>
+                    </div>
+                    <div id="file-system-info" class="uiPanelSub"><span></span></div>
+                    <progress class="progress-file" id="progress-bar-file" max=100 value=20 style="display: none;"></progress>
+                    <table class="uiTable uiTableBordered uiTableFiles uiTableStripe" id="table_files">
+                        <thead>
+                            <tr>
+                                <th><a href="#" data-attribute="action">Actions</a>
+                                </th>
+                                <th><a href="#" data-attribute="filename">File Name</a>
+                                </th>
+                                <th><a href="#" data-attribute="size">Size</a>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="uiLineBlock">
+            <div class="uiBlock">
+                <div class="uiPanel">
+                    <div class="uiPanelHead">
+                        <span>Settings</span>
+                        <button id="btnSaveConfig" class="btn btn-heading" title="Save" onclick="saveConfig()">
+                            <span>Save</span>
+                        </button>
+                        <div class="btn-clear"></div>
+                    </div>
+                    <table class="uiTable uiTableGrid uiTableLeftAligned uiTableSettings">
+                        <tbody>
+                        <tr>
+                            <th class="th-status">RobotName</th>
+                            <td id="td_RobotName" style="border-right: 1px;">
+                                <textarea class="textAreaOneLine" id="td_RobotName_input"></textarea>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="th-status">RobotConfig</th>
+                            <td id="td_RobotConfig" style="border-right: 1px;">
+                                <textarea class="textAreaInput" id="td_RobotConfig_input"></textarea>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="th-status">Schedule</th>
+                            <td id="td_CmdSchedule" style="border-right: 1px;">
+                                <textarea class="textAreaInput" id="td_CmdSchedule_input"></textarea>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="th-status">Change RobotType</th>
+                            <td id="td_RobotType" style="border-right: 1px;">
+                                <select id="td_RobotTypeSelect">
+                                </select>
+                                <button id="td_RobotTypeClick" onclick="robotTypeClick()">Set</button>
+                                <div>Click Save to confirm changes</div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

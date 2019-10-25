@@ -38,16 +38,16 @@
                 console.error("Failed to parse JSON settings " + json);
                 console.error(excp);
             }
-            if ((settings.uiType !== null) && (settings.uiType === "SandUI"))
+            if ((settings.uiType !== null) && (settings.uiType === "sand"))
             {
-                window.location.replace("sandUI.html");             
+                window.location.replace("sand.html");             
             }
             else 
             {
-                if (settings.robotConfig && settings.robotConfig.webui && settings.robotConfig.webui.toLowerCase() === "sandui")
-                    window.location.replace("sandUI.html");
+                if (settings.robotConfig && settings.robotConfig.webui && settings.robotConfig.webui.toLowerCase() === "sand")
+                    window.location.replace("sand.html");
                 else
-                    window.location.replace("cncUI.html");
+                    window.location.replace("cnc.html");
             }
         }
         function callAjax(url, okCallback, failCallback)
