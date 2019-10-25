@@ -15,7 +15,7 @@ public:
     ~TrinamicsController();
 
     void configure(const char *configJSON);
-    bool configureAxis(int axisIdx, const char *axisJSON);
+    void configureAxis(int axisIdx, const char *axisJSON);
 
     void deinit();
     void process();
@@ -193,19 +193,38 @@ public:
     }
 
 private:
+    // TMC chips
+    static const int MAX_TMC2130 = 3;
+    static constexpr int MAX_TMC5072 = 2;
+    static constexpr int MAX_TMC_DRIVERS_PER_CHIP = 2;
+
+    static const int TMC_IRUN_DEFAULT = 24;
+    static const int TMC_IHOLD_DEFAULT = 5;
+    static const int TMC_IHOLDDELAY_DEFAULT = 7;
+    static const int TMC_CHOPCONF_DEFAULT = 0x00010135;
+
+    // TMC 2130 REGISTERS
+    static const int TMC2130_REG_GCONF = 0x00;
+    static const int TMC2130_REG_GSTAT = 0x01;
+    static const int TMC2130_REG_IHOLD_IRUN = 0x10;
+    static const int TMC2130_REG_CHOPCONF = 0x6C;
+    static const int TMC2130_REG_COOLCONF = 0x6D;
+    static const int TMC2130_REG_DCCTRL = 0x6E;
+    static const int TMC2130_REG_DRVSTATUS = 0x6F;
+
     // Helpers
     int getPinAndConfigure(const char* configJSON, const char* pinSelector, int direction, int initValue);
     uint64_t tmcWrite(int chipIdx, uint8_t cmd, uint32_t data, bool addWriteFlag=true);
     uint8_t tmcReadLastAndSetCmd(int chipIdx, uint8_t cmd, uint32_t& dataOut);
     void chipSel(int chipIdx, bool en);
     void performSel(int singleCS, int mux1, int mux2, int mux3, int muxCS, bool en);
-    uint64_t tmc5072Init(int chipIdxOrNeg1ForAll = -1);
+    void tmc5072Init();
     void updateStatus(int chipIdx);
     void tmc5072SendCmd(int axisIdx, uint8_t baseCmd, uint32_t data);
+    uint32_t getUint32WithBaseFromConfig(const char* dataPath, uint32_t defaultValue,
+                            const char* pSourceStr);
 
-    // TMC chips
-    static const int MAX_TMC2130 = 3;
-    static const int MAX_TMC5072 = 2;
+    // TMC5072 status
     tmc5072Status_t _tmc5072Status[MAX_TMC5072];
 
     // Singleton pointer (for timer callback)
@@ -221,11 +240,23 @@ private:
         AxisSettings()
         {
             reversed = false;
+            iRunPower = TMC_IRUN_DEFAULT;
+            iHoldPower = TMC_IHOLD_DEFAULT;
+            iHoldDelay = TMC_IHOLDDELAY_DEFAULT;
+            chopConf = TMC_CHOPCONF_DEFAULT;
         }
         
         bool reversed;
+        uint32_t iRunPower;
+        uint32_t iHoldPower;
+        uint32_t iHoldDelay;
+        uint32_t chopConf;
     };
     AxisSettings _axisSettings[RobotConsts::MAX_AXES];
+
+    // AxisIdx to Chip/Driver mapping
+    int _axisIdxToChipDriverIdx[RobotConsts::MAX_AXES];
+    int _chipDriverIdxToAxisIdx[MAX_TMC5072*MAX_TMC_DRIVERS_PER_CHIP];
 
     // Motion pipeline
     MotionPipeline& _motionPipeline;
@@ -267,16 +298,6 @@ private:
     static constexpr uint32_t TRINAMIC_TIMER_PERIOD_US = 500;
     static constexpr double TRINAMIC_CLOCK_FACTOR = 75.0;
     static const int SPI_CLOCK_HZ = 2000000;
-
-    static const int WRITE_FLAG = 1 << 7;
-    static const int READ_FLAG = 0;
-    static const int REG_GCONF = 0x00;
-    static const int REG_GSTAT = 0x01;
-    static const int REG_IHOLD_IRUN = 0x10;
-    static const int REG_CHOPCONF = 0x6C;
-    static const int REG_COOLCONF = 0x6D;
-    static const int REG_DCCTRL = 0x6E;
-    static const int REG_DRVSTATUS = 0x6F;
 
     // Debug
     uint32_t _debugTimerLast;
