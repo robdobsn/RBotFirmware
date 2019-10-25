@@ -22,7 +22,7 @@
 #define INSTRUMENT_MOTION_ACTUATOR_CONFIG "TIMEISR BLINKD7"
 
 #include <ArduinoLog.h>
-#include "MotionRingBuffer.h"
+#include "../MotionRingBuffer.h"
 #include "ConfigPinMap.h"
 #include <vector>
 
@@ -56,7 +56,7 @@ static constexpr int INSTRUMENT_OUTPUT_STEPS = 1000;
 
 #else
 
-#define INSTRUMENT_MOTION_ACTUATOR_INSTANCE MotionInstrumentation *MotionActuator::_pMotionInstrumentation = NULL;
+#define INSTRUMENT_MOTION_ACTUATOR_INSTANCE MotionInstrumentation *RampGenerator::_pMotionInstrumentation = NULL;
 #define INSTRUMENT_MOTION_ACTUATOR_TIME_START    \
     if (_pMotionInstrumentation)              \
     {                                      \

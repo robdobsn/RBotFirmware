@@ -103,15 +103,13 @@ void TrinamicsController::configure(const char *configJSON)
         }
     }
 
-    // Timer for TMC5072 continuous handling
+    // Check for ramp-generator chip
     if ((mcChip == "TMC5072") && _isEnabled)
     {
         // Initialise chips
-        uint64_t retVals[MAX_TMC5072];
-        for (int i = 0; i < MAX_TMC5072; i++)
-            retVals[i] = tmc5072Init(i);
+        tmc5072Init();
 
-        // Start timer
+        // Start timer for TMC5072 motion handling
         const esp_timer_create_args_t _timerArgs = {
                     &TrinamicsController::_staticTimerCb,
                     NULL,
@@ -123,12 +121,25 @@ void TrinamicsController::configure(const char *configJSON)
 
         esp_timer_start_periodic(_trinamicsTimerHandle, TRINAMIC_TIMER_PERIOD_US);
 
-        Log.trace("%sTMC5072 Chip1Init %x,%x Chip2Init %x,%x Timer Started\n", MODULE_PREFIX,
-                    (uint32_t)(retVals[0] >> 32), (uint32_t)retVals[0],
-                    (uint32_t)(retVals[1] >> 32), (uint32_t)retVals[1]);
+        Log.trace("%sTMC5072 Timer Started\n", MODULE_PREFIX);
         _trinamicsTimerStarted = true;
         _isRampGenerator = true;
     }
+}
+
+bool TrinamicsController::configureAxis(int axisIdx, const char *axisJSON)
+{
+    if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
+        return false;
+
+    // Get axis information
+    _axisSettings[axisIdx].reversed = (RdJson::getLong("dirnRev", 0, axisJSON) != 0);
+
+    // Debug
+    Log.notice("%sAxis%d reversed %s\n", MODULE_PREFIX, axisIdx, _axisSettings[axisIdx].reversed);
+
+    // Reconfigure axis
+    tmc5072Init();
 }
 
 void TrinamicsController::deinit()
@@ -176,44 +187,65 @@ void TrinamicsController::deinit()
 //     _lastDoneNumberedCmdIdx = RobotConsts::NUMBERED_COMMAND_NONE;
 // }
 
-uint64_t TrinamicsController::tmc5072Init(int chipIdx)
+uint64_t TrinamicsController::tmc5072Init(int chipIdxOrNeg1ForAll)
 {
-    Log.trace("%sTMC5072 Init %d cs1 %d\n", MODULE_PREFIX, chipIdx, _cs1);
+    int startChipIdx = 0;
+    int numChips = MAX_TMC5072;
+    if (chipIdxOrNeg1ForAll >= 0)
+    {
+        startChipIdx = chipIdxOrNeg1ForAll;
+        numChips = 1;
+    }
+    for (int chipIdx = startChipIdx; chipIdx < numChips; chipIdx++)
+    {
+        // Log.trace("%sTMC5072 Init %d cs1 %d\n", MODULE_PREFIX, chipIdx, _cs1);
 
-    // 2 phase motor control
-    uint64_t retVal = tmcWrite(chipIdx, TMC5072_CHOPCONF_1,0x00010135);      //CHOPCONF: TOFF=5, HSTRT=3, HEND=2, TBL=2, CHM=0 (spreadcycle)
-    tmcWrite(chipIdx, TMC5072_IHOLD_IRUN_1,0x00070603);      //IHOLD_IRUN: IHOLD=3, IRUN=10 (max.current), IHOLDDELAY=6
+        // 2 phase motor control
+        uint64_t retVal = tmcWrite(chipIdx, TMC5072_CHOPCONF_1,0x00010135);      //CHOPCONF: TOFF=5, HSTRT=3, HEND=2, TBL=2, CHM=0 (spreadcycle)
+        tmcWrite(chipIdx, TMC5072_CHOPCONF_2,0x00010135);      //CHOPCONF: TOFF=5, HSTRT=3, HEND=2, TBL=2, CHM=0 (spreadcycle)
 
-    tmcWrite(chipIdx, TMC5072_CHOPCONF_2,0x00010135);      //CHOPCONF: TOFF=5, HSTRT=3, HEND=2, TBL=2, CHM=0 (spreadcycle)
-    tmcWrite(chipIdx, TMC5072_IHOLD_IRUN_2,0x00070603);      //IHOLD_IRUN: IHOLD=3, IRUN=10 (max.current), IHOLDDELAY=6
+        // Motor currents IHOLD_IRUN: 0x00DDRRHH
+        // DD = IHOLDDELAY Controls the number of clock cycles for motor power down after a motion as soon as TZEROWAIT
+        //      has expired. The smooth transition avoids a motor jerk upon power down.
+        //      0: instant power down
+        //      1..15: Delay per current reduction step in multiple of 2^18 clocks
+        // RR = IRUN Motor run current (0=1/32…31=32/32)
+        //      Hint: Choose sense resistors in a way, that normal IRUN is 16 to 31 for best microstep performance
+        // HH = IHOLD: Standstill current (0=1/32…31=32/32)
+        //      In combination with stealthChop mode, setting IHOLD=0 allows to choose freewheeling or coil
+        //      short circuit for motor stand still.
+        tmcWrite(chipIdx, TMC5072_IHOLD_IRUN_1,0x00071803);      //IHOLD_IRUN: IHOLD=3, IRUN=10 (max.current), IHOLDDELAY=6
+        tmcWrite(chipIdx, TMC5072_IHOLD_IRUN_2,0x00071803);      //IHOLD_IRUN: IHOLD=3, IRUN=10 (max.current), IHOLDDELAY=6
 
-    // Reset positions
-    tmcWrite(chipIdx, TMC5072_RAMPMODE_1,TMC5072_MODE_POSITION);
-    tmcWrite(chipIdx, TMC5072_XTARGET_1, 0);
-    tmcWrite(chipIdx, TMC5072_XACTUAL_1, 0);
-    tmcWrite(chipIdx, TMC5072_RAMPMODE_2, TMC5072_MODE_POSITION);
-    tmcWrite(chipIdx, TMC5072_XTARGET_2, 0);
-    tmcWrite(chipIdx, TMC5072_XACTUAL_2, 0);
+        // Reset positions
+        tmcWrite(chipIdx, TMC5072_RAMPMODE_1,TMC5072_MODE_POSITION);
+        tmcWrite(chipIdx, TMC5072_XTARGET_1, 0);
+        tmcWrite(chipIdx, TMC5072_XACTUAL_1, 0);
+        tmcWrite(chipIdx, TMC5072_RAMPMODE_2, TMC5072_MODE_POSITION);
+        tmcWrite(chipIdx, TMC5072_XTARGET_2, 0);
+        tmcWrite(chipIdx, TMC5072_XACTUAL_2, 0);
 
-    //Standard values for speed and acceleration
-    tmcWrite(chipIdx, TMC5072_VSTART_1, 1);
-    tmcWrite(chipIdx, TMC5072_A1_1, 5000);
-    tmcWrite(chipIdx, TMC5072_V1_1, 0);
-    tmcWrite(chipIdx, TMC5072_AMAX_1, 5000);   
-    tmcWrite(chipIdx, TMC5072_VMAX_1, 10000);
-    tmcWrite(chipIdx, TMC5072_DMAX_1, 5000);
-    tmcWrite(chipIdx, TMC5072_D1_1, 5000);
-    tmcWrite(chipIdx, TMC5072_VSTOP_1, 10);
+        //Standard values for speed and acceleration
+        tmcWrite(chipIdx, TMC5072_VSTART_1, 1);
+        tmcWrite(chipIdx, TMC5072_A1_1, 5000);
+        tmcWrite(chipIdx, TMC5072_V1_1, 0);
+        tmcWrite(chipIdx, TMC5072_AMAX_1, 5000);   
+        tmcWrite(chipIdx, TMC5072_VMAX_1, 10000);
+        tmcWrite(chipIdx, TMC5072_DMAX_1, 5000);
+        tmcWrite(chipIdx, TMC5072_D1_1, 5000);
+        tmcWrite(chipIdx, TMC5072_VSTOP_1, 10);
 
-    tmcWrite(chipIdx, TMC5072_VSTART_2, 1);
-    tmcWrite(chipIdx, TMC5072_A1_2, 5000);
-    tmcWrite(chipIdx, TMC5072_V1_2, 0);
-    tmcWrite(chipIdx, TMC5072_AMAX_2, 5000);
-    tmcWrite(chipIdx, TMC5072_VMAX_2, 100000);
-    tmcWrite(chipIdx, TMC5072_DMAX_2, 5000);
-    tmcWrite(chipIdx, TMC5072_D1_2, 5000);
-    tmcWrite(chipIdx, TMC5072_VSTOP_2, 10);
-    return retVal;
+        tmcWrite(chipIdx, TMC5072_VSTART_2, 1);
+        tmcWrite(chipIdx, TMC5072_A1_2, 5000);
+        tmcWrite(chipIdx, TMC5072_V1_2, 0);
+        tmcWrite(chipIdx, TMC5072_AMAX_2, 5000);
+        tmcWrite(chipIdx, TMC5072_VMAX_2, 100000);
+        tmcWrite(chipIdx, TMC5072_DMAX_2, 5000);
+        tmcWrite(chipIdx, TMC5072_D1_2, 5000);
+        tmcWrite(chipIdx, TMC5072_VSTOP_2, 10);
+        Log.trace("%sTMC5072 Chip%dInit %x,%x\n", MODULE_PREFIX,
+            (uint32_t)(retVal >> 32), (uint32_t)retVal);
+    }
 }
 
 int TrinamicsController::getPinAndConfigure(const char* configJSON, const char* pinSelector, int direction, int initValue)

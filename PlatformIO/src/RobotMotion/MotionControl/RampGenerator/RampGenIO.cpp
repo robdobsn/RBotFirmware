@@ -1,16 +1,16 @@
 // RBotFirmware
 // Rob Dobson 2016-18
 
-#include "MotionIO.h"
+#include "RampGenIO.h"
 #include <ESP32Servo.h>
 #include "AxisValues.h"
 #include "StepperMotor.h"
 #include "EndStop.h"
 #include "Utils.h"
 
-static const char* MODULE_PREFIX = "MotionIO: ";
+static const char* MODULE_PREFIX = "RampGenIO: ";
 
-MotionIO::MotionIO()
+RampGenIO::RampGenIO()
 {
     // Clear axis specific values
     for (int i = 0; i < RobotConsts::MAX_AXES; i++)
@@ -20,25 +20,15 @@ MotionIO::MotionIO()
         for (int j = 0; j < RobotConsts::MAX_ENDSTOPS_PER_AXIS; j++)
             _endStops[i][j] = NULL;
     }
-    // Stepper management
-    _stepEnablePin = -1;
-    _stepEnLev = true;
-    _stepDisableSecs = 60.0;
-    _motorEnLastMillis = 0;
-    _motorEnLastUnixTime = 0;
 }
 
-MotionIO::~MotionIO()
+RampGenIO::~RampGenIO()
 {
     deinit();
 }
 
-void MotionIO::deinit()
+void RampGenIO::deinit()
 {
-    // disable
-    if (_stepEnablePin != -1)
-        pinMode(_stepEnablePin, INPUT);
-
     // remove motors and end stops
     for (int i = 0; i < RobotConsts::MAX_AXES; i++)
     {
@@ -56,7 +46,7 @@ void MotionIO::deinit()
     }
 }
 
-bool MotionIO::configureAxis(const char *axisJSON, int axisIdx)
+bool RampGenIO::configureAxis(int axisIdx, const char *axisJSON)
 {
     if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
         return false;
@@ -127,23 +117,8 @@ bool MotionIO::configureAxis(const char *axisJSON, int axisIdx)
     return true;
 }
 
-bool MotionIO::configureMotors(const char *robotConfigJSON)
-{
-    // Get motor enable info
-    String stepEnablePinName = RdJson::getString("stepEnablePin", "-1", robotConfigJSON);
-    _stepEnLev = RdJson::getLong("stepEnLev", 1, robotConfigJSON);
-    _stepEnablePin = ConfigPinMap::getPinFromName(stepEnablePinName.c_str());
-    _stepDisableSecs = float(RdJson::getDouble("stepDisableSecs", stepDisableSecs_default, robotConfigJSON));
-    Log.notice("%sMotorEnable(pin %d, actLvl %d, disableAfter %Fs)\n", MODULE_PREFIX, _stepEnablePin, _stepEnLev, _stepDisableSecs);
-
-    // Enable pin - initially disable
-    pinMode(_stepEnablePin, OUTPUT);
-    digitalWrite(_stepEnablePin, !_stepEnLev);
-    return true;
-}
-
 // // Set step direction
-// void MotionIO::stepDirn(int axisIdx, bool dirn)
+// void RampGenIO::stepDirn(int axisIdx, bool dirn)
 // {
 // #ifdef BOUNDS_CHECK_ISR_FUNCTIONS
 //     _ASSERT(axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES);
@@ -154,7 +129,7 @@ bool MotionIO::configureMotors(const char *robotConfigJSON)
 // }
 
 // // Start a step
-// void MotionIO::stepStart(int axisIdx)
+// void RampGenIO::stepStart(int axisIdx)
 // {
 // #ifdef BOUNDS_CHECK_ISR_FUNCTIONS
 //     _ASSERT(axisIdx >= 0 && axisIdx < RobotConsts::MAX_AXES);
@@ -165,7 +140,7 @@ bool MotionIO::configureMotors(const char *robotConfigJSON)
 // }
 
 // // Check if a step is in progress on any motor, if all such and return true, else false
-// bool MotionIO::stepEnd()
+// bool RampGenIO::stepEnd()
 // {
 //     // Check if step in progress
 //     bool aStepEnded = false;
@@ -177,7 +152,7 @@ bool MotionIO::configureMotors(const char *robotConfigJSON)
 //     return aStepEnded;
 // }
 
-// void MotionIO::stepSynch(int axisIdx, bool direction)
+// void RampGenIO::stepSynch(int axisIdx, bool direction)
 // {
 //     if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
 //         return;
@@ -191,7 +166,7 @@ bool MotionIO::configureMotors(const char *robotConfigJSON)
 //     //_axisParams[axisIdx]._lastStepMicros = micros();
 // }
 
-// void MotionIO::jump(int axisIdx, long targetPosition)
+// void RampGenIO::jump(int axisIdx, long targetPosition)
 // {
 //     if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
 //         return;
@@ -201,7 +176,7 @@ bool MotionIO::configureMotors(const char *robotConfigJSON)
 // }
 
 // // Endstops
-// bool MotionIO::isEndStopValid(int axisIdx, int endStopIdx)
+// bool RampGenIO::isEndStopValid(int axisIdx, int endStopIdx)
 // {
 //     if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
 //         return false;
@@ -210,7 +185,7 @@ bool MotionIO::configureMotors(const char *robotConfigJSON)
 //     return true;
 // }
 
-// bool MotionIO::isAtEndStop(int axisIdx, int endStopIdx)
+// bool RampGenIO::isAtEndStop(int axisIdx, int endStopIdx)
 // {
 //     // For safety return true in these cases
 //     if (axisIdx < 0 || axisIdx >= RobotConsts::MAX_AXES)
@@ -226,7 +201,7 @@ bool MotionIO::configureMotors(const char *robotConfigJSON)
 //     return true;
 // }
 
-void MotionIO::getEndStopVals(AxisMinMaxBools& axisEndStopVals)
+void RampGenIO::getEndStopStatus(AxisMinMaxBools& axisEndStopVals)
 {
     for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
     {
@@ -245,53 +220,11 @@ void MotionIO::getEndStopVals(AxisMinMaxBools& axisEndStopVals)
     }
 }
 
-void MotionIO::enableMotors(bool en, bool timeout)
+void RampGenIO::service()
 {
-    // Log.trace("Enable %d, disable level %d, disable after time %F\n",
-    //							en, !_stepEnLev, _stepDisableSecs);
-    if (en)
-    {
-        if (_stepEnablePin != -1)
-        {
-            if (!_motorsAreEnabled)
-                Log.notice("%smotors enabled, disable after idle %Fs\n", MODULE_PREFIX, _stepDisableSecs);
-            digitalWrite(_stepEnablePin, _stepEnLev);
-        }
-        _motorsAreEnabled = true;
-        _motorEnLastMillis = millis();
-        time(&_motorEnLastUnixTime);
-    }
-    else
-    {
-        if (_stepEnablePin != -1)
-        {
-            if (_motorsAreEnabled)
-                Log.notice("%smotors disabled by %s\n", MODULE_PREFIX, timeout ? "timeout" : "command");
-            digitalWrite(_stepEnablePin, !_stepEnLev);
-        }
-        _motorsAreEnabled = false;
-    }
 }
 
-unsigned long MotionIO::getLastActiveUnixTime()
-{
-    return _motorEnLastUnixTime;
-}
-
-void MotionIO::motionIsActive()
-{
-    enableMotors(true, false);
-}
-
-void MotionIO::service()
-{
-    // Check for motor enable timeout
-    if (_motorsAreEnabled && Utils::isTimeout(millis(), _motorEnLastMillis,
-                                                (unsigned long)(_stepDisableSecs * 1000)))
-        enableMotors(false, true);
-}
-
-void MotionIO::getRawMotionHwInfo(RobotConsts::RawMotionHwInfo_t &raw)
+void RampGenIO::getRawMotionHwInfo(RobotConsts::RawMotionHwInfo_t &raw)
 {
     // Fill in the info
     for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
@@ -324,21 +257,21 @@ void MotionIO::getRawMotionHwInfo(RobotConsts::RawMotionHwInfo_t &raw)
 }
 
 // Set axis direction
-void IRAM_ATTR MotionIO::setDirection(int axisIdx, bool direction)
+void IRAM_ATTR RampGenIO::setDirection(int axisIdx, bool direction)
 {
     StepperMotor* pStepper = _stepperMotors[axisIdx];
     if (pStepper)
         pStepper->setDirection(direction);
 }
 
-void IRAM_ATTR MotionIO::stepStart(int axisIdx)
+void IRAM_ATTR RampGenIO::stepStart(int axisIdx)
 {
     StepperMotor* pStepper = _stepperMotors[axisIdx];
     if (pStepper)
         pStepper->stepStart();
 }
 
-bool IRAM_ATTR MotionIO::stepEnd(int axisIdx)
+bool IRAM_ATTR RampGenIO::stepEnd(int axisIdx)
 {
     StepperMotor* pStepper = _stepperMotors[axisIdx];
     if (pStepper)

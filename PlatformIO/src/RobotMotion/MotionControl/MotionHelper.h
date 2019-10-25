@@ -7,10 +7,10 @@
 #include "../AxisPosition.h"
 #include "RobotCommandArgs.h"
 #include "MotionPlanner.h"
-#include "MotionIO.h"
-#include "MotionActuator.h"
+#include "RampGenerator/RampGenerator.h"
 #include "MotionHoming.h"
-#include "TrinamicsController.h"
+#include "Trinamics/TrinamicsController.h"
+#include "MotorEnabler.h"
 
 class MotionHelper
 {
@@ -46,14 +46,14 @@ private:
     AxisPosition _lastCommandedAxisPos;
     // Motion pipeline
     MotionPipeline _motionPipeline;
-    // Motion IO (Motors and end-stops)
-    MotionIO _motionIO;
     // Trinamic Controller
     TrinamicsController _trinamicsController;
     // Actuators (motors etc)
-    MotionActuator _motionActuator;
+    RampGenerator _rampGenerator;
     // Homing
     MotionHoming _motionHoming;
+    // Motor enabler
+    MotorEnabler _motorEnabler;
 
     // Split-up movement blocks to be added to pipeline
     // Number of blocks to add
@@ -131,13 +131,13 @@ public:
     void goHome(RobotCommandArgs &args);
     int getLastCompletedNumberedCmdIdx()
     {
-        return _motionActuator.getLastCompletedNumberedCmdIdx();
+        return max(_rampGenerator.getLastCompletedNumberedCmdIdx(), _trinamicsController.getLastCompletedNumberedCmdIdx());
     }
     void service();
 
     unsigned long getLastActiveUnixTime()
     {
-        return _motionIO.getLastActiveUnixTime();
+        return _motorEnabler.getLastActiveUnixTime();
     }
 
     // Test code
@@ -149,7 +149,7 @@ public:
     bool testGetPipelineBlock(int elIdx, MotionBlock &elem);
     void setIntrumentationMode(const char *testModeStr)
     {
-        _motionActuator.setInstrumentationMode(testModeStr);
+        _rampGenerator.setInstrumentationMode(testModeStr);
     }
 
 #ifdef UNIT_TEST

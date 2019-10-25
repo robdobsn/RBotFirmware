@@ -15,30 +15,19 @@ class EndStop;
 class Servo;
 class AxisMinMaxBools;
 
-class MotionIO
+class RampGenIO
 {
-public:
-    static constexpr float stepDisableSecs_default = 60.0f;
-
 private:
     // Stepper motors
     StepperMotor* _stepperMotors[RobotConsts::MAX_AXES];
     // Servo motors
     Servo* _servoMotors[RobotConsts::MAX_AXES];
-    // Step enable
-    int _stepEnablePin;
-    bool _stepEnLev = true;
-    // Motor enable
-    float _stepDisableSecs;
-    bool _motorsAreEnabled;
-    unsigned long _motorEnLastMillis;
-    time_t _motorEnLastUnixTime;
     // End stops
     EndStop* _endStops[RobotConsts::MAX_AXES][RobotConsts::MAX_ENDSTOPS_PER_AXIS];
 
 public:
-    MotionIO();
-    ~MotionIO();
+    RampGenIO();
+    ~RampGenIO();
 
     // Service
     void service();
@@ -52,10 +41,6 @@ public:
     // // Start a step
     // void stepStart(int axisIdx);    
 
-    // Activity
-    unsigned long getLastActiveUnixTime();
-    void motionIsActive();
-
     // Deinitialise
     void deinit();
 
@@ -63,11 +48,10 @@ public:
     void getRawMotionHwInfo(RobotConsts::RawMotionHwInfo_t &raw);
 
     // Configure
-    bool configureMotors(const char *robotConfigJSON);
-    bool configureAxis(const char *axisJSON, int axisIdx);
+    bool configureAxis(int axisIdx, const char *axisJSON);
 
-    // Endstop info
-    void getEndStopVals(AxisMinMaxBools& axisEndStopVals);
+    // Endstop status
+    void getEndStopStatus(AxisMinMaxBools& axisEndStopVals);
 
     // Motor control
     void setDirection(int axisIdx, bool direction);

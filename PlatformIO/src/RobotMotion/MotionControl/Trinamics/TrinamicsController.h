@@ -5,8 +5,8 @@
 
 #include <ArduinoLog.h>
 #include <SPI.h>
-#include "../AxesParams.h"
-#include "MotionPipeline.h"
+#include "../../AxesParams.h"
+#include "../MotionPipeline.h"
 
 class TrinamicsController
 {
@@ -15,6 +15,8 @@ public:
     ~TrinamicsController();
 
     void configure(const char *configJSON);
+    bool configureAxis(int axisIdx, const char *axisJSON);
+
     void deinit();
     void process();
 
@@ -189,6 +191,7 @@ public:
     {
         return _lastDoneNumberedCmdIdx;
     }
+
 private:
     // Helpers
     int getPinAndConfigure(const char* configJSON, const char* pinSelector, int direction, int initValue);
@@ -196,7 +199,7 @@ private:
     uint8_t tmcReadLastAndSetCmd(int chipIdx, uint8_t cmd, uint32_t& dataOut);
     void chipSel(int chipIdx, bool en);
     void performSel(int singleCS, int mux1, int mux2, int mux3, int muxCS, bool en);
-    uint64_t tmc5072Init(int chipIdx);
+    uint64_t tmc5072Init(int chipIdxOrNeg1ForAll = -1);
     void updateStatus(int chipIdx);
     void tmc5072SendCmd(int axisIdx, uint8_t baseCmd, uint32_t data);
 
@@ -210,6 +213,19 @@ private:
 
     // Axes parameters
     AxesParams& _axesParams;
+
+    // Axis settings
+    class AxisSettings
+    {
+    public:
+        AxisSettings()
+        {
+            reversed = false;
+        }
+        
+        bool reversed;
+    };
+    AxisSettings _axisSettings[RobotConsts::MAX_AXES];
 
     // Motion pipeline
     MotionPipeline& _motionPipeline;
