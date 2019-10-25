@@ -394,9 +394,12 @@ void TrinamicsController::tmc5072SendCmd(int axisIdx, uint8_t baseCmd, uint32_t 
     if (axisIdx % 2)
         cmd += TMC5072_MOTOR1;
     else
-        cmd += TMC5072_MOTOR0;   
-    // Log.trace("C%d CMD %x %x\n", chipIdx, cmd, data);
+        cmd += TMC5072_MOTOR0;
     tmcWrite(chipIdx, cmd, data);
+
+    // Debug
+    // if (axisIdx == 0)
+    //     Log.trace("C%d CMD %x %x\n", chipIdx, cmd, data);
 }
 
 void TrinamicsController::_timerCallback(void* arg)
@@ -454,22 +457,25 @@ void TrinamicsController::_timerCallback(void* arg)
     // New block
     if (blockIsNew)
     {
-        // Log.trace("%F %F %F\n", pBlock->_entrySpeedMMps, pBlock->_exitSpeedMMps, pBlock->_feedrate);
-
         // Handle the motion by requesting the controller to make the move
         int32_t maxAxisSteps = pBlock->_stepsTotalMaybeNeg[pBlock->_axisIdxWithMaxSteps];
-        float entrySpeedFactor = pBlock->_entrySpeedMMps / pBlock->_feedrate;
-        float exitSpeedFactor = pBlock->_exitSpeedMMps / pBlock->_feedrate;
+        float entrySpeedFactor = fabs(pBlock->_entrySpeedMMps / pBlock->_feedrate);
+        float exitSpeedFactor = fabs(pBlock->_exitSpeedMMps / pBlock->_feedrate);
         for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)
         {
             // Set VMAX based on the distance each axis will travel
-            uint32_t axisVMax = (uint32_t)(100000 * fabs(pBlock->_stepsTotalMaybeNeg[axisIdx])/(float)maxAxisSteps);
+            uint32_t axisVMax = 100000 * abs(1000*pBlock->_stepsTotalMaybeNeg[axisIdx]/maxAxisSteps) / 1000;
             uint32_t axisVStart = axisVMax * entrySpeedFactor;
             tmc5072SendCmd(axisIdx, TMC5072_VSTART, axisVStart);
             tmc5072SendCmd(axisIdx, TMC5072_VMAX, axisVMax);
             uint32_t axisVStop = axisVMax * exitSpeedFactor;
             if (axisVStop < 10)
                 axisVStop = 10;
+            
+            // Debug
+            // if (axisIdx == 0)
+            //     Log.trace("%F %F %F %F %F %d %d %d\n", pBlock->_entrySpeedMMps, pBlock->_exitSpeedMMps, pBlock->_feedrate, entrySpeedFactor, exitSpeedFactor,
+            //         axisVMax, axisVStart, axisVStop);
             tmc5072SendCmd(axisIdx, TMC5072_VSTOP, axisVMax);
         }
         for (int axisIdx = 0; axisIdx < RobotConsts::MAX_AXES; axisIdx++)

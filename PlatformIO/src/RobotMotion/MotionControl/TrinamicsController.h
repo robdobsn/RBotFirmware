@@ -248,7 +248,7 @@ private:
     // SPI controller
     SPIClass* _pVSPI;
 
-    static constexpr uint32_t TRINAMIC_TIMER_PERIOD_US = 1000;
+    static constexpr uint32_t TRINAMIC_TIMER_PERIOD_US = 500;
     static constexpr double TRINAMIC_CLOCK_FACTOR = 75.0;
     static const int SPI_CLOCK_HZ = 2000000;
 
