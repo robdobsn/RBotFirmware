@@ -89,7 +89,7 @@ bool ConfigNVS::writeConfig()
     // Call config change callbacks
     for (int i = 0; i < _configChangeCallbacks.size(); i++)
     {
-        if (_configChangeCallbacks[i]);
+        if (_configChangeCallbacks[i])
             (_configChangeCallbacks[i])();
     }
     // Ok
