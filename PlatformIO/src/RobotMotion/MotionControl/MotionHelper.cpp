@@ -457,6 +457,14 @@ void MotionHelper::service()
     {
         _motorEnabler.enableMotors(true, false);
     }
+    // Disable motors when no homing is in progress and no motion is in the pipeline
+    else if (!_isPaused && _motionPipeline.count() == 0 && !_motionHoming.isHomingInProgress())
+    {
+        _motorEnabler.enableMotors(false, false);
+#ifdef DEBUG_MOTION_HELPER
+        Log.trace("%sMotors disabled after motion complete\n", MODULE_PREFIX);
+#endif
+    }
 
 }
 
