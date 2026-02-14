@@ -92,6 +92,7 @@ export class SandTableSim {
   private kernel: SandKernel;
   private ballDiameter: number;
   private tableSize: number;
+  private patternScale: number;
   private currentPos: Point;
   private targetPos: Point;
   private prevPos: Point;
@@ -100,6 +101,7 @@ export class SandTableSim {
   constructor(options: SandSimulationOptions) {
     this.ballDiameter = options.ballDiameter;
     this.tableSize = options.tableSize;
+    this.patternScale = options.patternScale ?? 250;
     this.kernel = new SandKernel(
       options.tableSize,
       options.sandStartLevel,
@@ -113,10 +115,11 @@ export class SandTableSim {
   }
   
   setTargetPosition(pos: Point): void {
-    // Convert from canvas coordinates (-maxRadius to +maxRadius) to table coordinates (0 to tableSize)
+    // Convert from pattern coordinates (-patternScale to +patternScale) to table coordinates (0 to tableSize)
+    const scale = this.tableSize / (2 * this.patternScale);
     this.targetPos = {
-      x: this.tableSize / 2 + pos.x * (this.tableSize / 500),
-      y: this.tableSize / 2 + pos.y * (this.tableSize / 500)
+      x: this.tableSize / 2 + pos.x * scale,
+      y: this.tableSize / 2 + pos.y * scale
     };
   }
   

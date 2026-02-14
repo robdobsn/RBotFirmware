@@ -11,6 +11,11 @@ pub struct PhysicsEngine {
     target_pos_y: f32,
     ball_diameter: f32,
     move_speed: f32,
+    // Physics parameters (configurable)
+    trough_depth: f32,        // How deep the trough is (e.g., -1.8)
+    trough_width_ratio: f32,  // Trough width as ratio of radius (e.g., 0.67)
+    ridge_height: f32,        // Height of ridges (e.g., 1.2)
+    ridge_offset: f32,        // Distance to push sand sideways (e.g., 1.2)
 }
 
 #[wasm_bindgen]
@@ -20,6 +25,10 @@ impl PhysicsEngine {
         table_size: f32,
         ball_diameter: f32,
         move_speed: f32,
+        trough_depth: f32,
+        trough_width_ratio: f32,
+        ridge_height: f32,
+        ridge_offset: f32,
     ) -> PhysicsEngine {
         let center = table_size / 2.0;
         
@@ -32,6 +41,10 @@ impl PhysicsEngine {
             target_pos_y: center,
             ball_diameter,
             move_speed,
+            trough_depth,
+            trough_width_ratio,
+            ridge_height,
+            ridge_offset,
         }
     }
     
@@ -90,7 +103,7 @@ impl PhysicsEngine {
         perp_y: f32,
     ) {
         let radius = self.ball_diameter / 2.0;
-        let center_radius = radius * 0.67;  // Trough ~1/3 of ball diameter (~67% of radius)
+        let center_radius = radius * self.trough_width_ratio;
         let r_i32 = radius.ceil() as i32;
         
         // Iterate over circular region near ball
@@ -103,16 +116,15 @@ impl PhysicsEngine {
                     let pos_y = self.current_pos_y + dy as f32;
                     
                     if d < center_radius {
-                        // Center zone: create trough (width ~1/3 of ball diameter)
+                        // Center zone: create trough
                         let trough_factor = 1.0 - (d / center_radius);
-                        let sand_amount = -1.8 * trough_factor;  // Remove sand progressively
+                        let sand_amount = self.trough_depth * trough_factor;
                         kernel.add_sand(pos_x, pos_y, sand_amount);
                     } else {
                         // Outer zone: push sand to sides (create ridges)
-                        // Keep ridges closer to trough for more concentrated effect
                         let side_factor = (d - center_radius) / (radius - center_radius);
-                        let offset_dist = (1.0 - side_factor) * 1.2;  // Reduced from 2.0
-                        let sand_amount = 1.2 * (1.0 - d / radius);
+                        let offset_dist = (1.0 - side_factor) * self.ridge_offset;
+                        let sand_amount = self.ridge_height * (1.0 - d / radius);
                         
                         // Add sand perpendicular to motion (both sides)
                         let disp_x1 = pos_x + perp_x * offset_dist;
@@ -165,5 +177,46 @@ impl PhysicsEngine {
     #[wasm_bindgen]
     pub fn get_move_speed(&self) -> f32 {
         self.move_speed
+    }
+    
+    // Physics parameter getters and setters
+    #[wasm_bindgen]
+    pub fn set_trough_depth(&mut self, depth: f32) {
+        self.trough_depth = depth;
+    }
+    
+    #[wasm_bindgen]
+    pub fn get_trough_depth(&self) -> f32 {
+        self.trough_depth
+    }
+    
+    #[wasm_bindgen]
+    pub fn set_trough_width_ratio(&mut self, ratio: f32) {
+        self.trough_width_ratio = ratio;
+    }
+    
+    #[wasm_bindgen]
+    pub fn get_trough_width_ratio(&self) -> f32 {
+        self.trough_width_ratio
+    }
+    
+    #[wasm_bindgen]
+    pub fn set_ridge_height(&mut self, height: f32) {
+        self.ridge_height = height;
+    }
+    
+    #[wasm_bindgen]
+    pub fn get_ridge_height(&self) -> f32 {
+        self.ridge_height
+    }
+    
+    #[wasm_bindgen]
+    pub fn set_ridge_offset(&mut self, offset: f32) {
+        self.ridge_offset = offset;
+    }
+    
+    #[wasm_bindgen]
+    pub fn get_ridge_offset(&self) -> f32 {
+        self.ridge_offset
     }
 }

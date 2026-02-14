@@ -77,6 +77,19 @@ impl SandKernel {
         self.sand_level.clone()
     }
     
+    /// Get buffer pointer for zero-copy access from JavaScript
+    /// WARNING: The pointer is only valid until the next WASM call that might reallocate
+    #[wasm_bindgen]
+    pub fn get_buffer_ptr(&self) -> *const f32 {
+        self.sand_level.as_ptr()
+    }
+    
+    /// Get buffer length (number of float32 elements)
+    #[wasm_bindgen]
+    pub fn get_buffer_length(&self) -> usize {
+        self.sand_level.len()
+    }
+    
     /// Internal method: settle the sand (called by SettlementEngine)
     pub(crate) fn settle_internal(&mut self, settle_threshold: f32, blend_factor: f32) {
         let current_levels = self.sand_level.clone();

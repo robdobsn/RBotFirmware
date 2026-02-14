@@ -12,8 +12,8 @@ export const App: React.FC = () => {
   const [colorImage, setColorImage] = useState<HTMLImageElement | null>(null);
   const [showPathPreview, setShowPathPreview] = useState<boolean>(false);
   const [thrTrack, setThrTrack] = useState<THRTrack | null>(null);
-  const [ballDiameter, setBallDiameter] = useState<number>(6);
-  const [moveSpeed, setMoveSpeed] = useState<number>(1.5);
+  const [ballDiameter, setBallDiameter] = useState<number>(30);  // Scaled for 1000×1000 grid
+  const [moveSpeed, setMoveSpeed] = useState<number>(7.5);  // Scaled for 1000×1000 grid
   const [drawingSpeed, setDrawingSpeed] = useState<number>(2);
 
   const handlePatternChange = (pattern: PatternType) => {
@@ -44,9 +44,9 @@ export const App: React.FC = () => {
             pattern={selectedPattern}
             colorImage={colorImage}
             thrTrack={thrTrack}
-            width={1000}
-            height={1000}
-            maxRadius={416}
+            width={800}
+            height={800}
+            maxRadius={333}
             showPathPreview={showPathPreview}
             drawingSpeed={drawingSpeed}
             options={{ ballDiameter, moveSpeed }}
@@ -83,9 +83,9 @@ export const App: React.FC = () => {
                 <span>Ball Diameter: {ballDiameter}</span>
                 <input
                   type="range"
-                  min="3"
-                  max="15"
-                  step="1"
+                  min="15"
+                  max="75"
+                  step="5"
                   value={ballDiameter}
                   onChange={(e) => setBallDiameter(Number(e.target.value))}
                   style={sliderStyle}
@@ -98,9 +98,9 @@ export const App: React.FC = () => {
                 <span>Move Speed: {moveSpeed.toFixed(2)}</span>
                 <input
                   type="range"
-                  min="0.1"
-                  max="3.0"
-                  step="0.05"
+                  min="0.5"
+                  max="15.0"
+                  step="0.25"
                   value={moveSpeed}
                   onChange={(e) => setMoveSpeed(Number(e.target.value))}
                   style={sliderStyle}

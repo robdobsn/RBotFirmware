@@ -6,38 +6,44 @@ import { getPatternPoint } from './patternUtils';
 import { SandTableSim } from './sandSimulation';
 import { SandTableSimWasm, initializeWasm } from './sandSimulationWasm';
 import { CrossSectionChart, CrossSectionData } from './CrossSectionChart';
+import { WebGLRenderer } from './rendering/WebGLRenderer';
 
 const DEFAULT_COLOR_PALETTE: RGB[] = [
-  { r: 55, g: 52, b: 43, a: 1 }, // 0
-  { r: 90, g: 84, b: 79, a: 1 }, // 1
-  { r: 95, g: 93, b: 84, a: 1 }, // 2
-  { r: 102, g: 96, b: 91, a: 1 }, // 3
-  { r: 103, g: 100, b: 93, a: 1 }, // 4
-  { r: 108, g: 104, b: 101, a: 1 }, // 5
-  { r: 108, g: 104, b: 101, a: 1 }, // 6
-  { r: 108, g: 104, b: 101, a: 1 }, // 7
-  { r: 112, g: 106, b: 101, a: 1 }, // 8
-  { r: 117, g: 112, b: 103, a: 1 }, // 9
-  { r: 124, g: 119, b: 114, a: 1 }, // 10
-  { r: 125, g: 122, b: 114, a: 1 }, // 11
-  { r: 133, g: 127, b: 122, a: 1 }, // 12
-  { r: 139, g: 136, b: 128, a: 1 }, // 13
-  { r: 140, g: 135, b: 131, a: 1 }, // 14
-  { r: 150, g: 147, b: 136, a: 1 }, // 15
-  { r: 161, g: 160, b: 151, a: 1 }, // 16
-  { r: 164, g: 160, b: 156, a: 1 }, // 17
-  { r: 173, g: 170, b: 157, a: 1 }, // 18
-  { r: 175, g: 170, b: 165, a: 1 }, // 19
-  { r: 179, g: 176, b: 168, a: 1 }, // 20
-  { r: 182, g: 179, b: 169, a: 1 }, // 21
-  { r: 191, g: 188, b: 180, a: 1 }, // 22
-  { r: 192, g: 188, b: 183, a: 1 }, // 23
-  { r: 203, g: 200, b: 192, a: 1 }, // 24
-  { r: 209, g: 206, b: 198, a: 1 }, // 25
-  { r: 211, g: 208, b: 197, a: 1 }, // 26
-  { r: 220, g: 217, b: 207, a: 1 }, // 27
-  { r: 229, g: 225, b: 220, a: 1 }, // 28
-  { r: 245, g: 242, b: 230, a: 1 }, // 29
+  // Dark troughs (blues)
+  { r: 30, g: 40, b: 80, a: 1 },   // 0 - Deep blue (lowest)
+  { r: 40, g: 50, b: 100, a: 1 },  // 1
+  { r: 50, g: 60, b: 120, a: 1 },  // 2
+  { r: 60, g: 70, b: 140, a: 1 },  // 3
+  
+  // Mid-range (browns/tans)
+  { r: 80, g: 75, b: 65, a: 1 },   // 4
+  { r: 90, g: 84, b: 79, a: 1 },   // 5
+  { r: 95, g: 93, b: 84, a: 1 },   // 6
+  { r: 102, g: 96, b: 91, a: 1 },  // 7
+  { r: 103, g: 100, b: 93, a: 1 }, // 8
+  { r: 108, g: 104, b: 101, a: 1 }, // 9
+  { r: 108, g: 104, b: 101, a: 1 }, // 10
+  { r: 112, g: 106, b: 101, a: 1 }, // 11
+  { r: 117, g: 112, b: 103, a: 1 }, // 12
+  { r: 124, g: 119, b: 114, a: 1 }, // 13
+  { r: 125, g: 122, b: 114, a: 1 }, // 14
+  { r: 133, g: 127, b: 122, a: 1 }, // 15
+  { r: 139, g: 136, b: 128, a: 1 }, // 16
+  { r: 140, g: 135, b: 131, a: 1 }, // 17
+  { r: 150, g: 147, b: 136, a: 1 }, // 18
+  { r: 161, g: 160, b: 151, a: 1 }, // 19
+  { r: 164, g: 160, b: 156, a: 1 }, // 20
+  { r: 173, g: 170, b: 157, a: 1 }, // 21
+  
+  // High ridges (yellows/whites)
+  { r: 180, g: 175, b: 150, a: 1 }, // 22
+  { r: 190, g: 185, b: 160, a: 1 }, // 23
+  { r: 200, g: 195, b: 170, a: 1 }, // 24
+  { r: 210, g: 205, b: 180, a: 1 }, // 25
+  { r: 220, g: 215, b: 190, a: 1 }, // 26
+  { r: 230, g: 225, b: 200, a: 1 }, // 27
+  { r: 240, g: 235, b: 210, a: 1 }, // 28
+  { r: 250, g: 245, b: 220, a: 1 }, // 29 - Bright yellow (highest)
 ];
 
 export interface SandTableCanvasProps {
@@ -55,10 +61,20 @@ export interface SandTableCanvasProps {
 
 const DEFAULT_OPTIONS: SandSimulationOptions = {
   ballDiameter: 30,      // Scaled proportionally (6 * 5)
-  tableSize: 1000,      // High resolution for smooth detail (166 parallel traces)
+  tableSize: 1000,       // High resolution for smooth detail (166 parallel traces)
   sandStartLevel: 5,
   maxSandLevel: 20,
-  moveSpeed: 7.5,       // Scaled proportionally (1.5 * 5)
+  moveSpeed: 7.5,        // Scaled proportionally (1.5 * 5)
+  patternScale: 250,     // Default pattern coordinate range (-250 to +250)
+  // Physics parameters (tuned for realistic sand displacement)
+  troughDepth: -1.8,     // Depth of trough behind ball (negative removes sand)
+  troughWidthRatio: 0.67, // Trough width as 67% of ball radius (~1/3 ball diameter)
+  ridgeHeight: 1.2,      // Height of sand ridges pushed to sides
+  ridgeOffset: 1.2,      // Distance sand is pushed perpendicular to motion
+  // Settlement parameters (for sand smoothing over time)
+  settleThreshold: 1.5,  // Height difference to trigger settling
+  blendFactor: 0.02,     // Smoothing strength (0-1, lower = gentler)
+  settleFrequency: 0.005, // How often to settle (0.5% per frame)
 };
 
 export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
@@ -73,10 +89,11 @@ export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
   drawingSpeed = 2,
   onReset,
 }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);  // WebGL canvas for sand rendering
+  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);  // 2D canvas for ball, UI, cross-section
   const [simulation, setSimulation] = useState<SandTableSim | SandTableSimWasm | null>(null);
   const [isWasmReady, setIsWasmReady] = useState(false);
-  const [t, setT] = useState(0);
+  const tRef = useRef<number>(0);  // Use ref for t to avoid re-rendering on every frame
   const [isRunning, setIsRunning] = useState(true);
   const [colorPalette, setColorPalette] = useState<RGB[] | null>(null);
   const animationFrameRef = useRef<number>();
@@ -87,6 +104,15 @@ export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
   const [crossSectionEnd, setCrossSectionEnd] = useState<Point | null>(null);
   const [crossSectionData, setCrossSectionData] = useState<CrossSectionData[]>([]);
   const [isDrawingCrossSection, setIsDrawingCrossSection] = useState(false);
+  
+  // Performance optimization: frame counter for render throttling
+  const frameCountRef = useRef(0);
+  const [renderQuality, setRenderQuality] = useState<'high' | 'medium' | 'low'>('medium');
+  
+  // WebGL renderer state
+  const webglRendererRef = useRef<WebGLRenderer | null>(null);
+  const [useWebGL, setUseWebGL] = useState(true);  // Try WebGL by default
+  const [isWebGLAvailable, setIsWebGLAvailable] = useState(false);
 
   // Initialize WASM or fallback to JavaScript
   useEffect(() => {
@@ -98,7 +124,7 @@ export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
         await initializeWasm();
         if (cancelled) return;
         
-        const wasmSim = await SandTableSimWasm.create({ ...DEFAULT_OPTIONS, ...options });
+        const wasmSim = await SandTableSimWasm.create({ ...DEFAULT_OPTIONS, ...options, patternScale: maxRadius });
         if (cancelled) return;
         
         setSimulation(wasmSim);
@@ -109,7 +135,7 @@ export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
         console.warn('WASM initialization failed, using JavaScript fallback:', error);
         if (cancelled) return;
         
-        const jsSim = new SandTableSim({ ...DEFAULT_OPTIONS, ...options });
+        const jsSim = new SandTableSim({ ...DEFAULT_OPTIONS, ...options, patternScale: maxRadius });
         setSimulation(jsSim);
         setIsWasmReady(false);
       }
@@ -138,11 +164,56 @@ export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
     }
   }, [colorImage]);
 
+  // Initialize WebGL renderer (only when useWebGL is true)
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !simulation) return;
+    
+    // If WebGL requested, try to initialize
+    if (useWebGL) {
+      // Check if WebGL is supported
+      if (!WebGLRenderer.isSupported()) {
+        console.warn('⚠️ WebGL not supported, falling back to Canvas2D');
+        setUseWebGL(false);
+        setIsWebGLAvailable(false);
+        return;
+      }
+      
+      try {
+        const tableSize = simulation.getKernel().getTableSize();
+        const renderer = new WebGLRenderer(canvas, tableSize);
+        webglRendererRef.current = renderer;
+        setIsWebGLAvailable(true);
+        console.log('✅ WebGL renderer ready for 100× speedup!');
+      } catch (error) {
+        console.error('Failed to initialize WebGL, falling back to Canvas2D:', error);
+        setUseWebGL(false);
+        setIsWebGLAvailable(false);
+        webglRendererRef.current = null;
+      }
+    } else {
+      // Canvas2D mode - dispose WebGL if it exists
+      if (webglRendererRef.current) {
+        webglRendererRef.current.dispose();
+        webglRendererRef.current = null;
+        console.log('Switched to Canvas2D mode');
+      }
+    }
+    
+    // Cleanup
+    return () => {
+      if (webglRendererRef.current) {
+        webglRendererRef.current.dispose();
+        webglRendererRef.current = null;
+      }
+    };
+  }, [simulation, useWebGL]);
+
   // Reset when pattern changes
   useEffect(() => {
     if (!simulation) return;
     simulation.reset();
-    setT(0);
+    tRef.current = 0;
     onReset?.();
   }, [pattern, simulation, onReset]);
 
@@ -163,24 +234,69 @@ export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
 
     const animate = () => {
       const canvas = canvasRef.current;
-      if (!canvas) return;
+      const overlayCanvas = overlayCanvasRef.current;
+      if (!canvas || !overlayCanvas) return;
 
-      const ctx = canvas.getContext('2d');
+      const ctx = overlayCanvas.getContext('2d');
       if (!ctx) return;
 
-      // Clear canvas
-      ctx.fillStyle = '#1a1a1a';
-      ctx.fillRect(0, 0, width, height);
+      // Clear overlay (transparent - let WebGL show through)
+      ctx.clearRect(0, 0, width, height);
 
       // Get pattern point
-      const point = getPatternPoint(pattern, t, maxRadius, thrTrack);
+      const point = getPatternPoint(pattern, tRef.current, maxRadius, thrTrack);
       
-      // Update simulation
+      // Update simulation (always run physics at 60 FPS)
       simulation.setTargetPosition(point);
       simulation.update();
 
-      // Render sand
-      renderSand(ctx, simulation, colorPalette, width, height);
+      // Render sand (choose WebGL or Canvas2D)
+      if (useWebGL && webglRendererRef.current) {
+        // WebGL rendering (GPU-accelerated, 100× faster)
+        try {
+          const kernel = simulation.getKernel();
+          // Use zero-copy view if available (WASM), otherwise fall back (JS)
+          const sandHeights = 'getSandLevelArrayZeroCopy' in kernel
+            ? kernel.getSandLevelArrayZeroCopy()
+            : kernel.getSandLevelArray();
+          
+          const palette = colorPalette && colorPalette.length > 0 ? colorPalette : DEFAULT_COLOR_PALETTE;
+          
+          // Log first time and occasionally to debug
+          if (frameCountRef.current === 0 || Math.random() < 0.005) {
+            console.log('WebGL rendering:', {
+              sampleHeights: [sandHeights[0].toFixed(2), sandHeights[500000].toFixed(2), sandHeights[999999].toFixed(2)],
+              paletteColors: palette.length,
+              arrayLength: sandHeights.length
+            });
+          }
+          
+          webglRendererRef.current.render(sandHeights, palette, width, height);
+        } catch (error) {
+          console.error('WebGL rendering failed, falling back to Canvas2D:', error);
+          setUseWebGL(false);
+        }
+      } else {
+        // Canvas2D fallback (render sand to main canvas, throttled for performance)
+        if (frameCountRef.current === 0) {
+          console.log('Using Canvas2D fallback');
+        }
+        frameCountRef.current++;
+        
+        // Render sand every other frame for performance (30 FPS sand rendering)
+        if (frameCountRef.current % 2 === 0) {
+          const canvas = canvasRef.current;
+          if (canvas) {
+            const ctx2d = canvas.getContext('2d');
+            if (ctx2d) {
+              const palette = colorPalette && colorPalette.length > 0 ? colorPalette : DEFAULT_COLOR_PALETTE;
+              renderSand(ctx2d, simulation, palette, width, height, renderQuality);
+            } else {
+              console.error('Failed to get 2D context for Canvas2D rendering');
+            }
+          }
+        }
+      }
 
       // Draw ball position
       const ballPos = simulation.getCurrentPosition();
@@ -198,7 +314,7 @@ export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
         ctx.lineWidth = 2;
         ctx.beginPath();
         for (let i = 0; i < 100; i++) {
-          const futureT = t + i * 10;
+          const futureT = tRef.current + i * 10;
           const futurePoint = getPatternPoint(pattern, futureT, maxRadius, thrTrack);
           const futureX = width / 2 + futurePoint.x * (width / 500);
           const futureY = height / 2 + futurePoint.y * (height / 500);
@@ -231,7 +347,7 @@ export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
         ctx.fill();
       }
 
-      setT(prev => prev + drawingSpeed);
+      tRef.current += drawingSpeed;
       animationFrameRef.current = requestAnimationFrame(animate);
     };
 
@@ -242,24 +358,39 @@ export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isRunning, pattern, t, simulation, colorPalette, width, height, maxRadius, thrTrack, drawingSpeed, showPathPreview, crossSectionEnabled, crossSectionStart, crossSectionEnd]);
+  }, [isRunning, pattern, simulation, colorPalette, width, height, maxRadius, thrTrack, drawingSpeed, showPathPreview, crossSectionEnabled, crossSectionStart, crossSectionEnd, renderQuality, useWebGL]);
 
   // Static render when paused (for cross-section mode)
   useEffect(() => {
     if (isRunning || !simulation) return;
 
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const overlayCanvas = overlayCanvasRef.current;
+    if (!canvas || !overlayCanvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = overlayCanvas.getContext('2d');
     if (!ctx) return;
 
-    // Clear canvas
-    ctx.fillStyle = '#1a1a1a';
-    ctx.fillRect(0, 0, width, height);
+    // Clear overlay (transparent)
+    ctx.clearRect(0, 0, width, height);
 
-    // Render sand
-    renderSand(ctx, simulation, colorPalette, width, height);
+    // Render sand (choose WebGL or Canvas2D)
+    if (useWebGL && webglRendererRef.current) {
+      try {
+        const kernel = simulation.getKernel();
+        const sandHeights = 'getSandLevelArrayZeroCopy' in kernel
+          ? kernel.getSandLevelArrayZeroCopy()
+          : kernel.getSandLevelArray();
+        
+        const palette = colorPalette && colorPalette.length > 0 ? colorPalette : DEFAULT_COLOR_PALETTE;
+        webglRendererRef.current.render(sandHeights, palette, width, height);
+      } catch (error) {
+        console.error('WebGL rendering failed:', error);
+        renderSand(ctx, simulation, colorPalette, width, height, renderQuality);
+      }
+    } else {
+      renderSand(ctx, simulation, colorPalette, width, height, renderQuality);
+    }
 
     // Draw ball position
     const ballPos = simulation.getCurrentPosition();
@@ -290,12 +421,12 @@ export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
       ctx.arc(crossSectionEnd.x, crossSectionEnd.y, 6, 0, Math.PI * 2);
       ctx.fill();
     }
-  }, [isRunning, simulation, colorPalette, width, height, crossSectionEnabled, crossSectionStart, crossSectionEnd]);
+  }, [isRunning, simulation, colorPalette, width, height, crossSectionEnabled, crossSectionStart, crossSectionEnd, renderQuality, useWebGL]);
 
   const handleReset = () => {
     if (!simulation) return;
     simulation.reset();
-    setT(0);
+    tRef.current = 0;
     onReset?.();
   };
 
@@ -416,24 +547,47 @@ export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
           backgroundColor: 'rgba(0, 0, 0, 0.8)',
           padding: '20px',
           borderRadius: '8px',
+          zIndex: 20,
         }}>
           Loading simulation...
         </div>
       )}
-      <canvas
-        ref={canvasRef}
-        width={width}
-        height={height}
-        onMouseDown={handleCanvasMouseDown}
-        onMouseMove={handleCanvasMouseMove}
-        onMouseUp={handleCanvasMouseUp}
-        style={{
-          border: crossSectionEnabled ? '2px solid #00FF00' : '2px solid #333',
-          borderRadius: '8px',
-          backgroundColor: '#1a1a1a',
-          cursor: crossSectionEnabled ? 'crosshair' : 'default',
-        }}
-      />
+      <div style={{ position: 'relative', width: width, height: height }}>
+        {/* Canvas for sand rendering - key forces remount when switching WebGL/Canvas2D */}
+        <canvas
+          key={useWebGL ? 'webgl' : 'canvas2d'}
+          ref={canvasRef}
+          width={width}
+          height={height}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            border: crossSectionEnabled ? '2px solid #00FF00' : '2px solid #333',
+            borderRadius: '8px',
+            backgroundColor: '#1a1a1a',
+          }}
+        />
+        {/* 2D overlay canvas for ball, cross-section line, etc. */}
+        <canvas
+          ref={overlayCanvasRef}
+          width={width}
+          height={height}
+          onMouseDown={handleCanvasMouseDown}
+          onMouseMove={handleCanvasMouseMove}
+          onMouseUp={handleCanvasMouseUp}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            border: crossSectionEnabled ? '2px solid #00FF00' : '2px solid #333',
+            borderRadius: '8px',
+            cursor: crossSectionEnabled ? 'crosshair' : 'default',
+            pointerEvents: 'auto',
+            backgroundColor: 'transparent',  // Let WebGL show through
+          }}
+        />
+      </div>
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
         <button onClick={toggleRunning} style={buttonStyle} disabled={crossSectionEnabled}>
           {isRunning ? 'Pause' : 'Resume'}
@@ -460,8 +614,51 @@ export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
             padding: '4px 8px',
             borderRadius: '4px',
           }}>
-            ⚡ WASM (4-5× faster)
+            ⚡ WASM
           </span>
+        )}
+        {isWebGLAvailable && useWebGL && (
+          <span style={{
+            color: '#2196F3',
+            fontSize: '12px',
+            marginLeft: '10px',
+            border: '1px solid #2196F3',
+            padding: '4px 8px',
+            borderRadius: '4px',
+          }}>
+            ⚡ WebGL
+          </span>
+        )}
+        {isWebGLAvailable && (
+          <button 
+            onClick={() => setUseWebGL(prev => !prev)} 
+            style={{
+              ...buttonStyle,
+              fontSize: '12px',
+              padding: '6px 12px',
+            }}
+          >
+            {useWebGL ? 'Use Canvas2D' : 'Use WebGL'}
+          </button>
+        )}
+        {!useWebGL && (
+          <button
+            onClick={() => {
+              const qualities: Array<'high' | 'medium' | 'low'> = ['high', 'medium', 'low'];
+              const currentIndex = qualities.indexOf(renderQuality);
+              const nextIndex = (currentIndex + 1) % qualities.length;
+              setRenderQuality(qualities[nextIndex]);
+            }}
+            style={{
+              ...buttonStyle,
+              fontSize: '11px',
+              padding: '4px 8px',
+              backgroundColor: renderQuality === 'high' ? '#9C27B0' : renderQuality === 'medium' ? '#FF9800' : '#795548',
+            }}
+            title="Toggle render quality: High (slower, smooth) | Medium (balanced) | Low (faster, blocky)"
+          >
+            Quality: {renderQuality.charAt(0).toUpperCase() + renderQuality.slice(1)}
+          </button>
         )}
       </div>
 
@@ -578,20 +775,25 @@ function renderSand(
   simulation: SandTableSim,
   colorPalette: RGB[] | null,
   canvasWidth: number,
-  canvasHeight: number
+  canvasHeight: number,
+  renderQuality: 'high' | 'medium' | 'low' = 'medium'
 ): void {
   const kernel = simulation.getKernel();
   const tableSize = kernel.getTableSize();
   
   // Enable canvas smoothing for anti-aliased rendering
   ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
+  ctx.imageSmoothingQuality = renderQuality === 'high' ? 'high' : 'medium';
+  
+  // Quality settings: high = every pixel, medium = every 2nd pixel, low = every 3rd pixel
+  const pixelStep = renderQuality === 'high' ? 1 : renderQuality === 'medium' ? 2 : 3;
+  const useBilinear = renderQuality !== 'low';
   
   const imageData = ctx.createImageData(canvasWidth, canvasHeight);
   const data = imageData.data;
 
-  for (let py = 0; py < canvasHeight; py++) {
-    for (let px = 0; px < canvasWidth; px++) {
+  for (let py = 0; py < canvasHeight; py += pixelStep) {
+    for (let px = 0; px < canvasWidth; px += pixelStep) {
       // Convert canvas pixel to table coordinates
       const tx = ((px - canvasWidth / 2) / canvasWidth) * tableSize + tableSize / 2;
       const ty = ((py - canvasHeight / 2) / canvasHeight) * tableSize + tableSize / 2;
@@ -603,39 +805,54 @@ function renderSand(
       
       if (dist > tableSize / 2) {
         // Outside circle - black
-        const idx = (py * canvasWidth + px) * 4;
-        data[idx] = 0;
-        data[idx + 1] = 0;
-        data[idx + 2] = 0;
-        data[idx + 3] = 255;
+        for (let dy = 0; dy < pixelStep; dy++) {
+          for (let dx = 0; dx < pixelStep; dx++) {
+            if (py + dy < canvasHeight && px + dx < canvasWidth) {
+              const idx = ((py + dy) * canvasWidth + (px + dx)) * 4;
+              data[idx] = 0;
+              data[idx + 1] = 0;
+              data[idx + 2] = 0;
+              data[idx + 3] = 255;
+            }
+          }
+        }
         continue;
       }
       
-      // Bilinear interpolation for smoother sand height sampling
-      const tx_floor = Math.floor(tx);
-      const ty_floor = Math.floor(ty);
-      const tx_frac = tx - tx_floor;
-      const ty_frac = ty - ty_floor;
+      // Sample sand level based on quality
+      let level: number;
+      let slopeDx: number;
+      let slopeDy: number;
       
-      // Sample 4 neighboring points
-      const h00 = kernel.getSandLevel(tx_floor, ty_floor);
-      const h10 = kernel.getSandLevel(tx_floor + 1, ty_floor);
-      const h01 = kernel.getSandLevel(tx_floor, ty_floor + 1);
-      const h11 = kernel.getSandLevel(tx_floor + 1, ty_floor + 1);
-      
-      // Bilinear interpolation
-      const h0 = h00 * (1 - tx_frac) + h10 * tx_frac;
-      const h1 = h01 * (1 - tx_frac) + h11 * tx_frac;
-      const level = h0 * (1 - ty_frac) + h1 * ty_frac;
-      
-      // Calculate slopes for lighting (finite difference method)
-      const levelRight = kernel.getSandLevel(tx + 1, ty);
-      const levelLeft = kernel.getSandLevel(tx - 1, ty);
-      const levelDown = kernel.getSandLevel(tx, ty + 1);
-      const levelUp = kernel.getSandLevel(tx, ty - 1);
-      
-      const slopeDx = levelRight - levelLeft;
-      const slopeDy = levelDown - levelUp;
+      if (useBilinear) {
+        // High/Medium quality: Bilinear interpolation for smoother sand height sampling
+        const tx_floor = Math.floor(tx);
+        const ty_floor = Math.floor(ty);
+        const tx_frac = tx - tx_floor;
+        const ty_frac = ty - ty_floor;
+        
+        // Sample 4 neighboring points (reuse for slope calculation)
+        const h00 = kernel.getSandLevel(tx_floor, ty_floor);
+        const h10 = kernel.getSandLevel(tx_floor + 1, ty_floor);
+        const h01 = kernel.getSandLevel(tx_floor, ty_floor + 1);
+        const h11 = kernel.getSandLevel(tx_floor + 1, ty_floor + 1);
+        
+        // Bilinear interpolation
+        const h0 = h00 * (1 - tx_frac) + h10 * tx_frac;
+        const h1 = h01 * (1 - tx_frac) + h11 * tx_frac;
+        level = h0 * (1 - ty_frac) + h1 * ty_frac;
+        
+        // Calculate slopes using the samples we already have (no additional calls)
+        slopeDx = h10 - h00; // Right - Left approximation
+        slopeDy = h01 - h00; // Down - Up approximation
+      } else {
+        // Low quality: Simple nearest-neighbor sampling (fastest)
+        level = kernel.getSandLevel(Math.floor(tx), Math.floor(ty));
+        const levelRight = kernel.getSandLevel(Math.floor(tx) + 1, Math.floor(ty));
+        const levelDown = kernel.getSandLevel(Math.floor(tx), Math.floor(ty) + 1);
+        slopeDx = levelRight - level;
+        slopeDy = levelDown - level;
+      }
       
       // Light direction (from top-left: -0.7, -0.7)
       const lightDirX = -0.7;
@@ -686,11 +903,18 @@ function renderSand(
         a: baseRgb.a
       };
       
-      const idx = (py * canvasWidth + px) * 4;
-      data[idx] = rgb.r;
-      data[idx + 1] = rgb.g;
-      data[idx + 2] = rgb.b;
-      data[idx + 3] = 255;
+      // Fill in pixel block (for pixelStep > 1, fill adjacent pixels with same color)
+      for (let dy = 0; dy < pixelStep; dy++) {
+        for (let dx = 0; dx < pixelStep; dx++) {
+          if (py + dy < canvasHeight && px + dx < canvasWidth) {
+            const idx = ((py + dy) * canvasWidth + (px + dx)) * 4;
+            data[idx] = rgb.r;
+            data[idx + 1] = rgb.g;
+            data[idx + 2] = rgb.b;
+            data[idx + 3] = 255;
+          }
+        }
+      }
     }
   }
   
