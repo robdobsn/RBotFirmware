@@ -9,41 +9,45 @@ import { CrossSectionChart, CrossSectionData } from './CrossSectionChart';
 import { WebGLRenderer } from './rendering/WebGLRenderer';
 
 const DEFAULT_COLOR_PALETTE: RGB[] = [
-  // Dark troughs (blues)
-  { r: 30, g: 40, b: 80, a: 1 },   // 0 - Deep blue (lowest)
-  { r: 40, g: 50, b: 100, a: 1 },  // 1
-  { r: 50, g: 60, b: 120, a: 1 },  // 2
-  { r: 60, g: 70, b: 140, a: 1 },  // 3
+  // Deep troughs (dark warm browns)
+  { r: 60, g: 45, b: 30, a: 1 },    // 0 - Darkest trough
+  { r: 70, g: 52, b: 35, a: 1 },    // 1
+  { r: 80, g: 60, b: 40, a: 1 },    // 2
+  { r: 90, g: 68, b: 45, a: 1 },    // 3
+  { r: 100, g: 76, b: 50, a: 1 },   // 4
   
-  // Mid-range (browns/tans)
-  { r: 80, g: 75, b: 65, a: 1 },   // 4
-  { r: 90, g: 84, b: 79, a: 1 },   // 5
-  { r: 95, g: 93, b: 84, a: 1 },   // 6
-  { r: 102, g: 96, b: 91, a: 1 },  // 7
-  { r: 103, g: 100, b: 93, a: 1 }, // 8
-  { r: 108, g: 104, b: 101, a: 1 }, // 9
-  { r: 108, g: 104, b: 101, a: 1 }, // 10
-  { r: 112, g: 106, b: 101, a: 1 }, // 11
-  { r: 117, g: 112, b: 103, a: 1 }, // 12
-  { r: 124, g: 119, b: 114, a: 1 }, // 13
-  { r: 125, g: 122, b: 114, a: 1 }, // 14
-  { r: 133, g: 127, b: 122, a: 1 }, // 15
-  { r: 139, g: 136, b: 128, a: 1 }, // 16
-  { r: 140, g: 135, b: 131, a: 1 }, // 17
-  { r: 150, g: 147, b: 136, a: 1 }, // 18
-  { r: 161, g: 160, b: 151, a: 1 }, // 19
-  { r: 164, g: 160, b: 156, a: 1 }, // 20
-  { r: 173, g: 170, b: 157, a: 1 }, // 21
+  // Lower mid (warm brown)
+  { r: 110, g: 85, b: 58, a: 1 },   // 5
+  { r: 120, g: 94, b: 65, a: 1 },   // 6
+  { r: 130, g: 103, b: 72, a: 1 },  // 7
+  { r: 138, g: 110, b: 78, a: 1 },  // 8
+  { r: 145, g: 118, b: 85, a: 1 },  // 9
   
-  // High ridges (yellows/whites)
-  { r: 180, g: 175, b: 150, a: 1 }, // 22
-  { r: 190, g: 185, b: 160, a: 1 }, // 23
-  { r: 200, g: 195, b: 170, a: 1 }, // 24
-  { r: 210, g: 205, b: 180, a: 1 }, // 25
-  { r: 220, g: 215, b: 190, a: 1 }, // 26
-  { r: 230, g: 225, b: 200, a: 1 }, // 27
-  { r: 240, g: 235, b: 210, a: 1 }, // 28
-  { r: 250, g: 245, b: 220, a: 1 }, // 29 - Bright yellow (highest)
+  // Mid-range (sandy tan - this is where undisturbed sand sits)
+  { r: 152, g: 125, b: 90, a: 1 },  // 10
+  { r: 158, g: 132, b: 96, a: 1 },  // 11
+  { r: 164, g: 138, b: 102, a: 1 }, // 12
+  { r: 170, g: 144, b: 108, a: 1 }, // 13
+  { r: 175, g: 150, b: 114, a: 1 }, // 14
+  { r: 180, g: 155, b: 120, a: 1 }, // 15
+  { r: 185, g: 160, b: 125, a: 1 }, // 16
+  { r: 190, g: 166, b: 130, a: 1 }, // 17
+  { r: 195, g: 172, b: 136, a: 1 }, // 18
+  { r: 200, g: 178, b: 142, a: 1 }, // 19
+  
+  // Upper mid (light sandy)
+  { r: 205, g: 184, b: 148, a: 1 }, // 20
+  { r: 210, g: 190, b: 155, a: 1 }, // 21
+  { r: 215, g: 196, b: 162, a: 1 }, // 22
+  { r: 220, g: 202, b: 170, a: 1 }, // 23
+  { r: 225, g: 208, b: 178, a: 1 }, // 24
+  
+  // High ridges (bright warm highlights)
+  { r: 230, g: 215, b: 185, a: 1 }, // 25
+  { r: 235, g: 222, b: 195, a: 1 }, // 26
+  { r: 240, g: 228, b: 205, a: 1 }, // 27
+  { r: 245, g: 235, b: 215, a: 1 }, // 28
+  { r: 250, g: 242, b: 225, a: 1 }, // 29 - Brightest ridge
 ];
 
 export interface SandTableCanvasProps {
@@ -252,25 +256,13 @@ export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
 
       // Render sand (choose WebGL or Canvas2D)
       if (useWebGL && webglRendererRef.current) {
-        // WebGL rendering (GPU-accelerated, 100× faster)
         try {
           const kernel = simulation.getKernel();
-          // Use zero-copy view if available (WASM), otherwise fall back (JS)
           const sandHeights = 'getSandLevelArrayZeroCopy' in kernel
             ? kernel.getSandLevelArrayZeroCopy()
             : kernel.getSandLevelArray();
           
           const palette = colorPalette && colorPalette.length > 0 ? colorPalette : DEFAULT_COLOR_PALETTE;
-          
-          // Log first time and occasionally to debug
-          if (frameCountRef.current === 0 || Math.random() < 0.005) {
-            console.log('WebGL rendering:', {
-              sampleHeights: [sandHeights[0].toFixed(2), sandHeights[500000].toFixed(2), sandHeights[999999].toFixed(2)],
-              paletteColors: palette.length,
-              arrayLength: sandHeights.length
-            });
-          }
-          
           webglRendererRef.current.render(sandHeights, palette, width, height);
         } catch (error) {
           console.error('WebGL rendering failed, falling back to Canvas2D:', error);

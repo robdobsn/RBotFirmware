@@ -2,8 +2,9 @@
  * WebGL Shaders for Sand Table Rendering
  * 
  * These shaders handle GPU-accelerated rendering of the sand simulation.
- * The fragment shader performs bilinear sampling, slope-based lighting,
- * and smooth color interpolation entirely on the GPU.
+ * The fragment shader performs explicit normal calculation from neighboring
+ * height samples, then applies a directional lighting model with ambient,
+ * diffuse, and specular components to create realistic sand appearance.
  */
 
 /**
@@ -23,13 +24,11 @@ void main() {
 `;
 
 /**
- * Fragment shader - renders sand with lighting and color
+ * Fragment shader - renders sand with directional lighting
  * 
- * Features:
- * - Bilinear height sampling (automatic via GL_LINEAR)
- * - Slope-based lighting using texture derivatives
- * - Smooth color palette interpolation
- * - Circular table masking
+ * Uses explicit neighbor sampling to compute surface normals,
+ * then applies Phong-like lighting for realistic sand appearance.
+ * Troughs appear dark/shadowed, ridges appear bright/highlighted.
  */
 export const FRAGMENT_SHADER = `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -38,83 +37,89 @@ precision highp float;
 precision mediump float;
 #endif
 
-#extension GL_OES_standard_derivatives : enable
-
-uniform sampler2D uSandHeights;  // Sand height texture (1000×1000)
-uniform vec3 uPalette[30];        // Color palette (30 colors)
-uniform float uMinHeight;         // Minimum sand height for normalization
-uniform float uMaxHeight;         // Height range (max - min)
-uniform vec2 uResolution;         // Canvas resolution
-uniform vec2 uTableSize;          // Sand table grid size
+uniform sampler2D uSandHeights;  // Sand height texture
+uniform vec3 uPalette[30];       // Color palette (30 colors)
+uniform float uMinHeight;        // Minimum sand height
+uniform float uMaxHeight;        // Height range (max - min)
+uniform vec2 uResolution;        // Canvas resolution
+uniform vec2 uTableSize;         // Sand table grid size
 
 varying vec2 vTexCoord;
 
 void main() {
-    // Sample sand height from texture (GPU does bilinear automatically)
-    float height = texture2D(uSandHeights, vTexCoord).r;
-    
     // Check if within circular table boundary
     vec2 center = vec2(0.5, 0.5);
     float dist = distance(vTexCoord, center);
     if (dist > 0.5) {
-        // Outside circle - render black
         gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
         return;
     }
     
-    // DIAGNOSTIC: Visualize raw height value to verify texture is working
-    // Uncomment next line to see if height varies across texture (should see gradients, not uniform color)
-    // gl_FragColor = vec4(height/10.0, height/10.0, height/10.0, 1.0); return;
+    // Sample sand height at this pixel
+    float height = texture2D(uSandHeights, vTexCoord).r;
     
-    // Map height to palette index (0 to 29)
-    // Normalize: (height - min) / (max - min) to get 0-1 range
+    // Calculate texel size for neighbor sampling
+    vec2 texelSize = vec2(1.0 / uTableSize.x, 1.0 / uTableSize.y);
+    
+    // Sample 4 neighbors for normal computation (explicit, not dFdx/dFdy)
+    float hLeft  = texture2D(uSandHeights, vTexCoord + vec2(-texelSize.x, 0.0)).r;
+    float hRight = texture2D(uSandHeights, vTexCoord + vec2( texelSize.x, 0.0)).r;
+    float hUp    = texture2D(uSandHeights, vTexCoord + vec2(0.0, -texelSize.y)).r;
+    float hDown  = texture2D(uSandHeights, vTexCoord + vec2(0.0,  texelSize.y)).r;
+    
+    // Compute surface normal from height differences
+    // Scale the height differences to make lighting more dramatic
+    float heightScale = 8.0; // Controls how dramatic the lighting is
+    float dHdx = (hRight - hLeft) * heightScale;
+    float dHdy = (hDown  - hUp)   * heightScale;
+    vec3 normal = normalize(vec3(-dHdx, -dHdy, 1.0));
+    
+    // ---- Lighting Model ----
+    
+    // Light direction (from upper-left, angled down at ~45 degrees)
+    vec3 lightDir = normalize(vec3(-0.6, -0.6, 0.8));
+    
+    // View direction (straight down onto table)
+    vec3 viewDir = vec3(0.0, 0.0, 1.0);
+    
+    // Ambient: base illumination so shadows aren't pure black
+    float ambient = 0.35;
+    
+    // Diffuse: Lambertian lighting (angle between normal and light)
+    float diffuse = max(0.0, dot(normal, lightDir));
+    
+    // Specular: Blinn-Phong highlight for shiny ridges
+    vec3 halfDir = normalize(lightDir + viewDir);
+    float specAngle = max(0.0, dot(normal, halfDir));
+    float specular = pow(specAngle, 32.0) * 0.3;
+    
+    // Combine lighting components
+    float lighting = ambient + diffuse * 0.6 + specular;
+    
+    // ---- Base Color from Height ----
+    
+    // Normalize height for palette lookup
     float normalized = clamp((height - uMinHeight) / uMaxHeight, 0.0, 1.0);
-    
-    // DIAGNOSTIC: Visualize normalized value (should be 0.0 to 1.0, showing as black to white)
-    // Uncomment next line to verify normalization is working
-    // gl_FragColor = vec4(normalized, normalized, normalized, 1.0); return;
-    
     float palettePos = normalized * 29.0;
     float colorFrac = fract(palettePos);
     
-    // Clamp indices to valid range
     int idx1 = int(floor(palettePos));
     int idx2 = int(ceil(palettePos));
     
-    // WebGL 1.0 requires constant array indices, so use loop-based lookup
-    // Initialize to first color as fallback (not black!)
+    // WebGL 1.0: loop-based palette lookup
     vec3 color1 = uPalette[0];
     vec3 color2 = uPalette[0];
-    
-    // Loop through palette and pick colors matching our indices
     for (int i = 0; i < 30; i++) {
-        if (i == idx1) {
-            color1 = uPalette[i];
-        }
-        if (i == idx2) {
-            color2 = uPalette[i];
-        }
+        if (i == idx1) color1 = uPalette[i];
+        if (i == idx2) color2 = uPalette[i];
     }
-    
-    // Interpolate between two palette colors for smooth gradients
     vec3 baseColor = mix(color1, color2, colorFrac);
     
-    // Calculate slopes using texture derivatives (GPU-optimized) for lighting
-    float dHdx = dFdx(height) * uTableSize.x;
-    float dHdy = dFdy(height) * uTableSize.y;
-    
-    // Compute surface normal from slopes
-    vec3 normal = normalize(vec3(-dHdx, -dHdy, 1.0));
-    
-    // Light direction (from top-left)
-    vec3 lightDir = normalize(vec3(-0.7, -0.7, 1.0));
-    
-    // Calculate lighting (diffuse + ambient)
-    float diffuse = max(0.0, dot(normal, lightDir));
-    float lighting = mix(0.4, 1.2, diffuse);  // Range: 0.4 (shadow) to 1.2 (highlight)
-    
-    // Apply lighting to color
+    // Apply lighting to base color
     vec3 finalColor = baseColor * lighting;
+    
+    // Clamp to valid range
+    finalColor = clamp(finalColor, 0.0, 1.0);
     
     gl_FragColor = vec4(finalColor, 1.0);
 }
