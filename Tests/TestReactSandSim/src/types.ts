@@ -20,6 +20,7 @@ export interface HSL {
 
 export type PatternType = 
   | 'none'
+  | 'horizontalLine'
   | 'spiral'
   | 'logSpiral'
   | 'fermatSpiral'

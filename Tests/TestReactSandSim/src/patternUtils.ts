@@ -23,6 +23,23 @@ export function getPatternPoint(
       y = 0;
       break;
       
+    case 'horizontalLine': // Single horizontal pass for testing (10% margins)
+      // Line from -80% to +80% of maxRadius (leaves 10% margins on each side)
+      const lineStart = -maxRadius * 0.8;
+      const lineEnd = maxRadius * 0.8;
+      const lineLength = lineEnd - lineStart;
+      
+      // Map t to position along line (stop at end, don't loop)
+      if (t <= lineLength) {
+        x = lineStart + t;
+        y = 0; // Centered horizontally
+      } else {
+        // Stay at end position
+        x = lineEnd;
+        y = 0;
+      }
+      break;
+      
     case 'spiral': // Archimedean Spiral
       if (t < 2 * Math.PI * 410) {
         x = Math.sin(t/20) * (maxRadius * 0.92 - t/5);
@@ -125,6 +142,8 @@ export function getPatternPoint(
 
 export const PATTERN_OPTIONS: Array<{value: PatternType, label: string}> = [
   { value: 'none', label: 'None (Base State)' },
+  { value: 'horizontalLine', label: 'Horizontal Line' },
+  { value: 'thr', label: 'THR Track File' },
   { value: 'spiral', label: 'Archimedean Spiral' },
   { value: 'logSpiral', label: 'Logarithmic Spiral' },
   { value: 'fermatSpiral', label: "Fermat's Spiral" },

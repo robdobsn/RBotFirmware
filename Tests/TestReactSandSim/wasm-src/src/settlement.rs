@@ -3,14 +3,14 @@ use crate::sand_kernel::SandKernel;
 
 #[wasm_bindgen]
 pub struct SettlementEngine {
-    settle_threshold: f32,
-    blend_factor: f32,
+    settle_threshold: f64,
+    blend_factor: f64,
 }
 
 #[wasm_bindgen]
 impl SettlementEngine {
     #[wasm_bindgen(constructor)]
-    pub fn new(settle_threshold: f32, blend_factor: f32) -> SettlementEngine {
+    pub fn new(settle_threshold: f64, blend_factor: f64) -> SettlementEngine {
         SettlementEngine {
             settle_threshold,
             blend_factor,
@@ -44,21 +44,21 @@ impl SettlementEngine {
     }    
     // Getters and setters for runtime adjustment
     #[wasm_bindgen]
-    pub fn set_settle_threshold(&mut self, threshold: f32) {
+    pub fn set_settle_threshold(&mut self, threshold: f64) {
         self.settle_threshold = threshold;
     }
     
     #[wasm_bindgen]
-    pub fn get_settle_threshold(&self) -> f32 {
+    pub fn get_settle_threshold(&self) -> f64 {
         self.settle_threshold
     }
     
     #[wasm_bindgen]
-    pub fn set_blend_factor(&mut self, factor: f32) {
+    pub fn set_blend_factor(&mut self, factor: f64) {
         self.blend_factor = factor;
     }
     
     #[wasm_bindgen]
-    pub fn get_blend_factor(&self) -> f32 {
+    pub fn get_blend_factor(&self) -> f64 {
         self.blend_factor
     }}

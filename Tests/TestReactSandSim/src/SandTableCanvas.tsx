@@ -60,12 +60,12 @@ export interface SandTableCanvasProps {
 }
 
 const DEFAULT_OPTIONS: SandSimulationOptions = {
-  ballDiameter: 30,      // Scaled proportionally (6 * 5)
-  tableSize: 1000,       // High resolution for smooth detail (166 parallel traces)
+  ballDiameter: 10,      // Much smaller ball for finer detail (minimum practical size)
+  tableSize: 2000,       // Ultra-high resolution (4M cells)
   sandStartLevel: 5,
   maxSandLevel: 20,
-  moveSpeed: 7.5,        // Scaled proportionally (1.5 * 5)
-  patternScale: 250,     // Default pattern coordinate range (-250 to +250)
+  moveSpeed: 15,         // Scaled proportionally for 2000×2000 grid
+  patternScale: 900,     // Must match maxRadius for proper coordinate conversion
   // Physics parameters (tuned for realistic sand displacement)
   troughDepth: -1.8,     // Depth of trough behind ball (negative removes sand)
   troughWidthRatio: 0.67, // Trough width as 67% of ball radius (~1/3 ball diameter)
@@ -772,14 +772,30 @@ function extractColorPalette(image: HTMLImageElement, numSamples: number = 30): 
 
 function renderSand(
   ctx: CanvasRenderingContext2D,
-  simulation: SandTableSim,
+  simulation: SandTableSim | SandTableSimWasm,
   colorPalette: RGB[] | null,
   canvasWidth: number,
   canvasHeight: number,
-  renderQuality: 'high' | 'medium' | 'low' = 'medium'
+  renderQuality: 'high' | 'medium' | 'low' = 'high'
 ): void {
   const kernel = simulation.getKernel();
   const tableSize = kernel.getTableSize();
+  
+  // Calculate actual min/max heights for proper normalization
+  let minHeight = Infinity;
+  let maxHeight = -Infinity;
+  
+  // Get sand heights array (works for both JS and WASM kernels)
+  const sandHeights = 'getSandLevelArrayZeroCopy' in kernel
+    ? kernel.getSandLevelArrayZeroCopy()
+    : kernel.getSandLevelArray();
+  
+  for (let i = 0; i < sandHeights.length; i++) {
+    const h = sandHeights[i];
+    if (h < minHeight) minHeight = h;
+    if (h > maxHeight) maxHeight = h;
+  }
+  const heightRange = Math.max(maxHeight - minHeight, 0.1);
   
   // Enable canvas smoothing for anti-aliased rendering
   ctx.imageSmoothingEnabled = true;
@@ -878,8 +894,8 @@ function renderSand(
       const palette = colorPalette && colorPalette.length > 0 ? colorPalette : DEFAULT_COLOR_PALETTE;
       
       // Map sand level to color palette with smooth interpolation
-      // Level 0 (lowest) = darkest color, level 20 (highest) = lightest color
-      const normalized = Math.max(0, Math.min(1, level / 20)); // Clamp to 0-1
+      // Use actual height range for normalization (matches WebGL approach)
+      const normalized = Math.max(0, Math.min(1, (level - minHeight) / heightRange)); // Clamp to 0-1
       const palettePos = normalized * (palette.length - 1); // Position in palette (float)
       const colorIndex1 = Math.floor(palettePos);
       const colorIndex2 = Math.min(colorIndex1 + 1, palette.length - 1);

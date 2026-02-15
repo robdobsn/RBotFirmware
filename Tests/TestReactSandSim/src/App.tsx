@@ -12,8 +12,8 @@ export const App: React.FC = () => {
   const [colorImage, setColorImage] = useState<HTMLImageElement | null>(null);
   const [showPathPreview, setShowPathPreview] = useState<boolean>(false);
   const [thrTrack, setThrTrack] = useState<THRTrack | null>(null);
-  const [ballDiameter, setBallDiameter] = useState<number>(30);  // Scaled for 1000×1000 grid
-  const [moveSpeed, setMoveSpeed] = useState<number>(7.5);  // Scaled for 1000×1000 grid
+  const [ballDiameter, setBallDiameter] = useState<number>(10);  // Smaller ball for finer tracks
+  const [moveSpeed, setMoveSpeed] = useState<number>(15);  // Scaled for 2000×2000 grid
   const [drawingSpeed, setDrawingSpeed] = useState<number>(2);
 
   const handlePatternChange = (pattern: PatternType) => {
@@ -44,9 +44,9 @@ export const App: React.FC = () => {
             pattern={selectedPattern}
             colorImage={colorImage}
             thrTrack={thrTrack}
-            width={800}
-            height={800}
-            maxRadius={333}
+            width={1000}
+            height={1000}
+            maxRadius={900}
             showPathPreview={showPathPreview}
             drawingSpeed={drawingSpeed}
             options={{ ballDiameter, moveSpeed }}
@@ -83,9 +83,9 @@ export const App: React.FC = () => {
                 <span>Ball Diameter: {ballDiameter}</span>
                 <input
                   type="range"
-                  min="15"
-                  max="75"
-                  step="5"
+                  min="10"
+                  max="80"
+                  step="2"
                   value={ballDiameter}
                   onChange={(e) => setBallDiameter(Number(e.target.value))}
                   style={sliderStyle}
@@ -98,9 +98,9 @@ export const App: React.FC = () => {
                 <span>Move Speed: {moveSpeed.toFixed(2)}</span>
                 <input
                   type="range"
-                  min="0.5"
-                  max="15.0"
-                  step="0.25"
+                  min="1.0"
+                  max="100.0"
+                  step="1.0"
                   value={moveSpeed}
                   onChange={(e) => setMoveSpeed(Number(e.target.value))}
                   style={sliderStyle}
@@ -109,12 +109,12 @@ export const App: React.FC = () => {
             </div>            
             <div style={sliderContainerStyle}>
               <label style={sliderLabelStyle}>
-                <span>Drawing Speed: {drawingSpeed.toFixed(1)}</span>
+                <span>Drawing Speed: {drawingSpeed.toFixed(2)}</span>
                 <input
                   type="range"
-                  min="0.5"
+                  min="0.1"
                   max="5.0"
-                  step="0.5"
+                  step="0.1"
                   value={drawingSpeed}
                   onChange={(e) => setDrawingSpeed(Number(e.target.value))}
                   style={sliderStyle}
@@ -124,9 +124,9 @@ export const App: React.FC = () => {
             <div style={resetButtonContainerStyle}>
               <button
                 onClick={() => {
-                  setBallDiameter(6);
-                  setMoveSpeed(1.5);
-                  setDrawingSpeed(2);
+                  setBallDiameter(10);
+                  setMoveSpeed(15);
+                  setDrawingSpeed(0.5);
                 }}
                 style={resetButtonStyle}
                 onMouseEnter={(e) => {

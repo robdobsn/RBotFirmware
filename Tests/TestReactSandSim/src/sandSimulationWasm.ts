@@ -66,25 +66,25 @@ export class SandKernelWasm {
     this.kernel.reset();
   }
   
-  getSandLevelArray(): Float32Array {
-    // WASM returns Vec<f32> which becomes Float32Array in JS
+  getSandLevelArray(): Float64Array {
+    // WASM returns Vec<f64> which becomes Float64Array in JS
     const buffer = this.kernel.get_buffer();
-    return new Float32Array(buffer);
+    return new Float64Array(buffer);
   }
   
   /**
    * Get zero-copy view of sand buffer (fastest - no memory allocation)
    * WARNING: View becomes invalid after any WASM call that might reallocate
    */
-  getSandLevelArrayZeroCopy(): Float32Array {
+  getSandLevelArrayZeroCopy(): Float64Array {
     if (!wasmMemory) {
       throw new Error('WASM memory not initialized');
     }
     const ptr = this.kernel.get_buffer_ptr();
     const len = this.kernel.get_buffer_length();
-    // Create Float32Array view directly from WASM memory
-    // ptr is byte offset, divide by 4 for f32 elements
-    return new Float32Array(wasmMemory.buffer, ptr, len);
+    // Create Float64Array view directly from WASM memory
+    // ptr is byte offset, divide by 8 for f64 elements (64 bits = 8 bytes)
+    return new Float64Array(wasmMemory.buffer, ptr, len);
   }
   
   getTableSize(): number {

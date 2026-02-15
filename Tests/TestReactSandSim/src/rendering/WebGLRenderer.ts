@@ -122,6 +122,14 @@ export class WebGLRenderer {
     this.uniforms.resolution = gl.getUniformLocation(this.program, 'uResolution');
     this.uniforms.tableSize = gl.getUniformLocation(this.program, 'uTableSize');
     
+    // Verify uniform locations were found
+    const uniformNames = ['sandHeights', 'palette', 'minHeight', 'maxHeight', 'resolution', 'tableSize'];
+    uniformNames.forEach(name => {
+      if (this.uniforms[name as keyof typeof this.uniforms] === null) {
+        console.warn(`⚠️ Uniform '${name}' not found in shader`);
+      }
+    });
+    
     // Create full-screen quad (two triangles)
     const vertices = new Float32Array([
       -1, -1,  // Bottom-left
@@ -169,8 +177,19 @@ export class WebGLRenderer {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     
+    // Verify float texture support actually works by testing a small upload
+    const testData = new Float32Array([1.0, 2.0, 3.0, 4.0]);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 2, 2, gl.LUMINANCE, gl.FLOAT, testData);
+    const testError = gl.getError();
+    if (testError !== gl.NO_ERROR) {
+      throw new Error(`Float texture upload test failed: ${testError}`);
+    }
+    
     this.isInitialized = true;
-    console.log('✅ WebGL renderer initialized');
+    console.log('✅ WebGL renderer initialized successfully');
+    console.log('   - Float textures:', floatExt ? 'supported' : 'not supported');
+    console.log('   - Derivatives:', derivativesExt ? 'supported' : 'not supported');
+    console.log('   - Table size:', this.tableSize, 'x', this.tableSize);
   }
   
   private compileShader(source: string, type: number): WebGLShader {
@@ -216,13 +235,13 @@ export class WebGLRenderer {
   
   /**
    * Render sand table using GPU
-   * @param sandHeights - Float32Array of sand heights (tableSize × tableSize)
+   * @param sandHeights - Float32Array or Float64Array of sand heights (tableSize × tableSize)
    * @param colorPalette - Array of RGB colors for sand gradient
    * @param canvasWidth - Canvas width in pixels
    * @param canvasHeight - Canvas height in pixels
    */
   render(
-    sandHeights: Float32Array,
+    sandHeights: Float32Array | Float64Array,
     colorPalette: RGB[],
     canvasWidth: number,
     canvasHeight: number
@@ -265,6 +284,13 @@ export class WebGLRenderer {
     // Update sand height texture
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.sandTexture);
+    
+    // Check if texture is properly bound
+    const boundTexture = gl.getParameter(gl.TEXTURE_BINDING_2D);
+    if (boundTexture !== this.sandTexture) {
+      console.error('❌ Texture not properly bound!');
+    }
+    
     gl.texSubImage2D(
       gl.TEXTURE_2D,
       0,
@@ -277,6 +303,30 @@ export class WebGLRenderer {
       sandHeights
     );
     
+    // Check for texture upload errors IMMEDIATELY
+    let error = gl.getError();
+    if (error !== gl.NO_ERROR) {
+      console.error('❌ Error uploading texture:', {
+        error,
+        INVALID_ENUM: gl.INVALID_ENUM,
+        INVALID_VALUE: gl.INVALID_VALUE,
+        INVALID_OPERATION: gl.INVALID_OPERATION
+      });
+    }
+    
+    // DIAGNOSTIC: Verify texture data has variation (occasional check)
+    if (Math.random() < 0.01) {
+      // Sample a few heights to verify texture has correct data
+      console.log('📊 Texture data samples:', {
+        first: sandHeights[0].toFixed(3),
+        middle: sandHeights[Math.floor(sandHeights.length / 2)].toFixed(3),
+        last: sandHeights[sandHeights.length - 1].toFixed(3),
+        min: minHeight.toFixed(3),
+        max: maxHeight.toFixed(3),
+        variation: (maxHeight - minHeight).toFixed(3)
+      });
+    }
+    
     // Set uniforms
     gl.uniform1i(this.uniforms.sandHeights, 0);
     
@@ -287,13 +337,31 @@ export class WebGLRenderer {
       paletteData[i * 3 + 1] = colorPalette[i].g / 255;
       paletteData[i * 3 + 2] = colorPalette[i].b / 255;
     }
-    gl.uniform3fv(this.uniforms.palette, paletteData);
     
-    // Use actual height range for normalization
+    // Set uniforms and verify they're set correctly
+    gl.uniform3fv(this.uniforms.palette, paletteData);
     gl.uniform1f(this.uniforms.minHeight, minHeight);
     gl.uniform1f(this.uniforms.maxHeight, heightRange);
     gl.uniform2f(this.uniforms.resolution, canvasWidth, canvasHeight);
     gl.uniform2f(this.uniforms.tableSize, this.tableSize, this.tableSize);
+    
+    // Check for uniform setting errors
+    error = gl.getError();
+    if (error !== gl.NO_ERROR) {
+      console.error('❌ Error setting uniforms:', error);
+    }
+    
+    // Detailed uniform logging (occasional)
+    if (Math.random() < 0.02) {
+      console.log('WebGL uniforms:', {
+        minHeight: minHeight.toFixed(3),
+        heightRange: heightRange.toFixed(3),
+        paletteColors: colorPalette.length,
+        firstColor: `rgb(${colorPalette[0].r},${colorPalette[0].g},${colorPalette[0].b})`,
+        lastColor: `rgb(${colorPalette[colorPalette.length-1].r},${colorPalette[colorPalette.length-1].g},${colorPalette[colorPalette.length-1].b})`,
+        paletteData: [paletteData[0].toFixed(3), paletteData[1].toFixed(3), paletteData[2].toFixed(3), '...', paletteData[87].toFixed(3), paletteData[88].toFixed(3), paletteData[89].toFixed(3)]
+      });
+    }
     
     // Set up vertex attributes
     gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
@@ -307,14 +375,16 @@ export class WebGLRenderer {
     // Draw full-screen quad
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     
-    // Check for errors
-    const error = gl.getError();
+    // Check for drawing errors
+    error = gl.getError();
     if (error !== gl.NO_ERROR) {
-      console.error('WebGL error during rendering:', error, {
+      console.error('❌ WebGL error during rendering:', {
+        errorCode: error,
         INVALID_ENUM: gl.INVALID_ENUM,
         INVALID_VALUE: gl.INVALID_VALUE,
         INVALID_OPERATION: gl.INVALID_OPERATION,
-        OUT_OF_MEMORY: gl.OUT_OF_MEMORY
+        OUT_OF_MEMORY: gl.OUT_OF_MEMORY,
+        context: 'drawArrays'
       });
     }
   }

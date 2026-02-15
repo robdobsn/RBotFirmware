@@ -62,24 +62,18 @@ void main() {
         return;
     }
     
-    // Calculate slopes using texture derivatives (GPU-optimized)
-    // dFdx/dFdy compute the rate of change across pixels
-    float dHdx = dFdx(height) * uTableSize.x;
-    float dHdy = dFdy(height) * uTableSize.y;
-    
-    // Compute surface normal from slopes
-    vec3 normal = normalize(vec3(-dHdx, -dHdy, 1.0));
-    
-    // Light direction (from top-left)
-    vec3 lightDir = normalize(vec3(-0.7, -0.7, 1.0));
-    
-    // Calculate lighting (diffuse + ambient)
-    float diffuse = max(0.0, dot(normal, lightDir));
-    float lighting = mix(0.4, 1.2, diffuse);  // Range: 0.4 (shadow) to 1.2 (highlight)
+    // DIAGNOSTIC: Visualize raw height value to verify texture is working
+    // Uncomment next line to see if height varies across texture (should see gradients, not uniform color)
+    // gl_FragColor = vec4(height/10.0, height/10.0, height/10.0, 1.0); return;
     
     // Map height to palette index (0 to 29)
     // Normalize: (height - min) / (max - min) to get 0-1 range
     float normalized = clamp((height - uMinHeight) / uMaxHeight, 0.0, 1.0);
+    
+    // DIAGNOSTIC: Visualize normalized value (should be 0.0 to 1.0, showing as black to white)
+    // Uncomment next line to verify normalization is working
+    // gl_FragColor = vec4(normalized, normalized, normalized, 1.0); return;
+    
     float palettePos = normalized * 29.0;
     float colorFrac = fract(palettePos);
     
@@ -104,6 +98,20 @@ void main() {
     
     // Interpolate between two palette colors for smooth gradients
     vec3 baseColor = mix(color1, color2, colorFrac);
+    
+    // Calculate slopes using texture derivatives (GPU-optimized) for lighting
+    float dHdx = dFdx(height) * uTableSize.x;
+    float dHdy = dFdy(height) * uTableSize.y;
+    
+    // Compute surface normal from slopes
+    vec3 normal = normalize(vec3(-dHdx, -dHdy, 1.0));
+    
+    // Light direction (from top-left)
+    vec3 lightDir = normalize(vec3(-0.7, -0.7, 1.0));
+    
+    // Calculate lighting (diffuse + ambient)
+    float diffuse = max(0.0, dot(normal, lightDir));
+    float lighting = mix(0.4, 1.2, diffuse);  // Range: 0.4 (shadow) to 1.2 (highlight)
     
     // Apply lighting to color
     vec3 finalColor = baseColor * lighting;
