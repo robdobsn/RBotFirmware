@@ -40,30 +40,51 @@ export function getPatternPoint(
       }
       break;
       
-    case 'spiral': // Archimedean Spiral
-      if (t < 2 * Math.PI * 410) {
-        x = Math.sin(t/20) * (maxRadius * 0.92 - t/5);
-        y = Math.cos(t/20) * (maxRadius * 0.92 - t/5);
-      } else {
-        x = Math.sin((t-15)/20) * maxRadius;
-        y = Math.cos((t-15)/20) * maxRadius;
+    case 'spiral': // Archimedean Spiral (outward then inward, repeating)
+      {
+        // Total angle for one outward pass
+        const spiralSpacing = maxRadius * 0.06; // gap between loops
+        const maxTheta = maxRadius * 0.92 / spiralSpacing; // angle at which radius reaches max
+        const fullCycleTheta = maxTheta * 2; // out + back
+        const theta_sp = (t / 20) % fullCycleTheta;
+        let spiralR: number;
+        if (theta_sp < maxTheta) {
+          // Spiraling outward
+          spiralR = theta_sp * spiralSpacing;
+        } else {
+          // Spiraling inward
+          spiralR = (fullCycleTheta - theta_sp) * spiralSpacing;
+        }
+        x = spiralR * Math.sin(t / 20);
+        y = spiralR * Math.cos(t / 20);
       }
       break;
         
     case 'logSpiral': // Logarithmic Spiral
-      const a = maxRadius * 0.0003; // scale initial size with maxRadius
-      const b = 0.2;
-      const theta = t / 30;
-      const r = Math.min(a * Math.exp(b * theta), maxRadius);
-      x = r * Math.cos(theta);
-      y = r * Math.sin(theta);
+      {
+        const a_log = maxRadius * 0.01;
+        const b_log = 0.08;
+        const theta_log = t / 30;
+        // Cycle: grow then shrink using triangle wave on exponent
+        const cycleLen = Math.log(maxRadius / a_log) / b_log; // theta at which r = maxRadius
+        const thetaMod = theta_log % (cycleLen * 2);
+        const effectiveTheta = thetaMod < cycleLen ? thetaMod : cycleLen * 2 - thetaMod;
+        const r_log = a_log * Math.exp(b_log * effectiveTheta);
+        x = r_log * Math.cos(theta_log);
+        y = r_log * Math.sin(theta_log);
+      }
       break;
         
-    case 'fermatSpiral': // Fermat's Spiral
-      const angle = t / 15;
-      const radius = Math.min(maxRadius * 0.06 * Math.sqrt(angle), maxRadius);
-      x = radius * Math.cos(angle);
-      y = radius * Math.sin(angle);
+    case 'fermatSpiral': // Fermat's Spiral (outward then inward)
+      {
+        const angle_f = t / 15;
+        const maxAngle_f = (maxRadius / (maxRadius * 0.06)) ** 2; // angle at which radius = maxRadius
+        const cycleMod = angle_f % (maxAngle_f * 2);
+        const effectiveAngle = cycleMod < maxAngle_f ? cycleMod : maxAngle_f * 2 - cycleMod;
+        const radius_f = maxRadius * 0.06 * Math.sqrt(effectiveAngle);
+        x = radius_f * Math.cos(angle_f);
+        y = radius_f * Math.sin(angle_f);
+      }
       break;
         
     case 'rose': // Rose Curve
@@ -116,20 +137,33 @@ export function getPatternPoint(
       y = r1 * Math.sin(pointAngle) * (1 - blend) + r2 * Math.sin(nextAngle) * blend;
       break;
         
-    case 'circles': // Expanding Circles
-      const circleNum = Math.floor(t / (2 * Math.PI * 50));
-      const circleT = (t % (2 * Math.PI * 50)) / 50;
-      const circleR = Math.min(maxRadius * 0.12 + circleNum * maxRadius * 0.12, maxRadius);
-      x = circleR * Math.cos(circleT);
-      y = circleR * Math.sin(circleT);
+    case 'circles': // Expanding Circles (multiple radii, cycling)
+      {
+        const maxCircles = 8;
+        const circlePhase = t / (2 * Math.PI * 50);
+        const circleIdx = Math.floor(circlePhase) % (maxCircles * 2);
+        const circleAngle = (t % (2 * Math.PI * 50)) / 50;
+        // Triangle wave: expand out then contract back
+        const effectiveIdx = circleIdx < maxCircles ? circleIdx : maxCircles * 2 - circleIdx;
+        const circleRadius = maxRadius * 0.1 + effectiveIdx * maxRadius * 0.1;
+        x = circleRadius * Math.cos(circleAngle);
+        y = circleRadius * Math.sin(circleAngle);
+      }
       break;
         
-    case 'spiral3d': // 3D-looking Spiral
-      const theta_3d = t / 20;
-      const r_3d = Math.min(maxRadius * 0.04 + theta_3d * maxRadius * 0.012, maxRadius);
-      const modulation = 1 + 0.3 * Math.sin(theta_3d * 5);
-      x = r_3d * Math.cos(theta_3d) * modulation;
-      y = r_3d * Math.sin(theta_3d) * modulation;
+    case 'spiral3d': // 3D-looking Spiral (outward then inward with wobble)
+      {
+        const theta3d = t / 20;
+        const maxR3d = maxRadius * 0.9;
+        const growRate = maxRadius * 0.012;
+        const maxTheta3d = maxR3d / growRate; // theta at which radius = max
+        const cycleMod3d = theta3d % (maxTheta3d * 2);
+        const effectiveTheta3d = cycleMod3d < maxTheta3d ? cycleMod3d : maxTheta3d * 2 - cycleMod3d;
+        const r3d = maxRadius * 0.04 + effectiveTheta3d * growRate;
+        const modulation3d = 1 + 0.3 * Math.sin(theta3d * 5);
+        x = r3d * Math.cos(theta3d) * modulation3d;
+        y = r3d * Math.sin(theta3d) * modulation3d;
+      }
       break;
         
     default:

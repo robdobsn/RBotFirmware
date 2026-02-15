@@ -62,19 +62,11 @@ impl PhysicsEngine {
         self.prev_pos_x = self.current_pos_x;
         self.prev_pos_y = self.current_pos_y;
         
-        // Calculate direction to target
-        let dx = self.target_pos_x - self.current_pos_x;
-        let dy = self.target_pos_y - self.current_pos_y;
-        let dist = (dx * dx + dy * dy).sqrt();
-        
-        // Move toward target with speed limiting
-        if dist > self.move_speed {
-            self.current_pos_x += (dx / dist) * self.move_speed;
-            self.current_pos_y += (dy / dist) * self.move_speed;
-        } else {
-            self.current_pos_x = self.target_pos_x;
-            self.current_pos_y = self.target_pos_y;
-        }
+        // Move ball directly to target position
+        // Distance-based displacement (below) ensures consistent results
+        // regardless of how far the ball moves per frame
+        self.current_pos_x = self.target_pos_x;
+        self.current_pos_y = self.target_pos_y;
         
         // Calculate velocity for displacement
         let vel_x = self.current_pos_x - self.prev_pos_x;
