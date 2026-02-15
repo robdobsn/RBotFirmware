@@ -24,10 +24,11 @@ void main() {
 `;
 
 /**
- * Fragment shader - renders sand with directional lighting
+ * Fragment shader - renders sand with radial edge lighting
  * 
  * Uses explicit neighbor sampling to compute surface normals,
- * then applies Phong-like lighting for realistic sand appearance.
+ * then applies lighting from 8 virtual LEDs evenly spaced around
+ * the table rim, simulating real sand table edge-mounted LED strips.
  * Troughs appear dark/shadowed, ridges appear bright/highlighted.
  */
 export const FRAGMENT_SHADER = `
@@ -45,6 +46,26 @@ uniform vec2 uResolution;        // Canvas resolution
 uniform vec2 uTableSize;         // Sand table grid size
 
 varying vec2 vTexCoord;
+
+// Hash-based pseudo-random noise (deterministic per pixel)
+float hash(vec2 p) {
+    vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+}
+
+// Value noise with smooth interpolation (gives grain-like texture)
+float valueNoise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    // Smooth interpolation
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(
+        mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x),
+        mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x),
+        u.y
+    );
+}
 
 void main() {
     // Check if within circular table boundary
@@ -69,32 +90,36 @@ void main() {
     
     // Compute surface normal from height differences
     // Scale the height differences to make lighting more dramatic
-    float heightScale = 8.0; // Controls how dramatic the lighting is
+    float heightScale = 8.0;
     float dHdx = (hRight - hLeft) * heightScale;
     float dHdy = (hDown  - hUp)   * heightScale;
     vec3 normal = normalize(vec3(-dHdx, -dHdy, 1.0));
     
-    // ---- Lighting Model ----
+    // ---- Lighting Model (Analytical Hemisphere) ----
+    // A uniform ring of LEDs around the rim is equivalent to hemispherical
+    // ambient lighting. Flat surfaces (normal pointing up) receive full light.
+    // Tilted surfaces receive less — troughs and ridge slopes appear darker.
+    // No per-light loop = no interference/spottiness artifacts.
     
-    // Light direction (from upper-left, angled down at ~45 degrees)
-    vec3 lightDir = normalize(vec3(-0.6, -0.6, 0.8));
+    // Hemisphere diffuse: how much the surface faces upward
+    // normal.z = 1.0 for flat, < 1.0 for tilted slopes
+    float hemisphere = normal.z;
     
-    // View direction (straight down onto table)
-    vec3 viewDir = vec3(0.0, 0.0, 1.0);
+    // Radial rim contribution: surfaces tilted toward the table edge
+    // receive slightly more light (they face the LED ring).
+    // Direction from center toward this pixel (where LEDs are)
+    vec2 toEdge = normalize(vTexCoord - center);
+    float rimFacing = max(0.0, dot(normal.xy, toEdge) * 0.15);
     
-    // Ambient: base illumination so shadows aren't pure black
-    float ambient = 0.35;
+    // Combine: strong ambient + hemisphere diffuse + subtle rim bias
+    float lighting = 0.4 + hemisphere * 0.55 + rimFacing;
     
-    // Diffuse: Lambertian lighting (angle between normal and light)
-    float diffuse = max(0.0, dot(normal, lightDir));
-    
-    // Specular: Blinn-Phong highlight for shiny ridges
-    vec3 halfDir = normalize(lightDir + viewDir);
-    float specAngle = max(0.0, dot(normal, halfDir));
-    float specular = pow(specAngle, 32.0) * 0.3;
-    
-    // Combine lighting components
-    float lighting = ambient + diffuse * 0.6 + specular;
+    // ---- Sand Grain Texture ----
+    // Add subtle brightness variation to simulate individual sand grains.
+    // Applied as a small multiplier on the final lighting, not on normals.
+    vec2 grainCoord = vTexCoord * uResolution;
+    float grain = valueNoise(grainCoord * 0.5) * 0.6 + valueNoise(grainCoord * 0.25) * 0.4;
+    lighting *= 0.97 + grain * 0.06; // ±3% brightness variation
     
     // ---- Base Color from Height ----
     

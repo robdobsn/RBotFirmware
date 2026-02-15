@@ -9,45 +9,45 @@ import { CrossSectionChart, CrossSectionData } from './CrossSectionChart';
 import { WebGLRenderer } from './rendering/WebGLRenderer';
 
 const DEFAULT_COLOR_PALETTE: RGB[] = [
-  // Deep troughs (dark warm browns)
-  { r: 60, g: 45, b: 30, a: 1 },    // 0 - Darkest trough
-  { r: 70, g: 52, b: 35, a: 1 },    // 1
-  { r: 80, g: 60, b: 40, a: 1 },    // 2
-  { r: 90, g: 68, b: 45, a: 1 },    // 3
-  { r: 100, g: 76, b: 50, a: 1 },   // 4
-  
-  // Lower mid (warm brown)
-  { r: 110, g: 85, b: 58, a: 1 },   // 5
-  { r: 120, g: 94, b: 65, a: 1 },   // 6
-  { r: 130, g: 103, b: 72, a: 1 },  // 7
-  { r: 138, g: 110, b: 78, a: 1 },  // 8
-  { r: 145, g: 118, b: 85, a: 1 },  // 9
-  
-  // Mid-range (sandy tan - this is where undisturbed sand sits)
-  { r: 152, g: 125, b: 90, a: 1 },  // 10
-  { r: 158, g: 132, b: 96, a: 1 },  // 11
-  { r: 164, g: 138, b: 102, a: 1 }, // 12
-  { r: 170, g: 144, b: 108, a: 1 }, // 13
-  { r: 175, g: 150, b: 114, a: 1 }, // 14
-  { r: 180, g: 155, b: 120, a: 1 }, // 15
-  { r: 185, g: 160, b: 125, a: 1 }, // 16
-  { r: 190, g: 166, b: 130, a: 1 }, // 17
-  { r: 195, g: 172, b: 136, a: 1 }, // 18
-  { r: 200, g: 178, b: 142, a: 1 }, // 19
-  
-  // Upper mid (light sandy)
-  { r: 205, g: 184, b: 148, a: 1 }, // 20
-  { r: 210, g: 190, b: 155, a: 1 }, // 21
-  { r: 215, g: 196, b: 162, a: 1 }, // 22
-  { r: 220, g: 202, b: 170, a: 1 }, // 23
-  { r: 225, g: 208, b: 178, a: 1 }, // 24
-  
-  // High ridges (bright warm highlights)
-  { r: 230, g: 215, b: 185, a: 1 }, // 25
-  { r: 235, g: 222, b: 195, a: 1 }, // 26
-  { r: 240, g: 228, b: 205, a: 1 }, // 27
-  { r: 245, g: 235, b: 215, a: 1 }, // 28
-  { r: 250, g: 242, b: 225, a: 1 }, // 29 - Brightest ridge
+  // Deep troughs (medium gray - matching real sand table shadows)
+  { r: 95, g: 95, b: 98, a: 1 },    // 0 - Darkest trough
+  { r: 105, g: 105, b: 108, a: 1 }, // 1
+  { r: 115, g: 115, b: 118, a: 1 }, // 2
+  { r: 124, g: 124, b: 127, a: 1 }, // 3
+  { r: 133, g: 133, b: 136, a: 1 }, // 4
+
+  // Lower mid (medium gray)
+  { r: 142, g: 142, b: 145, a: 1 }, // 5
+  { r: 150, g: 150, b: 153, a: 1 }, // 6
+  { r: 157, g: 157, b: 160, a: 1 }, // 7
+  { r: 164, g: 164, b: 167, a: 1 }, // 8
+  { r: 170, g: 170, b: 173, a: 1 }, // 9
+
+  // Mid-range (light gray - undisturbed sand)
+  { r: 176, g: 176, b: 179, a: 1 }, // 10
+  { r: 181, g: 181, b: 184, a: 1 }, // 11
+  { r: 186, g: 186, b: 189, a: 1 }, // 12
+  { r: 191, g: 191, b: 193, a: 1 }, // 13
+  { r: 195, g: 195, b: 197, a: 1 }, // 14
+  { r: 199, g: 199, b: 201, a: 1 }, // 15
+  { r: 203, g: 203, b: 205, a: 1 }, // 16
+  { r: 207, g: 207, b: 209, a: 1 }, // 17
+  { r: 211, g: 211, b: 213, a: 1 }, // 18
+  { r: 215, g: 215, b: 217, a: 1 }, // 19
+
+  // Upper mid (bright gray)
+  { r: 219, g: 219, b: 221, a: 1 }, // 20
+  { r: 223, g: 223, b: 225, a: 1 }, // 21
+  { r: 227, g: 227, b: 229, a: 1 }, // 22
+  { r: 231, g: 231, b: 233, a: 1 }, // 23
+  { r: 235, g: 235, b: 237, a: 1 }, // 24
+
+  // High ridges (near white)
+  { r: 238, g: 238, b: 240, a: 1 }, // 25
+  { r: 241, g: 241, b: 243, a: 1 }, // 26
+  { r: 244, g: 244, b: 246, a: 1 }, // 27
+  { r: 248, g: 248, b: 249, a: 1 }, // 28
+  { r: 252, g: 252, b: 253, a: 1 }, // 29 - Brightest ridge
 ];
 
 export interface SandTableCanvasProps {
