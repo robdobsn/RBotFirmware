@@ -82,50 +82,41 @@ void main() {
     // Calculate texel size for neighbor sampling
     vec2 texelSize = vec2(1.0 / uTableSize.x, 1.0 / uTableSize.y);
     
-    // Sample 4 neighbors for normal computation (explicit, not dFdx/dFdy)
-    float hLeft  = texture2D(uSandHeights, vTexCoord + vec2(-texelSize.x, 0.0)).r;
-    float hRight = texture2D(uSandHeights, vTexCoord + vec2( texelSize.x, 0.0)).r;
-    float hUp    = texture2D(uSandHeights, vTexCoord + vec2(0.0, -texelSize.y)).r;
-    float hDown  = texture2D(uSandHeights, vTexCoord + vec2(0.0,  texelSize.y)).r;
+    // ---- Sand Grain Roughness ----
+    // Add per-grain height noise BEFORE normal computation.
+    // This makes transitions rough and irregular like real sand.
+    // Amplitude kept moderate so normals don't flip peak/trough lighting.
+    vec2 grainCoord = vTexCoord * uTableSize;
     
-    // Compute surface normal from height differences
-    // Scale the height differences to make lighting more dramatic
-    float heightScale = 8.0;
+    // Sample 4 neighbors with grain noise applied to each.
+    // Each neighbor gets its OWN noise value, creating jagged normals.
+    float noiseAmp = 0.12; // Reduced to prevent lighting inversions
+    float hLeft  = texture2D(uSandHeights, vTexCoord + vec2(-texelSize.x, 0.0)).r
+                 + (valueNoise((grainCoord + vec2(-1.0, 0.0)) * 0.8) - 0.5) * noiseAmp;
+    float hRight = texture2D(uSandHeights, vTexCoord + vec2( texelSize.x, 0.0)).r
+                 + (valueNoise((grainCoord + vec2( 1.0, 0.0)) * 0.8) - 0.5) * noiseAmp;
+    float hUp    = texture2D(uSandHeights, vTexCoord + vec2(0.0, -texelSize.y)).r
+                 + (valueNoise((grainCoord + vec2(0.0, -1.0)) * 0.8) - 0.5) * noiseAmp;
+    float hDown  = texture2D(uSandHeights, vTexCoord + vec2(0.0,  texelSize.y)).r
+                 + (valueNoise((grainCoord + vec2(0.0,  1.0)) * 0.8) - 0.5) * noiseAmp;
+    
+    // Compute surface normal from noisy height differences
+    float heightScale = 14.0; // Higher = sharper edge contrast
     float dHdx = (hRight - hLeft) * heightScale;
     float dHdy = (hDown  - hUp)   * heightScale;
     vec3 normal = normalize(vec3(-dHdx, -dHdy, 1.0));
     
     // ---- Lighting Model (Analytical Hemisphere) ----
-    // A uniform ring of LEDs around the rim is equivalent to hemispherical
-    // ambient lighting. Flat surfaces (normal pointing up) receive full light.
-    // Tilted surfaces receive less — troughs and ridge slopes appear darker.
-    // No per-light loop = no interference/spottiness artifacts.
-    
-    // Hemisphere diffuse: how much the surface faces upward
-    // normal.z = 1.0 for flat, < 1.0 for tilted slopes
     float hemisphere = normal.z;
-    
-    // Radial rim contribution: surfaces tilted toward the table edge
-    // receive slightly more light (they face the LED ring).
-    // Direction from center toward this pixel (where LEDs are)
     vec2 toEdge = normalize(vTexCoord - center);
     float rimFacing = max(0.0, dot(normal.xy, toEdge) * 0.15);
-    
-    // Combine: strong ambient + hemisphere diffuse + subtle rim bias
-    float lighting = 0.4 + hemisphere * 0.55 + rimFacing;
-    
-    // ---- Sand Grain Texture ----
-    // Add subtle brightness variation to simulate individual sand grains.
-    // Applied as a small multiplier on the final lighting, not on normals.
-    vec2 grainCoord = vTexCoord * uResolution;
-    float grain = valueNoise(grainCoord * 0.5) * 0.6 + valueNoise(grainCoord * 0.25) * 0.4;
-    lighting *= 0.97 + grain * 0.06; // ±3% brightness variation
+    float lighting = 0.45 + hemisphere * 0.6 + rimFacing;
     
     // ---- Base Color from Height ----
-    
-    // Normalize height for palette lookup
+    // Apply smoothstep contrast curve for defined trough/peak transitions.
     float normalized = clamp((height - uMinHeight) / uMaxHeight, 0.0, 1.0);
-    float palettePos = normalized * 29.0;
+    float contrasted = normalized * normalized * (3.0 - 2.0 * normalized); // single smoothstep
+    float palettePos = contrasted * 29.0;
     float colorFrac = fract(palettePos);
     
     int idx1 = int(floor(palettePos));
@@ -140,8 +131,27 @@ void main() {
     }
     vec3 baseColor = mix(color1, color2, colorFrac);
     
-    // Apply lighting to base color
-    vec3 finalColor = baseColor * lighting;
+    // ---- Sand Grain Texture (constrained scatter) ----
+    // Add grain noise but constrain it so peaks always stay brighter than troughs.
+    // The scatter range shrinks at extremes to prevent inversions.
+    vec2 sparkleCoord = vTexCoord * uResolution;
+    float sparkle = valueNoise(sparkleCoord * 1.5) - 0.5; // [-0.5, 0.5]
+    float fineSparkle = valueNoise(sparkleCoord * 3.0) - 0.5;
+    float grainVar = (sparkle * 0.6 + fineSparkle * 0.4);
+    
+    // Scale noise so it can't push a pixel across the peak/trough divide:
+    // At normalized=0 (trough), allow only slight brightening (+0 to +0.05)
+    // At normalized=1 (peak), allow only slight darkening (-0.05 to 0)
+    // At normalized=0.5 (mid), full range ±0.08
+    float maxBrighten = (1.0 - normalized) * 0.12;
+    float maxDarken = normalized * 0.12;
+    float scatter = clamp(grainVar * 0.16, -maxDarken, maxBrighten);
+    
+    // Height-based brightness boost: peaks get pushed toward full white
+    float heightBoost = contrasted * 0.25; // up to +0.25 at peaks
+    
+    // Apply lighting, scatter, and height boost
+    vec3 finalColor = baseColor * (lighting + scatter + heightBoost);
     
     // Clamp to valid range
     finalColor = clamp(finalColor, 0.0, 1.0);

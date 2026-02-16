@@ -128,16 +128,20 @@ impl PhysicsEngine {
                     let pos_y = center_y + dy as f64;
                     
                     if d < center_radius {
-                        // Center zone: create trough
-                        let trough_factor = 1.0 - (d / center_radius);
+                        // Center zone: create trough with steep-walled profile
+                        // Smoothstep creates a flat bottom with sharp edges (like a real ball imprint)
+                        let t = d / center_radius; // 0 at center, 1 at edge
+                        // Inverted smoothstep: full depth at center, steep rise at edge
+                        let trough_factor = 1.0 - t * t * (3.0 - 2.0 * t);
                         let sand_amount = self.trough_depth * trough_factor * scale_factor;
-                        kernel.add_sand(pos_x, pos_y, sand_amount);
+                        kernel.add_sand_diminishing(pos_x, pos_y, sand_amount);
                     } else {
                         // Outer zone: push sand to sides (create ridges)
-                        // Only apply perpendicular offset to positions that are already
-                        // perpendicular to the motion direction (avoids interference on curves)
-                        let side_factor = (d - center_radius) / (radius - center_radius);
-                        let sand_amount = self.ridge_height * (1.0 - d / radius) * scale_factor;
+                        // Steep falloff from ridge peak using inverted smoothstep
+                        let t = (d - center_radius) / (radius - center_radius); // 0 at inner edge, 1 at outer
+                        let side_factor = t;
+                        let ridge_profile = 1.0 - t * t * (3.0 - 2.0 * t); // Steep falloff
+                        let sand_amount = self.ridge_height * ridge_profile * scale_factor;
                         
                         // Calculate how perpendicular this position is to motion
                         // (dot product with perpendicular direction)
@@ -153,11 +157,11 @@ impl PhysicsEngine {
                             // Add sand perpendicular to motion (both sides)
                             let disp_x1 = pos_x + perp_x * offset_dist;
                             let disp_y1 = pos_y + perp_y * offset_dist;
-                            kernel.add_sand(disp_x1, disp_y1, sand_amount * perp_alignment);
+                            kernel.add_sand_diminishing(disp_x1, disp_y1, sand_amount * perp_alignment);
                             
                             let disp_x2 = pos_x - perp_x * offset_dist;
                             let disp_y2 = pos_y - perp_y * offset_dist;
-                            kernel.add_sand(disp_x2, disp_y2, sand_amount * perp_alignment * 0.8);
+                            kernel.add_sand_diminishing(disp_x2, disp_y2, sand_amount * perp_alignment * 0.8);
                         }
                     }
                 }

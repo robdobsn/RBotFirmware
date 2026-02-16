@@ -185,8 +185,8 @@ export class SandTableSimWasm {
     // Update physics and displace sand (WASM-accelerated)
     this.physics.update(this.kernel.getWasmKernel());
     
-    // Settle sand less frequently (2% chance per frame)
-    if (Math.random() < this.settleFrequency) {
+    // Settle sand very rarely to preserve sharp edges
+    if (Math.random() < this.settleFrequency * 0.2) {
       this.settlement.settle_full(this.kernel.getWasmKernel());
     }
   }

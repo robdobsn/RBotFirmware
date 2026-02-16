@@ -9,45 +9,45 @@ import { CrossSectionChart, CrossSectionData } from './CrossSectionChart';
 import { WebGLRenderer } from './rendering/WebGLRenderer';
 
 const DEFAULT_COLOR_PALETTE: RGB[] = [
-  // Deep troughs (medium gray - matching real sand table shadows)
-  { r: 95, g: 95, b: 98, a: 1 },    // 0 - Darkest trough
-  { r: 105, g: 105, b: 108, a: 1 }, // 1
-  { r: 115, g: 115, b: 118, a: 1 }, // 2
+  // Deep troughs (darker for more contrast)
+  { r: 100, g: 100, b: 103, a: 1 }, // 0 - Darkest trough
+  { r: 108, g: 108, b: 111, a: 1 }, // 1
+  { r: 116, g: 116, b: 119, a: 1 }, // 2
   { r: 124, g: 124, b: 127, a: 1 }, // 3
-  { r: 133, g: 133, b: 136, a: 1 }, // 4
+  { r: 132, g: 132, b: 135, a: 1 }, // 4
 
-  // Lower mid (medium gray)
-  { r: 142, g: 142, b: 145, a: 1 }, // 5
-  { r: 150, g: 150, b: 153, a: 1 }, // 6
-  { r: 157, g: 157, b: 160, a: 1 }, // 7
-  { r: 164, g: 164, b: 167, a: 1 }, // 8
-  { r: 170, g: 170, b: 173, a: 1 }, // 9
+  // Lower mid
+  { r: 140, g: 140, b: 143, a: 1 }, // 5
+  { r: 148, g: 148, b: 151, a: 1 }, // 6
+  { r: 155, g: 155, b: 158, a: 1 }, // 7
+  { r: 162, g: 162, b: 165, a: 1 }, // 8
+  { r: 169, g: 169, b: 172, a: 1 }, // 9
 
-  // Mid-range (light gray - undisturbed sand)
+  // Mid-range (undisturbed sand)
   { r: 176, g: 176, b: 179, a: 1 }, // 10
-  { r: 181, g: 181, b: 184, a: 1 }, // 11
-  { r: 186, g: 186, b: 189, a: 1 }, // 12
-  { r: 191, g: 191, b: 193, a: 1 }, // 13
-  { r: 195, g: 195, b: 197, a: 1 }, // 14
-  { r: 199, g: 199, b: 201, a: 1 }, // 15
-  { r: 203, g: 203, b: 205, a: 1 }, // 16
-  { r: 207, g: 207, b: 209, a: 1 }, // 17
-  { r: 211, g: 211, b: 213, a: 1 }, // 18
-  { r: 215, g: 215, b: 217, a: 1 }, // 19
+  { r: 182, g: 182, b: 185, a: 1 }, // 11
+  { r: 188, g: 188, b: 191, a: 1 }, // 12
+  { r: 194, g: 194, b: 196, a: 1 }, // 13
+  { r: 200, g: 200, b: 202, a: 1 }, // 14
+  { r: 206, g: 206, b: 208, a: 1 }, // 15
+  { r: 211, g: 211, b: 213, a: 1 }, // 16
+  { r: 216, g: 216, b: 218, a: 1 }, // 17
+  { r: 221, g: 221, b: 223, a: 1 }, // 18
+  { r: 226, g: 226, b: 228, a: 1 }, // 19
 
-  // Upper mid (bright gray)
-  { r: 219, g: 219, b: 221, a: 1 }, // 20
-  { r: 223, g: 223, b: 225, a: 1 }, // 21
-  { r: 227, g: 227, b: 229, a: 1 }, // 22
-  { r: 231, g: 231, b: 233, a: 1 }, // 23
-  { r: 235, g: 235, b: 237, a: 1 }, // 24
+  // Upper mid (bright)
+  { r: 231, g: 231, b: 233, a: 1 }, // 20
+  { r: 235, g: 235, b: 237, a: 1 }, // 21
+  { r: 239, g: 239, b: 241, a: 1 }, // 22
+  { r: 243, g: 243, b: 245, a: 1 }, // 23
+  { r: 246, g: 246, b: 248, a: 1 }, // 24
 
-  // High ridges (near white)
-  { r: 238, g: 238, b: 240, a: 1 }, // 25
-  { r: 241, g: 241, b: 243, a: 1 }, // 26
-  { r: 244, g: 244, b: 246, a: 1 }, // 27
-  { r: 248, g: 248, b: 249, a: 1 }, // 28
-  { r: 252, g: 252, b: 253, a: 1 }, // 29 - Brightest ridge
+  // High ridges (bright white peaks)
+  { r: 249, g: 249, b: 250, a: 1 }, // 25
+  { r: 251, g: 251, b: 252, a: 1 }, // 26
+  { r: 253, g: 253, b: 254, a: 1 }, // 27
+  { r: 254, g: 254, b: 255, a: 1 }, // 28
+  { r: 255, g: 255, b: 255, a: 1 }, // 29 - Pure white ridge
 ];
 
 export interface SandTableCanvasProps {
@@ -70,10 +70,10 @@ const DEFAULT_OPTIONS: SandSimulationOptions = {
   maxSandLevel: 20,
   moveSpeed: 15,         // Scaled proportionally for 2000×2000 grid
   patternScale: 900,     // Must match maxRadius for proper coordinate conversion
-  // Physics parameters (tuned for realistic sand displacement)
-  troughDepth: -1.8,     // Depth of trough behind ball (negative removes sand)
+  // Physics parameters (tuned for realistic sand displacement with diminishing returns)
+  troughDepth: -4.0,     // Depth of trough (strong first pass, cubic diminishing on repeats)
   troughWidthRatio: 0.67, // Trough width as 67% of ball radius (~1/3 ball diameter)
-  ridgeHeight: 1.2,      // Height of sand ridges pushed to sides
+  ridgeHeight: 2.5,      // Height of sand ridges pushed to sides
   ridgeOffset: 1.2,      // Distance sand is pushed perpendicular to motion
   // Settlement parameters (for sand smoothing over time)
   settleThreshold: 1.5,  // Height difference to trigger settling
@@ -185,7 +185,7 @@ export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
       
       try {
         const tableSize = simulation.getKernel().getTableSize();
-        const renderer = new WebGLRenderer(canvas, tableSize);
+        const renderer = new WebGLRenderer(canvas, tableSize, DEFAULT_OPTIONS.maxSandLevel, DEFAULT_OPTIONS.sandStartLevel);
         webglRendererRef.current = renderer;
         setIsWebGLAvailable(true);
         console.log('✅ WebGL renderer ready for 100× speedup!');
@@ -773,21 +773,16 @@ function renderSand(
   const kernel = simulation.getKernel();
   const tableSize = kernel.getTableSize();
   
-  // Calculate actual min/max heights for proper normalization
-  let minHeight = Infinity;
-  let maxHeight = -Infinity;
+  // Use fixed height range so untouched sand stays a consistent shade.
+  // Tighten range around sandStartLevel so undisturbed sand maps bright (~0.7).
+  const minHeight = 0;
+  const sandStartLevel = 5; // matches DEFAULT_OPTIONS.sandStartLevel
+  const heightRange = sandStartLevel * 1.4; // = 7
   
   // Get sand heights array (works for both JS and WASM kernels)
   const sandHeights = 'getSandLevelArrayZeroCopy' in kernel
     ? kernel.getSandLevelArrayZeroCopy()
     : kernel.getSandLevelArray();
-  
-  for (let i = 0; i < sandHeights.length; i++) {
-    const h = sandHeights[i];
-    if (h < minHeight) minHeight = h;
-    if (h > maxHeight) maxHeight = h;
-  }
-  const heightRange = Math.max(maxHeight - minHeight, 0.1);
   
   // Enable canvas smoothing for anti-aliased rendering
   ctx.imageSmoothingEnabled = true;

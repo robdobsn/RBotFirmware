@@ -78,6 +78,58 @@ impl SandKernel {
         }
     }
     
+    /// Add sand with diminishing returns - displacement is strong on first pass
+    /// and progressively weaker on subsequent passes over the same area.
+    /// For removal (amount < 0): scales by how much sand remains above 0
+    /// For addition (amount > 0): scales by how much room remains below max
+    /// This gives natural exponential decay on repeated passes.
+    pub fn add_sand_diminishing(&mut self, x: f64, y: f64, amount: f64) {
+        let x_floor = x.floor();
+        let y_floor = y.floor();
+        let ix = x_floor as isize;
+        let iy = y_floor as isize;
+        
+        let fx = x - x_floor;
+        let fy = y - y_floor;
+        
+        let weights = [
+            ((1.0 - fx) * (1.0 - fy), ix,     iy    ),
+            (fx * (1.0 - fy),         ix + 1, iy    ),
+            ((1.0 - fx) * fy,         ix,     iy + 1),
+            (fx * fy,                 ix + 1, iy + 1),
+        ];
+        
+        for (weight, cell_x, cell_y) in weights {
+            if cell_x >= 0 && cell_x < self.table_size as isize &&
+               cell_y >= 0 && cell_y < self.table_size as isize {
+                let idx = cell_y as usize * self.table_size + cell_x as usize;
+                let current = self.sand_level[idx];
+                
+                // Scale displacement by how much "room" remains
+                // Uses a power curve (cubed) for aggressive diminishing:
+                // First pass gets near-full effect, subsequent passes drop off sharply
+                let linear = if amount < 0.0 {
+                    // Removing sand: fraction of sand remaining above zero
+                    (current / self.sand_start_level).clamp(0.0, 1.0)
+                } else {
+                    // Adding sand: fraction of headroom remaining below max
+                    let headroom = self.max_sand_level - self.sand_start_level;
+                    if headroom > 0.0 {
+                        ((self.max_sand_level - current) / headroom).clamp(0.0, 1.0)
+                    } else {
+                        0.0
+                    }
+                };
+                // Cube the linear factor for aggressive falloff
+                // linear=1.0→1.0, 0.7→0.34, 0.5→0.125, 0.3→0.027
+                let diminish = linear * linear * linear;
+                
+                let new_level = current + amount * weight * diminish;
+                self.sand_level[idx] = new_level.min(self.max_sand_level).max(0.0);
+            }
+        }
+    }
+    
     /// Reset grid to initial state
     #[wasm_bindgen]
     pub fn reset(&mut self) {

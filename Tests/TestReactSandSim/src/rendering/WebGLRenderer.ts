@@ -21,6 +21,8 @@ export class WebGLRenderer {
   private texCoordBuffer: WebGLBuffer | null = null;
   
   private tableSize: number;
+  private maxSandLevel: number;
+  private sandStartLevel: number;
   private textureData: Float32Array | null = null;
   private frameCount: number = 0;
   
@@ -52,7 +54,7 @@ export class WebGLRenderer {
   
   private isInitialized = false;
 
-  constructor(canvas: HTMLCanvasElement, tableSize: number) {
+  constructor(canvas: HTMLCanvasElement, tableSize: number, maxSandLevel: number = 20, sandStartLevel: number = 5) {
     // Try to get WebGL context
     const gl = canvas.getContext('webgl', {
       alpha: false,
@@ -74,6 +76,8 @@ export class WebGLRenderer {
     
     this.gl = gl as WebGLRenderingContext;
     this.tableSize = tableSize;
+    this.maxSandLevel = maxSandLevel;
+    this.sandStartLevel = sandStartLevel;
     
     // Check for float texture support (required for height data)
     const floatTextureExt = gl.getExtension('OES_texture_float');
@@ -250,17 +254,11 @@ export class WebGLRenderer {
     
     const gl = this.gl;
     
-    // Calculate actual min/max heights from data for better color mapping
-    let minHeight = Infinity;
-    let maxHeight = -Infinity;
-    for (let i = 0; i < sandHeights.length; i++) {
-      const h = sandHeights[i];
-      if (h < minHeight) minHeight = h;
-      if (h > maxHeight) maxHeight = h;
-    }
-    
-    // Use at least a small range to avoid division by zero
-    const heightRange = Math.max(maxHeight - minHeight, 0.1);
+    // Use fixed height range so untouched sand stays a consistent shade.
+    // Display range is tightened around sandStartLevel so undisturbed sand
+    // maps to a bright palette position (~0.7 normalized).
+    const minHeight = 0;
+    const heightRange = this.sandStartLevel * 1.4; // e.g. 5*1.4=7
     
     // Set viewport
     gl.viewport(0, 0, canvasWidth, canvasHeight);
