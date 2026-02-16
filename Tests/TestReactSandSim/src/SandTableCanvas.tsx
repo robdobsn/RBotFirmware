@@ -33,9 +33,9 @@ const DEFAULT_OPTIONS: SandSimulationOptions = {
   moveSpeed: 15,         // Scaled proportionally for 2000×2000 grid
   patternScale: 900,     // Must match maxRadius for proper coordinate conversion
   // Physics parameters (tuned for realistic sand displacement with diminishing returns)
-  troughDepth: -4.0,     // Depth of trough (strong first pass, cubic diminishing on repeats)
+  troughDepth: -6.0,     // Depth of trough (strong first pass, 6th-power diminishing on repeats)
   troughWidthRatio: 0.67, // Trough width as 67% of ball radius (~1/3 ball diameter)
-  ridgeHeight: 2.5,      // Height of sand ridges pushed to sides
+  ridgeHeight: 3.5,      // Height of sand ridges pushed to sides
   ridgeOffset: 1.2,      // Distance sand is pushed perpendicular to motion
   // Settlement parameters (for sand smoothing over time)
   settleThreshold: 1.5,  // Height difference to trigger settling

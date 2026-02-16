@@ -95,8 +95,8 @@ void main() {
     // Apply smoothstep for crisper trough/peak transitions
     float luminance = normalized * normalized * (3.0 - 2.0 * normalized);
     
-    // Scale luminance: troughs dark (0.3), peaks near-white (1.0)
-    float brightness = 0.3 + luminance * 0.7;
+    // Scale luminance: troughs very dark (0.06), peaks near-white (1.0)
+    float brightness = 0.06 + luminance * 0.94;
     
     // ---- Edge-concentrated grain texture ----
     // Texture is strongest where the slope is steep (transition edges).

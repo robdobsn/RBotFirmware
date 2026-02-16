@@ -120,9 +120,10 @@ impl SandKernel {
                         0.0
                     }
                 };
-                // Cube the linear factor for aggressive falloff
-                // linear=1.0→1.0, 0.7→0.34, 0.5→0.125, 0.3→0.027
-                let diminish = linear * linear * linear;
+                // Raise to 6th power for very aggressive falloff:
+                // linear=1.0→1.0, 0.7→0.12, 0.5→0.016, 0.3→0.0007
+                // First pass gets near-full effect, subsequent passes barely move sand
+                let diminish = linear * linear * linear * linear * linear * linear;
                 
                 let new_level = current + amount * weight * diminish;
                 self.sand_level[idx] = new_level.min(self.max_sand_level).max(0.0);
