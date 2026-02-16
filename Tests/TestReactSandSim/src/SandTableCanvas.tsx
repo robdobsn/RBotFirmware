@@ -8,47 +8,9 @@ import { SandTableSimWasm, initializeWasm } from './sandSimulationWasm';
 import { CrossSectionChart, CrossSectionData } from './CrossSectionChart';
 import { WebGLRenderer } from './rendering/WebGLRenderer';
 
-const DEFAULT_COLOR_PALETTE: RGB[] = [
-  // Deep troughs (darker for more contrast)
-  { r: 100, g: 100, b: 103, a: 1 }, // 0 - Darkest trough
-  { r: 108, g: 108, b: 111, a: 1 }, // 1
-  { r: 116, g: 116, b: 119, a: 1 }, // 2
-  { r: 124, g: 124, b: 127, a: 1 }, // 3
-  { r: 132, g: 132, b: 135, a: 1 }, // 4
-
-  // Lower mid
-  { r: 140, g: 140, b: 143, a: 1 }, // 5
-  { r: 148, g: 148, b: 151, a: 1 }, // 6
-  { r: 155, g: 155, b: 158, a: 1 }, // 7
-  { r: 162, g: 162, b: 165, a: 1 }, // 8
-  { r: 169, g: 169, b: 172, a: 1 }, // 9
-
-  // Mid-range (undisturbed sand)
-  { r: 176, g: 176, b: 179, a: 1 }, // 10
-  { r: 182, g: 182, b: 185, a: 1 }, // 11
-  { r: 188, g: 188, b: 191, a: 1 }, // 12
-  { r: 194, g: 194, b: 196, a: 1 }, // 13
-  { r: 200, g: 200, b: 202, a: 1 }, // 14
-  { r: 206, g: 206, b: 208, a: 1 }, // 15
-  { r: 211, g: 211, b: 213, a: 1 }, // 16
-  { r: 216, g: 216, b: 218, a: 1 }, // 17
-  { r: 221, g: 221, b: 223, a: 1 }, // 18
-  { r: 226, g: 226, b: 228, a: 1 }, // 19
-
-  // Upper mid (bright)
-  { r: 231, g: 231, b: 233, a: 1 }, // 20
-  { r: 235, g: 235, b: 237, a: 1 }, // 21
-  { r: 239, g: 239, b: 241, a: 1 }, // 22
-  { r: 243, g: 243, b: 245, a: 1 }, // 23
-  { r: 246, g: 246, b: 248, a: 1 }, // 24
-
-  // High ridges (bright white peaks)
-  { r: 249, g: 249, b: 250, a: 1 }, // 25
-  { r: 251, g: 251, b: 252, a: 1 }, // 26
-  { r: 253, g: 253, b: 254, a: 1 }, // 27
-  { r: 254, g: 254, b: 255, a: 1 }, // 28
-  { r: 255, g: 255, b: 255, a: 1 }, // 29 - Pure white ridge
-];
+// Base sand color — cool silver-gray tone matching real sand table
+// Luminance is modulated by height in the shader, so this is the hue/saturation reference
+const DEFAULT_SAND_COLOR: RGB = { r: 210, g: 210, b: 215, a: 1 };
 
 export interface SandTableCanvasProps {
   pattern: PatternType;
@@ -99,7 +61,6 @@ export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
   const [isWasmReady, setIsWasmReady] = useState(false);
   const tRef = useRef<number>(0);  // Use ref for t to avoid re-rendering on every frame
   const [isRunning, setIsRunning] = useState(true);
-  const [colorPalette, setColorPalette] = useState<RGB[] | null>(null);
   const animationFrameRef = useRef<number>();
 
   // Cross-section state
@@ -149,24 +110,6 @@ export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
       cancelled = true;
     };
   }, []); // Only run once on mount
-
-  // Extract color palette when image changes
-  useEffect(() => {
-    if (colorImage && colorImage.complete && colorImage.naturalWidth > 0) {
-      const palette = extractColorPalette(colorImage, 30);
-      setColorPalette(palette);
-      // Log colors to console for copying
-      console.log('=== Color Palette Extracted ===');
-      console.log('const DEFAULT_COLOR_PALETTE: RGB[] = [');
-      palette.forEach((color, idx) => {
-        console.log(`  { r: ${color.r}, g: ${color.g}, b: ${color.b}, a: 1 }, // ${idx}`);
-      });
-      console.log('];');
-      console.log('===============================');
-    } else {
-      setColorPalette(null);
-    }
-  }, [colorImage]);
 
   // Initialize WebGL renderer (only when useWebGL is true)
   useEffect(() => {
@@ -262,8 +205,7 @@ export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
             ? kernel.getSandLevelArrayZeroCopy()
             : kernel.getSandLevelArray();
           
-          const palette = colorPalette && colorPalette.length > 0 ? colorPalette : DEFAULT_COLOR_PALETTE;
-          webglRendererRef.current.render(sandHeights, palette, width, height);
+          webglRendererRef.current.render(sandHeights, DEFAULT_SAND_COLOR, width, height);
         } catch (error) {
           console.error('WebGL rendering failed, falling back to Canvas2D:', error);
           setUseWebGL(false);
@@ -281,8 +223,7 @@ export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
           if (canvas) {
             const ctx2d = canvas.getContext('2d');
             if (ctx2d) {
-              const palette = colorPalette && colorPalette.length > 0 ? colorPalette : DEFAULT_COLOR_PALETTE;
-              renderSand(ctx2d, simulation, palette, width, height, renderQuality);
+              renderSand(ctx2d, simulation, DEFAULT_SAND_COLOR, width, height, renderQuality);
             } else {
               console.error('Failed to get 2D context for Canvas2D rendering');
             }
@@ -350,7 +291,7 @@ export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isRunning, pattern, simulation, colorPalette, width, height, maxRadius, thrTrack, drawingSpeed, showPathPreview, crossSectionEnabled, crossSectionStart, crossSectionEnd, renderQuality, useWebGL]);
+  }, [isRunning, pattern, simulation, width, height, maxRadius, thrTrack, drawingSpeed, showPathPreview, crossSectionEnabled, crossSectionStart, crossSectionEnd, renderQuality, useWebGL]);
 
   // Static render when paused (for cross-section mode)
   useEffect(() => {
@@ -374,14 +315,13 @@ export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
           ? kernel.getSandLevelArrayZeroCopy()
           : kernel.getSandLevelArray();
         
-        const palette = colorPalette && colorPalette.length > 0 ? colorPalette : DEFAULT_COLOR_PALETTE;
-        webglRendererRef.current.render(sandHeights, palette, width, height);
+        webglRendererRef.current.render(sandHeights, DEFAULT_SAND_COLOR, width, height);
       } catch (error) {
         console.error('WebGL rendering failed:', error);
-        renderSand(ctx, simulation, colorPalette, width, height, renderQuality);
+        renderSand(ctx, simulation, DEFAULT_SAND_COLOR, width, height, renderQuality);
       }
     } else {
-      renderSand(ctx, simulation, colorPalette, width, height, renderQuality);
+      renderSand(ctx, simulation, DEFAULT_SAND_COLOR, width, height, renderQuality);
     }
 
     // Draw ball position
@@ -413,7 +353,7 @@ export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
       ctx.arc(crossSectionEnd.x, crossSectionEnd.y, 6, 0, Math.PI * 2);
       ctx.fill();
     }
-  }, [isRunning, simulation, colorPalette, width, height, crossSectionEnabled, crossSectionStart, crossSectionEnd, renderQuality, useWebGL]);
+  }, [isRunning, simulation, width, height, crossSectionEnabled, crossSectionStart, crossSectionEnd, renderQuality, useWebGL]);
 
   const handleReset = () => {
     if (!simulation) return;
@@ -686,86 +626,10 @@ export const SandTableCanvas: React.FC<SandTableCanvasProps> = ({
   );
 };
 
-/**
- * Extract a color palette from an image by sampling across it.
- * Samples horizontally at 50% height and diagonally for variety.
- * @param image - The source image
- * @param numSamples - Number of color samples to extract (default 30)
- * @returns Array of RGB colors representing a gradient from dark to light
- */
-function extractColorPalette(image: HTMLImageElement, numSamples: number = 30): RGB[] {
-  const canvas = document.createElement('canvas');
-  canvas.width = image.width;
-  canvas.height = image.height;
-  const ctx = canvas.getContext('2d');
-  
-  if (!ctx) return [];
-  
-  ctx.drawImage(image, 0, 0);
-  const imageData = ctx.getImageData(0, 0, image.width, image.height);
-  const data = imageData.data;
-  
-  const palette: RGB[] = [];
-  
-  // Sample across the image in multiple ways to get color variety
-  // Strategy: sample diagonally, horizontally at midpoint, and vertically at midpoint
-  const samplePoints: Array<{x: number, y: number}> = [];
-  
-  // Diagonal samples (top-left to bottom-right)
-  for (let i = 0; i < numSamples / 3; i++) {
-    const t = i / (numSamples / 3);
-    samplePoints.push({
-      x: Math.floor(t * image.width),
-      y: Math.floor(t * image.height)
-    });
-  }
-  
-  // Horizontal samples at middle height
-  for (let i = 0; i < numSamples / 3; i++) {
-    const t = i / (numSamples / 3);
-    samplePoints.push({
-      x: Math.floor(t * image.width),
-      y: Math.floor(image.height / 2)
-    });
-  }
-  
-  // Vertical samples at middle width
-  for (let i = 0; i < numSamples / 3; i++) {
-    const t = i / (numSamples / 3);
-    samplePoints.push({
-      x: Math.floor(image.width / 2),
-      y: Math.floor(t * image.height)
-    });
-  }
-  
-  // Extract colors at sample points
-  for (const point of samplePoints) {
-    const x = Math.min(point.x, image.width - 1);
-    const y = Math.min(point.y, image.height - 1);
-    const idx = (y * image.width + x) * 4;
-    
-    palette.push({
-      r: data[idx],
-      g: data[idx + 1],
-      b: data[idx + 2],
-      a: 1
-    });
-  }
-  
-  // Sort by luminance (brightness) to create a gradient from dark to light
-  palette.sort((a, b) => {
-    const lumA = 0.299 * a.r + 0.587 * a.g + 0.114 * a.b;
-    const lumB = 0.299 * b.r + 0.587 * b.g + 0.114 * b.b;
-    return lumA - lumB;
-  });
-  
-  return palette;
-}
-
 function renderSand(
   ctx: CanvasRenderingContext2D,
   simulation: SandTableSim | SandTableSimWasm,
-  colorPalette: RGB[] | null,
+  baseColor: RGB,
   canvasWidth: number,
   canvasHeight: number,
   renderQuality: 'high' | 'medium' | 'low' = 'high'
@@ -824,8 +688,6 @@ function renderSand(
       
       // Sample sand level based on quality
       let level: number;
-      let slopeDx: number;
-      let slopeDy: number;
       
       if (useBilinear) {
         // High/Medium quality: Bilinear interpolation for smoother sand height sampling
@@ -834,7 +696,6 @@ function renderSand(
         const tx_frac = tx - tx_floor;
         const ty_frac = ty - ty_floor;
         
-        // Sample 4 neighboring points (reuse for slope calculation)
         const h00 = kernel.getSandLevel(tx_floor, ty_floor);
         const h10 = kernel.getSandLevel(tx_floor + 1, ty_floor);
         const h01 = kernel.getSandLevel(tx_floor, ty_floor + 1);
@@ -844,66 +705,24 @@ function renderSand(
         const h0 = h00 * (1 - tx_frac) + h10 * tx_frac;
         const h1 = h01 * (1 - tx_frac) + h11 * tx_frac;
         level = h0 * (1 - ty_frac) + h1 * ty_frac;
-        
-        // Calculate slopes using the samples we already have (no additional calls)
-        slopeDx = h10 - h00; // Right - Left approximation
-        slopeDy = h01 - h00; // Down - Up approximation
       } else {
         // Low quality: Simple nearest-neighbor sampling (fastest)
         level = kernel.getSandLevel(Math.floor(tx), Math.floor(ty));
-        const levelRight = kernel.getSandLevel(Math.floor(tx) + 1, Math.floor(ty));
-        const levelDown = kernel.getSandLevel(Math.floor(tx), Math.floor(ty) + 1);
-        slopeDx = levelRight - level;
-        slopeDy = levelDown - level;
       }
       
-      // Light direction (from top-left: -0.7, -0.7)
-      const lightDirX = -0.7;
-      const lightDirY = -0.7;
+      // Map height to luminance (same model as WebGL shader)
+      const normalized = Math.max(0, Math.min(1, (level - minHeight) / heightRange));
+      // Smoothstep
+      const luminance = normalized * normalized * (3.0 - 2.0 * normalized);
+      // Scale: troughs dark (0.35), peaks white (1.0)
+      const brightness = 0.35 + luminance * 0.65;
       
-      // Calculate slope in light direction (dot product)
-      const slope = slopeDx * lightDirX + slopeDy * lightDirY;
-      
-      // Calculate lighting factor based on slope
-      let lightingFactor = 1.0;
-      if (slope > 0) {
-        // Facing light - brighter
-        lightingFactor = 1.0 + slope * 1.1;
-      } else {
-        // Facing away - darker (more dramatic)
-        lightingFactor = 1.0 + slope * 2.0;
-      }
-      
-      // Clamp lighting factor to reasonable range
-      lightingFactor = Math.max(0.4, Math.min(1.2, lightingFactor));
-      
-      // Use loaded color palette if available, otherwise use default palette
-      const palette = colorPalette && colorPalette.length > 0 ? colorPalette : DEFAULT_COLOR_PALETTE;
-      
-      // Map sand level to color palette with smooth interpolation
-      // Use actual height range for normalization (matches WebGL approach)
-      const normalized = Math.max(0, Math.min(1, (level - minHeight) / heightRange)); // Clamp to 0-1
-      const palettePos = normalized * (palette.length - 1); // Position in palette (float)
-      const colorIndex1 = Math.floor(palettePos);
-      const colorIndex2 = Math.min(colorIndex1 + 1, palette.length - 1);
-      const colorFrac = palettePos - colorIndex1; // Fraction between colors
-      
-      // Interpolate between two palette colors for smooth gradients
-      const color1 = palette[colorIndex1];
-      const color2 = palette[colorIndex2];
-      const baseRgb: RGB = {
-        r: color1.r * (1 - colorFrac) + color2.r * colorFrac,
-        g: color1.g * (1 - colorFrac) + color2.g * colorFrac,
-        b: color1.b * (1 - colorFrac) + color2.b * colorFrac,
-        a: 255
-      };
-      
-      // Apply lighting to color
+      // Apply base color * brightness
       const rgb: RGB = {
-        r: Math.min(255, Math.round(baseRgb.r * lightingFactor)),
-        g: Math.min(255, Math.round(baseRgb.g * lightingFactor)),
-        b: Math.min(255, Math.round(baseRgb.b * lightingFactor)),
-        a: baseRgb.a
+        r: Math.min(255, Math.round(baseColor.r * brightness)),
+        g: Math.min(255, Math.round(baseColor.g * brightness)),
+        b: Math.min(255, Math.round(baseColor.b * brightness)),
+        a: 255
       };
       
       // Fill in pixel block (for pixelStep > 1, fill adjacent pixels with same color)

@@ -29,14 +29,14 @@ export class WebGLRenderer {
   // Uniform locations
   private uniforms: {
     sandHeights: WebGLUniformLocation | null;
-    palette: WebGLUniformLocation | null;
+    baseColor: WebGLUniformLocation | null;
     minHeight: WebGLUniformLocation | null;
     maxHeight: WebGLUniformLocation | null;
     resolution: WebGLUniformLocation | null;
     tableSize: WebGLUniformLocation | null;
   } = {
     sandHeights: null,
-    palette: null,
+    baseColor: null,
     minHeight: null,
     maxHeight: null,
     resolution: null,
@@ -119,14 +119,14 @@ export class WebGLRenderer {
     
     // Get uniform locations
     this.uniforms.sandHeights = gl.getUniformLocation(this.program, 'uSandHeights');
-    this.uniforms.palette = gl.getUniformLocation(this.program, 'uPalette');
+    this.uniforms.baseColor = gl.getUniformLocation(this.program, 'uBaseColor');
     this.uniforms.minHeight = gl.getUniformLocation(this.program, 'uMinHeight');
     this.uniforms.maxHeight = gl.getUniformLocation(this.program, 'uMaxHeight');
     this.uniforms.resolution = gl.getUniformLocation(this.program, 'uResolution');
     this.uniforms.tableSize = gl.getUniformLocation(this.program, 'uTableSize');
     
     // Verify uniform locations were found
-    const uniformNames = ['sandHeights', 'palette', 'minHeight', 'maxHeight', 'resolution', 'tableSize'];
+    const uniformNames = ['sandHeights', 'baseColor', 'minHeight', 'maxHeight', 'resolution', 'tableSize'];
     uniformNames.forEach(name => {
       if (this.uniforms[name as keyof typeof this.uniforms] === null) {
         console.warn(`⚠️ Uniform '${name}' not found in shader`);
@@ -238,13 +238,13 @@ export class WebGLRenderer {
   /**
    * Render sand table using GPU
    * @param sandHeights - Float32Array or Float64Array of sand heights (tableSize × tableSize)
-   * @param colorPalette - Array of RGB colors for sand gradient
+   * @param baseColor - Base sand color as {r, g, b} (0-255)
    * @param canvasWidth - Canvas width in pixels
    * @param canvasHeight - Canvas height in pixels
    */
   render(
     sandHeights: Float32Array | Float64Array,
-    colorPalette: RGB[],
+    baseColor: RGB,
     canvasWidth: number,
     canvasHeight: number
   ): void {
@@ -305,15 +305,9 @@ export class WebGLRenderer {
     // Set uniforms
     gl.uniform1i(this.uniforms.sandHeights, 0);
     
-    // Convert RGB palette to normalized vec3 array
-    const paletteData = new Float32Array(30 * 3);
-    for (let i = 0; i < Math.min(colorPalette.length, 30); i++) {
-      paletteData[i * 3] = colorPalette[i].r / 255;
-      paletteData[i * 3 + 1] = colorPalette[i].g / 255;
-      paletteData[i * 3 + 2] = colorPalette[i].b / 255;
-    }
+    // Set base sand color (normalized to 0-1)
+    gl.uniform3f(this.uniforms.baseColor, baseColor.r / 255, baseColor.g / 255, baseColor.b / 255);
     
-    gl.uniform3fv(this.uniforms.palette, paletteData);
     gl.uniform1f(this.uniforms.minHeight, minHeight);
     gl.uniform1f(this.uniforms.maxHeight, heightRange);
     gl.uniform2f(this.uniforms.resolution, canvasWidth, canvasHeight);
