@@ -207,5 +207,10 @@ uint16_t LedStrip::getAverageSensorReading() {
 // Set sleep mode
 void LedStrip::setSleepMode(int sleep)
 {
+    // If coming out of sleep restore ledValue from Nvm
+    if (_isSleeping == true && sleep == false) {
+        setup(_pHwConfig, _name.c_str());
+    }
     _isSleeping = sleep;
+    ledConfigChanged = true;
 }
