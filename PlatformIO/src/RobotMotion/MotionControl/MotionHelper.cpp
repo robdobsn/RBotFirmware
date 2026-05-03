@@ -142,6 +142,7 @@ void MotionHelper::pause(bool pauseIt)
     _rampGenerator.pause(pauseIt);
     _trinamicsController.pause(pauseIt);
     _isPaused = pauseIt;
+    _motorEnabler.enableMotors(!pauseIt, false);
 }
 
 // Check if paused
@@ -363,7 +364,9 @@ void MotionHelper::blocksToAddProcess()
         addToPlanner(_blocksToAddCommandArgs);
 
         // Enable motors
-        _motorEnabler.enableMotors(true, false);
+        if (!_isPaused) {
+            _motorEnabler.enableMotors(true, false);
+        }
     }
 }
 
@@ -450,10 +453,19 @@ void MotionHelper::service()
     _motionHoming.service(_axesParams);
 
     // Ensure motors enabled when homing or moving
-    if ((_motionPipeline.count() > 0) || _motionHoming.isHomingInProgress())
+    if (!_isPaused && ((_motionPipeline.count() > 0) || _motionHoming.isHomingInProgress()))
     {
         _motorEnabler.enableMotors(true, false);
     }
+    // Disable motors when no homing is in progress and no motion is in the pipeline
+    else if (!_isPaused && _motionPipeline.count() == 0 && !_motionHoming.isHomingInProgress())
+    {
+        _motorEnabler.enableMotors(false, false);
+#ifdef DEBUG_MOTION_HELPER
+        Log.trace("%sMotors disabled after motion complete\n", MODULE_PREFIX);
+#endif
+    }
+
 }
 
 // Set home coordinates
