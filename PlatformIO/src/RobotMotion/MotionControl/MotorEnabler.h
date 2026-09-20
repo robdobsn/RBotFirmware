@@ -62,7 +62,7 @@ public:
             if (_stepEnablePin != -1)
             {
                 if (_motorsAreEnabled)
-                    Log.notice("MotorEnabler: %smotors disabled by %s\n", timeout ? "timeout" : "command");
+                    Log.notice("MotorEnabler: motors disabled by %s\n", timeout ? "timeout" : "command");
                 digitalWrite(_stepEnablePin, !_stepEnLev);
             }
             _motorsAreEnabled = false;
